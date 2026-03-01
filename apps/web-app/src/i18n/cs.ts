@@ -63,7 +63,7 @@ export const cs = {
   seedCopied: "Seed zkopírován do schránky.",
   cashuSeed: "Cashu seed",
   cashuSeedCopied: "Cashu seed zkopírován do schránky.",
-  seedMissing: "Chybí seed. Přihlaste se znovu pomocí nsec.",
+  seedMissing: "Chybí seed. Přihlaste se znovu pomocí seedu.",
   tokens: "Tokeny",
   payWithCashu: "Platit s cashu",
   payWithCashuDisabled: "Platit s cashu je vypnuto v pokročilém nastavení.",
@@ -414,11 +414,6 @@ export const cs = {
 
   allowPromises: "Povolit sliby",
   totalBalanceWithPromises: "Celková bilance (vč. slibů)",
-  credoTokenTitle: "Credo",
-  credoOwe: "Dlužím",
-  credoPromisedToMe: "Mám slíbeno",
-  credoExpiresIn: "Expiruje za {time}",
-  credoExpired: "Expirovalo",
 
   pay: "Zaplatit",
   payTo: "Platba pro",

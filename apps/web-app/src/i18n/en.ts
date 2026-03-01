@@ -38,8 +38,8 @@ export const en = {
   onboardingTitle: "Linky",
   onboardingSubtitle: "Lightning contacts for payments and messages.",
   onboardingCreate: "Create account",
-  onboardingPasteNsec: "Paste nsec",
-  onboardingInvalidNsec: "Invalid nsec.",
+  onboardingPasteNsec: "Paste secret",
+  onboardingInvalidNsec: "Invalid secret.",
   onboardingInvalidNsecOrSeed: "Invalid nsec or SLIP-39 seed.",
   onboardingCreateFailed: "Failed to create account.",
   onboardingStep1: "Picking a name for you… You will be {name}",
@@ -411,11 +411,6 @@ export const en = {
 
   allowPromises: "Allow promises",
   totalBalanceWithPromises: "Total balance (incl. promises)",
-  credoTokenTitle: "Credo",
-  credoOwe: "I owe",
-  credoPromisedToMe: "Promised to me",
-  credoExpiresIn: "Expires in {time}",
-  credoExpired: "Expired",
 
   pay: "Pay",
   payTo: "Pay to",
