@@ -598,6 +598,7 @@ export const useAppShellComposition = () => {
     messagesOwnerEditsUntilRotation,
     messagesSyncOwner,
     recordContactsOwnerWrite,
+    recordMessagesOwnerWrite,
     requestManualRotateContactsOwner,
     requestManualRotateMessagesOwner,
     rotateContactsOwnerIsBusy,
@@ -1050,6 +1051,7 @@ export const useAppShellComposition = () => {
     chatMessagesRef,
     messagesOwnerId,
     messagesOwnerIdRef,
+    recordMessagesOwnerWrite,
     route,
     visibleMessageOwnerIds,
   });

@@ -36,6 +36,7 @@ interface UseMessagesDomainParams {
   chatMessagesRef: React.RefObject<HTMLDivElement | null>;
   messagesOwnerId: OwnerId | null;
   messagesOwnerIdRef: React.MutableRefObject<OwnerId | null>;
+  recordMessagesOwnerWrite: (count?: number) => void;
   route: Route;
   visibleMessageOwnerIds: readonly string[];
 }
@@ -318,6 +319,7 @@ interface NostrMessageUpdatePayload {
   editedAtSec?: number | null;
   editedFromId?: string | null;
   id: string;
+  isDeleted?: typeof Evolu.sqliteTrue;
   isEdited?: string | null;
   localOnly?: string | null;
   originalContent?: string | null;
@@ -334,6 +336,7 @@ interface NostrReactionUpdatePayload {
   clientId?: string | null;
   emoji?: string;
   id: string;
+  isDeleted?: typeof Evolu.sqliteTrue;
   messageId?: string;
   reactorPubkey?: string;
   status?: "pending" | "sent";
@@ -373,6 +376,7 @@ export const useMessagesDomain = ({
   chatMessagesRef,
   messagesOwnerId,
   messagesOwnerIdRef,
+  recordMessagesOwnerWrite,
   route,
   visibleMessageOwnerIds,
 }: UseMessagesDomainParams) => {
@@ -513,6 +517,52 @@ export const useMessagesDomain = ({
     nostrReactionWrapIdsRef.current = new Set(nostrReactionSeenWrapIds);
   }, [nostrReactionSeenWrapIds, nostrReactionsLocal]);
 
+  const insertNostrMessage = React.useCallback(
+    (payload: NostrMessageInsertPayload) => {
+      const result = messagesOwnerId
+        ? insert("nostrMessage", payload, { ownerId: messagesOwnerId })
+        : insert("nostrMessage", payload);
+      if (result.ok) recordMessagesOwnerWrite();
+      return result;
+    },
+    [insert, messagesOwnerId, recordMessagesOwnerWrite],
+  );
+
+  const insertNostrReaction = React.useCallback(
+    (payload: NonNullable<ReturnType<typeof buildReactionInsertPayload>>) => {
+      const result = messagesOwnerId
+        ? insert("nostrReaction", payload, { ownerId: messagesOwnerId })
+        : insert("nostrReaction", payload);
+      if (result.ok) recordMessagesOwnerWrite();
+      return result;
+    },
+    [insert, messagesOwnerId, recordMessagesOwnerWrite],
+  );
+
+  const updateNostrMessage = React.useCallback(
+    (payload: NostrMessageUpdatePayload) => {
+      if (messagesOwnerId) {
+        update("nostrMessage", payload, { ownerId: messagesOwnerId });
+      } else {
+        update("nostrMessage", payload);
+      }
+      recordMessagesOwnerWrite();
+    },
+    [messagesOwnerId, recordMessagesOwnerWrite, update],
+  );
+
+  const updateNostrReaction = React.useCallback(
+    (payload: NostrReactionUpdatePayload) => {
+      if (messagesOwnerId) {
+        update("nostrReaction", payload, { ownerId: messagesOwnerId });
+      } else {
+        update("nostrReaction", payload);
+      }
+      recordMessagesOwnerWrite();
+    },
+    [messagesOwnerId, recordMessagesOwnerWrite, update],
+  );
+
   const [pendingPayments, setPendingPayments] = React.useState<
     LocalPendingPayment[]
   >(() => []);
@@ -584,9 +634,7 @@ export const useMessagesDomain = ({
         });
         if (!payload) continue;
 
-        const result = insert("nostrMessage", payload, {
-          ownerId: messagesOwnerId,
-        });
+        const result = insertNostrMessage(payload);
         if (!result.ok) continue;
 
         if (wrapId) seenWrapIds.add(wrapId);
@@ -606,7 +654,7 @@ export const useMessagesDomain = ({
     } finally {
       migrationRunningRef.current = false;
     }
-  }, [insert, messagesOwnerId, nostrMessagesLocal]);
+  }, [insertNostrMessage, messagesOwnerId, nostrMessagesLocal]);
 
   const appendLocalNostrMessage = React.useCallback(
     (message: NewLocalNostrMessage): string => {
@@ -639,9 +687,7 @@ export const useMessagesDomain = ({
       });
       if (existing) return toTrimmedText(existing.id);
 
-      const result = messagesOwnerId
-        ? insert("nostrMessage", payload, { ownerId: messagesOwnerId })
-        : insert("nostrMessage", payload);
+      const result = insertNostrMessage(payload);
       if (!result.ok) return "";
 
       const messageId = toText(result.value.id);
@@ -659,11 +705,10 @@ export const useMessagesDomain = ({
       return messageId;
     },
     [
-      messagesOwnerId,
       activeChatRouteId,
       chatForceScrollToBottomRef,
       chatMessagesRef,
-      insert,
+      insertNostrMessage,
     ],
   );
 
@@ -901,13 +946,9 @@ export const useMessagesDomain = ({
 
       nostrMessageUpdateShadowRef.current.set(normalizedId, shadow);
 
-      if (messagesOwnerId) {
-        update("nostrMessage", payload, { ownerId: messagesOwnerId });
-      } else {
-        update("nostrMessage", payload);
-      }
+      updateNostrMessage(payload);
     },
-    [messagesOwnerId, update],
+    [updateNostrMessage],
   );
 
   const appendLocalNostrReaction = React.useCallback(
@@ -936,13 +977,11 @@ export const useMessagesDomain = ({
       });
       if (existing) return toTrimmedText(existing.id);
 
-      const result = messagesOwnerId
-        ? insert("nostrReaction", payload, { ownerId: messagesOwnerId })
-        : insert("nostrReaction", payload);
+      const result = insertNostrReaction(payload);
       if (!result.ok) return "";
       return toText(result.value.id);
     },
-    [insert, messagesOwnerId],
+    [insertNostrReaction],
   );
 
   const updateLocalNostrReaction = React.useCallback<UpdateLocalNostrReaction>(
@@ -1054,33 +1093,21 @@ export const useMessagesDomain = ({
 
       nostrReactionUpdateShadowRef.current.set(normalizedId, shadow);
 
-      if (messagesOwnerId) {
-        update("nostrReaction", payload, { ownerId: messagesOwnerId });
-      } else {
-        update("nostrReaction", payload);
-      }
+      updateNostrReaction(payload);
     },
-    [messagesOwnerId, update],
+    [updateNostrReaction],
   );
 
   const softDeleteLocalNostrReaction = React.useCallback(
     (id: string) => {
       const normalizedId = toTrimmedText(id);
       if (!normalizedId) return;
-      if (messagesOwnerId) {
-        update(
-          "nostrReaction",
-          { id: normalizedId, isDeleted: Evolu.sqliteTrue },
-          { ownerId: messagesOwnerId },
-        );
-      } else {
-        update("nostrReaction", {
-          id: normalizedId,
-          isDeleted: Evolu.sqliteTrue,
-        });
-      }
+      updateNostrReaction({
+        id: normalizedId,
+        isDeleted: Evolu.sqliteTrue,
+      });
     },
-    [messagesOwnerId, update],
+    [updateNostrReaction],
   );
 
   const softDeleteLocalNostrReactionsByWrapIds = React.useCallback(
@@ -1096,21 +1123,13 @@ export const useMessagesDomain = ({
 
       for (const reaction of nostrReactionsLatestRef.current) {
         if (!targetWrapIds.has(toTrimmedText(reaction.wrapId))) continue;
-        if (messagesOwnerId) {
-          update(
-            "nostrReaction",
-            { id: reaction.id, isDeleted: Evolu.sqliteTrue },
-            { ownerId: messagesOwnerId },
-          );
-        } else {
-          update("nostrReaction", {
-            id: reaction.id,
-            isDeleted: Evolu.sqliteTrue,
-          });
-        }
+        updateNostrReaction({
+          id: reaction.id,
+          isDeleted: Evolu.sqliteTrue,
+        });
       }
     },
-    [messagesOwnerId, update],
+    [updateNostrReaction],
   );
 
   const refreshLocalNostrMessages = React.useCallback(() => {
@@ -1159,18 +1178,10 @@ export const useMessagesDomain = ({
       for (const message of nostrMessagesLocal) {
         const messageId = toTrimmedText(message.id);
         if (!messageId || keepIds.has(messageId)) continue;
-        if (messagesOwnerId) {
-          update(
-            "nostrMessage",
-            { id: messageId, isDeleted: Evolu.sqliteTrue },
-            { ownerId: messagesOwnerId },
-          );
-        } else {
-          update("nostrMessage", {
-            id: messageId,
-            isDeleted: Evolu.sqliteTrue,
-          });
-        }
+        updateNostrMessage({
+          id: messageId,
+          isDeleted: Evolu.sqliteTrue,
+        });
       }
 
       const keptRumorIds = new Set<string>();
@@ -1196,23 +1207,20 @@ export const useMessagesDomain = ({
       for (const reaction of nostrReactionsLocal) {
         const reactionId = toTrimmedText(reaction.id);
         if (!reactionId || keepReactionIds.has(reactionId)) continue;
-        if (messagesOwnerId) {
-          update(
-            "nostrReaction",
-            { id: reactionId, isDeleted: Evolu.sqliteTrue },
-            { ownerId: messagesOwnerId },
-          );
-        } else {
-          update("nostrReaction", {
-            id: reactionId,
-            isDeleted: Evolu.sqliteTrue,
-          });
-        }
+        updateNostrReaction({
+          id: reactionId,
+          isDeleted: Evolu.sqliteTrue,
+        });
       }
     } finally {
       retentionPruneInFlightRef.current = false;
     }
-  }, [messagesOwnerId, nostrMessagesLocal, nostrReactionsLocal, update]);
+  }, [
+    nostrMessagesLocal,
+    nostrReactionsLocal,
+    updateNostrMessage,
+    updateNostrReaction,
+  ]);
 
   React.useEffect(() => {
     messagesOwnerIdRef.current = messagesOwnerId;

@@ -84,6 +84,7 @@ export const useInboxNotificationsSync = <
   React.useEffect(() => {
     // Best-effort: keep syncing NIP-17 inbox when not inside a chat so we can
     // show PWA notifications for new messages / incoming Cashu tokens.
+    if (route.kind === "chat") return;
     if (!currentNsec) return;
 
     const activeChatId = route.kind === "chat" ? String(route.id ?? "") : null;

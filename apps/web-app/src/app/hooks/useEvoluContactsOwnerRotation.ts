@@ -11,6 +11,7 @@ import {
   EVOLU_CONTACTS_OWNER_INDEX_STORAGE_KEY,
   EVOLU_CONTACTS_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY,
   EVOLU_MESSAGES_OWNER_BASELINE_COUNT_STORAGE_KEY,
+  EVOLU_MESSAGES_OWNER_EDIT_COUNT_STORAGE_KEY,
   EVOLU_MESSAGES_OWNER_INDEX_STORAGE_KEY,
   EVOLU_MESSAGES_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY,
   OWNER_ROTATION_COOLDOWN_MS,
@@ -61,6 +62,7 @@ interface UseEvoluContactsOwnerRotationResult {
   messagesOwnerPointer: string;
   messagesOwnerEditsUntilRotation: number;
   messagesSyncOwner: Evolu.SyncOwner | null;
+  recordMessagesOwnerWrite: (count?: number) => void;
   requestManualRotateContactsOwner: () => Promise<void>;
   requestManualRotateMessagesOwner: () => Promise<void>;
   recordContactsOwnerWrite: (count?: number) => void;
@@ -347,6 +349,13 @@ export const useEvoluContactsOwnerRotation = ({
         getStoredIndex(EVOLU_CONTACTS_OWNER_INDEX_STORAGE_KEY),
       ),
   );
+  const [messagesOwnerEditCount, setMessagesOwnerEditCount] = React.useState(
+    () =>
+      getCounterValue(
+        EVOLU_MESSAGES_OWNER_EDIT_COUNT_STORAGE_KEY,
+        getStoredIndex(EVOLU_MESSAGES_OWNER_INDEX_STORAGE_KEY),
+      ),
+  );
 
   const ownerMetaQuery = React.useMemo(
     () =>
@@ -417,6 +426,15 @@ export const useEvoluContactsOwnerRotation = ({
     );
   }, [contactsOwnerIndex]);
 
+  React.useEffect(() => {
+    setMessagesOwnerEditCount(
+      getCounterValue(
+        EVOLU_MESSAGES_OWNER_EDIT_COUNT_STORAGE_KEY,
+        messagesOwnerIndex,
+      ),
+    );
+  }, [messagesOwnerIndex]);
+
   const recordContactsOwnerWrite = React.useCallback(
     (count = 1) => {
       const delta = Math.max(1, Math.trunc(count));
@@ -431,6 +449,22 @@ export const useEvoluContactsOwnerRotation = ({
       });
     },
     [contactsOwnerIndex],
+  );
+
+  const recordMessagesOwnerWrite = React.useCallback(
+    (count = 1) => {
+      const delta = Math.max(1, Math.trunc(count));
+      setMessagesOwnerEditCount((prev) => {
+        const next = Math.max(0, prev + delta);
+        setCounterValue(
+          EVOLU_MESSAGES_OWNER_EDIT_COUNT_STORAGE_KEY,
+          messagesOwnerIndex,
+          next,
+        );
+        return next;
+      });
+    },
+    [messagesOwnerIndex],
   );
   const contactsOwnerBaselineCount = React.useMemo(
     () =>
@@ -509,7 +543,9 @@ export const useEvoluContactsOwnerRotation = ({
   );
   const messagesOwnerWriteDelta = Math.max(
     0,
-    messagesOwnerWriteCount - messagesOwnerBaselineCount,
+    messagesOwnerWriteCount -
+      messagesOwnerBaselineCount +
+      messagesOwnerEditCount,
   );
 
   React.useEffect(() => {
@@ -1132,6 +1168,12 @@ export const useEvoluContactsOwnerRotation = ({
         nextIndex,
         nextOwnerMessageRows + nextOwnerReactionRows,
       );
+      setCounterValue(
+        EVOLU_MESSAGES_OWNER_EDIT_COUNT_STORAGE_KEY,
+        nextIndex,
+        0,
+      );
+      setMessagesOwnerEditCount(0);
       setStoredTimestampMs(
         EVOLU_MESSAGES_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY,
         nowMs,
@@ -1337,6 +1379,7 @@ export const useEvoluContactsOwnerRotation = ({
     messagesSyncOwner: isSeedLogin
       ? (ownerSyncData?.messagesOwner ?? null)
       : null,
+    recordMessagesOwnerWrite,
     recordContactsOwnerWrite,
     requestManualRotateContactsOwner,
     requestManualRotateMessagesOwner,
