@@ -143,9 +143,10 @@ export const ChatPage: FC<ChatPageProps> = ({
     : replyContext?.replyToId
       ? (byRumorId.get(replyContext.replyToId)?.content ?? "")
       : "";
+  const hasDraftText = Boolean(chatDraft.trim());
 
   const canSendChat = Boolean(
-    !chatSendIsBusy && chatDraft.trim() && (npub || hasUnknownPubkeyHex),
+    !chatSendIsBusy && hasDraftText && (npub || hasUnknownPubkeyHex),
   );
 
   return (
@@ -279,54 +280,59 @@ export const ChatPage: FC<ChatPageProps> = ({
             onCancel={onCancelEdit}
           />
         )}
-        <textarea
-          ref={composeInputRef}
-          value={chatDraft}
-          onChange={(e) => setChatDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (!isDesktop) return;
-            if (e.key !== "Enter" || !e.metaKey) return;
-            if (!canSendChat) return;
-            e.preventDefault();
-            void sendChatMessage();
-          }}
-          placeholder={t("chatPlaceholder")}
-          disabled={chatSendIsBusy || (!npub && !hasUnknownPubkeyHex)}
-          data-guide="chat-input"
-        />
-        <button
-          className="btn-wide"
-          onClick={() => void sendChatMessage()}
-          disabled={!canSendChat}
-          data-guide="chat-send"
-        >
-          <span className="btn-label-with-icon">
-            <span className="btn-label-icon" aria-hidden="true">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M7 18.5H6C4.343 18.5 3 17.157 3 15.5V7.5C3 5.843 4.343 4.5 6 4.5H18C19.657 4.5 21 5.843 21 7.5V15.5C21 17.157 19.657 18.5 18 18.5H12L8 21V18.5H7Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            <span>
-              {chatSendIsBusy
-                ? `${editContext ? t("chatSaveAction") : t("send")}…`
-                : editContext
-                  ? t("chatSaveAction")
-                  : t("send")}
-            </span>
-          </span>
-        </button>
+        <div className="chat-compose-input-wrap">
+          <textarea
+            ref={composeInputRef}
+            value={chatDraft}
+            onChange={(e) => setChatDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (!isDesktop) return;
+              if (e.key !== "Enter" || !e.metaKey) return;
+              if (!canSendChat) return;
+              e.preventDefault();
+              void sendChatMessage();
+            }}
+            placeholder={t("chatPlaceholder")}
+            disabled={chatSendIsBusy || (!npub && !hasUnknownPubkeyHex)}
+            data-guide="chat-input"
+          />
+          {hasDraftText ? (
+            <button
+              type="button"
+              className="chat-compose-send-button"
+              onClick={() => void sendChatMessage()}
+              disabled={!canSendChat}
+              aria-label={editContext ? t("chatSaveAction") : t("send")}
+              title={editContext ? t("chatSaveAction") : t("send")}
+              data-guide="chat-send"
+            >
+              <span className="chat-compose-send-icon" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21 3L10 14"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M21 3L14 21L10 14L3 10L21 3Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </button>
+          ) : null}
+        </div>
         {canPayThisContact && (
           <button
             className="btn-wide secondary"
