@@ -1744,6 +1744,7 @@ export const useAppShellComposition = () => {
     payWithCashuEnabled,
     publishWrappedWithRetry,
     pushToast,
+    resolveOwnerIdForWrite,
     setContactsOnboardingHasPaid,
     setStatus,
     showPaidOverlay,
