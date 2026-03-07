@@ -2341,6 +2341,25 @@ button.tag-button {
   justify-content: center;
 }
 
+.btn-label-with-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-label-icon {
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-label-icon svg {
+  display: block;
+}
+
 .danger-armed {
   color: #ef4444;
 }
