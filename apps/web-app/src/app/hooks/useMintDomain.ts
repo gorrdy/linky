@@ -6,8 +6,6 @@ import type {
   MintUrlInput,
 } from "../types/appTypes";
 import {
-  getMintDuckDuckGoIcon,
-  getMintIconOverride,
   getMintOriginAndHost,
   normalizeMintUrl,
 } from "../../utils/mint";
@@ -70,67 +68,6 @@ export const useMintDomain = ({
     rememberSeenMint,
   });
 
-  const getMintInfoIconUrl = React.useCallback(
-    (mint: MintUrlInput): string | null => {
-      const raw = String(mint ?? "").trim();
-      const normalized = normalizeMintUrl(raw);
-      if (!normalized) return null;
-      const row = mintInfoByUrl.get(normalized);
-      
-      if (row?.iconUrl) return row.iconUrl;
-      
-      const infoText = String(row?.infoJson ?? "").trim();
-      if (!infoText) return null;
-      let baseUrl: string | null = null;
-      try {
-        baseUrl = new URL(normalized).toString();
-      } catch {
-        const { origin } = getMintOriginAndHost(normalized);
-        baseUrl = origin ?? null;
-      }
-      if (!baseUrl) return null;
-
-      const findIcon = (value: unknown): string | null => {
-        if (!value || typeof value !== "object") return null;
-        const rec = value as Record<string, unknown>;
-        const keys = [
-          "icon_url",
-          "iconUrl",
-          "icon",
-          "logo",
-          "image",
-          "image_url",
-          "imageUrl",
-        ];
-        for (const key of keys) {
-          const rawValue = String(rec[key] ?? "").trim();
-          if (rawValue) return rawValue;
-        }
-        for (const inner of Object.values(rec)) {
-          if (inner && typeof inner === "object") {
-            const found = findIcon(inner);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      try {
-        const info = JSON.parse(infoText) as unknown;
-        const rawIcon = findIcon(info);
-        if (!rawIcon) return null;
-        try {
-          return new URL(rawIcon, baseUrl).toString();
-        } catch {
-          return null;
-        }
-      } catch {
-        return null;
-      }
-    },
-    [mintInfoByUrl],
-  );
-
   const getMintIconUrl = React.useCallback(
     (
       mint: MintUrlInput,
@@ -153,23 +90,26 @@ export const useMintDomain = ({
         };
       }
 
-      const infoIcon = getMintInfoIconUrl(mint);
-      if (infoIcon) return { origin, url: infoIcon, host, failed: false };
+      const normalized = normalizeMintUrl(mint);
+      const row = normalized ? mintInfoByUrl.get(normalized) : undefined;
 
-      const override = getMintIconOverride(host);
-      if (override) return { origin, url: override, host, failed: false };
-
-      const duckIcon = getMintDuckDuckGoIcon(host);
-      if (duckIcon) return { origin, url: duckIcon, host, failed: false };
+      if (row?.iconUrl) {
+        try {
+          const absoluteUrl = new URL(row.iconUrl, origin).toString();
+          return { origin, url: absoluteUrl, host, failed: false };
+        } catch {
+          return { origin, url: row.iconUrl, host, failed: false };
+        }
+      }
 
       return {
         origin,
-        url: `${origin}/favicon.ico`,
+        url: null,
         host,
-        failed: false,
+        failed: true,
       };
     },
-    [getMintInfoIconUrl, mintIconUrlByMint],
+    [mintInfoByUrl, mintIconUrlByMint],
   );
 
   return {
