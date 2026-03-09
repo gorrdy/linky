@@ -19,6 +19,7 @@ interface MintInfoRowLike {
   lastSeenAtSec?: LocalMintInfoRow["lastSeenAtSec"];
   supportsMpp?: LocalMintInfoRow["supportsMpp"];
   url?: OptionalText;
+  iconUrl?: LocalMintInfoRow["iconUrl"];
 }
 
 export const isMintDeletedRow = (row: MintInfoRowLike): boolean =>
@@ -152,6 +153,7 @@ export const parseMintInfoPayload = (
   feesJson: string | null;
   infoJson: string | null;
   supportsMpp: string | null;
+  iconUrl: string | null;
 } => {
   const nuts =
     (info as { nuts?: unknown }).nuts ??
@@ -172,10 +174,13 @@ export const parseMintInfoPayload = (
     extractPpk(info as Parameters<typeof extractPpk>[0]);
   const fees = ppk !== null ? { ppk, raw: feesRaw } : feesRaw;
 
+  const iconUrl = (info as { icon_url?: string }).icon_url ?? null;
+
   return {
     supportsMpp: nut15 ? "1" : null,
     feesJson: toJson(fees),
     infoJson: toJson(info),
+    iconUrl: typeof iconUrl === "string" ? iconUrl : null,
   };
 };
 

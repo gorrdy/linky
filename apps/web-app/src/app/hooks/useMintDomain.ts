@@ -76,6 +76,9 @@ export const useMintDomain = ({
       const normalized = normalizeMintUrl(raw);
       if (!normalized) return null;
       const row = mintInfoByUrl.get(normalized);
+      
+      if (row?.iconUrl) return row.iconUrl;
+      
       const infoText = String(row?.infoJson ?? "").trim();
       if (!infoText) return null;
       let baseUrl: string | null = null;

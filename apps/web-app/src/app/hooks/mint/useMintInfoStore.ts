@@ -163,6 +163,7 @@ export const useMintInfoStore = ({
             supportsMpp: null,
             feesJson: null,
             infoJson: null,
+            iconUrl: null,
           });
         }
 
@@ -274,6 +275,7 @@ export const useMintInfoStore = ({
               supportsMpp: parsed.supportsMpp,
               feesJson: parsed.feesJson,
               infoJson: parsed.infoJson,
+              iconUrl: parsed.iconUrl,
               lastCheckedAtSec: nowSec,
             };
           } else if (
@@ -288,6 +290,7 @@ export const useMintInfoStore = ({
               supportsMpp: parsed.supportsMpp,
               feesJson: parsed.feesJson,
               infoJson: parsed.infoJson,
+              iconUrl: parsed.iconUrl,
               lastCheckedAtSec: nowSec,
             });
           }

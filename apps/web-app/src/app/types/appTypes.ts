@@ -184,6 +184,7 @@ export type LocalMintInfoRow = {
   lastSeenAtSec?: OptionalNumber;
   supportsMpp?: MintSupportsMppValue;
   url: string;
+  iconUrl?: string | null;
 };
 
 export type ContactsGuideKey =

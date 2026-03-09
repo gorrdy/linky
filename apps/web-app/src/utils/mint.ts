@@ -150,3 +150,22 @@ export const getMintIconOverride = (host: string | null) => {
   }
   return null;
 };
+
+export const getMintIconUrl = (
+  mintUrl: MintStringInput,
+  cachedIconUrl?: string | null,
+) => {
+  if (cachedIconUrl) {
+    console.log("Using cached mint icon URL", { mintUrl, cachedIconUrl });
+    return cachedIconUrl;
+  }
+
+  const { host } = getMintOriginAndHost(mintUrl);
+  
+  const override = getMintIconOverride(host);
+  if (override) {
+    return override;
+  }
+
+  return getMintDuckDuckGoIcon(host);
+};
