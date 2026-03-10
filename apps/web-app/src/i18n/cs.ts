@@ -68,6 +68,7 @@ export const cs = {
   tokens: "Tokeny",
   payWithCashu: "Platit s cashu",
   payWithCashuDisabled: "Platit s cashu je vypnuto v pokročilém nastavení.",
+  lightningInvoiceAutoPayLimit: "Limit autoplatby faktury",
   restore: "Obnovit",
   restoring: "Obnovuji…",
   restoreNothing: "Žádné chybějící tokeny nenalezeny.",

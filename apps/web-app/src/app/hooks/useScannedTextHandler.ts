@@ -3,7 +3,6 @@ import * as Evolu from "@evolu/common";
 import React from "react";
 import type { ContactId } from "../../evolu";
 import { navigateTo } from "../../hooks/useRouting";
-import { LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT } from "../../utils/constants";
 import {
   getLightningInvoicePreview,
   type LightningInvoicePreview,
@@ -18,6 +17,7 @@ interface UseScannedTextHandlerParams<TContact extends ContactRowLike> {
   contacts: readonly TContact[];
   extractCashuTokenFromText: (text: string) => string | null;
   insert: EvoluMutations["insert"];
+  lightningInvoiceAutoPayLimit: number;
   openScannedContactPendingNpubRef: React.MutableRefObject<string | null>;
   payLightningInvoiceWithCashu: (invoice: string) => Promise<boolean>;
   refreshContactFromNostr: (
@@ -41,6 +41,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
   contacts,
   extractCashuTokenFromText,
   insert,
+  lightningInvoiceAutoPayLimit,
   openScannedContactPendingNpubRef,
   payLightningInvoiceWithCashu,
   refreshContactFromNostr,
@@ -150,7 +151,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
         if (
           preview !== null &&
           preview.amountSat !== null &&
-          preview.amountSat <= LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT
+          preview.amountSat <= lightningInvoiceAutoPayLimit
         ) {
           await payLightningInvoiceWithCashu(normalized);
           return;
@@ -176,6 +177,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
       contacts,
       extractCashuTokenFromText,
       insert,
+      lightningInvoiceAutoPayLimit,
       payLightningInvoiceWithCashu,
       refreshContactFromNostr,
       requestLightningInvoiceConfirmation,

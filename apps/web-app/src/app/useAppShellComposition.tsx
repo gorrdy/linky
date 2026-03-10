@@ -50,6 +50,7 @@ import {
 } from "../utils/mint";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 import {
+  getInitialLightningInvoiceAutoPayLimit,
   getInitialNostrNsec,
   getInitialPayWithCashuEnabled,
   getInitialUseBitcoinSymbol,
@@ -383,6 +384,8 @@ export const useAppShellComposition = () => {
   const [payWithCashuEnabled, setPayWithCashuEnabled] = useState<boolean>(() =>
     getInitialPayWithCashuEnabled(),
   );
+  const [lightningInvoiceAutoPayLimit, setLightningInvoiceAutoPayLimit] =
+    useState<number>(() => getInitialLightningInvoiceAutoPayLimit());
   const [allowPromisesEnabled] = useState<boolean>(false);
 
   const displayUnit = useBitcoinSymbol ? "₿" : "sat";
@@ -927,6 +930,7 @@ export const useAppShellComposition = () => {
   useAppPreferences({
     allowPromisesEnabled,
     lang,
+    lightningInvoiceAutoPayLimit,
     payWithCashuEnabled,
     useBitcoinSymbol,
   });
@@ -2675,6 +2679,7 @@ export const useAppShellComposition = () => {
     contacts,
     extractCashuTokenFromText,
     insert,
+    lightningInvoiceAutoPayLimit,
     openScannedContactPendingNpubRef,
     payLightningInvoiceWithCashu,
     refreshContactFromNostr,
@@ -2919,6 +2924,7 @@ export const useAppShellComposition = () => {
       importDataFileInputRef,
       isSeedLogin,
       isEvoluServerOffline,
+      lightningInvoiceAutoPayLimit,
       lang,
       LOCAL_MINT_INFO_STORAGE_KEY_PREFIX,
       logoutArmed,
@@ -2953,6 +2959,7 @@ export const useAppShellComposition = () => {
       selectedRelayUrl,
       setDefaultMintUrlDraft,
       setEvoluServerOffline,
+      setLightningInvoiceAutoPayLimit,
       setNewEvoluServerUrl,
       setNewRelayUrl,
       setPayWithCashuEnabled,
@@ -3023,6 +3030,7 @@ export const useAppShellComposition = () => {
     setContactNewPrefill,
     setIsProfileEditing,
     setLang,
+    setLightningInvoiceAutoPayLimit,
     setPostPaySaveContact,
     setProfileEditLnAddress,
     setProfileEditName,
