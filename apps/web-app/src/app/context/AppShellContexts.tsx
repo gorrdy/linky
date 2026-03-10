@@ -3,6 +3,7 @@ import React from "react";
 import type { DerivedProfileDefaults } from "../../derivedProfile";
 import type { Lang } from "../../i18n";
 import type { Route } from "../../types/route";
+import type { LightningInvoicePreview } from "../../utils/lightningInvoice";
 import type {
   MainSwipeRoutesProps,
   MoneyRoutesProps,
@@ -18,6 +19,8 @@ interface ChatContact {
 }
 
 export interface AppShellCoreContextValue {
+  cashuBalance: number;
+  cashuIsBusy: boolean;
   chatTopbarContact: ChatContact | null;
   contactsGuide: { step: number; task: string } | null;
   contactsGuideActiveStep: {
@@ -45,6 +48,7 @@ export interface AppShellCoreContextValue {
   nostrPictureByNpub: Record<string, string | null>;
   paidOverlayIsOpen: boolean;
   paidOverlayTitle: string | null;
+  pendingLightningInvoiceConfirmation: LightningInvoicePreview | null;
   postPaySaveContact: {
     amountSat: number;
     lnAddress: string;
@@ -72,8 +76,10 @@ export interface AppShellCoreContextValue {
 
 export interface AppShellActionsContextValue {
   closeMenu: () => void;
+  closeLightningInvoiceConfirmation: () => void;
   closeProfileQr: () => void;
   closeScan: () => void;
+  confirmLightningInvoicePayment: () => Promise<void>;
   contactsGuideNav: {
     back: () => void;
     next: () => void;
