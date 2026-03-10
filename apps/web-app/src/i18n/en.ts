@@ -431,6 +431,7 @@ export const en = {
   payMissingLn: "Missing lightning address.",
   payInvalidAmount: "Invalid amount",
   payInsufficient: "Not enough Cashu tokens.",
+  lightningInvoiceConfirmUnknownAmount: "Unknown amount",
   payFetchingInvoice: "Fetching invoice…",
   payPaying: "Paying…",
   paySuccess: "Paid.",

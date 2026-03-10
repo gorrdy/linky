@@ -43,6 +43,7 @@ export const LAST_ACCEPTED_CASHU_TOKEN_STORAGE_KEY =
 
 export const PROMISE_TOTAL_CAP_SAT = 100_000;
 export const PROMISE_EXPIRES_SEC = 30 * 24 * 60 * 60;
+export const LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT = 10_000;
 
 export const LOCAL_PAYMENT_EVENTS_STORAGE_KEY_PREFIX =
   "linky.local.paymentEvents.v1";

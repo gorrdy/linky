@@ -4,6 +4,7 @@ import {
   useAppShellCore,
 } from "../app/context/AppShellContexts";
 import { ContactsGuideOverlay } from "./ContactsGuideOverlay";
+import { LightningInvoiceConfirmModal } from "./LightningInvoiceConfirmModal";
 import { MenuModal } from "./MenuModal";
 import { PaidOverlay } from "./PaidOverlay";
 import { ProfileQrModal } from "./ProfileQrModal";
@@ -111,6 +112,18 @@ export function AuthenticatedLayout({
           lnAddress={state.postPaySaveContact.lnAddress}
           onClose={() => actions.setPostPaySaveContact(null)}
           setContactNewPrefill={actions.setContactNewPrefill}
+          t={state.t}
+        />
+      ) : null}
+
+      {state.pendingLightningInvoiceConfirmation && !state.paidOverlayIsOpen ? (
+        <LightningInvoiceConfirmModal
+          cashuBalance={state.cashuBalance}
+          cashuIsBusy={state.cashuIsBusy}
+          confirmation={state.pendingLightningInvoiceConfirmation}
+          displayUnit={state.displayUnit}
+          onClose={actions.closeLightningInvoiceConfirmation}
+          onConfirm={actions.confirmLightningInvoicePayment}
           t={state.t}
         />
       ) : null}

@@ -434,6 +434,7 @@ export const cs = {
   payMissingLn: "Chybí lightning adresa.",
   payInvalidAmount: "Neplatná částka",
   payInsufficient: "Nemáte dostatek Cashu tokenů.",
+  lightningInvoiceConfirmUnknownAmount: "Neznámá částka",
   payFetchingInvoice: "Získávám fakturu…",
   payPaying: "Platím…",
   paySuccess: "Zaplaceno.",

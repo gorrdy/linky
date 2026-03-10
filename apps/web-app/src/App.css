@@ -2622,6 +2622,53 @@ button.tag-button {
   gap: 10px;
 }
 
+.lightning-invoice-confirm-sheet {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.lightning-invoice-confirm-summary {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.lightning-invoice-confirm-amount {
+  display: flex;
+  justify-content: center;
+}
+
+.lightning-invoice-confirm-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  min-height: 32px;
+}
+
+.lightning-invoice-confirm-unknown-amount {
+  color: #e2e8f0;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.lightning-invoice-confirm-description {
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.lightning-invoice-confirm-expiry {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .lightning-invoice-confirm-unknown-amount {
+    font-size: 24px;
+  }
+}
+
 .paid-sheet {
   width: min(420px, calc(100vw - 48px));
   border: 1px solid #1f2937;

@@ -3,6 +3,11 @@ import * as Evolu from "@evolu/common";
 import React from "react";
 import type { ContactId } from "../../evolu";
 import { navigateTo } from "../../hooks/useRouting";
+import { LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT } from "../../utils/constants";
+import {
+  getLightningInvoicePreview,
+  type LightningInvoicePreview,
+} from "../../utils/lightningInvoice";
 import type { ContactRowLike } from "../types/appTypes";
 
 type EvoluMutations = ReturnType<typeof import("../../evolu").useEvolu>;
@@ -14,11 +19,14 @@ interface UseScannedTextHandlerParams<TContact extends ContactRowLike> {
   extractCashuTokenFromText: (text: string) => string | null;
   insert: EvoluMutations["insert"];
   openScannedContactPendingNpubRef: React.MutableRefObject<string | null>;
-  payLightningInvoiceWithCashu: (invoice: string) => Promise<void>;
+  payLightningInvoiceWithCashu: (invoice: string) => Promise<boolean>;
   refreshContactFromNostr: (
     id: ContactId,
     npubOverride: string,
   ) => Promise<void>;
+  requestLightningInvoiceConfirmation: (
+    preview: LightningInvoicePreview,
+  ) => void;
   saveCashuFromText: (
     text: string,
     options?: { navigateToWallet?: boolean },
@@ -36,6 +44,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
   openScannedContactPendingNpubRef,
   payLightningInvoiceWithCashu,
   refreshContactFromNostr,
+  requestLightningInvoiceConfirmation,
   saveCashuFromText,
   setStatus,
   t,
@@ -135,8 +144,26 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
       }
 
       if (/^(lnbc|lntb|lnbcrt)/i.test(normalized)) {
+        const preview = getLightningInvoicePreview(normalized);
         closeScan();
-        await payLightningInvoiceWithCashu(normalized);
+
+        if (
+          preview !== null &&
+          preview.amountSat !== null &&
+          preview.amountSat <= LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT
+        ) {
+          await payLightningInvoiceWithCashu(normalized);
+          return;
+        }
+
+        requestLightningInvoiceConfirmation(
+          preview ?? {
+            invoice: normalized,
+            amountSat: null,
+            description: null,
+            expiresAtSec: null,
+          },
+        );
         return;
       }
 
@@ -151,6 +178,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
       insert,
       payLightningInvoiceWithCashu,
       refreshContactFromNostr,
+      requestLightningInvoiceConfirmation,
       saveCashuFromText,
       setStatus,
       t,
