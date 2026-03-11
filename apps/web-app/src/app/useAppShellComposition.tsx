@@ -18,6 +18,7 @@ import {
 import { navigateTo, useRouting } from "../hooks/useRouting";
 import { useToasts } from "../hooks/useToasts";
 import { getInitialLang, translations, type Lang } from "../i18n";
+import { inferLightningAddressFromLnurlTarget } from "../lnurlPay";
 import {
   fetchNostrProfileMetadata,
   loadCachedProfileMetadata,
@@ -2747,6 +2748,28 @@ export const useAppShellComposition = () => {
     saveCashuFromText,
     selectedContact: selectedChatContact,
   });
+  const knownLnAddressPayContact = React.useMemo(() => {
+    if (route.kind !== "lnAddressPay") return null;
+
+    const inferredLnAddress = inferLightningAddressFromLnurlTarget(
+      route.lnAddress,
+    );
+    if (!inferredLnAddress) return null;
+
+    return (
+      contacts.find(
+        (contact) =>
+          String(contact.lnAddress ?? "")
+            .trim()
+            .toLowerCase() === inferredLnAddress.toLowerCase(),
+      ) ?? null
+    );
+  }, [contacts, route]);
+  const knownLnAddressPayContactPictureUrl = React.useMemo(() => {
+    const npub = normalizeNpubIdentifier(knownLnAddressPayContact?.npub);
+    return npub ? (nostrPictureByNpub[npub] ?? null) : null;
+  }, [knownLnAddressPayContact, nostrPictureByNpub]);
+
   const { moneyRouteProps } = usePaymentMoneyComposition({
     moneyRouteBuilderInput: {
       canPayWithCashu,
@@ -2765,6 +2788,8 @@ export const useAppShellComposition = () => {
       effectiveProfileName,
       effectiveProfilePicture,
       getMintIconUrl,
+      knownLnAddressPayContact,
+      knownLnAddressPayContactPictureUrl,
       lnAddressPayAmount,
       npubCashLightningAddress,
       payLightningAddressWithCashu,

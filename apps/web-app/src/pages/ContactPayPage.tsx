@@ -1,7 +1,6 @@
 import type { FC } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
-import { AmountDisplay } from "../components/AmountDisplay";
-import { Keypad } from "../components/Keypad";
+import { PaymentAmountPanel } from "../components/PaymentAmountPanel";
 import type { ContactId } from "../evolu";
 import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
@@ -44,7 +43,7 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
   setPayAmount,
   t,
 }) => {
-  const { applyAmountInputKey, formatDisplayedAmountText } = useAppShellCore();
+  const { formatDisplayedAmountText } = useAppShellCore();
 
   if (!selectedContact) {
     return (
@@ -66,7 +65,7 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
       : canUseCashu
         ? "cashu"
         : "lightning";
-  const icon = contactPayMethod === "lightning" ? "⚡" : "🥜";
+  const icon = method === "lightning" ? "⚡" : "🥜";
 
   const amountSat = Number.parseInt(payAmount.trim(), 10);
   const validAmount =
@@ -80,113 +79,99 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
     remaining > cashuBalance;
 
   return (
-    <section className="panel">
-      <div className="contact-header">
-        <div className="contact-avatar is-large" aria-hidden="true">
-          {url ? (
-            <img src={url} alt="" loading="lazy" referrerPolicy="no-referrer" />
-          ) : (
-            <span className="contact-avatar-fallback">
-              {getInitials(String(selectedContact.name ?? ""))}
-            </span>
-          )}
-        </div>
-        <div className="contact-header-text">
-          {selectedContact.name && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-              }}
-            >
-              <h3 style={{ margin: 0 }}>{selectedContact.name}</h3>
-              <button
-                type="button"
-                className={
-                  showToggle
-                    ? "pay-method-toggle"
-                    : "pay-method-toggle is-disabled"
-                }
-                onClick={() => {
-                  if (!showToggle) return;
-                  setContactPayMethod((prev) =>
-                    prev === "lightning" ? "cashu" : "lightning",
-                  );
-                }}
-                aria-label={
-                  contactPayMethod === "lightning" ? "Lightning" : "Cashu"
-                }
-                title={
-                  showToggle
-                    ? contactPayMethod === "lightning"
-                      ? "Lightning"
-                      : "Cashu"
-                    : undefined
-                }
-              >
-                {icon}
-              </button>
-            </div>
-          )}
-          <p className="muted">
-            {t("availablePrefix")} {formatDisplayedAmountText(cashuBalance)}
-          </p>
-        </div>
-      </div>
-
-      {method === "cashu" && !payWithCashuEnabled && (
-        <p className="muted">{t("payWithCashuDisabled")}</p>
-      )}
-
-      {method === "cashu" && !npub && (
-        <p className="muted">{t("chatMissingContactNpub")}</p>
-      )}
-
-      {method === "lightning" && !ln && (
-        <p className="muted">{t("payMissingLn")}</p>
-      )}
-
-      {!canCoverAnything && <p className="muted">{t("payInsufficient")}</p>}
-
-      <div data-guide="pay-step3">
-        <AmountDisplay amount={payAmount} />
-
-        <Keypad
-          ariaLabel={`${t("payAmount")} (${displayUnit})`}
-          disabled={cashuIsBusy}
-          onKeyPress={(key: string) => {
-            if (cashuIsBusy) return;
-            setPayAmount((v) => applyAmountInputKey(v, key));
-          }}
-          translations={{
-            clearForm: t("clearForm"),
-            delete: t("delete"),
-          }}
-        />
-
-        <div className="actions">
-          <button
-            className="btn-wide"
-            onClick={() => void paySelectedContact()}
-            disabled={cashuIsBusy || invalid}
-            title={
-              method === "lightning" && remaining > cashuBalance
-                ? t("payInsufficient")
-                : undefined
-            }
-            data-guide="pay-send"
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                ₿
+    <PaymentAmountPanel
+      amount={payAmount}
+      cashuIsBusy={cashuIsBusy}
+      displayUnit={displayUnit}
+      header={
+        <div className="contact-header">
+          <div className="contact-avatar is-large" aria-hidden="true">
+            {url ? (
+              <img
+                src={url}
+                alt=""
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="contact-avatar-fallback">
+                {getInitials(String(selectedContact.name ?? ""))}
               </span>
-              <span>{t("paySend")}</span>
-            </span>
-          </button>
+            )}
+          </div>
+          <div className="contact-header-text">
+            {selectedContact.name && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                }}
+              >
+                <h3 style={{ margin: 0 }}>{selectedContact.name}</h3>
+                <button
+                  type="button"
+                  className={
+                    showToggle
+                      ? "pay-method-toggle"
+                      : "pay-method-toggle is-disabled"
+                  }
+                  onClick={() => {
+                    if (!showToggle) return;
+                    setContactPayMethod((prev) =>
+                      prev === "lightning" ? "cashu" : "lightning",
+                    );
+                  }}
+                  aria-label={method === "lightning" ? "Lightning" : "Cashu"}
+                  title={
+                    showToggle
+                      ? method === "lightning"
+                        ? "Lightning"
+                        : "Cashu"
+                      : undefined
+                  }
+                >
+                  {icon}
+                </button>
+              </div>
+            )}
+            <p className="muted">
+              {t("availablePrefix")} {formatDisplayedAmountText(cashuBalance)}
+            </p>
+          </div>
         </div>
-      </div>
-    </section>
+      }
+      notices={
+        <>
+          {method === "cashu" && !payWithCashuEnabled && (
+            <p className="muted">{t("payWithCashuDisabled")}</p>
+          )}
+
+          {method === "cashu" && !npub && (
+            <p className="muted">{t("chatMissingContactNpub")}</p>
+          )}
+
+          {method === "lightning" && !ln && (
+            <p className="muted">{t("payMissingLn")}</p>
+          )}
+
+          {!canCoverAnything && <p className="muted">{t("payInsufficient")}</p>}
+        </>
+      }
+      onAmountChange={setPayAmount}
+      onSubmit={() => {
+        void paySelectedContact();
+      }}
+      sendGuideId="pay-send"
+      stepGuideId="pay-step3"
+      submitDisabled={invalid}
+      submitTitle={
+        method === "lightning" && remaining > cashuBalance
+          ? t("payInsufficient")
+          : undefined
+      }
+      t={t}
+    />
   );
 };

@@ -1,7 +1,6 @@
 import {
   ALLOW_PROMISES_STORAGE_KEY,
   DISPLAY_CURRENCY_STORAGE_KEY,
-  LIGHTNING_INVOICE_AUTO_PAY_LIMIT_OPTIONS,
   LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT,
   LIGHTNING_INVOICE_AUTO_PAY_LIMIT_STORAGE_KEY,
   NOSTR_NSEC_STORAGE_KEY,
@@ -116,12 +115,7 @@ export const getInitialLightningInvoiceAutoPayLimit = (): number => {
       LIGHTNING_INVOICE_AUTO_PAY_LIMIT_STORAGE_KEY,
     );
     const parsed = Number.parseInt(String(raw ?? "").trim(), 10);
-    if (
-      Number.isFinite(parsed) &&
-      LIGHTNING_INVOICE_AUTO_PAY_LIMIT_OPTIONS.includes(
-        parsed as (typeof LIGHTNING_INVOICE_AUTO_PAY_LIMIT_OPTIONS)[number],
-      )
-    ) {
+    if (Number.isFinite(parsed) && parsed >= 0) {
       return parsed;
     }
     return LIGHTNING_INVOICE_AUTO_PAY_LIMIT_SAT;

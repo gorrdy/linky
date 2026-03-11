@@ -1,4 +1,5 @@
 import React from "react";
+import { flushSync } from "react-dom";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useNavigation } from "../hooks/useRouting";
 
@@ -35,13 +36,15 @@ export function SaveContactPromptModal({
       return left || null;
     })();
 
-    onClose();
-    setContactNewPrefill({
-      lnAddress: ln,
-      npub,
-      suggestedName: null,
+    flushSync(() => {
+      setContactNewPrefill({
+        lnAddress: ln,
+        npub,
+        suggestedName: null,
+      });
     });
     navigateTo({ route: "contactNew" });
+    onClose();
   };
 
   return (

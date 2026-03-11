@@ -1,6 +1,12 @@
 import * as Evolu from "@evolu/common";
 import React from "react";
 import type { CashuTokenId, ContactId } from "../../evolu";
+import {
+  fetchLnurlInvoiceForTarget,
+  getLnurlPayDisplayText,
+  inferLightningAddressFromLnurlTarget,
+  isLightningAddress,
+} from "../../lnurlPay";
 import { CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY } from "../../utils/constants";
 import type { DisplayAmountParts } from "../../utils/displayAmounts";
 import { safeLocalStorageSet } from "../../utils/storage";
@@ -332,8 +338,8 @@ export const useLightningPaymentsDomain = ({
 
   const payLightningAddressWithCashu = React.useCallback(
     async (lnAddress: string, amountSat: number) => {
-      const address = String(lnAddress ?? "").trim();
-      if (!address) return;
+      const paymentTarget = String(lnAddress ?? "").trim();
+      if (!paymentTarget) return;
       if (!Number.isFinite(amountSat) || amountSat <= 0) {
         setStatus(`${t("errorPrefix")}: ${t("payInvalidAmount")}`);
         return;
@@ -342,24 +348,24 @@ export const useLightningPaymentsDomain = ({
       if (cashuIsBusy) return;
       setCashuIsBusy(true);
 
+      const displayTarget = getLnurlPayDisplayText(paymentTarget);
+      const inferredLightningAddress =
+        inferLightningAddressFromLnurlTarget(paymentTarget) ?? paymentTarget;
+      const canOfferSave = isLightningAddress(inferredLightningAddress);
+
       const knownContact = contacts.find(
         (c) =>
           String(c.lnAddress ?? "")
             .trim()
-            .toLowerCase() === address.toLowerCase(),
+            .toLowerCase() === inferredLightningAddress.toLowerCase(),
       );
-      const shouldOfferSave = !knownContact?.id;
+      const shouldOfferSave = canOfferSave && !knownContact?.id;
 
       try {
         setStatus(t("payFetchingInvoice"));
         let invoice: string;
         try {
-          const { fetchLnurlInvoiceForLightningAddress } =
-            await import("../../lnurlPay");
-          invoice = await fetchLnurlInvoiceForLightningAddress(
-            address,
-            amountSat,
-          );
+          invoice = await fetchLnurlInvoiceForTarget(paymentTarget, amountSat);
         } catch (e) {
           setStatus(`${t("payFailed")}: ${String(e)}`);
           return;
@@ -523,7 +529,7 @@ export const useLightningPaymentsDomain = ({
                 .replace("{unit}", displayAmount.unitLabel)
                 .replace(
                   "{name}",
-                  String(knownContact?.name ?? "").trim() || address,
+                  String(knownContact?.name ?? "").trim() || displayTarget,
                 ),
             );
 
@@ -533,7 +539,7 @@ export const useLightningPaymentsDomain = ({
             // Offer to save as a contact after a successful pay to a new address.
             if (shouldOfferSave) {
               setPostPaySaveContact({
-                lnAddress: address,
+                lnAddress: inferredLightningAddress,
                 amountSat: result.paidAmount,
               });
             }

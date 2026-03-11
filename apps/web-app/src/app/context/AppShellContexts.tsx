@@ -4,11 +4,11 @@ import type { DerivedProfileDefaults } from "../../derivedProfile";
 import type { ContactId } from "../../evolu";
 import type { Lang } from "../../i18n";
 import type { Route } from "../../types/route";
-import type { LightningInvoicePreview } from "../../utils/lightningInvoice";
 import type {
   DisplayAmountParts,
   DisplayCurrency,
 } from "../../utils/displayAmounts";
+import type { LightningInvoicePreview } from "../../utils/lightningInvoice";
 import type {
   MainSwipeRoutesProps,
   MoneyRoutesProps,

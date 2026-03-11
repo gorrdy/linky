@@ -103,7 +103,7 @@ const parsePositiveInteger = (value: string): number => {
   return parsed;
 };
 
-const getDisplayInputInteger = (
+const getDisplayAmountInputValue = (
   amountSat: number,
   options: DisplayAmountOptions,
 ): string => {
@@ -152,7 +152,10 @@ export const applyAmountInputKey = (
   if (key === "C") return "";
 
   const currentAmountSat = parsePositiveInteger(currentAmount);
-  const currentDisplayValue = getDisplayInputInteger(currentAmountSat, options);
+  const currentDisplayValue = getDisplayAmountInputValue(
+    currentAmountSat,
+    options,
+  );
 
   const nextDisplayValue =
     key === "⌫"

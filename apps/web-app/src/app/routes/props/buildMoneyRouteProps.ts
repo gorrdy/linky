@@ -24,6 +24,8 @@ interface BuildMoneyRoutePropsParams {
   effectiveProfileName: MoneyRoutesProps["topupProps"]["effectiveProfileName"];
   effectiveProfilePicture: MoneyRoutesProps["topupProps"]["effectiveProfilePicture"];
   getMintIconUrl: MoneyRoutesProps["cashuTokenNewProps"]["getMintIconUrl"];
+  knownLnAddressPayContact: MoneyRoutesProps["lnAddressPayProps"]["knownContact"];
+  knownLnAddressPayContactPictureUrl: MoneyRoutesProps["lnAddressPayProps"]["knownContactPictureUrl"];
   lnAddressPayAmount: MoneyRoutesProps["lnAddressPayProps"]["lnAddressPayAmount"];
   npubCashLightningAddress: MoneyRoutesProps["topupProps"]["npubCashLightningAddress"];
   payLightningAddressWithCashu: MoneyRoutesProps["lnAddressPayProps"]["payLightningAddressWithCashu"];
@@ -65,6 +67,8 @@ export const buildMoneyRouteProps = ({
   effectiveProfileName,
   effectiveProfilePicture,
   getMintIconUrl,
+  knownLnAddressPayContact,
+  knownLnAddressPayContactPictureUrl,
   lnAddressPayAmount,
   npubCashLightningAddress,
   payLightningAddressWithCashu,
@@ -119,6 +123,8 @@ export const buildMoneyRouteProps = ({
       cashuBalance,
       canPayWithCashu,
       cashuIsBusy,
+      knownContact: knownLnAddressPayContact,
+      knownContactPictureUrl: knownLnAddressPayContactPictureUrl,
       lnAddressPayAmount,
       setLnAddressPayAmount,
       displayUnit,
