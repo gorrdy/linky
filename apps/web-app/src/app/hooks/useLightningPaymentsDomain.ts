@@ -2,6 +2,7 @@ import * as Evolu from "@evolu/common";
 import React from "react";
 import type { CashuTokenId, ContactId } from "../../evolu";
 import { CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY } from "../../utils/constants";
+import type { DisplayAmountParts } from "../../utils/displayAmounts";
 import { safeLocalStorageSet } from "../../utils/storage";
 import { getUnknownErrorMessage } from "../../utils/unknown";
 import type {
@@ -28,8 +29,7 @@ interface UseLightningPaymentsDomainParams {
   cashuTokensWithMeta: CashuTokenWithMetaRow[];
   contacts: readonly ContactRow[];
   defaultMintUrl: string | null;
-  displayUnit: string;
-  formatInteger: (value: number) => string;
+  formatDisplayedAmountParts: (amountSat: number) => DisplayAmountParts;
   insert: EvoluMutations["insert"];
   logPaymentEvent: (event: {
     amount?: number | null;
@@ -63,8 +63,7 @@ export const useLightningPaymentsDomain = ({
   cashuTokensWithMeta,
   contacts,
   defaultMintUrl,
-  displayUnit,
-  formatInteger,
+  formatDisplayedAmountParts,
   insert,
   logPaymentEvent,
   mintInfoByUrl,
@@ -274,10 +273,14 @@ export const useLightningPaymentsDomain = ({
               contactId: null,
             });
 
+            const displayAmount = formatDisplayedAmountParts(result.paidAmount);
             showPaidOverlay(
               t("paidSent")
-                .replace("{amount}", formatInteger(result.paidAmount))
-                .replace("{unit}", displayUnit),
+                .replace(
+                  "{amount}",
+                  `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+                )
+                .replace("{unit}", displayAmount.unitLabel),
             );
 
             setStatus(t("paySuccess"));
@@ -313,8 +316,7 @@ export const useLightningPaymentsDomain = ({
       cashuIsBusy,
       cashuTokensWithMeta,
       defaultMintUrl,
-      displayUnit,
-      formatInteger,
+      formatDisplayedAmountParts,
       insertCashuToken,
       logPaymentEvent,
       markCashuTokenDeleted,
@@ -510,10 +512,14 @@ export const useLightningPaymentsDomain = ({
               contactId: null,
             });
 
+            const displayAmount = formatDisplayedAmountParts(result.paidAmount);
             showPaidOverlay(
               t("paidSentTo")
-                .replace("{amount}", formatInteger(result.paidAmount))
-                .replace("{unit}", displayUnit)
+                .replace(
+                  "{amount}",
+                  `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+                )
+                .replace("{unit}", displayAmount.unitLabel)
                 .replace(
                   "{name}",
                   String(knownContact?.name ?? "").trim() || address,
@@ -559,8 +565,7 @@ export const useLightningPaymentsDomain = ({
       cashuIsBusy,
       cashuTokensWithMeta,
       contacts,
-      displayUnit,
-      formatInteger,
+      formatDisplayedAmountParts,
       insertCashuToken,
       logPaymentEvent,
       markCashuTokenDeleted,

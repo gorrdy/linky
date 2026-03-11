@@ -1,7 +1,8 @@
 import type { FC } from "react";
+import { useAppShellCore } from "../app/context/AppShellContexts";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { Keypad } from "../components/Keypad";
-import { formatInteger, formatMiddleDots } from "../utils/formatting";
+import { formatMiddleDots } from "../utils/formatting";
 
 interface LnAddressPayPageProps {
   canPayWithCashu: boolean;
@@ -29,6 +30,7 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
   setLnAddressPayAmount,
   t,
 }) => {
+  const { applyAmountInputKey, formatDisplayedAmountText } = useAppShellCore();
   const amountSat = Number.parseInt(lnAddressPayAmount.trim(), 10);
   const invalid =
     !canPayWithCashu ||
@@ -46,36 +48,21 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
           <h3>{t("payTo")}</h3>
           <p className="muted">{formatMiddleDots(lnAddress, 36)}</p>
           <p className="muted">
-            {t("availablePrefix")} {formatInteger(cashuBalance)} {displayUnit}
+            {t("availablePrefix")} {formatDisplayedAmountText(cashuBalance)}
           </p>
         </div>
       </div>
 
       {!canPayWithCashu && <p className="muted">{t("payInsufficient")}</p>}
 
-      <AmountDisplay
-        amount={lnAddressPayAmount}
-        displayUnit={displayUnit}
-        formatInteger={formatInteger}
-      />
+      <AmountDisplay amount={lnAddressPayAmount} />
 
       <Keypad
         ariaLabel={`${t("payAmount")} (${displayUnit})`}
         disabled={cashuIsBusy}
         onKeyPress={(key: string) => {
           if (cashuIsBusy) return;
-          if (key === "C") {
-            setLnAddressPayAmount("");
-            return;
-          }
-          if (key === "⌫") {
-            setLnAddressPayAmount((v) => v.slice(0, -1));
-            return;
-          }
-          setLnAddressPayAmount((v) => {
-            const next = (v + key).replace(/^0+(\d)/, "$1");
-            return next;
-          });
+          setLnAddressPayAmount((v) => applyAmountInputKey(v, key));
         }}
         translations={{
           clearForm: t("clearForm"),

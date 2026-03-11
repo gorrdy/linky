@@ -1,8 +1,9 @@
 import type { FC } from "react";
+import { useAppShellCore } from "../app/context/AppShellContexts";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { Keypad } from "../components/Keypad";
 import type { ContactId } from "../evolu";
-import { formatInteger, getInitials } from "../utils/formatting";
+import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 
 interface Contact {
@@ -43,6 +44,8 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
   setPayAmount,
   t,
 }) => {
+  const { applyAmountInputKey, formatDisplayedAmountText } = useAppShellCore();
+
   if (!selectedContact) {
     return (
       <section className="panel">
@@ -128,7 +131,7 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
             </div>
           )}
           <p className="muted">
-            {t("availablePrefix")} {formatInteger(cashuBalance)} {displayUnit}
+            {t("availablePrefix")} {formatDisplayedAmountText(cashuBalance)}
           </p>
         </div>
       </div>
@@ -148,29 +151,14 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
       {!canCoverAnything && <p className="muted">{t("payInsufficient")}</p>}
 
       <div data-guide="pay-step3">
-        <AmountDisplay
-          amount={payAmount}
-          displayUnit={displayUnit}
-          formatInteger={formatInteger}
-        />
+        <AmountDisplay amount={payAmount} />
 
         <Keypad
           ariaLabel={`${t("payAmount")} (${displayUnit})`}
           disabled={cashuIsBusy}
           onKeyPress={(key: string) => {
             if (cashuIsBusy) return;
-            if (key === "C") {
-              setPayAmount("");
-              return;
-            }
-            if (key === "⌫") {
-              setPayAmount((v) => v.slice(0, -1));
-              return;
-            }
-            setPayAmount((v) => {
-              const next = (v + key).replace(/^0+(\d)/, "$1");
-              return next;
-            });
+            setPayAmount((v) => applyAmountInputKey(v, key));
           }}
           translations={{
             clearForm: t("clearForm"),

@@ -36,10 +36,13 @@ import {
   NO_GROUP_FILTER,
 } from "../utils/constants";
 import {
-  formatInteger,
-  formatShortNpub,
-  getBestNostrName,
-} from "../utils/formatting";
+  applyAmountInputKey,
+  formatDisplayAmountParts,
+  formatDisplayAmountText,
+  getDisplayUnitLabel,
+  type DisplayCurrency,
+} from "../utils/displayAmounts";
+import { formatShortNpub, getBestNostrName } from "../utils/formatting";
 import {
   CASHU_DEFAULT_MINT_OVERRIDE_STORAGE_KEY,
   extractPpk,
@@ -49,9 +52,9 @@ import {
 } from "../utils/mint";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 import {
+  getInitialDisplayCurrency,
   getInitialNostrNsec,
   getInitialPayWithCashuEnabled,
-  getInitialUseBitcoinSymbol,
   safeLocalStorageGet,
   safeLocalStorageGetJson,
   safeLocalStorageRemove,
@@ -107,6 +110,7 @@ import { useContactsDomain } from "./hooks/useContactsDomain";
 import { useContactsNostrPrefetchEffects } from "./hooks/useContactsNostrPrefetchEffects";
 import { useEvoluContactsOwnerRotation } from "./hooks/useEvoluContactsOwnerRotation";
 import { useFeedbackContact } from "./hooks/useFeedbackContact";
+import { useFiatRates } from "./hooks/useFiatRates";
 import { useGuideScannerDomain } from "./hooks/useGuideScannerDomain";
 import { useLightningPaymentsDomain } from "./hooks/useLightningPaymentsDomain";
 import { useMainSwipePageEffects } from "./hooks/useMainSwipePageEffects";
@@ -376,15 +380,43 @@ export const useAppShellComposition = () => {
     Record<string, number>
   >(() => ({}));
   const [lang, setLang] = useState<Lang>(() => getInitialLang());
-  const [useBitcoinSymbol, setUseBitcoinSymbol] = useState<boolean>(() =>
-    getInitialUseBitcoinSymbol(),
+  const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>(() =>
+    getInitialDisplayCurrency(),
   );
   const [payWithCashuEnabled, setPayWithCashuEnabled] = useState<boolean>(() =>
     getInitialPayWithCashuEnabled(),
   );
   const [allowPromisesEnabled] = useState<boolean>(false);
 
-  const displayUnit = useBitcoinSymbol ? "₿" : "sat";
+  const fiatRates = useFiatRates();
+  const displayUnit = getDisplayUnitLabel(displayCurrency, lang);
+  const applyDisplayedAmountInputKey = React.useCallback(
+    (currentAmount: string, key: string) =>
+      applyAmountInputKey(currentAmount, key, {
+        displayCurrency,
+        fiatRates,
+        lang,
+      }),
+    [displayCurrency, fiatRates, lang],
+  );
+  const formatDisplayedAmountParts = React.useCallback(
+    (amountSat: number) =>
+      formatDisplayAmountParts(amountSat, {
+        displayCurrency,
+        fiatRates,
+        lang,
+      }),
+    [displayCurrency, fiatRates, lang],
+  );
+  const formatDisplayedAmountText = React.useCallback(
+    (amountSat: number) =>
+      formatDisplayAmountText(amountSat, {
+        displayCurrency,
+        fiatRates,
+        lang,
+      }),
+    [displayCurrency, fiatRates, lang],
+  );
 
   const [currentNsec] = useState<string | null>(() => getInitialNostrNsec());
   const [chatOwnPubkeyHex, setChatOwnPubkeyHex] = useState<string | null>(null);
@@ -921,9 +953,9 @@ export const useAppShellComposition = () => {
 
   useAppPreferences({
     allowPromisesEnabled,
+    displayCurrency,
     lang,
     payWithCashuEnabled,
-    useBitcoinSymbol,
   });
 
   useArmedDeleteTimeouts({
@@ -1130,10 +1162,16 @@ export const useAppShellComposition = () => {
         );
 
         if (route.kind !== "topupInvoice") {
+          const displayAmount = formatDisplayedAmountParts(
+            topupMintQuote.amount,
+          );
           showPaidOverlay(
             t("topupOverlay")
-              .replace("{amount}", formatInteger(topupMintQuote.amount))
-              .replace("{unit}", displayUnit),
+              .replace(
+                "{amount}",
+                `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+              )
+              .replace("{unit}", displayAmount.unitLabel),
           );
         }
 
@@ -1153,7 +1191,7 @@ export const useAppShellComposition = () => {
       window.clearInterval(intervalId);
     };
   }, [
-    displayUnit,
+    formatDisplayedAmountParts,
     insert,
     resolveOwnerIdForWrite,
     topupMintQuote,
@@ -1325,10 +1363,14 @@ export const useAppShellComposition = () => {
     if (cashuBalance < expected) return;
 
     topupInvoicePaidHandledRef.current = true;
+    const displayAmount = formatDisplayedAmountParts(amountSat);
     showPaidOverlay(
       t("topupOverlay")
-        .replace("{amount}", formatInteger(amountSat))
-        .replace("{unit}", displayUnit),
+        .replace(
+          "{amount}",
+          `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+        )
+        .replace("{unit}", displayAmount.unitLabel),
     );
 
     if (topupPaidNavTimerRef.current !== null) {
@@ -1344,8 +1386,7 @@ export const useAppShellComposition = () => {
     }, 1400);
   }, [
     cashuBalance,
-    displayUnit,
-    lang,
+    formatDisplayedAmountParts,
     route.kind,
     showPaidOverlay,
     t,
@@ -1447,10 +1488,9 @@ export const useAppShellComposition = () => {
     cashuTokensAll: cashuTokensAllFiltered,
     currentNpub,
     currentNsec,
-    displayUnit,
     enqueueCashuOp,
     ensureCashuTokenPersisted,
-    formatInteger,
+    formatDisplayedAmountParts,
     insert,
     isMintDeleted,
     logPaymentEvent,
@@ -1831,11 +1871,9 @@ export const useAppShellComposition = () => {
     useMainMenuState({
       onClose: () => {
         setPendingDeleteId(null);
-        setPayAmount("");
       },
       onOpen: () => {
         setPendingDeleteId(null);
-        setPayAmount("");
       },
       route,
     });
@@ -1894,9 +1932,8 @@ export const useAppShellComposition = () => {
     currentNpub,
     currentNsec,
     defaultMintUrl,
-    displayUnit,
     enqueuePendingPayment,
-    formatInteger,
+    formatDisplayedAmountParts,
     insert,
     logPayStep,
     logPaymentEvent,
@@ -1986,8 +2023,7 @@ export const useAppShellComposition = () => {
       cashuTokensWithMeta,
       contacts,
       defaultMintUrl,
-      displayUnit,
-      formatInteger,
+      formatDisplayedAmountParts,
       insert,
       logPaymentEvent,
       mintInfoByUrl,
@@ -2051,10 +2087,9 @@ export const useAppShellComposition = () => {
   });
 
   const saveCashuFromText = useSaveCashuFromText({
-    displayUnit,
     enqueueCashuOp,
     ensureCashuTokenPersisted,
-    formatInteger,
+    formatDisplayedAmountParts,
     insert,
     isCashuTokenStored,
     isMintDeleted,
@@ -2824,7 +2859,6 @@ export const useAppShellComposition = () => {
       contactsSearch,
       contactsSearchInputRef,
       conversationsLabel,
-      displayUnit,
       dismissContactsOnboarding,
       groupNames,
       handleMainSwipeScroll,
@@ -2950,17 +2984,21 @@ export const useAppShellComposition = () => {
   });
 
   const appState = {
+    applyAmountInputKey: applyDisplayedAmountInputKey,
     chatTopbarContact,
     contactsGuide,
     contactsGuideActiveStep,
     contactsGuideHighlightRect,
     currentNpub,
     currentNsec,
+    displayCurrency,
     derivedProfile,
     displayUnit,
     effectiveMyLightningAddress,
     effectiveProfileName,
     effectiveProfilePicture,
+    formatDisplayedAmountParts,
+    formatDisplayedAmountText,
     isProfileEditing,
     lang,
     menuIsOpen,
@@ -2983,7 +3021,6 @@ export const useAppShellComposition = () => {
     topbar,
     topbarRight,
     topbarTitle,
-    useBitcoinSymbol,
   };
 
   const appActions = {
@@ -2997,6 +3034,7 @@ export const useAppShellComposition = () => {
     openFeedbackContact,
     openProfileQr,
     saveProfileEdits,
+    setDisplayCurrency,
     setContactNewPrefill,
     setIsProfileEditing,
     setLang,
@@ -3004,7 +3042,6 @@ export const useAppShellComposition = () => {
     setProfileEditLnAddress,
     setProfileEditName,
     setProfileEditPicture,
-    setUseBitcoinSymbol,
     stopContactsGuide,
     toggleProfileEditing,
   };
@@ -3015,6 +3052,7 @@ export const useAppShellComposition = () => {
     createNewAccount,
     currentNsec,
     displayUnit,
+    formatDisplayedAmountParts,
     isMainSwipeRoute,
     mainSwipeRouteProps,
     moneyRouteProps,

@@ -20,7 +20,7 @@ interface BuildMoneyRoutePropsParams {
   >["checkAndRefreshCashuToken"];
   copyText: ReturnType<MoneyRoutesProps["cashuTokenProps"]>["copyText"];
   currentNpub: MoneyRoutesProps["topupProps"]["currentNpub"];
-  displayUnit: MoneyRoutesProps["cashuTokenNewProps"]["displayUnit"];
+  displayUnit: MoneyRoutesProps["lnAddressPayProps"]["displayUnit"];
   effectiveProfileName: MoneyRoutesProps["topupProps"]["effectiveProfileName"];
   effectiveProfilePicture: MoneyRoutesProps["topupProps"]["effectiveProfilePicture"];
   getMintIconUrl: MoneyRoutesProps["cashuTokenNewProps"]["getMintIconUrl"];
@@ -88,7 +88,6 @@ export const buildMoneyRouteProps = ({
     cashuTokenNewProps: {
       cashuBalance,
       cashuBulkCheckIsBusy,
-      displayUnit,
       cashuTokens: cashuTokensWithMeta,
       cashuDraft,
       setCashuDraft,
@@ -133,7 +132,6 @@ export const buildMoneyRouteProps = ({
       topupInvoiceError,
       topupInvoiceIsBusy,
       topupMintUrl,
-      displayUnit,
       copyText,
       t,
     },

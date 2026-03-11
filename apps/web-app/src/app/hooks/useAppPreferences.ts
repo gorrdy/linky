@@ -2,22 +2,24 @@ import React from "react";
 import { persistLang, type Lang } from "../../i18n";
 import {
   ALLOW_PROMISES_STORAGE_KEY,
+  DISPLAY_CURRENCY_STORAGE_KEY,
   PAY_WITH_CASHU_STORAGE_KEY,
   UNIT_TOGGLE_STORAGE_KEY,
 } from "../../utils/constants";
+import type { DisplayCurrency } from "../../utils/displayAmounts";
 
 interface UseAppPreferencesParams {
   allowPromisesEnabled: boolean;
+  displayCurrency: DisplayCurrency;
   lang: Lang;
   payWithCashuEnabled: boolean;
-  useBitcoinSymbol: boolean;
 }
 
 export const useAppPreferences = ({
   allowPromisesEnabled,
+  displayCurrency,
   lang,
   payWithCashuEnabled,
-  useBitcoinSymbol,
 }: UseAppPreferencesParams): void => {
   React.useEffect(() => {
     persistLang(lang);
@@ -30,14 +32,15 @@ export const useAppPreferences = ({
 
   React.useEffect(() => {
     try {
+      localStorage.setItem(DISPLAY_CURRENCY_STORAGE_KEY, displayCurrency);
       localStorage.setItem(
         UNIT_TOGGLE_STORAGE_KEY,
-        useBitcoinSymbol ? "1" : "0",
+        displayCurrency === "btc" ? "1" : "0",
       );
     } catch {
       // ignore
     }
-  }, [useBitcoinSymbol]);
+  }, [displayCurrency]);
 
   React.useEffect(() => {
     try {
