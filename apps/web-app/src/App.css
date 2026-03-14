@@ -1261,7 +1261,7 @@ button.settings-link:hover {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   padding: 12px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
   background: rgba(15, 23, 42, 0.95);
@@ -1276,8 +1276,20 @@ button.settings-link:hover {
 }
 
 .chat-compose textarea {
-  min-height: 70px;
+  min-height: 64px;
   padding-right: 56px;
+}
+
+.chat-pay-button {
+  margin-top: -2px;
+  margin-bottom: -2px;
+}
+
+.chat-pay-button:hover,
+.chat-pay-button:focus,
+.chat-pay-button:active {
+  transform: none;
+  box-shadow: none;
 }
 
 .chat-compose-send-button {
@@ -2467,7 +2479,7 @@ button.icon {
 
 .chat-unknown-warning-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 10px;
 }
@@ -2476,9 +2488,28 @@ button.icon {
   min-width: 0;
 }
 
-.chat-unknown-warning-actions .danger {
-  border-color: rgba(244, 63, 94, 0.5);
-  color: #fecdd3;
+.chat-unknown-primary {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  color: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .chat-compose {
+    gap: 4px;
+    padding: 8px 12px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .chat-compose textarea {
+    min-height: 56px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .chat-pay-button {
+    margin-top: -4px;
+    margin-bottom: -2px;
+  }
 }
 
 .contact-header-text {

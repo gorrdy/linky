@@ -60,6 +60,10 @@ import {
 } from "../utils/mint";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 import {
+  clearStoredPushNsec,
+  setStoredPushNsec,
+} from "../utils/pushNsecStorage";
+import {
   getInitialDisplayCurrency,
   getInitialLightningInvoiceAutoPayLimit,
   getInitialNostrNsec,
@@ -70,10 +74,6 @@ import {
   safeLocalStorageSet,
   safeLocalStorageSetJson,
 } from "../utils/storage";
-import {
-  clearStoredPushNsec,
-  setStoredPushNsec,
-} from "../utils/pushNsecStorage";
 import { useCashuTokenChecks } from "./hooks/cashu/useCashuTokenChecks";
 import { useNpubCashClaim } from "./hooks/cashu/useNpubCashClaim";
 import { useRestoreMissingTokens } from "./hooks/cashu/useRestoreMissingTokens";
@@ -2455,48 +2455,6 @@ export const useAppShellComposition = () => {
     unknownNameByNpub,
   ]);
 
-  const blockUnknownContactFromChat = React.useCallback(async () => {
-    if (route.kind !== "chat") return;
-    if (!selectedChatContact?.isUnknownContact) return;
-
-    const confirmed = window.confirm(t("chatUnknownContactBlockConfirm"));
-    if (!confirmed) return;
-
-    const contactId = String(selectedChatContact.id ?? "").trim();
-    if (!contactId) return;
-
-    const pubkeyHex = normalizePubkeyHex(selectedChatContact.unknownPubkeyHex);
-    if (pubkeyHex) {
-      const blocked = safeLocalStorageGetJson(
-        BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY,
-        [],
-      )
-        .map((entry) => normalizePubkeyHex(entry))
-        .filter((entry): entry is string => Boolean(entry));
-
-      if (!blocked.includes(pubkeyHex)) {
-        safeLocalStorageSetJson(BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY, [
-          ...blocked,
-          pubkeyHex,
-        ]);
-      }
-    }
-
-    removeLocalNostrMessagesByContactId(contactId);
-
-    clearContactAttention(contactId);
-
-    setStatus(t("chatUnknownContactBlocked"));
-    navigateTo({ route: "contacts" });
-  }, [
-    clearContactAttention,
-    removeLocalNostrMessagesByContactId,
-    route.kind,
-    selectedChatContact,
-    setStatus,
-    t,
-  ]);
-
   const removeUnknownContactChatFromChat = React.useCallback(async () => {
     if (route.kind !== "chat") return;
     if (!selectedChatContact?.isUnknownContact) return;
@@ -3002,7 +2960,6 @@ export const useAppShellComposition = () => {
       onCancelEdit,
       onCancelReply,
       onAddUnknownContact: addUnknownContactFromChat,
-      onBlockUnknownContact: blockUnknownContactFromChat,
       onRemoveUnknownContactChat: removeUnknownContactChatFromChat,
       onCopy: onCopyChatMessage,
       onEdit: onEditChatMessage,
