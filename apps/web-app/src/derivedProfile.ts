@@ -6,6 +6,11 @@ export type DerivedProfileDefaults = {
   pictureUrl: string;
 };
 
+export interface DerivedAvatarChoice {
+  id: string;
+  pictureUrl: string;
+}
+
 // Simple deterministic hash (FNV-1a 32-bit) that works synchronously in the browser.
 const hash32 = (input: string): number => {
   let hash = 0x811c9dc5;
@@ -33,12 +38,31 @@ const pickDeterministicName = (npub: string): string => {
   return list[idx] ?? list[0] ?? "Linky";
 };
 
-const dicebearAvataaarsUrlForNpub = (npub: string): string => {
-  const seed = String(npub ?? "").trim() || "linky";
+const dicebearAvataaarsUrlForSeed = (seedValue: string): string => {
+  const seed = String(seedValue ?? "").trim() || "linky";
   // DiceBear avatar URL (deterministic by seed). Using SVG keeps it crisp.
   return `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(
     seed,
   )}`;
+};
+
+const dicebearAvataaarsUrlForNpub = (npub: string): string => {
+  return dicebearAvataaarsUrlForSeed(npub);
+};
+
+export const deriveAvatarChoices = (
+  seedSource: string,
+  count: number = 8,
+): readonly DerivedAvatarChoice[] => {
+  const normalized = String(seedSource ?? "").trim() || "linky";
+
+  return Array.from({ length: count }, (_value, index) => {
+    const seed = `${normalized}:avatar:${index + 1}`;
+    return {
+      id: `generated-${index + 1}`,
+      pictureUrl: dicebearAvataaarsUrlForSeed(seed),
+    };
+  });
 };
 
 export const deriveDefaultProfile = (npub: string): DerivedProfileDefaults => {

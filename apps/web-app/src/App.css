@@ -235,6 +235,126 @@
   padding-top: 8px;
 }
 
+.onboarding-panel-compact {
+  margin-top: 0;
+  padding-top: 56px;
+}
+
+.onboarding-avatar-stage {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-avatar-nav {
+  z-index: 15;
+}
+
+.onboarding-avatar-title {
+  margin: 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.onboarding-avatar-copy {
+  text-align: center;
+  line-height: 1.45;
+  display: none;
+}
+
+.onboarding-avatar-preview {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.onboarding-avatar-previewImage {
+  width: 110px;
+  height: 110px;
+}
+
+.onboarding-avatar-nameWrap {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+}
+
+.onboarding-avatar-nameLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.onboarding-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.onboarding-avatar-choice {
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 16px;
+  border: none;
+  background: rgba(15, 23, 42, 0.44);
+  box-shadow: none;
+}
+
+.onboarding-avatar-choice:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.onboarding-avatar-choice.is-selected {
+  background: rgba(13, 148, 136, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.28);
+}
+
+.onboarding-avatar-choiceImage,
+.onboarding-avatar-choicePlus {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(226, 232, 240, 0.08);
+}
+
+.onboarding-avatar-choiceImage img,
+.onboarding-avatar-choicePlus img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.onboarding-avatar-choicePlus {
+  font-size: 28px;
+  line-height: 1;
+  color: #e2e8f0;
+}
+
+.onboarding-avatar-choiceLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.onboarding-avatar-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
 .contacts-checklist {
   position: relative;
   background: linear-gradient(
