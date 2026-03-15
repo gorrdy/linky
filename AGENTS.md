@@ -106,7 +106,7 @@ IMPORTANT: Always run `bun run check-code` after making changes. It runs typeche
 - In this workspace/Bun setup, `bunx --cwd apps/web-app playwright test tests` can resolve incorrectly; run `cd apps/web-app && bunx playwright test tests` instead
 - SQLite WASM files served from `public/sqlite-wasm/` with `cache-control: no-store` in dev
 - The `nsec` private key is in localStorage (`linky.nostr_nsec`) - never log or expose it
-- Vite proxies: `/__mint-quote` for Cashu mint quotes, `/api/lnurlp` for LNURL-pay (CORS workarounds)
+- Vite proxies: `/api/mint-quote` for Cashu mint quotes and `/api/lnurlp` for LNURL-pay (CORS workarounds); production mirrors the mint-quote proxy in `apps/web-app/api/mint-quote.ts`
 - PWA service worker is built from `apps/web-app/src/sw.ts` via Vite PWA `injectManifest`; changes there affect both prod and dev SW behavior
 - Dev mode now keeps the registered PWA service worker alive for push testing; use `#advanced/push-debug` to inspect persistent client/SW push logs and manually reset service workers/caches when needed
 - Push registration now validates the live `PushSubscription.options.applicationServerKey` against the current server VAPID public key and forces a re-subscribe on mismatch; open clients also re-register when the service worker emits `pushsubscriptionchange`

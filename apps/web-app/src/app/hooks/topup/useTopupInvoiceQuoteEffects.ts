@@ -157,13 +157,7 @@ export const useTopupInvoiceQuoteEffects = ({
         };
 
         const requestQuote = async (baseUrl: string) => {
-          const shouldProxy =
-            typeof import.meta !== "undefined" &&
-            Boolean(import.meta.env?.DEV) &&
-            typeof window !== "undefined";
-          const targetUrl = shouldProxy
-            ? `/__mint-quote?mint=${encodeURIComponent(baseUrl)}`
-            : `${baseUrl}/v1/mint/quote/bolt11`;
+          const targetUrl = `/api/mint-quote?mint=${encodeURIComponent(baseUrl)}`;
 
           const quoteRes = await fetchWithTimeout(
             targetUrl,
