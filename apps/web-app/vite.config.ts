@@ -103,7 +103,7 @@ const mintQuoteProxy = (): Plugin => ({
         next: Connect.NextFunction,
       ) => {
         const url = req.url ?? "";
-        if (!url.startsWith("/__mint-quote")) return next();
+        if (!url.startsWith("/api/mint-quote")) return next();
 
         if (req.method !== "POST") {
           res.statusCode = 405;

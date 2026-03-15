@@ -11,6 +11,31 @@ interface UseMainSwipeNavigationParams {
   setMainSwipeProgress: React.Dispatch<React.SetStateAction<number>>;
 }
 
+interface MainSwipeScrollable {
+  clientWidth: number;
+  scrollLeft: number;
+  scrollTo: (options: { behavior: ScrollBehavior; left: number }) => void;
+}
+
+const getMainSwipeTargetLeft = (
+  width: number,
+  target: "contacts" | "wallet",
+): number => (target === "wallet" ? width : 0);
+
+export const alignMainSwipeToTarget = (
+  element: MainSwipeScrollable,
+  target: "contacts" | "wallet",
+): void => {
+  const width = element.clientWidth || 1;
+  const targetLeft = getMainSwipeTargetLeft(width, target);
+
+  if (Math.abs(element.scrollLeft - targetLeft) <= 0.01) {
+    return;
+  }
+
+  element.scrollTo({ left: targetLeft, behavior: "auto" });
+};
+
 export const useMainSwipeNavigation = ({
   isMainSwipeRoute,
   mainSwipeProgressRef,
@@ -31,11 +56,15 @@ export const useMainSwipeNavigation = ({
   const commitMainSwipe = React.useCallback(
     (target: "contacts" | "wallet") => {
       updateMainSwipeProgress(target === "wallet" ? 1 : 0);
+      const element = mainSwipeRef.current;
+      if (element) {
+        alignMainSwipeToTarget(element, target);
+      }
       if (target !== routeKind) {
         navigateTo({ route: target });
       }
     },
-    [routeKind, updateMainSwipeProgress],
+    [mainSwipeRef, routeKind, updateMainSwipeProgress],
   );
 
   React.useEffect(() => {
@@ -43,11 +72,10 @@ export const useMainSwipeNavigation = ({
     const element = mainSwipeRef.current;
     if (!element) return;
 
-    const width = element.clientWidth || 1;
-    const targetLeft = routeKind === "wallet" ? width : 0;
-    if (Math.abs(element.scrollLeft - targetLeft) > 1) {
-      element.scrollTo({ left: targetLeft, behavior: "auto" });
-    }
+    alignMainSwipeToTarget(
+      element,
+      routeKind === "wallet" ? "wallet" : "contacts",
+    );
 
     updateMainSwipeProgress(routeKind === "wallet" ? 1 : 0);
   }, [isMainSwipeRoute, mainSwipeRef, routeKind, updateMainSwipeProgress]);
