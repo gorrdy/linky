@@ -1,6 +1,10 @@
 import * as Evolu from "@evolu/common";
 import React from "react";
-import { deriveDefaultProfile } from "../../derivedProfile";
+import {
+  deriveAvatarChoices,
+  deriveDefaultProfile,
+  type DerivedAvatarChoice,
+} from "../../derivedProfile";
 import { evolu } from "../../evolu";
 import { INITIAL_MNEMONIC_STORAGE_KEY } from "../../mnemonic";
 import {
@@ -15,6 +19,7 @@ import {
   NOSTR_NSEC_STORAGE_KEY,
   NOSTR_SLIP39_SEED_STORAGE_KEY,
 } from "../../utils/constants";
+import { createSquareAvatarDataUrl } from "../../utils/image";
 import {
   clearStoredPushNsec,
   setStoredPushNsec,
@@ -27,11 +32,35 @@ import {
   looksLikeSlip39Seed,
 } from "../../utils/slip39Nostr";
 
-export type OnboardingStep = {
-  step: 1 | 2 | 3;
+export interface PendingOnboardingProfile {
+  avatarChoices: readonly DerivedAvatarChoice[];
+  error: string | null;
+  kind: "profile";
+  name: string;
+  npub: string;
+  nsec: string;
+  pictureUrl: string;
+  slip39Seed: string;
+}
+
+type PreparingOnboardingStep = {
   derivedName: string | null;
   error: string | null;
-} | null;
+  kind: "preparing";
+  step: 1 | 2;
+};
+
+export type OnboardingStep =
+  | PreparingOnboardingStep
+  | PendingOnboardingProfile
+  | null;
+
+interface PersistNewProfileParams {
+  name: string;
+  npub: string;
+  nsec: string;
+  pictureUrl: string;
+}
 
 interface UseProfileAuthDomainParams {
   currentNsec: string | null;
@@ -40,19 +69,27 @@ interface UseProfileAuthDomainParams {
 }
 
 interface UseProfileAuthDomainResult {
+  confirmPendingOnboardingProfile: () => Promise<void>;
   createNewAccount: () => Promise<void>;
   currentNpub: string | null;
   isSeedLogin: boolean;
   logoutArmed: boolean;
   onboardingIsBusy: boolean;
+  onboardingPhotoInputRef: React.RefObject<HTMLInputElement | null>;
   onboardingStep: OnboardingStep;
+  onPendingOnboardingPhotoSelected: (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => Promise<void>;
   pasteExistingNsec: () => Promise<void>;
+  pickPendingOnboardingPhoto: () => Promise<void>;
   requestDeriveNostrKeys: () => Promise<void>;
   requestLogout: () => void;
   seedMnemonic: string | null;
+  selectPendingOnboardingAvatar: (pictureUrl: string) => void;
   cashuSeedMnemonic: string | null;
   slip39Seed: string | null;
   setOnboardingStep: React.Dispatch<React.SetStateAction<OnboardingStep>>;
+  setPendingOnboardingName: (value: string) => void;
 }
 
 export const useProfileAuthDomain = ({
@@ -86,6 +123,7 @@ export const useProfileAuthDomain = ({
     }
   });
   const [logoutArmed, setLogoutArmed] = React.useState(false);
+  const onboardingPhotoInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isSeedLogin, setIsSeedLogin] = React.useState<boolean>(() => {
     try {
       const seed = String(
@@ -200,6 +238,57 @@ export const useProfileAuthDomain = ({
     };
   }, [cashuSeedMnemonic, isSeedLogin, slip39Seed]);
 
+  const updatePendingOnboardingProfile = React.useCallback(
+    (
+      update: (profile: PendingOnboardingProfile) => PendingOnboardingProfile,
+    ) => {
+      setOnboardingStep((current) => {
+        if (!current || current.kind !== "profile") return current;
+        return update(current);
+      });
+    },
+    [],
+  );
+
+  const publishNewProfileMetadata = React.useCallback(
+    async ({ name, npub, nsec, pictureUrl }: PersistNewProfileParams) => {
+      const privBytes = await decodeNsecPrivateBytes(nsec);
+      if (!privBytes) {
+        throw new Error(t("onboardingCreateFailed"));
+      }
+
+      const trimmedName = name.trim();
+      const trimmedPicture = pictureUrl.trim();
+      const content: JsonRecord = {
+        ...(trimmedName
+          ? { name: trimmedName, display_name: trimmedName }
+          : {}),
+        ...(trimmedPicture
+          ? { picture: trimmedPicture, image: trimmedPicture }
+          : {}),
+      };
+
+      const result = await publishKind0ProfileMetadata({
+        privBytes,
+        relays: NOSTR_RELAYS,
+        content,
+      });
+
+      if (!result.anySuccess) {
+        throw new Error("nostr publish failed");
+      }
+
+      saveCachedProfileMetadata(npub, {
+        ...(trimmedName ? { name: trimmedName, displayName: trimmedName } : {}),
+        ...(trimmedPicture
+          ? { picture: trimmedPicture, image: trimmedPicture }
+          : {}),
+      });
+      saveCachedProfilePicture(npub, trimmedPicture || null);
+    },
+    [decodeNsecPrivateBytes, t],
+  );
+
   const setIdentityFromNsecAndReload = React.useCallback(
     async (
       nsec: string,
@@ -306,12 +395,18 @@ export const useProfileAuthDomain = ({
     if (onboardingIsBusy) return;
 
     setOnboardingIsBusy(true);
-    setOnboardingStep({ step: 1, derivedName: null, error: null });
+    setOnboardingStep({
+      kind: "preparing",
+      step: 1,
+      derivedName: null,
+      error: null,
+    });
     try {
       const slip39 = await createSlip39Seed();
       if (!slip39) {
         pushToast(t("onboardingCreateFailed"));
         setOnboardingStep({
+          kind: "preparing",
           step: 1,
           derivedName: null,
           error: t("onboardingCreateFailed"),
@@ -323,6 +418,7 @@ export const useProfileAuthDomain = ({
       if (!derived) {
         pushToast(t("onboardingCreateFailed"));
         setOnboardingStep({
+          kind: "preparing",
           step: 1,
           derivedName: null,
           error: t("onboardingCreateFailed"),
@@ -331,10 +427,11 @@ export const useProfileAuthDomain = ({
       }
 
       const npub = derived.npub;
-      const privBytes = await decodeNsecPrivateBytes(derived.nsec);
-      if (!privBytes) {
+      const normalizedNsec = String(derived.nsec ?? "").trim();
+      if (!normalizedNsec) {
         pushToast(t("onboardingCreateFailed"));
         setOnboardingStep({
+          kind: "preparing",
           step: 1,
           derivedName: null,
           error: t("onboardingCreateFailed"),
@@ -343,59 +440,153 @@ export const useProfileAuthDomain = ({
       }
 
       const defaults = deriveDefaultProfile(npub);
-      setOnboardingStep({ step: 1, derivedName: defaults.name, error: null });
+      setOnboardingStep({
+        kind: "preparing",
+        step: 1,
+        derivedName: defaults.name,
+        error: null,
+      });
 
-      setOnboardingStep({ step: 2, derivedName: defaults.name, error: null });
-      setOnboardingStep({ step: 3, derivedName: defaults.name, error: null });
+      const avatarChoices = deriveAvatarChoices(npub, 8);
+
+      setOnboardingStep({
+        kind: "preparing",
+        step: 2,
+        derivedName: defaults.name,
+        error: null,
+      });
+
+      setOnboardingStep({
+        kind: "profile",
+        avatarChoices,
+        error: null,
+        name: defaults.name,
+        npub,
+        nsec: normalizedNsec,
+        pictureUrl: avatarChoices[0]?.pictureUrl ?? defaults.pictureUrl,
+        slip39Seed: slip39,
+      });
+    } finally {
+      setOnboardingIsBusy(false);
+    }
+  }, [deriveAvatarChoices, onboardingIsBusy, pushToast, t]);
+
+  const setPendingOnboardingName = React.useCallback(
+    (value: string) => {
+      updatePendingOnboardingProfile((current) => ({
+        ...current,
+        error: null,
+        name: value,
+      }));
+    },
+    [updatePendingOnboardingProfile],
+  );
+
+  const selectPendingOnboardingAvatar = React.useCallback(
+    (pictureUrl: string) => {
+      const normalizedPicture = String(pictureUrl ?? "").trim();
+      if (!normalizedPicture) return;
+
+      updatePendingOnboardingProfile((current) => ({
+        ...current,
+        error: null,
+        pictureUrl: normalizedPicture,
+      }));
+    },
+    [updatePendingOnboardingProfile],
+  );
+
+  const pickPendingOnboardingPhoto = React.useCallback(async () => {
+    onboardingPhotoInputRef.current?.click();
+  }, []);
+
+  const onPendingOnboardingPhotoSelected = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] ?? null;
+      event.target.value = "";
+      if (!file) return;
 
       try {
-        const content: JsonRecord = {
-          name: defaults.name,
-          display_name: defaults.name,
-          picture: defaults.pictureUrl,
-          image: defaults.pictureUrl,
-          lud16: defaults.lnAddress,
-        };
+        const pictureUrl = await createSquareAvatarDataUrl(file, 160);
+        updatePendingOnboardingProfile((current) => ({
+          ...current,
+          error: null,
+          pictureUrl,
+        }));
+      } catch (error) {
+        const message = `${t("errorPrefix")}: ${String(error ?? "unknown")}`;
+        updatePendingOnboardingProfile((current) => ({
+          ...current,
+          error: message,
+        }));
+      }
+    },
+    [t, updatePendingOnboardingProfile],
+  );
 
-        const result = await publishKind0ProfileMetadata({
-          privBytes,
-          relays: NOSTR_RELAYS,
-          content,
+  const confirmPendingOnboardingProfile = React.useCallback(async () => {
+    if (onboardingIsBusy) return;
+    if (!onboardingStep || onboardingStep.kind !== "profile") return;
+
+    const trimmedName = onboardingStep.name.trim();
+    const trimmedPicture = onboardingStep.pictureUrl.trim();
+
+    if (!trimmedName) {
+      updatePendingOnboardingProfile((current) => ({
+        ...current,
+        error: t("onboardingNameRequired"),
+      }));
+      return;
+    }
+
+    if (!trimmedPicture) {
+      updatePendingOnboardingProfile((current) => ({
+        ...current,
+        error: t("onboardingAvatarRequired"),
+      }));
+      return;
+    }
+
+    setOnboardingIsBusy(true);
+    updatePendingOnboardingProfile((current) => ({
+      ...current,
+      error: null,
+    }));
+
+    try {
+      try {
+        await publishNewProfileMetadata({
+          name: trimmedName,
+          npub: onboardingStep.npub,
+          nsec: onboardingStep.nsec,
+          pictureUrl: trimmedPicture,
         });
-
-        if (!result.anySuccess) {
-          throw new Error("nostr publish failed");
-        }
-
-        saveCachedProfileMetadata(npub, {
-          name: defaults.name,
-          displayName: defaults.name,
-          lud16: defaults.lnAddress,
-          picture: defaults.pictureUrl,
-          image: defaults.pictureUrl,
-        });
-        saveCachedProfilePicture(npub, defaults.pictureUrl);
-      } catch (e) {
-        const msg = `${t("errorPrefix")}: ${String(e ?? "unknown")}`;
-        setOnboardingStep({ step: 3, derivedName: defaults.name, error: msg });
-        pushToast(msg);
+      } catch (error) {
+        const message = `${t("errorPrefix")}: ${String(error ?? "unknown")}`;
+        updatePendingOnboardingProfile((current) => ({
+          ...current,
+          error: message,
+        }));
+        pushToast(message);
         return;
       }
 
       await setIdentityFromNsecAndReload(
-        derived.nsec,
-        slip39,
+        onboardingStep.nsec,
+        onboardingStep.slip39Seed,
         "onboardingCreateFailed",
       );
     } finally {
       setOnboardingIsBusy(false);
     }
   }, [
-    decodeNsecPrivateBytes,
     onboardingIsBusy,
+    onboardingStep,
+    publishNewProfileMetadata,
     pushToast,
     setIdentityFromNsecAndReload,
     t,
+    updatePendingOnboardingProfile,
   ]);
 
   const pasteExistingNsec = React.useCallback(async () => {
@@ -534,18 +725,24 @@ export const useProfileAuthDomain = ({
   }, [logoutArmed]);
 
   return {
+    confirmPendingOnboardingProfile,
     createNewAccount,
     currentNpub,
     isSeedLogin,
     logoutArmed,
     onboardingIsBusy,
+    onboardingPhotoInputRef,
     onboardingStep,
+    onPendingOnboardingPhotoSelected,
     pasteExistingNsec,
+    pickPendingOnboardingPhoto,
     requestDeriveNostrKeys,
     requestLogout,
+    selectPendingOnboardingAvatar,
     cashuSeedMnemonic,
     seedMnemonic,
     slip39Seed,
     setOnboardingStep,
+    setPendingOnboardingName,
   };
 };

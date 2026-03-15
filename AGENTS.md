@@ -50,6 +50,7 @@ IMPORTANT: Always run `bun run check-code` after making changes. It runs typeche
 - Evolu debug views (`#evolu-current-data`, `#evolu-history-data`) scope contacts/history to active owner lanes, with history retaining one previous contacts lane as backup
 - Core app remains local-first/client-side; optional background notifications are handled by the separate `apps/push` Bun service
 - Onboarding/login uses a single 20-word **SLIP-39** share; Nostr keys are always derived from that seed at path `m/44'/1237'/0'/0/0` (manual Nostr key overrides are disabled)
+- New account creation now pauses before first login on an unauthenticated profile-picker step: it derives 8 deterministic DiceBear avatar options from the freshly generated `npub`, preselects the first one in a large preview, lets the user edit the suggested name immediately, supports uploading a custom square-cropped photo as a 9th option, and only publishes kind-0 name/picture metadata on confirm (the automatic lightning-address registration path is intentionally deferred until after this step)
 - Cashu deterministic wallet seed is derived from the SLIP-39 secret using **BIP-85** at path `m/83696968'/39'/0'/24'/0'` (24-word mnemonic)
 - Web app seed/identity helpers in `src/utils/slip39Nostr.ts` are app-level adapters that delegate SLIP-39/BIP-85 derivation to `@linky/core/identity`
 - `apps/web-app/src/App.tsx` is a thin wrapper that default-exports `app/AppShell`

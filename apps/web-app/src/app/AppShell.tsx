@@ -16,20 +16,28 @@ const AppShell = () => {
   const {
     appActions,
     appState,
+    confirmPendingOnboardingProfile,
     createNewAccount,
     currentNsec,
     formatDisplayedAmountParts,
     isMainSwipeRoute,
+    lang,
     mainSwipeRouteProps,
     moneyRouteProps,
     onboardingIsBusy,
+    onboardingPhotoInputRef,
     onboardingStep,
+    onPendingOnboardingPhotoSelected,
     pageClassNameWithSwipe,
     pasteExistingNsec,
     peopleRouteProps,
+    pickPendingOnboardingPhoto,
     pushToast,
     recentlyReceivedToken,
+    selectPendingOnboardingAvatar,
     setOnboardingStep,
+    setLang,
+    setPendingOnboardingName,
     setRecentlyReceivedToken,
     systemRouteProps,
     t,
@@ -72,11 +80,19 @@ const AppShell = () => {
 
       {!currentNsec ? (
         <UnauthenticatedLayout
+          confirmPendingOnboardingProfile={confirmPendingOnboardingProfile}
           onboardingStep={onboardingStep}
           onboardingIsBusy={onboardingIsBusy}
+          lang={lang}
+          onboardingPhotoInputRef={onboardingPhotoInputRef}
+          onPendingOnboardingPhotoSelected={onPendingOnboardingPhotoSelected}
           setOnboardingStep={setOnboardingStep}
           createNewAccount={createNewAccount}
           pasteExistingNsec={pasteExistingNsec}
+          pickPendingOnboardingPhoto={pickPendingOnboardingPhoto}
+          selectPendingOnboardingAvatar={selectPendingOnboardingAvatar}
+          setLang={setLang}
+          setPendingOnboardingName={setPendingOnboardingName}
           t={t}
         />
       ) : null}

@@ -49,6 +49,13 @@ export const en = {
   onboardingStep1: "Picking a name for you… You will be {name}",
   onboardingStep2: "Imagining what you look like… Got it",
   onboardingStep3: "Creating your lightning address… one moment.",
+  onboardingAvatarTitle: "Choose your avatar",
+  onboardingAvatarIntro:
+    "Choose an avatar and adjust your name before finishing account setup.",
+  onboardingAvatarGridLabel: "Avatar selection",
+  onboardingAvatarRequired: "Choose an avatar or upload your own photo.",
+  onboardingConfirmProfile: "Continue",
+  onboardingNameRequired: "Enter a name.",
   onboardingRetry: "Try again",
 
   paymentsHistoryEmpty: "No transactions yet.",

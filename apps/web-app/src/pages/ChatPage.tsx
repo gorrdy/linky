@@ -43,7 +43,6 @@ interface ChatPageProps {
   onCancelEdit: () => void;
   onCancelReply: () => void;
   onAddUnknownContact: () => Promise<void>;
-  onBlockUnknownContact: () => Promise<void>;
   onRemoveUnknownContactChat: () => Promise<void>;
   onCopy: (message: LocalNostrMessage) => void;
   onEdit: (message: LocalNostrMessage) => void;
@@ -79,7 +78,6 @@ export const ChatPage: FC<ChatPageProps> = ({
   onCancelEdit,
   onCancelReply,
   onAddUnknownContact,
-  onBlockUnknownContact,
   onRemoveUnknownContactChat,
   onCopy,
   onEdit,
@@ -252,22 +250,13 @@ export const ChatPage: FC<ChatPageProps> = ({
           <p>{t("chatUnknownContactWarning")}</p>
           <div className="chat-unknown-warning-actions">
             <button
-              className="btn-wide secondary"
+              className="btn-wide chat-unknown-primary"
               type="button"
               onClick={() => {
                 void onAddUnknownContact();
               }}
             >
               {t("addContact")}
-            </button>
-            <button
-              className="btn-wide secondary danger"
-              type="button"
-              onClick={() => {
-                void onBlockUnknownContact();
-              }}
-            >
-              {t("blockContact")}
             </button>
             <button
               className="btn-wide secondary"
@@ -442,7 +431,7 @@ export const ChatPage: FC<ChatPageProps> = ({
         </div>
         {canPayThisContact && (
           <button
-            className="btn-wide secondary"
+            className="btn-wide secondary chat-pay-button"
             onClick={() => openContactPay(selectedContact.id, true)}
             disabled={cashuIsBusy || !canStartPay}
             title={!canStartPay ? t("payInsufficient") : undefined}

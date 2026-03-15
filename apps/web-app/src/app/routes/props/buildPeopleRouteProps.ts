@@ -35,7 +35,6 @@ interface BuildPeopleRoutePropsParams {
   onCancelEdit: PeopleRoutesProps["chatProps"]["onCancelEdit"];
   onCancelReply: PeopleRoutesProps["chatProps"]["onCancelReply"];
   onAddUnknownContact: PeopleRoutesProps["chatProps"]["onAddUnknownContact"];
-  onBlockUnknownContact: PeopleRoutesProps["chatProps"]["onBlockUnknownContact"];
   onRemoveUnknownContactChat: PeopleRoutesProps["chatProps"]["onRemoveUnknownContactChat"];
   onCopy: PeopleRoutesProps["chatProps"]["onCopy"];
   onEdit: PeopleRoutesProps["chatProps"]["onEdit"];
@@ -108,7 +107,6 @@ export const buildPeopleRouteProps = ({
   onCancelEdit,
   onCancelReply,
   onAddUnknownContact,
-  onBlockUnknownContact,
   onRemoveUnknownContactChat,
   onCopy,
   onEdit,
@@ -173,7 +171,6 @@ export const buildPeopleRouteProps = ({
       onCancelReply,
       onCancelEdit,
       onAddUnknownContact,
-      onBlockUnknownContact,
       onRemoveUnknownContactChat,
       sendChatMessage,
       openContactPay,

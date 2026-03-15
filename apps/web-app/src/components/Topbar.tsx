@@ -92,11 +92,7 @@ export function Topbar({
       {chatTopbarContact ? (
         <button
           type="button"
-          className={
-            canOpenChatContact
-              ? "topbar-chat topbar-chat-button"
-              : "topbar-chat"
-          }
+          className="topbar-chat topbar-chat-button"
           aria-label={canOpenChatContact ? t("contact") : t("messagesTitle")}
           disabled={!canOpenChatContact}
           onClick={() => {
@@ -122,11 +118,6 @@ export function Topbar({
                 </span>
               );
             })()}
-            {chatTopbarContact.isUnknownContact ? (
-              <span className="contact-unknown-badge topbar-unknown-badge">
-                ?
-              </span>
-            ) : null}
           </span>
           <span className="topbar-chat-name">
             {String(chatTopbarContact.name ?? "").trim() || t("messagesTitle")}

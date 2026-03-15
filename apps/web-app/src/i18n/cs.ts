@@ -49,6 +49,13 @@ export const cs = {
   onboardingStep1: "Vymýšlím pro vás správné jméno… Budete {name}",
   onboardingStep2: "Zkouším si představit jak vypadáte… Už to mám",
   onboardingStep3: "Vytvářím lightning adresu… chvíli strpení.",
+  onboardingAvatarTitle: "Vyber svého avatara",
+  onboardingAvatarIntro:
+    "Vyberte si avatara a případně si rovnou upravte jméno.",
+  onboardingAvatarGridLabel: "Výběr avatara",
+  onboardingAvatarRequired: "Vyberte avatar nebo nahrajte vlastní fotku.",
+  onboardingConfirmProfile: "Pokračovat",
+  onboardingNameRequired: "Zadejte jméno.",
   onboardingRetry: "Zkusit znovu",
 
   paymentsHistoryEmpty: "Zatím žádné transakce.",
