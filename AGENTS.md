@@ -33,6 +33,7 @@ IMPORTANT: Always run `bun run check-code` after making changes. It runs typeche
 ## Architecture
 
 - **No framework router** - hash-based routing via `useRouting` hook and `parseRouteFromHash()` in `src/types/route.ts`
+- Empty or unknown hashes now default to the wallet route; contacts use `#contacts` and legacy explicit `#` still opens contacts
 - Navigation uses `navigateTo()` from `src/hooks/useRouting.ts` - do NOT use `window.location` directly
 - **Evolu** for all persistent data - local-first SQLite with sync. Schema in `src/evolu.ts`
 - Nostr chat persistence is Evolu-backed (`nostrMessage` + `nostrReaction` tables) and uses deterministic `messages-n` owner lanes for seed logins (derived from SLIP-39/BIP-85 path family `m/83696968'/39'/0'/24'/4'/<index>'`); legacy `linky.local.nostrMessages.v1.<ownerId>` data is imported once per owner via `linky.messages_evolu_migrated_v1:<ownerId>`
@@ -117,7 +118,7 @@ IMPORTANT: Always run `bun run check-code` after making changes. It runs typeche
 - Wallet top-up receive quotes are cached in owner-scoped localStorage until claimed/expired, so dismissing the QR screen does not drop a pending receive
 - Push service env is documented in `apps/push/.env.example`; `PUSH_VAPID_SUBJECT`, `PUSH_VAPID_PUBLIC_KEY`, and `PUSH_VAPID_PRIVATE_KEY` must be set before `apps/push` starts
 - `apps/push` CORS allowlist is configured via `PUSH_CORS_ORIGIN`; it accepts `*` or a comma-separated list of allowed web app origins
-- `apps/push` relay watcher defaults now match the web app chat publish relays (`wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.0xchat.com`, `wss://shu01.shugur.net`) unless overridden via `PUSH_DEFAULT_RELAYS`
+- `apps/push` relay watcher defaults now match the web app chat publish relays (`wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.0xchat.com`) unless overridden via `PUSH_DEFAULT_RELAYS`
 - `apps/push` relay watcher uses a 3-day catch-up `since` window to accommodate NIP-59 randomized outer `created_at`, persists seen outer event ids in SQLite, keeps a size-bounded in-memory seen-id cache for O(1) hot-path dedupe checks, suppresses notification delivery until EOSE switches the watcher into live mode, periodically refreshes the subscription to reset reconnect `since` drift, and prunes both cache-expired ids and old SQLite seen-event rows on the server cleanup interval
 - Container publishing is handled by `.github/workflows/push-image.yml`, which builds `apps/push/Dockerfile` and publishes the image to GHCR
 

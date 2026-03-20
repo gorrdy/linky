@@ -34,6 +34,7 @@ import { getCashuDeterministicSeedFromStorage } from "../utils/cashuDeterministi
 import { getCashuLib } from "../utils/cashuLib";
 import {
   BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY,
+  CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_BACKUPED_KEYS_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY,
   FEEDBACK_CONTACT_NPUB,
@@ -606,15 +607,34 @@ export const useAppShellComposition = () => {
   React.useEffect(() => {
     appOwnerIdRef.current = appOwnerId;
     if (!appOwnerId) return;
-    const overrideRaw = safeLocalStorageGet(
-      makeLocalStorageKey(CASHU_DEFAULT_MINT_OVERRIDE_STORAGE_KEY),
+    const overrideKey = makeLocalStorageKey(
+      CASHU_DEFAULT_MINT_OVERRIDE_STORAGE_KEY,
     );
+    const overrideRaw = safeLocalStorageGet(overrideKey);
     const override = normalizeMintUrl(overrideRaw);
+    const shouldSeedMainMint =
+      safeLocalStorageGet(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY) === "1";
+
+    if (!override && shouldSeedMainMint) {
+      const seededMint = normalizeMintUrl(MAIN_MINT_URL);
+      if (seededMint) {
+        safeLocalStorageSet(overrideKey, seededMint);
+        safeLocalStorageRemove(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY);
+        hasMintOverrideRef.current = true;
+        setDefaultMintUrl(seededMint);
+        setDefaultMintUrlDraft(seededMint);
+        return;
+      }
+    }
+
     if (override) {
       hasMintOverrideRef.current = true;
       setDefaultMintUrl(override);
       setDefaultMintUrlDraft(override);
     } else {
+      if (shouldSeedMainMint) {
+        safeLocalStorageRemove(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY);
+      }
       hasMintOverrideRef.current = false;
     }
   }, [appOwnerId, makeLocalStorageKey]);
@@ -891,7 +911,6 @@ export const useAppShellComposition = () => {
   const {
     confirmPendingOnboardingProfile,
     createNewAccount,
-    cashuSeedMnemonic,
     currentNpub,
     isSeedLogin,
     logoutArmed,
@@ -2748,13 +2767,6 @@ export const useAppShellComposition = () => {
     pushToast(t("seedMissing"));
   };
 
-  const copyCashuSeed = async () => {
-    const value = String(cashuSeedMnemonic ?? "").trim();
-    if (!value) return;
-    await navigator.clipboard?.writeText(value);
-    pushToast(t("cashuSeedCopied"));
-  };
-
   const restoreMissingTokens = useRestoreMissingTokens({
     cashuIsBusy,
     cashuTokensAll: cashuTokensAllFiltered,
@@ -2989,6 +3001,30 @@ export const useAppShellComposition = () => {
     t,
   });
 
+  const pasteScanValue = React.useCallback(async () => {
+    let text = "";
+
+    if (navigator.clipboard?.readText) {
+      text = await navigator.clipboard.readText();
+    } else if (
+      typeof window !== "undefined" &&
+      typeof window.prompt === "function"
+    ) {
+      text = String(window.prompt(t("scanPastePrompt")) ?? "");
+    } else {
+      pushToast(t("pasteNotAvailable"));
+      return;
+    }
+
+    const raw = String(text ?? "").trim();
+    if (!raw) {
+      pushToast(t("pasteEmpty"));
+      return;
+    }
+
+    await handleScannedText(raw);
+  }, [handleScannedText, pushToast, t]);
+
   useScannedTextHandlerRefBridge({
     handleScannedText,
     scannedTextHandlerRef,
@@ -3205,7 +3241,6 @@ export const useAppShellComposition = () => {
       connectedRelayCount,
       copyNostrKeys,
       copySeed,
-      copyCashuSeed,
       currentNpub,
       currentNsec,
       dedupeContacts,
@@ -3272,7 +3307,6 @@ export const useAppShellComposition = () => {
       requestDeriveNostrKeys,
       requestLogout,
       restoreMissingTokens,
-      cashuSeedMnemonic,
       route,
       safeLocalStorageSetJson,
       saveEvoluServerUrls,
@@ -3352,6 +3386,7 @@ export const useAppShellComposition = () => {
     onProfilePhotoSelected,
     openFeedbackContact,
     openProfileQr,
+    pasteScanValue,
     saveProfileEdits,
     setDisplayCurrency,
     setContactNewPrefill,

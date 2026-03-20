@@ -1,4 +1,4 @@
-export const MAIN_MINT_URL = "https://mint.minibits.cash/Bitcoin";
+export const MAIN_MINT_URL = "https://cashu.cz";
 
 export const PRESET_MINTS = [
   "https://cashu.cz",

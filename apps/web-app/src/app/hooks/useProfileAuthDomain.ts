@@ -16,6 +16,7 @@ import { publishKind0ProfileMetadata } from "../../nostrPublish";
 import type { JsonRecord } from "../../types/json";
 import {
   CASHU_BIP85_MNEMONIC_STORAGE_KEY,
+  CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY,
   NOSTR_NSEC_STORAGE_KEY,
   NOSTR_SLIP39_SEED_STORAGE_KEY,
 } from "../../utils/constants";
@@ -31,6 +32,7 @@ import {
   deriveNostrKeysFromSlip39,
   looksLikeSlip39Seed,
 } from "../../utils/slip39Nostr";
+import { safeLocalStorageSet } from "../../utils/storage";
 
 export interface PendingOnboardingProfile {
   avatarChoices: readonly DerivedAvatarChoice[];
@@ -570,6 +572,8 @@ export const useProfileAuthDomain = ({
         pushToast(message);
         return;
       }
+
+      safeLocalStorageSet(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY, "1");
 
       await setIdentityFromNsecAndReload(
         onboardingStep.nsec,

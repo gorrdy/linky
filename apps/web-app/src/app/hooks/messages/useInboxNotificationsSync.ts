@@ -1,10 +1,13 @@
 import type { Event as NostrToolsEvent } from "nostr-tools";
 import React from "react";
 import { NOSTR_RELAYS } from "../../../nostrProfile";
-import { formatShortNpub } from "../../../utils/formatting";
 import { BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY } from "../../../utils/constants";
+import { formatShortNpub } from "../../../utils/formatting";
 import { normalizeNpubIdentifier } from "../../../utils/nostrNpub";
-import { safeLocalStorageGetJson } from "../../../utils/storage";
+import {
+  safeLocalStorageGetJson,
+  safeLocalStorageSetJson,
+} from "../../../utils/storage";
 import { isCashuNotificationMessage } from "../../lib/cashuNotificationCopy";
 import { getSharedAppNostrPool } from "../../lib/nostrPool";
 import { isLinkyPaymentNoticeEvent } from "../../lib/pushWrappedEvent";
@@ -28,6 +31,36 @@ import {
   isNestedEncryptedNip44PayloadForAnyPubkey,
 } from "./chatNostrProtocol";
 import { buildUnknownContactId, normalizePubkeyHex } from "./contactIdentity";
+
+const PAYMENT_NOTICE_SEEN_WRAP_IDS_STORAGE_KEY_PREFIX =
+  "linky.nostr.payment_notice_seen_wrap_ids.v1";
+const MAX_PERSISTED_PAYMENT_NOTICE_WRAP_IDS = 200;
+const PAYMENT_NOTICE_MATCH_WINDOW_SECONDS = 120;
+
+const getPaymentNoticeSeenWrapIdsStorageKey = (pubkeyHex: string): string =>
+  `${PAYMENT_NOTICE_SEEN_WRAP_IDS_STORAGE_KEY_PREFIX}.${pubkeyHex}`;
+
+const readSeenPaymentNoticeWrapIds = (pubkeyHex: string): Set<string> => {
+  const values = safeLocalStorageGetJson<string[]>(
+    getPaymentNoticeSeenWrapIdsStorageKey(pubkeyHex),
+    [],
+  )
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .slice(-MAX_PERSISTED_PAYMENT_NOTICE_WRAP_IDS);
+
+  return new Set(values);
+};
+
+const persistSeenPaymentNoticeWrapIds = (
+  pubkeyHex: string,
+  wrapIds: Set<string>,
+): void => {
+  safeLocalStorageSetJson(
+    getPaymentNoticeSeenWrapIdsStorageKey(pubkeyHex),
+    Array.from(wrapIds).slice(-MAX_PERSISTED_PAYMENT_NOTICE_WRAP_IDS),
+  );
+};
 
 type AppendLocalNostrMessage = (message: NewLocalNostrMessage) => string;
 type AppendLocalNostrReaction = (reaction: NewLocalNostrReaction) => string;
@@ -131,6 +164,27 @@ export const useInboxNotificationsSync = <
           return;
         const privBytes = decodedMe.data;
         const myPubHex = getPublicKey(privBytes);
+        const persistedPaymentNoticeWrapIds =
+          readSeenPaymentNoticeWrapIds(myPubHex);
+        paymentNoticeWrapIdsRef.current = new Set([
+          ...persistedPaymentNoticeWrapIds,
+          ...paymentNoticeWrapIdsRef.current,
+        ]);
+        for (const wrapId of paymentNoticeWrapIdsRef.current) {
+          const normalizedWrapId = String(wrapId ?? "").trim();
+          if (normalizedWrapId) seenWrapIds.add(normalizedWrapId);
+        }
+
+        const rememberSeenPaymentNoticeWrapId = (wrapId: string) => {
+          const normalizedWrapId = String(wrapId ?? "").trim();
+          if (!normalizedWrapId) return;
+          seenWrapIds.add(normalizedWrapId);
+          paymentNoticeWrapIdsRef.current.add(normalizedWrapId);
+          persistSeenPaymentNoticeWrapIds(
+            myPubHex,
+            paymentNoticeWrapIdsRef.current,
+          );
+        };
 
         // Map known contact pubkeys -> contact info.
         const contactByPubHex = new Map<
@@ -191,6 +245,37 @@ export const useInboxNotificationsSync = <
           return blocked.includes(normalizedPubkey);
         };
 
+        const hasStoredIncomingCashuToken = (
+          contactId: string,
+          createdAtSec: number,
+        ): boolean => {
+          return nostrMessagesLatestRef.current.some((message) => {
+            if (String(message.contactId ?? "").trim() !== contactId) {
+              return false;
+            }
+            if (String(message.direction ?? "").trim() !== "in") {
+              return false;
+            }
+
+            const messageCreatedAtSec = Number(message.createdAtSec ?? 0);
+            if (
+              !Number.isFinite(messageCreatedAtSec) ||
+              messageCreatedAtSec <= 0
+            ) {
+              return false;
+            }
+
+            if (
+              Math.abs(messageCreatedAtSec - createdAtSec) >
+              PAYMENT_NOTICE_MATCH_WINDOW_SECONDS
+            ) {
+              return false;
+            }
+
+            return isCashuNotificationMessage(String(message.content ?? ""));
+          });
+        };
+
         const pool = await getSharedAppNostrPool();
 
         const processWrap = (wrap: NostrToolsEvent) => {
@@ -242,7 +327,12 @@ export const useInboxNotificationsSync = <
                 Boolean(activeChatId) &&
                 String(contactId) === String(activeChatId);
 
-              paymentNoticeWrapIdsRef.current.add(wrapId);
+              if (hasStoredIncomingCashuToken(contactId, createdAtSec)) {
+                rememberSeenPaymentNoticeWrapId(wrapId);
+                return;
+              }
+
+              rememberSeenPaymentNoticeWrapId(wrapId);
 
               if (!isActiveChatContact) {
                 setContactAttentionById((prev) => ({
@@ -373,6 +463,7 @@ export const useInboxNotificationsSync = <
               const isActiveChatContact =
                 Boolean(activeChatId) &&
                 String(contactId) === String(activeChatId);
+              const isCashuMessage = isCashuNotificationMessage(content);
 
               const messageDirection = isOutgoing ? "out" : "in";
               const rumorKey = rumorId
@@ -421,56 +512,6 @@ export const useInboxNotificationsSync = <
                     originalContent: existingOriginal || null,
                   });
                   return;
-                }
-              }
-
-              const isCashuMessage = isCashuNotificationMessage(content);
-
-              if (!isOutgoing) {
-                if (!isActiveChatContact) {
-                  setContactAttentionById((prev) => ({
-                    ...prev,
-                    [contactId]: Date.now(),
-                  }));
-
-                  const shouldShowVisibleToast = (() => {
-                    try {
-                      return document.visibilityState === "visible";
-                    } catch {
-                      return false;
-                    }
-                  })();
-                  if (shouldShowVisibleToast) {
-                    const senderLabel =
-                      contact?.name ??
-                      formatShortNpub(
-                        contact?.npub ?? nip19.npubEncode(resolvedPeerPub),
-                      ) ??
-                      t("unknownContactTitle");
-                    const trimmedContent = content.trim();
-                    if (!isCashuMessage) {
-                      const preview =
-                        trimmedContent.length > 80
-                          ? `${trimmedContent.slice(0, 80)}…`
-                          : trimmedContent;
-                      pushToast(
-                        t("chatIncomingMessageToast")
-                          .replace("{name}", senderLabel)
-                          .replace("{message}", preview),
-                      );
-                    }
-                  }
-                }
-
-                if (!isCashuMessage) {
-                  const title =
-                    contact?.name ??
-                    (contact ? t("appTitle") : t("unknownContactTitle"));
-                  void maybeShowPwaNotification(
-                    title,
-                    content.trim(),
-                    `msg_${resolvedPeerPub}`,
-                  );
                 }
               }
 
@@ -535,6 +576,48 @@ export const useInboxNotificationsSync = <
                     }
                   : {}),
               });
+
+              if (!isOutgoing && !isCashuMessage) {
+                setContactAttentionById((prev) => ({
+                  ...prev,
+                  [contactId]: Date.now(),
+                }));
+
+                const shouldShowVisibleToast = (() => {
+                  try {
+                    return document.visibilityState === "visible";
+                  } catch {
+                    return false;
+                  }
+                })();
+                if (shouldShowVisibleToast) {
+                  const senderLabel =
+                    contact?.name ??
+                    formatShortNpub(
+                      contact?.npub ?? nip19.npubEncode(resolvedPeerPub),
+                    ) ??
+                    t("unknownContactTitle");
+                  const trimmedContent = content.trim();
+                  const preview =
+                    trimmedContent.length > 80
+                      ? `${trimmedContent.slice(0, 80)}…`
+                      : trimmedContent;
+                  pushToast(
+                    t("chatIncomingMessageToast")
+                      .replace("{name}", senderLabel)
+                      .replace("{message}", preview),
+                  );
+                }
+
+                const title =
+                  contact?.name ??
+                  (contact ? t("appTitle") : t("unknownContactTitle"));
+                void maybeShowPwaNotification(
+                  title,
+                  content.trim(),
+                  `msg_${resolvedPeerPub}`,
+                );
+              }
               return;
             }
 

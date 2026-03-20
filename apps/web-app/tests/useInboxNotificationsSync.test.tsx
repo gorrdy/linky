@@ -623,6 +623,7 @@ describe("useInboxNotificationsSync", () => {
 
     expect(pushToast).not.toHaveBeenCalled();
     expect(maybeShowPwaNotification).not.toHaveBeenCalled();
+    expect(setContactAttentionById).not.toHaveBeenCalled();
     expect(appendLocalNostrMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         contactId: "contact-bob",
@@ -631,6 +632,122 @@ describe("useInboxNotificationsSync", () => {
         direction: "in",
       }),
     );
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("does not replay a stored incoming message as a fresh notification", async () => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+
+    const wrapEvent = { id: "wrap-stored-1" };
+    querySyncMock.mockResolvedValue([wrapEvent]);
+    subscribeMock.mockReturnValue({
+      close: vi.fn(async () => {}),
+    });
+    unwrapEventMock.mockReturnValue({
+      kind: 14,
+      id: "rumor-stored-1",
+      pubkey: "known-contact-pubkey",
+      content: "already saved",
+      created_at: 1730000100,
+      tags: [["p", "me-pubkey-hex"]],
+    });
+    nip44DecryptMock.mockImplementation(() => {
+      throw new Error("not encrypted");
+    });
+
+    const appendLocalNostrMessage = vi.fn(() => "message-stored");
+    const appendLocalNostrReaction = vi.fn(() => "reaction-1");
+    const maybeShowPwaNotification = vi.fn(async () => {});
+    const pushToast = vi.fn();
+    const updateLocalNostrMessage = vi.fn();
+    const updateLocalNostrReaction = vi.fn();
+    const softDeleteLocalNostrReactionsByWrapIds = vi.fn();
+    const setContactAttentionById: React.Dispatch<
+      React.SetStateAction<Record<string, number>>
+    > = vi.fn();
+
+    const Harness = () => {
+      useInboxNotificationsSync({
+        appendLocalNostrMessage,
+        appendLocalNostrReaction,
+        contacts: [
+          {
+            id: "contact-bob",
+            name: "Bob",
+            npub: "npub-known",
+          },
+        ],
+        currentNsec: "nsec-test",
+        maybeShowPwaNotification,
+        nostrFetchRelays: [],
+        nostrMessageWrapIdsRef: { current: new Set<string>() },
+        nostrMessagesLatestRef: {
+          current: [
+            {
+              id: "stored-message-1",
+              contactId: "contact-bob",
+              content: "already saved",
+              createdAtSec: 1730000100,
+              direction: "in",
+              pubkey: "known-contact-pubkey",
+              replyToId: null,
+              replyToContent: null,
+              rootMessageId: null,
+              rumorId: null,
+              status: "sent",
+              wrapId: "old-wrap",
+              editedAtSec: null,
+              editedFromId: null,
+              isEdited: false,
+              originalContent: null,
+            },
+          ] satisfies LocalNostrMessage[],
+        },
+        nostrMessagesRecent: [],
+        nostrReactionWrapIdsRef: { current: new Set<string>() },
+        nostrReactionsLatestRef: { current: [] as LocalNostrReaction[] },
+        pushToast,
+        route: { kind: "contacts" },
+        setContactAttentionById,
+        softDeleteLocalNostrReactionsByWrapIds,
+        t: (key: string) =>
+          key === "chatIncomingMessageToast" ? "{name}: {message}" : key,
+        updateLocalNostrMessage,
+        updateLocalNostrReaction,
+      });
+
+      return null;
+    };
+
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Harness />);
+    });
+    await flushEffects();
+    await flushEffects();
+
+    expect(appendLocalNostrMessage).not.toHaveBeenCalled();
+    expect(pushToast).not.toHaveBeenCalled();
+    expect(maybeShowPwaNotification).not.toHaveBeenCalled();
+    expect(setContactAttentionById).not.toHaveBeenCalled();
+    expect(updateLocalNostrMessage).toHaveBeenCalledWith("stored-message-1", {
+      status: "sent",
+      wrapId: "wrap-stored-1",
+      pubkey: "known-contact-pubkey",
+      rumorId: "rumor-stored-1",
+    });
+
+    await act(async () => {
+      root.unmount();
+    });
   });
 
   it("shows a single notify-only payment notice without storing a chat message", async () => {
@@ -834,6 +951,222 @@ describe("useInboxNotificationsSync", () => {
       "You received money",
       "wrap-payment-notice-repeat-1",
     );
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("does not replay a payment notice after an app restart once it was seen", async () => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+
+    const wrapEvent = { id: "wrap-payment-notice-restart-1" };
+    subscribeMock.mockReturnValue({
+      close: vi.fn(async () => {}),
+    });
+    unwrapEventMock.mockReturnValue({
+      kind: 24133,
+      id: "payment-notice-restart-1",
+      pubkey: "known-contact-pubkey",
+      content: "payment_notice",
+      created_at: 1730000200,
+      tags: [
+        ["p", "known-contact-pubkey"],
+        ["p", "me-pubkey-hex"],
+        ["linky", "payment_notice"],
+      ],
+    });
+    nip44DecryptMock.mockImplementation(() => {
+      throw new Error("not encrypted");
+    });
+
+    const appendLocalNostrMessage = vi.fn(() => "message-payment-notice");
+    const appendLocalNostrReaction = vi.fn(() => "reaction-1");
+    const maybeShowPwaNotification = vi.fn(async () => {});
+    const pushToast = vi.fn();
+    const updateLocalNostrMessage = vi.fn();
+    const updateLocalNostrReaction = vi.fn();
+    const softDeleteLocalNostrReactionsByWrapIds = vi.fn();
+    const setContactAttentionById: React.Dispatch<
+      React.SetStateAction<Record<string, number>>
+    > = vi.fn();
+
+    const Harness = () => {
+      useInboxNotificationsSync({
+        appendLocalNostrMessage,
+        appendLocalNostrReaction,
+        contacts: [
+          {
+            id: "contact-bob",
+            name: "Bob",
+            npub: "npub-known",
+          },
+        ],
+        currentNsec: "nsec-test",
+        maybeShowPwaNotification,
+        nostrFetchRelays: [],
+        nostrMessageWrapIdsRef: { current: new Set<string>() },
+        nostrMessagesLatestRef: { current: [] as LocalNostrMessage[] },
+        nostrMessagesRecent: [],
+        nostrReactionWrapIdsRef: { current: new Set<string>() },
+        nostrReactionsLatestRef: { current: [] as LocalNostrReaction[] },
+        pushToast,
+        route: { kind: "contacts" },
+        setContactAttentionById,
+        softDeleteLocalNostrReactionsByWrapIds,
+        t: (key: string) => {
+          if (key === "chatIncomingMessageToast") return "{name}: {message}";
+          if (key === "notificationReceivedMoney") return "You received money";
+          return key;
+        },
+        updateLocalNostrMessage,
+        updateLocalNostrReaction,
+      });
+
+      return null;
+    };
+
+    querySyncMock.mockResolvedValue([wrapEvent]);
+    const firstRoot = createRoot(document.createElement("div"));
+    await act(async () => {
+      firstRoot.render(<Harness />);
+    });
+    await flushEffects();
+    await flushEffects();
+
+    expect(pushToast).toHaveBeenCalledTimes(1);
+    expect(maybeShowPwaNotification).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      firstRoot.unmount();
+    });
+
+    querySyncMock.mockResolvedValue([wrapEvent]);
+    const secondRoot = createRoot(document.createElement("div"));
+    await act(async () => {
+      secondRoot.render(<Harness />);
+    });
+    await flushEffects();
+    await flushEffects();
+
+    expect(pushToast).toHaveBeenCalledTimes(1);
+    expect(maybeShowPwaNotification).toHaveBeenCalledTimes(1);
+    expect(setContactAttentionById).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      secondRoot.unmount();
+    });
+  });
+
+  it("keeps a historical payment notice silent when the matching token is already stored", async () => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+
+    const wrapEvent = { id: "wrap-payment-notice-stored-token-1" };
+    querySyncMock.mockResolvedValue([wrapEvent]);
+    subscribeMock.mockReturnValue({
+      close: vi.fn(async () => {}),
+    });
+    unwrapEventMock.mockReturnValue({
+      kind: 24133,
+      id: "payment-notice-stored-token-1",
+      pubkey: "known-contact-pubkey",
+      content: "payment_notice",
+      created_at: 1730000300,
+      tags: [
+        ["p", "known-contact-pubkey"],
+        ["p", "me-pubkey-hex"],
+        ["linky", "payment_notice"],
+      ],
+    });
+    nip44DecryptMock.mockImplementation(() => {
+      throw new Error("not encrypted");
+    });
+
+    const appendLocalNostrMessage = vi.fn(() => "message-payment-notice");
+    const appendLocalNostrReaction = vi.fn(() => "reaction-1");
+    const maybeShowPwaNotification = vi.fn(async () => {});
+    const pushToast = vi.fn();
+    const updateLocalNostrMessage = vi.fn();
+    const updateLocalNostrReaction = vi.fn();
+    const softDeleteLocalNostrReactionsByWrapIds = vi.fn();
+    const setContactAttentionById: React.Dispatch<
+      React.SetStateAction<Record<string, number>>
+    > = vi.fn();
+
+    const Harness = () => {
+      useInboxNotificationsSync({
+        appendLocalNostrMessage,
+        appendLocalNostrReaction,
+        contacts: [
+          {
+            id: "contact-bob",
+            name: "Bob",
+            npub: "npub-known",
+          },
+        ],
+        currentNsec: "nsec-test",
+        maybeShowPwaNotification,
+        nostrFetchRelays: [],
+        nostrMessageWrapIdsRef: { current: new Set<string>() },
+        nostrMessagesLatestRef: {
+          current: [
+            {
+              id: "stored-cashu-1",
+              contactId: "contact-bob",
+              content:
+                "cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vbWludC5leGFtcGxlIiwicHJvb2ZzIjpbeyJhbW91bnQiOjIxfV19XX0",
+              createdAtSec: 1730000300,
+              direction: "in",
+              pubkey: "known-contact-pubkey",
+              replyToId: null,
+              replyToContent: null,
+              rootMessageId: null,
+              rumorId: "rumor-cashu-stored-1",
+              status: "sent",
+              wrapId: "wrap-cashu-stored-1",
+              editedAtSec: null,
+              editedFromId: null,
+              isEdited: false,
+              originalContent: null,
+            },
+          ] satisfies LocalNostrMessage[],
+        },
+        nostrMessagesRecent: [],
+        nostrReactionWrapIdsRef: { current: new Set<string>() },
+        nostrReactionsLatestRef: { current: [] as LocalNostrReaction[] },
+        pushToast,
+        route: { kind: "contacts" },
+        setContactAttentionById,
+        softDeleteLocalNostrReactionsByWrapIds,
+        t: (key: string) => {
+          if (key === "chatIncomingMessageToast") return "{name}: {message}";
+          if (key === "notificationReceivedMoney") return "You received money";
+          return key;
+        },
+        updateLocalNostrMessage,
+        updateLocalNostrReaction,
+      });
+
+      return null;
+    };
+
+    const root = createRoot(document.createElement("div"));
+    await act(async () => {
+      root.render(<Harness />);
+    });
+    await flushEffects();
+    await flushEffects();
+
+    expect(pushToast).not.toHaveBeenCalled();
+    expect(maybeShowPwaNotification).not.toHaveBeenCalled();
+    expect(setContactAttentionById).not.toHaveBeenCalled();
+    expect(appendLocalNostrMessage).not.toHaveBeenCalled();
 
     await act(async () => {
       root.unmount();
