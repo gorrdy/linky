@@ -34,6 +34,7 @@ import { getCashuDeterministicSeedFromStorage } from "../utils/cashuDeterministi
 import { getCashuLib } from "../utils/cashuLib";
 import {
   BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY,
+  CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_BACKUPED_KEYS_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY,
   FEEDBACK_CONTACT_NPUB,
@@ -606,15 +607,34 @@ export const useAppShellComposition = () => {
   React.useEffect(() => {
     appOwnerIdRef.current = appOwnerId;
     if (!appOwnerId) return;
-    const overrideRaw = safeLocalStorageGet(
-      makeLocalStorageKey(CASHU_DEFAULT_MINT_OVERRIDE_STORAGE_KEY),
+    const overrideKey = makeLocalStorageKey(
+      CASHU_DEFAULT_MINT_OVERRIDE_STORAGE_KEY,
     );
+    const overrideRaw = safeLocalStorageGet(overrideKey);
     const override = normalizeMintUrl(overrideRaw);
+    const shouldSeedMainMint =
+      safeLocalStorageGet(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY) === "1";
+
+    if (!override && shouldSeedMainMint) {
+      const seededMint = normalizeMintUrl(MAIN_MINT_URL);
+      if (seededMint) {
+        safeLocalStorageSet(overrideKey, seededMint);
+        safeLocalStorageRemove(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY);
+        hasMintOverrideRef.current = true;
+        setDefaultMintUrl(seededMint);
+        setDefaultMintUrlDraft(seededMint);
+        return;
+      }
+    }
+
     if (override) {
       hasMintOverrideRef.current = true;
       setDefaultMintUrl(override);
       setDefaultMintUrlDraft(override);
     } else {
+      if (shouldSeedMainMint) {
+        safeLocalStorageRemove(CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY);
+      }
       hasMintOverrideRef.current = false;
     }
   }, [appOwnerId, makeLocalStorageKey]);
