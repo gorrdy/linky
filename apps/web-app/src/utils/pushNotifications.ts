@@ -1,4 +1,9 @@
 import type { Event as NostrToolsEvent, UnsignedEvent } from "nostr-tools";
+import {
+  getNativeNotificationPermissionState,
+  requestNativeNotificationPermission,
+} from "../platform/nativeBridge";
+import { isNativePlatform } from "../platform/runtime";
 import { appendPushDebugLog } from "./pushDebugLog";
 
 const PUSH_SERVER_URL =
@@ -314,6 +319,19 @@ function toPushSubscriptionData(
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
+  if (isNativePlatform()) {
+    const granted = await requestNativeNotificationPermission();
+    await appendPushDebugLog(
+      "client",
+      "native notification permission result",
+      {
+        granted,
+        permissionState: getNativeNotificationPermissionState(),
+      },
+    );
+    return granted === true;
+  }
+
   if (!("Notification" in window)) {
     await appendPushDebugLog("client", "notification permission unsupported");
     return false;
@@ -329,6 +347,24 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function registerPushNotifications(
   currentNsec: string,
 ): Promise<{ success: boolean; error?: string }> {
+  if (isNativePlatform()) {
+    const granted = await requestNotificationPermission();
+    await appendPushDebugLog("client", "native push registration requested", {
+      granted,
+      permissionState: getNativeNotificationPermissionState(),
+    });
+
+    if (!granted) {
+      return { success: false, error: "Nativni notifikace nejsou povolene" };
+    }
+
+    return {
+      success: false,
+      error:
+        "Nativni push backend jeste neni nakonfigurovany. Permission bridge je pripraveny, ale FCM/server registrace zatim chybi.",
+    };
+  }
+
   try {
     await appendPushDebugLog("client", "push register start", {
       permission:
@@ -535,6 +571,13 @@ export async function registerPushNotifications(
 export async function unregisterPushNotifications(
   currentNsec: string,
 ): Promise<boolean> {
+  if (isNativePlatform()) {
+    await appendPushDebugLog("client", "native push unregister noop", {
+      currentNsecPresent: currentNsec.trim().length > 0,
+    });
+    return false;
+  }
+
   try {
     if (!("serviceWorker" in navigator)) {
       await appendPushDebugLog("client", "push unregister failed", {

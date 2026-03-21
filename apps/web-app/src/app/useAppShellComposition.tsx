@@ -30,6 +30,7 @@ import {
   saveCachedProfilePicture,
   type NostrProfileMetadata,
 } from "../nostrProfile";
+import { readStoredNostrNsec } from "../platform/identitySecrets";
 import { getCashuDeterministicSeedFromStorage } from "../utils/cashuDeterministic";
 import { getCashuLib } from "../utils/cashuLib";
 import {
@@ -508,8 +509,26 @@ export const useAppShellComposition = () => {
     [displayCurrency, fiatRates, lang],
   );
 
-  const [currentNsec] = useState<string | null>(() => getInitialNostrNsec());
+  const [currentNsec, setCurrentNsec] = useState<string | null>(() =>
+    getInitialNostrNsec(),
+  );
   const [chatOwnPubkeyHex, setChatOwnPubkeyHex] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const storedNsec = await readStoredNostrNsec();
+      if (cancelled) return;
+      setCurrentNsec((current) =>
+        current === storedNsec ? current : storedNsec,
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Evolu is local-first; to get automatic cross-device/browser sync you must
   // "use" an owner (which starts syncing over configured transports).

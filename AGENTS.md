@@ -10,6 +10,9 @@ See @README.md for project overview.
 bun install                # Install dependencies
 bun run dev                # Start Vite dev server
 bun run build              # Production build (tsc -b && vite build)
+bun run native:android:add # Generate the Capacitor Android project once
+bun run native:apk:debug   # Build the web app, sync Capacitor, assemble debug APK
+bun run native:ios:add     # Generate the Capacitor iOS project once
 bun run push:dev           # Start the Bun push notification service in watch mode
 bun run push:start         # Start the Bun push notification service once
 bun run check-code         # Run ALL checks: typecheck → eslint --fix → prettier --write
@@ -20,9 +23,12 @@ bun run prettier           # Format + autofix all workspaces
 
 IMPORTANT: Always run `bun run check-code` after making changes. It runs typecheck first, then eslint and prettier which autofix what they can. If typecheck or non-autofixable eslint errors remain, fix them manually and re-run until all checks pass.
 
+Native Android builds require Java 17. `apps/native-shell/scripts/with-java17.sh` prefers an installed macOS JDK 17 automatically before running Capacitor/Gradle commands, and `apps/native-shell/scripts/patch-android-java.sh` rewrites Capacitor-generated Android compile options from Java 21 to Java 17 after add/sync.
+
 ## Monorepo Structure
 
 - `apps/web-app/` - Main React app (Vite + SWC)
+- `apps/native-shell/` - Capacitor native shell that consumes the built `apps/web-app/dist` bundle for Android/iOS packaging
 - `apps/push/` - Bun HTTP push service for Web Push subscription auth/storage and Nostr outer-inbox relay watching
   - ships with `Dockerfile`, `docker-compose.example.yml`, and `.env.production.example` for container deployment with persistent SQLite storage under `/data`
 - `packages/core/` - Core package workspace (Effect-based identity domain in `src/identity/` with branded schemas + derivation utils, shared derivation paths in `src/identity/derivationPaths.ts`, and `MasterSecretProvider` SLIP-39 layer constructors, exported via `@linky/core` and `@linky/core/identity`)
@@ -50,6 +56,9 @@ IMPORTANT: Always run `bun run check-code` after making changes. It runs typeche
 - Contacts are capped at `MAX_CONTACTS_PER_OWNER` (currently 500); add-contact UI is disabled at limit and save is blocked
 - Evolu debug views (`#evolu-current-data`, `#evolu-history-data`) scope contacts/history to active owner lanes, with history retaining one previous contacts lane as backup
 - Core app remains local-first/client-side; optional background notifications are handled by the separate `apps/push` Bun service
+- Native packaging uses a separate Capacitor shell in `apps/native-shell/` so Android/iOS project files stay isolated from the web app source tree
+- Browser-only identity persistence is being moved behind platform adapters in `apps/web-app/src/platform/`; the Android shell now provides a real encrypted secret-storage bridge plus native QR scan and notification-permission bridges via `apps/web-app/src/platform/nativeBridge.ts`, while full native push delivery still needs Firebase/server wiring
+- Android shell now also exposes live system-bar inset values through `LinkyNativeWindowInsets`, and the web app consumes them via CSS vars (`--safe-area-top`, `--safe-area-bottom`) so the fixed top bar and bottom overlays clear Android status/navigation bars
 - Onboarding/login uses a single 20-word **SLIP-39** share; Nostr keys are always derived from that seed at path `m/44'/1237'/0'/0/0` (manual Nostr key overrides are disabled)
 - New account creation now pauses before first login on an unauthenticated profile-picker step: it derives 8 deterministic DiceBear avatar options from the freshly generated `npub`, preselects the first one in a large preview, lets the user edit the suggested name immediately, supports uploading a custom square-cropped photo as a 9th option, and only publishes kind-0 name/picture metadata on confirm (the automatic lightning-address registration path is intentionally deferred until after this step)
 - Cashu deterministic wallet seed is derived from the SLIP-39 secret using **BIP-85** at path `m/83696968'/39'/0'/24'/0'` (24-word mnemonic)
@@ -106,8 +115,11 @@ IMPORTANT: Always run `bun run check-code` after making changes. It runs typeche
 - Evolu requires a Worker polyfill in test environments
 - In this workspace/Bun setup, `bunx --cwd apps/web-app playwright test tests` can resolve incorrectly; run `cd apps/web-app && bunx playwright test tests` instead
 - SQLite WASM files served from `public/sqlite-wasm/` with `cache-control: no-store` in dev
-- The `nsec` private key is in localStorage (`linky.nostr_nsec`) - never log or expose it
+- On web, the `nsec` private key is still mirrored under `linky.nostr_nsec`; native shells are expected to provide secure secret storage via the platform bridge and secrets must never be logged or exposed
+- Android native shells currently back identity secrets with `EncryptedSharedPreferences`, use ZXing-based native QR scanning instead of `getUserMedia` when available, and expose Android notification permission to the web app; native push permission is wired, but message delivery/backend registration is not finished yet
+- Native scan/notification injected bridge methods must be invoked as bridge methods (`bridge.method()`), not detached function references, otherwise Android WebView rejects them as non-injected calls
 - Vite proxies: `/api/mint-quote` for Cashu mint quotes and `/api/lnurlp` for LNURL-pay (CORS workarounds); production mirrors the mint-quote proxy in `apps/web-app/api/mint-quote.ts`
+- Cashu topup invoice creation uses the `/api/mint-quote` proxy on web, but on native platforms it calls the mint `/v1/mint/quote/bolt11` endpoint directly so bundled APKs do not resolve the relative proxy path to the local app shell HTML
 - PWA service worker is built from `apps/web-app/src/sw.ts` via Vite PWA `injectManifest`; changes there affect both prod and dev SW behavior
 - Dev mode now keeps the registered PWA service worker alive for push testing; use `#advanced/push-debug` to inspect persistent client/SW push logs and manually reset service workers/caches when needed
 - Push registration now validates the live `PushSubscription.options.applicationServerKey` against the current server VAPID public key and forces a re-subscribe on mismatch; open clients also re-register when the service worker emits `pushsubscriptionchange`

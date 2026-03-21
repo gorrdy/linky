@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  startNativeQrScan,
+  supportsNativeQrScan,
+} from "../../platform/nativeBridge";
 import type {
   NavigatorWithOptionalCameraPermissions,
   WindowWithOptionalBarcodeDetector,
@@ -100,6 +104,33 @@ export const useGuideScannerDomain = ({
     });
   }, []);
 
+  const startNativeScanFallback = React.useCallback((): boolean => {
+    if (!supportsNativeQrScan()) {
+      return false;
+    }
+
+    closeScan();
+
+    void (async () => {
+      const result = await startNativeQrScan();
+      if (!result) {
+        pushToast(t("scanCameraError"));
+        return;
+      }
+
+      if (result.value) {
+        await handleScannedTextRef.current(result.value);
+        return;
+      }
+
+      if (!result.cancelled) {
+        pushToast(result.message ?? t("scanCameraError"));
+      }
+    })();
+
+    return true;
+  }, [closeScan, pushToast, t]);
+
   const openScanForEntryPoint = React.useCallback(
     (entryPoint: ScanEntryPoint) => {
       setScanEntryPoint(entryPoint);
@@ -111,12 +142,20 @@ export const useGuideScannerDomain = ({
         | { getUserMedia?: (c: MediaStreamConstraints) => Promise<MediaStream> }
         | undefined;
       if (!media?.getUserMedia) {
+        if (startNativeScanFallback()) {
+          return;
+        }
+
         pushToast(t("scanCameraError"));
         closeScan();
         return;
       }
 
       if (typeof globalThis.isSecureContext === "boolean" && !isSecureContext) {
+        if (startNativeScanFallback()) {
+          return;
+        }
+
         pushToast(t("scanRequiresHttps"));
         closeScan();
         return;
@@ -188,6 +227,10 @@ export const useGuideScannerDomain = ({
             /permission/i.test(message) ||
             /denied/i.test(message);
 
+          if (!isPermissionDenied && startNativeScanFallback()) {
+            return;
+          }
+
           if (isPermissionDenied) pushToast(t("scanPermissionDenied"));
           else pushToast(t("scanCameraError"));
 
@@ -195,7 +238,7 @@ export const useGuideScannerDomain = ({
         }
       })();
     },
-    [closeScan, pushToast, t],
+    [closeScan, pushToast, startNativeScanFallback, t],
   );
 
   const openScan = React.useCallback(() => {

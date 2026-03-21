@@ -1,4 +1,5 @@
 import React from "react";
+import { isNativePlatform } from "../../../platform/runtime";
 import type { Route } from "../../../types/route";
 import { MAIN_MINT_URL, normalizeMintUrl } from "../../../utils/mint";
 
@@ -157,7 +158,9 @@ export const useTopupInvoiceQuoteEffects = ({
         };
 
         const requestQuote = async (baseUrl: string) => {
-          const targetUrl = `/api/mint-quote?mint=${encodeURIComponent(baseUrl)}`;
+          const targetUrl = isNativePlatform()
+            ? `${baseUrl.replace(/\/+$/, "")}/v1/mint/quote/bolt11`
+            : `/api/mint-quote?mint=${encodeURIComponent(baseUrl)}`;
 
           const quoteRes = await fetchWithTimeout(
             targetUrl,
