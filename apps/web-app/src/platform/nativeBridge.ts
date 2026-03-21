@@ -34,6 +34,12 @@ interface AndroidWindowInsetsBridge {
   getTopInsetPx?: () => number | string;
 }
 
+interface AndroidDeepLinksBridge {
+  consumePendingUrl?: () => string | null;
+}
+
+export const NATIVE_DEEP_LINK_EVENT = "linky-native-deep-link";
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
 };
@@ -78,6 +84,11 @@ const getAndroidNotificationsBridge = (): AndroidNotificationsBridge | null => {
 
 const getAndroidWindowInsetsBridge = (): AndroidWindowInsetsBridge | null => {
   const value = Reflect.get(globalThis, "LinkyNativeWindowInsets");
+  return isRecord(value) ? value : null;
+};
+
+const getAndroidDeepLinksBridge = (): AndroidDeepLinksBridge | null => {
+  const value = Reflect.get(globalThis, "LinkyNativeDeepLinks");
   return isRecord(value) ? value : null;
 };
 
@@ -319,4 +330,17 @@ export const requestNativeNotificationPermission = async (): Promise<
       resolve(false);
     }
   });
+};
+
+export const consumePendingNativeDeepLinkUrl = (): string | null => {
+  const bridge = getAndroidDeepLinksBridge();
+  if (!isNativePlatform() || !bridge?.consumePendingUrl) {
+    return null;
+  }
+
+  try {
+    return normalizeString(bridge.consumePendingUrl());
+  } catch {
+    return null;
+  }
 };

@@ -52,10 +52,13 @@ bun run native:ios:open
 This workspace sets up the local-bundle native shell and the Android/iOS project entrypoint.
 The next implementation steps are:
 
-- native secure storage bridge for identity secrets
-- camera/barcode native adapter
-- deep-link to hash-route translation
+- iOS parity for the native shell bridges
+- richer deep-link actions beyond contact `npub`
 
 Native Android push is now wired through Capacitor Push Notifications + FCM.
 To make it work in builds, provide `android/app/google-services.json` before running `bun run native:android:sync` or `bun run native:apk:debug`.
 If that file is missing, the app now skips native push registration instead of crashing on startup, but Android notifications stay disabled.
+
+Android native shell now also registers `nostr://` and `cashu://` and forwards incoming URLs to the web app through the native bridge. The current web-app handler resolves `nostr://npub...` contact links into the saved contact detail, creating the contact first when needed, and imports `cashu://cashu...` tokens into the wallet.
+
+Android NFC NDEF tags are also supported for the same payloads: URI records with `nostr://...` or `cashu://...`, plus `text/plain` NDEF records whose text content starts with those schemes.

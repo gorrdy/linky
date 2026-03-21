@@ -32,6 +32,10 @@ import {
 } from "../nostrProfile";
 import { readStoredNostrNsec } from "../platform/identitySecrets";
 import {
+  consumePendingNativeDeepLinkUrl,
+  NATIVE_DEEP_LINK_EVENT,
+} from "../platform/nativeBridge";
+import {
   bumpCashuDeterministicCounter,
   getCashuDeterministicCounter,
   getCashuDeterministicSeedFromStorage,
@@ -50,6 +54,7 @@ import {
   MAX_CONTACTS_PER_OWNER,
   NO_GROUP_FILTER,
 } from "../utils/constants";
+import { parseNativeDeepLinkUrl } from "../utils/deepLinks";
 import {
   applyAmountInputKey,
   formatDisplayAmountParts,
@@ -1682,6 +1687,9 @@ export const useAppShellComposition = () => {
     npub: string | null;
     suggestedName: string | null;
   }>(null);
+  const [pendingDeepLinkText, setPendingDeepLinkText] = React.useState<
+    string | null
+  >(null);
 
   const [postPaySaveContact, setPostPaySaveContact] = React.useState<null | {
     lnAddress: string;
@@ -3097,6 +3105,50 @@ export const useAppShellComposition = () => {
     setStatus,
     t,
   });
+
+  React.useEffect(() => {
+    const acceptDeepLinkUrl = (rawUrl: unknown) => {
+      const parsed = parseNativeDeepLinkUrl(rawUrl);
+      if (!parsed) {
+        return;
+      }
+
+      setPendingDeleteId(null);
+      setPendingDeepLinkText(parsed.text);
+      consumePendingNativeDeepLinkUrl();
+    };
+
+    acceptDeepLinkUrl(consumePendingNativeDeepLinkUrl());
+
+    const onDeepLink: EventListener = (event) => {
+      if (!(event instanceof CustomEvent)) {
+        return;
+      }
+
+      const detail = event.detail;
+      if (typeof detail !== "object" || detail === null) {
+        return;
+      }
+
+      acceptDeepLinkUrl(Reflect.get(detail, "url"));
+    };
+
+    window.addEventListener(NATIVE_DEEP_LINK_EVENT, onDeepLink);
+    return () => window.removeEventListener(NATIVE_DEEP_LINK_EVENT, onDeepLink);
+  }, [setPendingDeleteId]);
+
+  React.useEffect(() => {
+    if (!pendingDeepLinkText) {
+      return;
+    }
+
+    if (!currentNsec && !contactsOwnerId) {
+      return;
+    }
+
+    setPendingDeepLinkText(null);
+    void handleScannedText(pendingDeepLinkText);
+  }, [contactsOwnerId, currentNsec, handleScannedText, pendingDeepLinkText]);
 
   const pasteScanValue = React.useCallback(async () => {
     let text = "";

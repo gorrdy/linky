@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Linky</string>
     <string name="title_activity_main">Linky</string>
+    <string name="cashu_url_scheme">cashu</string>
+    <string name="nostr_url_scheme">nostr</string>
     <string name="package_name">fit.linky.app</string>
-    <string name="custom_url_scheme">fit.linky.app</string>
 </resources>
