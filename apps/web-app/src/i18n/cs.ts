@@ -413,6 +413,7 @@ export const cs = {
   scanPastePrompt: "Vložte LN fakturu nebo npub.",
   scanTypeManually: "Zapsat ručně",
   contactExists: "Kontakt už existuje.",
+  contactIsYou: "Tohle je váš vlastní profil. Nelze ho uložit jako kontakt.",
   scanHintInvoice: "Fakturu zaplatí",
   scanHintContact: "Kontakt přidá",
   scanHintWithdraw: "Peníze vybere",
@@ -440,6 +441,7 @@ export const cs = {
   coinsLabel: "mince:",
   cashuPasteManualHint: "Vložte sem Cashu token",
   cashuSave: "Uložit token",
+  cashuExists: "Tento Cashu token už máte uložený.",
   uploadToNfc: "Nahrát na NFC",
   uploadProfileToNfc: "Nahrát npub na NFC",
   nfcWriteTapPrompt: "Přiložte NFC tag pro zápis.",
@@ -448,6 +450,11 @@ export const cs = {
   nfcWriteBusy: "Jiný NFC zápis právě probíhá.",
   nfcWriteCancelled: "NFC zápis byl zrušen.",
   nfcWriteFailed: "Nepodařilo se zapsat NFC tag",
+  nfcWriteReadyTitle: "NFC připraveno",
+  nfcWriteReadyProfileBody:
+    "Přiložte NFC tag k telefonu. Na tag se zapíše váš profil jako nostr://npub...",
+  nfcWriteReadyTokenBody:
+    "Přiložte NFC tag k telefonu. Na tag se zapíše token jako cashu://cashu...",
   nfcWriteTokenSuccess: "Token byl nahrán na NFC.",
   nfcWriteProfileSuccess: "npub byl nahrán na NFC.",
 

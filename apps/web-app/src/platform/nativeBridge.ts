@@ -40,6 +40,7 @@ interface AndroidDeepLinksBridge {
 
 interface AndroidNfcBridge {
   areSupported?: () => boolean;
+  cancelWrite?: () => void;
   writeUri?: (url: string) => void;
 }
 
@@ -438,6 +439,20 @@ export const startNativeNfcWrite = async (
       });
     }
   });
+};
+
+export const cancelNativeNfcWrite = (): boolean => {
+  const bridge = getAndroidNfcBridge();
+  if (!isNativePlatform() || !bridge?.cancelWrite) {
+    return false;
+  }
+
+  try {
+    bridge.cancelWrite();
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const consumePendingNativeDeepLinkUrl = (): string | null => {

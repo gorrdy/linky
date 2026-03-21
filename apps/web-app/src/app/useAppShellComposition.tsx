@@ -32,6 +32,7 @@ import {
 } from "../nostrProfile";
 import { readStoredNostrNsec } from "../platform/identitySecrets";
 import {
+  cancelNativeNfcWrite,
   consumePendingNativeDeepLinkUrl,
   NATIVE_DEEP_LINK_EVENT,
   startNativeNfcWrite,
@@ -2214,6 +2215,7 @@ export const useAppShellComposition = () => {
     appOwnerId: contactsOwnerId,
     contactNewPrefill,
     contacts,
+    currentNpub,
     insert,
     nostrFetchRelays,
     route,
@@ -2591,17 +2593,32 @@ export const useAppShellComposition = () => {
   );
 
   const canWriteNfc = supportsNativeNfcWrite();
+  const [nfcWritePromptKind, setNfcWritePromptKind] = React.useState<
+    "profile" | "token" | null
+  >(null);
+  const nfcWriteCancelledByUserRef = React.useRef(false);
+
+  const cancelPendingNfcWrite = React.useCallback(() => {
+    nfcWriteCancelledByUserRef.current = true;
+    setNfcWritePromptKind(null);
+    cancelNativeNfcWrite();
+  }, []);
 
   const writeNfcUriWithToast = React.useCallback(
     async (
       url: string,
       successKey: "nfcWriteProfileSuccess" | "nfcWriteTokenSuccess",
+      promptKind: "profile" | "token",
     ) => {
+      nfcWriteCancelledByUserRef.current = false;
+
       const result = await startNativeNfcWrite(url, (progress) => {
         if (progress.status === "armed") {
-          pushToast(t("nfcWriteTapPrompt"));
+          setNfcWritePromptKind(promptKind);
         }
       });
+
+      setNfcWritePromptKind(null);
 
       if (result === null || result.status === "unsupported") {
         pushToast(t("nfcWriteUnsupported"));
@@ -2624,9 +2641,16 @@ export const useAppShellComposition = () => {
       }
 
       if (result.status === "cancelled") {
+        if (nfcWriteCancelledByUserRef.current) {
+          nfcWriteCancelledByUserRef.current = false;
+          return;
+        }
+
         pushToast(t("nfcWriteCancelled"));
         return;
       }
+
+      nfcWriteCancelledByUserRef.current = false;
 
       const message = String(result.message ?? "").trim();
       pushToast(
@@ -2644,7 +2668,11 @@ export const useAppShellComposition = () => {
         return;
       }
 
-      await writeNfcUriWithToast(`cashu://${trimmed}`, "nfcWriteTokenSuccess");
+      await writeNfcUriWithToast(
+        `cashu://${trimmed}`,
+        "nfcWriteTokenSuccess",
+        "token",
+      );
     },
     [pushToast, t, writeNfcUriWithToast],
   );
@@ -2656,7 +2684,11 @@ export const useAppShellComposition = () => {
       return;
     }
 
-    await writeNfcUriWithToast(`nostr://${npub}`, "nfcWriteProfileSuccess");
+    await writeNfcUriWithToast(
+      `nostr://${npub}`,
+      "nfcWriteProfileSuccess",
+      "profile",
+    );
   }, [currentNpub, pushToast, t, writeNfcUriWithToast]);
 
   const requestDeleteCurrentContact = () => {
@@ -3165,6 +3197,7 @@ export const useAppShellComposition = () => {
     appOwnerId: contactsOwnerId,
     closeScan,
     contacts,
+    currentNpub,
     extractCashuTokenFromText,
     insert,
     lightningInvoiceAutoPayLimit,
@@ -3577,6 +3610,7 @@ export const useAppShellComposition = () => {
     lang,
     menuIsOpen,
     myProfileQr,
+    nfcWritePromptKind,
     nostrPictureByNpub,
     paidOverlayIsOpen,
     paidOverlayTitle,
@@ -3600,6 +3634,7 @@ export const useAppShellComposition = () => {
   };
 
   const appActions = {
+    cancelPendingNfcWrite,
     closeMenu,
     closeLightningInvoiceConfirmation,
     closeProfileQr,

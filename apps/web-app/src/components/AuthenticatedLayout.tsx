@@ -6,6 +6,7 @@ import {
 import { ContactsGuideOverlay } from "./ContactsGuideOverlay";
 import { LightningInvoiceConfirmModal } from "./LightningInvoiceConfirmModal";
 import { MenuModal } from "./MenuModal";
+import { NfcWriteModal } from "./NfcWriteModal";
 import { PaidOverlay } from "./PaidOverlay";
 import { ProfileQrModal } from "./ProfileQrModal";
 import { SaveContactPromptModal } from "./SaveContactPromptModal";
@@ -133,6 +134,14 @@ export function AuthenticatedLayout({
 
       {state.paidOverlayIsOpen ? (
         <PaidOverlay paidOverlayTitle={state.paidOverlayTitle} t={state.t} />
+      ) : null}
+
+      {state.nfcWritePromptKind ? (
+        <NfcWriteModal
+          kind={state.nfcWritePromptKind}
+          onCancel={actions.cancelPendingNfcWrite}
+          t={state.t}
+        />
       ) : null}
     </>
   );

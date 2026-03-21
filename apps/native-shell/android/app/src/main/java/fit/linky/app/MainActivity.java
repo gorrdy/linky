@@ -42,6 +42,7 @@ public class MainActivity extends BridgeActivity {
 	private static final String EVENT_NFC_WRITE = "linky-native-nfc-write";
 	private static final String EVENT_NOTIFICATION_PERMISSION = "linky-native-notification-permission";
 	private static final String EVENT_SCAN_RESULT = "linky-native-scan-result";
+	private static final long NFC_READ_SUPPRESS_AFTER_WRITE_MS = 4000L;
 	private static final String PREFS_NAME = "linky.native.bridge";
 	private static final String PREF_PENDING_DEEP_LINK_URL = "pending_deep_link_url";
 	private static final String PREF_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested";
@@ -49,6 +50,8 @@ public class MainActivity extends BridgeActivity {
 	private int latestBottomInsetPx = 0;
 	private int latestKeyboardInsetPx = 0;
 	private int latestTopInsetPx = 0;
+	private long lastSuccessfulNfcWriteAtMs = 0L;
+	private String lastSuccessfulNfcWriteUrl = null;
 	private NfcAdapter nfcAdapter;
 	private String pendingNfcWriteUrl = null;
 
@@ -287,7 +290,7 @@ public class MainActivity extends BridgeActivity {
 			NdefMessage message = (NdefMessage) rawMessage;
 			for (NdefRecord record : message.getRecords()) {
 				String candidate = extractDeepLinkFromNdefRecord(record);
-				if (candidate != null) {
+				if (candidate != null && !shouldSuppressRecentNfcRead(candidate)) {
 					return candidate;
 				}
 			}
@@ -400,9 +403,41 @@ public class MainActivity extends BridgeActivity {
 	}
 
 	private void finishPendingNfcWrite(String status, String message) {
+		String writtenUrl = pendingNfcWriteUrl;
+		if ("success".equals(status) && writtenUrl != null) {
+			lastSuccessfulNfcWriteUrl = writtenUrl;
+			lastSuccessfulNfcWriteAtMs = System.currentTimeMillis();
+		}
+
 		pendingNfcWriteUrl = null;
 		stopNfcReaderMode();
 		dispatchNfcWriteEvent(status, message);
+	}
+
+	private boolean shouldSuppressRecentNfcRead(String url) {
+		String lastUrl = lastSuccessfulNfcWriteUrl;
+		if (lastUrl == null) {
+			return false;
+		}
+
+		long elapsedMs = System.currentTimeMillis() - lastSuccessfulNfcWriteAtMs;
+		if (elapsedMs > NFC_READ_SUPPRESS_AFTER_WRITE_MS) {
+			lastSuccessfulNfcWriteUrl = null;
+			lastSuccessfulNfcWriteAtMs = 0L;
+			return false;
+		}
+
+		String normalizedUrl = url == null ? "" : url.trim();
+		return lastUrl.equals(normalizedUrl);
+	}
+
+	private void cancelPendingNfcWrite() {
+		if (pendingNfcWriteUrl == null) {
+			stopNfcReaderMode();
+			return;
+		}
+
+		finishPendingNfcWrite("cancelled", null);
 	}
 
 	private void writePendingNfcMessage(Tag tag) {
@@ -632,6 +667,11 @@ public class MainActivity extends BridgeActivity {
 		@JavascriptInterface
 		public boolean areSupported() {
 			return isNativeNfcWriteSupported();
+		}
+
+		@JavascriptInterface
+		public void cancelWrite() {
+			cancelPendingNfcWrite();
 		}
 
 		@JavascriptInterface

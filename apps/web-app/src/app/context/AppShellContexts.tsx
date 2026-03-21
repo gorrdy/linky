@@ -56,6 +56,7 @@ export interface AppShellCoreContextValue {
   lang: Lang;
   menuIsOpen: boolean;
   myProfileQr: string | null;
+  nfcWritePromptKind: "profile" | "token" | null;
   nostrPictureByNpub: Record<string, string | null>;
   paidOverlayIsOpen: boolean;
   paidOverlayTitle: string | null;
@@ -86,6 +87,7 @@ export interface AppShellCoreContextValue {
 }
 
 export interface AppShellActionsContextValue {
+  cancelPendingNfcWrite: () => void;
   closeMenu: () => void;
   closeLightningInvoiceConfirmation: () => void;
   closeProfileQr: () => void;

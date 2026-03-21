@@ -410,6 +410,7 @@ export const en = {
   scanPastePrompt: "Paste an LN invoice or npub.",
   scanTypeManually: "Type",
   contactExists: "Contact already exists.",
+  contactIsYou: "This is your own profile. It can't be saved as a contact.",
   scanHintInvoice: "Pays invoice",
   scanHintContact: "Adds contact",
   scanHintWithdraw: "Withdraws funds",
@@ -437,6 +438,7 @@ export const en = {
   coinsLabel: "coins:",
   cashuPasteManualHint: "Paste your Cashu token here",
   cashuSave: "Save token",
+  cashuExists: "You already have this Cashu token saved.",
   uploadToNfc: "Write to NFC",
   uploadProfileToNfc: "Write npub to NFC",
   nfcWriteTapPrompt: "Tap an NFC tag to write.",
@@ -445,6 +447,11 @@ export const en = {
   nfcWriteBusy: "Another NFC write is already in progress.",
   nfcWriteCancelled: "NFC write was cancelled.",
   nfcWriteFailed: "Failed to write NFC tag",
+  nfcWriteReadyTitle: "NFC ready",
+  nfcWriteReadyProfileBody:
+    "Hold an NFC tag to the phone. Your profile will be written as nostr://npub...",
+  nfcWriteReadyTokenBody:
+    "Hold an NFC tag to the phone. The token will be written as cashu://cashu...",
   nfcWriteTokenSuccess: "Token written to NFC.",
   nfcWriteProfileSuccess: "npub written to NFC.",
 
