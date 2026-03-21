@@ -2376,6 +2376,8 @@ export const useAppShellComposition = () => {
     contactsGuideHighlightRect,
     contactsGuideNav,
     openScan,
+    openWalletScan,
+    scanAllowsManualContact,
     scanIsOpen,
     scanVideoRef,
     startContactsGuide,
@@ -2393,6 +2395,12 @@ export const useAppShellComposition = () => {
     route,
     t,
   });
+
+  const openManualContactFromScan = React.useCallback(() => {
+    closeScan();
+    if (route.kind === "contactNew") return;
+    openNewContactPage();
+  }, [closeScan, openNewContactPage, route.kind]);
 
   const {
     contactsOnboardingCelebrating,
@@ -3217,6 +3225,7 @@ export const useAppShellComposition = () => {
       canAddContact,
       openNewContactPage,
       openScan,
+      openWalletScan,
       otherContactsLabel,
       renderContactCard: renderMainSwipeContactCard,
       route,
@@ -3366,6 +3375,7 @@ export const useAppShellComposition = () => {
     profilePhotoInputRef,
     profileQrIsOpen,
     route,
+    scanAllowsManualContact,
     scanIsOpen,
     scanVideoRef,
     t,
@@ -3385,6 +3395,7 @@ export const useAppShellComposition = () => {
     onPickProfilePhoto,
     onProfilePhotoSelected,
     openFeedbackContact,
+    openManualContactFromScan,
     openProfileQr,
     pasteScanValue,
     saveProfileEdits,

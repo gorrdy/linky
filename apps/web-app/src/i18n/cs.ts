@@ -411,6 +411,7 @@ export const cs = {
   scanPermissionDenied:
     "Přístup ke kameře byl zamítnut. V Brave klikněte na zámek → Nastavení webu → Kamera → Povolit a stránku obnovte.",
   scanPastePrompt: "Vložte LN fakturu nebo npub.",
+  scanTypeManually: "Zapsat ručně",
   contactExists: "Kontakt už existuje.",
   scanHintInvoice: "Fakturu zaplatí",
   scanHintContact: "Kontakt přidá",

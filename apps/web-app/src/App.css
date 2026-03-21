@@ -108,7 +108,15 @@
   background: linear-gradient(0deg, rgba(2, 6, 23, 0.94), rgba(2, 6, 23, 0));
 }
 
-.scan-paste-btn {
+.scan-footer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.scan-action-btn {
   min-width: 164px;
   min-height: 48px;
   display: inline-flex;
@@ -127,20 +135,20 @@
   box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
 }
 
-.scan-paste-btn:hover,
-.scan-paste-btn:focus {
+.scan-action-btn:hover,
+.scan-action-btn:focus {
   transform: none;
   box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
   background: rgba(15, 23, 42, 0.94);
 }
 
-.scan-paste-btn-icon {
+.scan-action-btn-icon {
   width: 24px;
   height: 24px;
   line-height: 1;
 }
 
-.scan-paste-btn-label {
+.scan-action-btn-label {
   line-height: 1;
 }
 

@@ -75,6 +75,7 @@ export interface AppShellCoreContextValue {
   profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
   profileQrIsOpen: boolean;
   route: Route;
+  scanAllowsManualContact: boolean;
   scanIsOpen: boolean;
   scanVideoRef: React.RefObject<HTMLVideoElement | null>;
   t: (key: string) => string;
@@ -97,6 +98,7 @@ export interface AppShellActionsContextValue {
   onPickProfilePhoto: () => void;
   onProfilePhotoSelected: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openFeedbackContact: () => void;
+  openManualContactFromScan: () => void;
   openProfileQr: () => void;
   pasteScanValue: () => Promise<void>;
   saveProfileEdits: () => void;

@@ -408,6 +408,7 @@ export const en = {
   scanPermissionDenied:
     "Camera permission denied. In Brave: click the lock icon → Site settings → Camera → Allow, then reload.",
   scanPastePrompt: "Paste an LN invoice or npub.",
+  scanTypeManually: "Type",
   contactExists: "Contact already exists.",
   scanHintInvoice: "Pays invoice",
   scanHintContact: "Adds contact",

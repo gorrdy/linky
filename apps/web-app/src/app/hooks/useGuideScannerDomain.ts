@@ -20,9 +20,13 @@ interface UseGuideScannerDomainParams {
   t: (key: string) => string;
 }
 
+export type ScanEntryPoint = "contacts" | "wallet";
+
 type UseGuideScannerDomainResult = ReturnType<typeof useContactsGuide> & {
   closeScan: () => void;
   openScan: () => void;
+  openWalletScan: () => void;
+  scanAllowsManualContact: boolean;
   scanIsOpen: boolean;
   scanVideoRef: React.RefObject<HTMLVideoElement | null>;
 };
@@ -50,6 +54,8 @@ export const useGuideScannerDomain = ({
   });
 
   const [scanIsOpen, setScanIsOpen] = React.useState(false);
+  const [scanEntryPoint, setScanEntryPoint] =
+    React.useState<ScanEntryPoint | null>(null);
   const [scanStream, setScanStream] = React.useState<MediaStream | null>(null);
 
   const scanVideoRef = React.useRef<HTMLVideoElement | null>(null);
@@ -62,6 +68,7 @@ export const useGuideScannerDomain = ({
 
   const closeScan = React.useCallback(() => {
     setScanIsOpen(false);
+    setScanEntryPoint(null);
     scanOpenRequestIdRef.current += 1;
 
     const video = scanVideoRef.current;
@@ -93,99 +100,111 @@ export const useGuideScannerDomain = ({
     });
   }, []);
 
-  const openScan = React.useCallback(() => {
-    setScanIsOpen(true);
+  const openScanForEntryPoint = React.useCallback(
+    (entryPoint: ScanEntryPoint) => {
+      setScanEntryPoint(entryPoint);
+      setScanIsOpen(true);
 
-    const requestId = (scanOpenRequestIdRef.current += 1);
+      const requestId = (scanOpenRequestIdRef.current += 1);
 
-    const media = navigator.mediaDevices as
-      | { getUserMedia?: (c: MediaStreamConstraints) => Promise<MediaStream> }
-      | undefined;
-    if (!media?.getUserMedia) {
-      pushToast(t("scanCameraError"));
-      closeScan();
-      return;
-    }
+      const media = navigator.mediaDevices as
+        | { getUserMedia?: (c: MediaStreamConstraints) => Promise<MediaStream> }
+        | undefined;
+      if (!media?.getUserMedia) {
+        pushToast(t("scanCameraError"));
+        closeScan();
+        return;
+      }
 
-    if (typeof globalThis.isSecureContext === "boolean" && !isSecureContext) {
-      pushToast(t("scanRequiresHttps"));
-      closeScan();
-      return;
-    }
+      if (typeof globalThis.isSecureContext === "boolean" && !isSecureContext) {
+        pushToast(t("scanRequiresHttps"));
+        closeScan();
+        return;
+      }
 
-    void (async () => {
-      try {
-        const acceptStream = (stream: MediaStream) => {
-          if (
-            requestId !== scanOpenRequestIdRef.current ||
-            !scanIsOpenRef.current
-          ) {
-            for (const track of stream.getTracks()) {
-              try {
-                track.stop();
-              } catch {
-                // ignore
+      void (async () => {
+        try {
+          const acceptStream = (stream: MediaStream) => {
+            if (
+              requestId !== scanOpenRequestIdRef.current ||
+              !scanIsOpenRef.current
+            ) {
+              for (const track of stream.getTracks()) {
+                try {
+                  track.stop();
+                } catch {
+                  // ignore
+                }
               }
+              return false;
             }
-            return false;
+
+            setScanStream(stream);
+            return true;
+          };
+
+          const tryGet = async (constraints: MediaStreamConstraints) => {
+            const stream = await media.getUserMedia!(constraints);
+            return acceptStream(stream);
+          };
+
+          const ok = await tryGet({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false,
+          }).catch(() => false);
+
+          if (!ok) {
+            await tryGet({ video: true, audio: false });
+          }
+        } catch (e) {
+          const err = e as { name?: unknown; message?: unknown };
+          const name = String(err?.name ?? "").trim();
+          const message = String(err?.message ?? e ?? "").trim();
+
+          let permissionState: string | null = null;
+          try {
+            const permissions = (
+              navigator as NavigatorWithOptionalCameraPermissions
+            ).permissions;
+            const res = await permissions?.query?.({ name: "camera" });
+            permissionState = String(res?.state ?? "").trim() || null;
+          } catch {
+            // ignore
           }
 
-          setScanStream(stream);
-          return true;
-        };
+          console.log("[linky][scan] getUserMedia failed", {
+            name,
+            message,
+            permissionState,
+            href: globalThis.location?.href ?? null,
+            isSecureContext:
+              typeof globalThis.isSecureContext === "boolean"
+                ? globalThis.isSecureContext
+                : null,
+          });
 
-        const tryGet = async (constraints: MediaStreamConstraints) => {
-          const stream = await media.getUserMedia!(constraints);
-          return acceptStream(stream);
-        };
+          const isPermissionDenied =
+            name === "NotAllowedError" ||
+            /permission/i.test(message) ||
+            /denied/i.test(message);
 
-        const ok = await tryGet({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false,
-        }).catch(() => false);
+          if (isPermissionDenied) pushToast(t("scanPermissionDenied"));
+          else pushToast(t("scanCameraError"));
 
-        if (!ok) {
-          await tryGet({ video: true, audio: false });
+          closeScan();
         }
-      } catch (e) {
-        const err = e as { name?: unknown; message?: unknown };
-        const name = String(err?.name ?? "").trim();
-        const message = String(err?.message ?? e ?? "").trim();
+      })();
+    },
+    [closeScan, pushToast, t],
+  );
 
-        let permissionState: string | null = null;
-        try {
-          const permissions = (
-            navigator as NavigatorWithOptionalCameraPermissions
-          ).permissions;
-          const res = await permissions?.query?.({ name: "camera" });
-          permissionState = String(res?.state ?? "").trim() || null;
-        } catch {
-          // ignore
-        }
+  const openScan = React.useCallback(() => {
+    openScanForEntryPoint("contacts");
+  }, [openScanForEntryPoint]);
 
-        console.log("[linky][scan] getUserMedia failed", {
-          name,
-          message,
-          permissionState,
-          href: globalThis.location?.href ?? null,
-          isSecureContext:
-            typeof globalThis.isSecureContext === "boolean"
-              ? globalThis.isSecureContext
-              : null,
-        });
-
-        const isPermissionDenied =
-          name === "NotAllowedError" ||
-          /permission/i.test(message) ||
-          /denied/i.test(message);
-
-        if (isPermissionDenied) pushToast(t("scanPermissionDenied"));
-        else pushToast(t("scanCameraError"));
-
-        closeScan();
-      }
-    })();
-  }, [closeScan, pushToast, t]);
+  const openWalletScan = React.useCallback(() => {
+    openScanForEntryPoint("wallet");
+  }, [openScanForEntryPoint]);
 
   const handleScannedTextRef = React.useRef(onScannedText);
   React.useEffect(() => {
@@ -339,6 +358,8 @@ export const useGuideScannerDomain = ({
     closeScan,
     ...contactsGuideDomain,
     openScan,
+    openWalletScan,
+    scanAllowsManualContact: scanEntryPoint === "contacts",
     scanIsOpen,
     scanVideoRef,
   };
