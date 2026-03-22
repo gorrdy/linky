@@ -57,7 +57,7 @@ import {
   MAX_CONTACTS_PER_OWNER,
   NO_GROUP_FILTER,
 } from "../utils/constants";
-import { parseNativeDeepLinkUrl } from "../utils/deepLinks";
+import { buildCashuDeepLink, parseNativeDeepLinkUrl } from "../utils/deepLinks";
 import {
   applyAmountInputKey,
   formatDisplayAmountParts,
@@ -156,6 +156,10 @@ import { useScannedTextHandler } from "./hooks/useScannedTextHandler";
 import { useScannedTextHandlerRefBridge } from "./hooks/useScannedTextHandlerRefBridge";
 import { useStatusToasts } from "./hooks/useStatusToasts";
 import { useStoragePersistRequestEffect } from "./hooks/useStoragePersistRequestEffect";
+import {
+  CASHU_TOKEN_STATE_EXTERNALIZED,
+  isCashuTokenAcceptedState,
+} from "./lib/cashuTokenState";
 import type { AppNostrPool } from "./lib/nostrPool";
 import {
   publishSingleWrappedWithRetry as publishSingleWrappedWithRetryBase,
@@ -1622,8 +1626,7 @@ export const useAppShellComposition = () => {
 
   const cashuBalance = useMemo(() => {
     return cashuTokensWithMeta.reduce((sum, token) => {
-      const state = String(token.state ?? "");
-      if (state !== "accepted") return sum;
+      if (!isCashuTokenAcceptedState(token.state)) return sum;
       const amount = Number(token.amount ?? 0);
       return sum + (Number.isFinite(amount) ? amount : 0);
     }, 0);
@@ -2592,6 +2595,35 @@ export const useAppShellComposition = () => {
     [pushToast, t],
   );
 
+  const shareText = React.useCallback(
+    async (value: string) => {
+      const text = String(value ?? "").trim();
+      if (!text) {
+        pushToast(t("errorPrefix"));
+        return;
+      }
+
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share({ text });
+          return;
+        } catch (error) {
+          const errorName =
+            typeof error === "object" &&
+            error !== null &&
+            "name" in error &&
+            typeof error.name === "string"
+              ? error.name
+              : "";
+          if (errorName === "AbortError") return;
+        }
+      }
+
+      await copyText(text);
+    },
+    [copyText, pushToast, t],
+  );
+
   const canWriteNfc = supportsNativeNfcWrite();
   const [nfcWritePromptKind, setNfcWritePromptKind] = React.useState<
     "profile" | "token" | null
@@ -2609,7 +2641,7 @@ export const useAppShellComposition = () => {
       url: string,
       successKey: "nfcWriteProfileSuccess" | "nfcWriteTokenSuccess",
       promptKind: "profile" | "token",
-    ) => {
+    ): Promise<boolean> => {
       nfcWriteCancelledByUserRef.current = false;
 
       const result = await startNativeNfcWrite(url, (progress) => {
@@ -2622,32 +2654,32 @@ export const useAppShellComposition = () => {
 
       if (result === null || result.status === "unsupported") {
         pushToast(t("nfcWriteUnsupported"));
-        return;
+        return false;
       }
 
       if (result.status === "success") {
         pushToast(t(successKey));
-        return;
+        return true;
       }
 
       if (result.status === "disabled") {
         pushToast(t("nfcWriteDisabled"));
-        return;
+        return false;
       }
 
       if (result.status === "busy") {
         pushToast(t("nfcWriteBusy"));
-        return;
+        return false;
       }
 
       if (result.status === "cancelled") {
         if (nfcWriteCancelledByUserRef.current) {
           nfcWriteCancelledByUserRef.current = false;
-          return;
+          return false;
         }
 
         pushToast(t("nfcWriteCancelled"));
-        return;
+        return false;
       }
 
       nfcWriteCancelledByUserRef.current = false;
@@ -2656,25 +2688,59 @@ export const useAppShellComposition = () => {
       pushToast(
         message ? `${t("nfcWriteFailed")}: ${message}` : t("nfcWriteFailed"),
       );
+
+      return false;
     },
     [pushToast, t],
   );
 
   const writeCashuTokenToNfc = React.useCallback(
-    async (tokenText: string) => {
+    async (id: CashuTokenId, tokenText: string) => {
       const trimmed = String(tokenText ?? "").trim();
-      if (!trimmed) {
+      const deepLink = buildCashuDeepLink(trimmed);
+      if (!deepLink) {
         pushToast(t("cashuInvalid"));
         return;
       }
 
-      await writeNfcUriWithToast(
-        `cashu://${trimmed}`,
+      const wrote = await writeNfcUriWithToast(
+        deepLink,
         "nfcWriteTokenSuccess",
         "token",
       );
+
+      if (!wrote) return;
+
+      const payload = {
+        id,
+        rawToken: trimmed as typeof Evolu.NonEmptyString.Type,
+        state:
+          CASHU_TOKEN_STATE_EXTERNALIZED as typeof Evolu.NonEmptyString100.Type,
+        error: null,
+      };
+
+      const result = cashuOwnerId
+        ? update("cashuToken", payload, { ownerId: cashuOwnerId })
+        : update("cashuToken", payload);
+
+      if (!result.ok) {
+        setStatus(`${t("errorPrefix")}: ${String(result.error)}`);
+      }
     },
-    [pushToast, t, writeNfcUriWithToast],
+    [cashuOwnerId, pushToast, setStatus, t, update, writeNfcUriWithToast],
+  );
+
+  const shareCashuTokenDeepLink = React.useCallback(
+    async (tokenText: string) => {
+      const deepLink = buildCashuDeepLink(tokenText);
+      if (!deepLink) {
+        pushToast(t("cashuInvalid"));
+        return;
+      }
+
+      await shareText(deepLink);
+    },
+    [pushToast, shareText, t],
   );
 
   const writeCurrentNpubToNfc = React.useCallback(async () => {
@@ -3355,6 +3421,7 @@ export const useAppShellComposition = () => {
       setCashuDraft,
       setLnAddressPayAmount,
       setMintIconUrlByMint,
+      shareCashuTokenDeepLink,
       setTopupAmount,
       t,
       topupAmount,

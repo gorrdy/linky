@@ -17,9 +17,13 @@ patch_file() {
 patch_file "$root_dir/android/app/capacitor.build.gradle"
 patch_file "$root_dir/android/capacitor-cordova-android-plugins/build.gradle"
 patch_file "$root_dir/node_modules/@capacitor/android/capacitor/build.gradle"
+patch_file "$root_dir/node_modules/@capacitor/push-notifications/android/build.gradle"
 
 shopt -s nullglob
 for file_path in "$repo_root"/node_modules/.bun/@capacitor+android@*/node_modules/@capacitor/android/capacitor/build.gradle; do
+  patch_file "$file_path"
+done
+for file_path in "$repo_root"/node_modules/.bun/@capacitor+push-notifications@*/node_modules/@capacitor/push-notifications/android/build.gradle; do
   patch_file "$file_path"
 done
 shopt -u nullglob

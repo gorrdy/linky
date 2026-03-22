@@ -2908,19 +2908,10 @@ button.tag-button {
 
 .btn-label-icon {
   width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
-}
-
-.btn-inline-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 
 .btn-label-icon svg {
@@ -3026,55 +3017,6 @@ button.tag-button {
 
 .profile-qr-sheet {
   max-width: 520px;
-}
-
-.nfc-write-sheet {
-  width: min(520px, calc(100vw - 20px));
-  border-radius: 24px 24px 0 0;
-  padding: 22px 18px calc(18px + var(--safe-area-bottom));
-}
-
-.nfc-write-stage {
-  display: grid;
-  gap: 16px;
-  justify-items: center;
-}
-
-.nfc-write-overlay {
-  z-index: 90;
-  align-items: flex-end;
-  padding: 0;
-}
-
-.nfc-write-iconWrap {
-  width: 68px;
-  height: 68px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  color: #99f6e4;
-  background: rgba(20, 184, 166, 0.12);
-  box-shadow: 0 0 0 10px rgba(20, 184, 166, 0.08);
-}
-
-.nfc-write-iconWrap svg {
-  width: 30px;
-  height: 30px;
-}
-
-.nfc-write-body {
-  text-align: center;
-  margin-bottom: 0;
-}
-
-.nfc-write-title {
-  margin-bottom: 0;
-  text-align: center;
-}
-
-.nfc-write-actions {
-  margin-top: 18px;
 }
 
 .modal-title {

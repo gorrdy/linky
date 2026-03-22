@@ -1,21 +1,38 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+const nativeBackgroundColor = "#0b1222";
+
+const resolveLiveReloadUrl = (): string | null => {
+  const candidate =
+    process.env.LINKY_CAP_SERVER_URL?.trim() ??
+    process.env.CAP_SERVER_URL?.trim() ??
+    "";
+
+  return candidate || null;
+};
+
+const liveReloadUrl = resolveLiveReloadUrl();
+
 const config: CapacitorConfig = {
   appId: "fit.linky.app",
   appName: "Linky",
   webDir: "../web-app/dist",
   android: {
-    backgroundColor: "#ffffff",
+    backgroundColor: nativeBackgroundColor,
   },
   ios: {
-    backgroundColor: "#ffffff",
+    backgroundColor: nativeBackgroundColor,
   },
-  server: {
-    url: "http://127.0.0.1:5174/",
-    cleartext: true,
-    androidScheme: "http",
-    iosScheme: "https",
-  },
+  ...(liveReloadUrl
+    ? {
+        server: {
+          url: liveReloadUrl,
+          cleartext: liveReloadUrl.startsWith("http://"),
+          androidScheme: liveReloadUrl.startsWith("http://") ? "http" : "https",
+          iosScheme: "https",
+        },
+      }
+    : {}),
 };
 
 export default config;

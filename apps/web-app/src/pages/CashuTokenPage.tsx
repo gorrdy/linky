@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { isCashuTokenExternalizedState } from "../app/lib/cashuTokenState";
 import type { CashuTokenRowLike } from "../app/types/appTypes";
 import { parseCashuToken } from "../cashu";
 import { NfcIcon } from "../components/NfcIcon";
@@ -17,8 +18,9 @@ interface CashuTokenPageProps {
   pendingCashuDeleteId: CashuTokenId | null;
   requestDeleteCashuToken: (id: CashuTokenId) => void;
   routeId: CashuTokenId;
+  shareTokenDeepLink: (tokenText: string) => Promise<void>;
   t: (key: string) => string;
-  writeToNfc: (tokenText: string) => Promise<void>;
+  writeToNfc: (id: CashuTokenId, tokenText: string) => Promise<void>;
 }
 
 export const CashuTokenPage: FC<CashuTokenPageProps> = ({
@@ -30,6 +32,7 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
   pendingCashuDeleteId,
   requestDeleteCashuToken,
   routeId,
+  shareTokenDeepLink,
   t,
   writeToNfc,
 }) => {
@@ -58,6 +61,7 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
       return mintText;
     }
   })();
+  const isExternalized = isCashuTokenExternalizedState(row.state);
 
   return (
     <section className="panel">
@@ -70,6 +74,12 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
       {String(row.state ?? "") === "error" && (
         <p className="muted" style={{ margin: "0 0 10px", color: "#fca5a5" }}>
           {String(row.error ?? "").trim() || t("cashuInvalid")}
+        </p>
+      )}
+
+      {isExternalized && (
+        <p className="muted" style={{ margin: "0 0 10px" }}>
+          {t("cashuOnNfc")}
         </p>
       )}
 
@@ -95,11 +105,21 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
         </button>
       </div>
 
+      <div className="settings-row">
+        <button
+          className="btn-wide secondary"
+          onClick={() => void shareTokenDeepLink(tokenText)}
+          disabled={!tokenText.trim()}
+        >
+          {t("share")}
+        </button>
+      </div>
+
       {canWriteToNfc ? (
         <div className="settings-row">
           <button
             className="btn-wide secondary btn-inline-icon"
-            onClick={() => void writeToNfc(tokenText)}
+            onClick={() => void writeToNfc(routeId, tokenText)}
             disabled={!tokenText.trim()}
           >
             <span className="btn-label-icon" aria-hidden="true">

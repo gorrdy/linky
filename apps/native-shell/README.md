@@ -32,6 +32,9 @@ This will:
 2. sync the Capacitor Android project
 3. run `assembleDebug`
 
+The generated APK loads the bundled `apps/web-app/dist` files from inside the app by default.
+It does **not** use the Vite dev server unless you explicitly opt into live reload with `LINKY_CAP_SERVER_URL` (or `CAP_SERVER_URL`).
+
 The generated APK is expected at:
 
 ```bash
@@ -47,6 +50,18 @@ bun run native:ios:sync
 bun run native:ios:open
 ```
 
+## Optional live reload
+
+For local native debugging against a running Vite server, set one of these environment variables before `cap sync` / `cap open`:
+
+```bash
+export LINKY_CAP_SERVER_URL=http://127.0.0.1:5174
+# or
+export CAP_SERVER_URL=http://127.0.0.1:5174
+```
+
+If neither variable is set, the native shells use the bundled web assets.
+
 ## Current scope
 
 This workspace sets up the local-bundle native shell and the Android/iOS project entrypoint.
@@ -58,6 +73,7 @@ The next implementation steps are:
 Native Android push is now wired through Capacitor Push Notifications + FCM.
 To make it work in builds, provide `android/app/google-services.json` before running `bun run native:android:sync` or `bun run native:apk:debug`.
 If that file is missing, the app now skips native push registration instead of crashing on startup, but Android notifications stay disabled.
+Android delivery now uses data-only FCM plus a custom `LinkyFirebaseMessagingService`, so closed-app Android notifications still render through the native shell instead of relying on the default Firebase notification renderer.
 
 Android native shell now also registers `nostr://` and `cashu://` and forwards incoming URLs to the web app through the native bridge. The current web-app handler resolves `nostr://npub...` contact links into the saved contact detail, creating the contact first when needed, and imports `cashu://cashu...` tokens into the wallet.
 

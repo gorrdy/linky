@@ -41,6 +41,11 @@ interface BuildMoneyRoutePropsParams {
   setCashuDraft: MoneyRoutesProps["cashuTokenNewProps"]["setCashuDraft"];
   setLnAddressPayAmount: MoneyRoutesProps["lnAddressPayProps"]["setLnAddressPayAmount"];
   setMintIconUrlByMint: MoneyRoutesProps["cashuTokenNewProps"]["setMintIconUrlByMint"];
+  shareCashuTokenDeepLink: MoneyRoutesProps["cashuTokenProps"] extends () => infer Props
+    ? Props extends { shareTokenDeepLink: infer Fn }
+      ? Fn
+      : never
+    : never;
   setTopupAmount: MoneyRoutesProps["topupProps"]["setTopupAmount"];
   t: MoneyRoutesProps["cashuTokenNewProps"]["t"];
   topupAmount: MoneyRoutesProps["topupProps"]["topupAmount"];
@@ -86,6 +91,7 @@ export const buildMoneyRouteProps = ({
   setCashuDraft,
   setLnAddressPayAmount,
   setMintIconUrlByMint,
+  shareCashuTokenDeepLink,
   setTopupAmount,
   t,
   topupAmount,
@@ -124,6 +130,7 @@ export const buildMoneyRouteProps = ({
         checkAndRefreshCashuToken,
         copyText,
         requestDeleteCashuToken,
+        shareTokenDeepLink: shareCashuTokenDeepLink,
         t,
         writeToNfc: writeCashuTokenToNfc,
       };

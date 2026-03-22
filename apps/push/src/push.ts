@@ -203,15 +203,13 @@ export class PushDeliveryService {
     const tokenHash = hashEndpoint(subscription.token);
     const message: Message = {
       token: subscription.token,
-      notification: {
-        title: "Linky",
-        body: "New message",
-      },
       data: {
+        body: "New message",
         createdAt: String(payloadData.createdAt),
         outerEventId: payloadData.outerEventId,
         recipientPubkey: payloadData.recipientPubkey,
         relayHints: JSON.stringify(payloadData.relayHints),
+        title: "Linky",
         type: payloadData.type,
       },
       android: {

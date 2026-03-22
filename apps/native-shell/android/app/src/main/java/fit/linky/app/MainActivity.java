@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class MainActivity extends BridgeActivity {
+	private static volatile boolean appInForeground = false;
 	private static final String EVENT_DEEP_LINK = "linky-native-deep-link";
 	private static final String EVENT_NFC_WRITE = "linky-native-nfc-write";
 	private static final String EVENT_NOTIFICATION_PERMISSION = "linky-native-notification-permission";
@@ -111,6 +112,7 @@ public class MainActivity extends BridgeActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
+		appInForeground = true;
 		WebView webView = getBridgeWebView();
 		if (webView != null) {
 			webView.post(() -> {
@@ -123,12 +125,23 @@ public class MainActivity extends BridgeActivity {
 	@Override
 	public void onPause() {
 		super.onPause();
+		appInForeground = false;
 		if (pendingNfcWriteUrl != null) {
 			finishPendingNfcWrite("cancelled", null);
 			return;
 		}
 
 		stopNfcReaderMode();
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+		appInForeground = false;
+	}
+
+	public static boolean isAppInForeground() {
+		return appInForeground;
 	}
 
 	@Override

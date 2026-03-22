@@ -35,6 +35,12 @@ const normalizeStrictCashuToken = (value: string): string | null => {
   return parseCashuToken(normalized) ? normalized : null;
 };
 
+export const buildCashuDeepLink = (rawToken: unknown): string | null => {
+  const token = normalizeStrictCashuToken(String(rawToken ?? ""));
+  if (!token) return null;
+  return `cashu://${token}`;
+};
+
 const extractNpubFromCandidate = (value: string): string | null => {
   const trimmed = normalizeCandidate(value);
   if (!trimmed) return null;
