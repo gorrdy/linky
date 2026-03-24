@@ -3180,7 +3180,6 @@ export const useAppShellComposition = () => {
       knownLnAddressPayContact,
       knownLnAddressPayContactPictureUrl,
       lnAddressPayAmount,
-      npubCashLightningAddress,
       payLightningAddressWithCashu,
       pendingCashuDeleteId,
       requestDeleteCashuToken,

@@ -27,7 +27,6 @@ interface BuildMoneyRoutePropsParams {
   knownLnAddressPayContact: MoneyRoutesProps["lnAddressPayProps"]["knownContact"];
   knownLnAddressPayContactPictureUrl: MoneyRoutesProps["lnAddressPayProps"]["knownContactPictureUrl"];
   lnAddressPayAmount: MoneyRoutesProps["lnAddressPayProps"]["lnAddressPayAmount"];
-  npubCashLightningAddress: MoneyRoutesProps["topupProps"]["npubCashLightningAddress"];
   payLightningAddressWithCashu: MoneyRoutesProps["lnAddressPayProps"]["payLightningAddressWithCashu"];
   pendingCashuDeleteId: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
@@ -70,7 +69,6 @@ export const buildMoneyRouteProps = ({
   knownLnAddressPayContact,
   knownLnAddressPayContactPictureUrl,
   lnAddressPayAmount,
-  npubCashLightningAddress,
   payLightningAddressWithCashu,
   pendingCashuDeleteId,
   requestDeleteCashuToken,
@@ -145,7 +143,6 @@ export const buildMoneyRouteProps = ({
       effectiveProfilePicture,
       effectiveProfileName,
       currentNpub,
-      npubCashLightningAddress,
       topupAmount,
       setTopupAmount,
       topupInvoiceIsBusy,
