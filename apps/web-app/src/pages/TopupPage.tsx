@@ -3,18 +3,13 @@ import { useAppShellCore } from "../app/context/AppShellContexts";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { Keypad } from "../components/Keypad";
 import { useNavigation } from "../hooks/useRouting";
-import {
-  formatMiddleDots,
-  formatShortNpub,
-  getInitials,
-} from "../utils/formatting";
+import { formatShortNpub, getInitials } from "../utils/formatting";
 
 interface TopupPageProps {
   currentNpub: string | null;
   displayUnit: string;
   effectiveProfileName: string | null;
   effectiveProfilePicture: string | null;
-  npubCashLightningAddress: string | null;
   setTopupAmount: (value: string | ((prev: string) => string)) => void;
   t: (key: string) => string;
   topupAmount: string;
@@ -26,7 +21,6 @@ export const TopupPage: FC<TopupPageProps> = ({
   displayUnit,
   effectiveProfileName,
   effectiveProfilePicture,
-  npubCashLightningAddress,
   setTopupAmount,
   t,
   topupAmount,
@@ -34,10 +28,12 @@ export const TopupPage: FC<TopupPageProps> = ({
 }) => {
   const { applyAmountInputKey } = useAppShellCore();
   const navigateTo = useNavigation();
-  const ln = String(npubCashLightningAddress ?? "").trim();
   const amountSat = Number.parseInt(topupAmount.trim(), 10);
   const invalid =
-    !ln || !Number.isFinite(amountSat) || amountSat <= 0 || topupInvoiceIsBusy;
+    !currentNpub ||
+    !Number.isFinite(amountSat) ||
+    amountSat <= 0 ||
+    topupInvoiceIsBusy;
 
   return (
     <section className="panel">
@@ -64,9 +60,6 @@ export const TopupPage: FC<TopupPageProps> = ({
             {effectiveProfileName ??
               (currentNpub ? formatShortNpub(currentNpub) : t("appTitle"))}
           </h3>
-          <p className="muted" style={{ maxWidth: "100%", overflow: "hidden" }}>
-            {formatMiddleDots(String(npubCashLightningAddress ?? ""), 28)}
-          </p>
         </div>
       </div>
 

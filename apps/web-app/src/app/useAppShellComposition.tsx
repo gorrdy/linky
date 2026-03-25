@@ -1,3 +1,4 @@
+import type { Proof } from "@cashu/cashu-ts";
 import * as Evolu from "@evolu/common";
 import { useOwner, useQuery } from "@evolu/react";
 import { nip19, type Event as NostrToolsEvent } from "nostr-tools";
@@ -44,7 +45,6 @@ import {
   getCashuDeterministicSeedFromStorage,
   withCashuDeterministicCounterLock,
 } from "../utils/cashuDeterministic";
-import { isCashuOutputsAlreadySignedError } from "../utils/cashuErrors";
 import { getCashuLib } from "../utils/cashuLib";
 import {
   BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY,
@@ -91,6 +91,7 @@ import {
   safeLocalStorageSetJson,
   withLocalStorageLeaseLock,
 } from "../utils/storage";
+import { getUnknownErrorMessage } from "../utils/unknown";
 import { useCashuTokenChecks } from "./hooks/cashu/useCashuTokenChecks";
 import { useNpubCashClaim } from "./hooks/cashu/useNpubCashClaim";
 import { useRestoreMissingTokens } from "./hooks/cashu/useRestoreMissingTokens";
@@ -128,7 +129,10 @@ import { usePayContactWithCashuMessage } from "./hooks/payments/usePayContactWit
 import { useRouteAmountResetEffects } from "./hooks/payments/useRouteAmountResetEffects";
 import { useProfileEditor } from "./hooks/profile/useProfileEditor";
 import { useProfileMetadataSyncEffect } from "./hooks/profile/useProfileMetadataSyncEffect";
-import { isTopupMintQuoteClaimableState } from "./hooks/topup/topupMintClaim";
+import {
+  isClaimableMintQuoteState,
+  readMintQuoteState,
+} from "./hooks/topup/topupMintQuoteState";
 import {
   useTopupInvoiceQuoteEffects,
   type TopupMintQuoteDraft,
@@ -196,14 +200,6 @@ const readObjectField = (value: unknown, field: string): unknown => {
   if (typeof value !== "object" || value === null) return undefined;
   return Reflect.get(value, field);
 };
-
-const readMintQuoteState = (value: unknown): string => {
-  const state = readObjectField(value, "state");
-  if (state !== undefined && state !== null) return String(state);
-  const status = readObjectField(value, "status");
-  return String(status ?? "");
-};
-
 interface PendingTopupQuoteStorage {
   amount: number;
   createdAtMs: number;
@@ -364,6 +360,94 @@ const readPendingTopupQuoteFromStorage = (
   } catch {
     return null;
   }
+};
+
+const isOutputsAlreadySignedError = (error: unknown): boolean => {
+  const message = getUnknownErrorMessage(error, "").toLowerCase();
+  return (
+    message.includes("outputs have already been signed") ||
+    message.includes("already been signed before") ||
+    message.includes("keyset id already signed")
+  );
+};
+
+interface TopupMintProofsWalletLike {
+  keysetId: string;
+  mintProofs: (
+    amount: number,
+    quote: string,
+    options?: { counter?: number },
+  ) => Promise<Proof[]>;
+  unit: string;
+}
+
+const mintTopupProofs = async (args: {
+  amount: number;
+  mintUrl: string;
+  quoteId: string;
+  unit: string | null;
+  wallet: TopupMintProofsWalletLike;
+}): Promise<Proof[]> => {
+  const det = getCashuDeterministicSeedFromStorage();
+  const unit = String(args.wallet.unit ?? args.unit ?? "").trim();
+  const keysetId = String(args.wallet.keysetId ?? "").trim();
+
+  if (!(det && unit && keysetId)) {
+    return await args.wallet.mintProofs(args.amount, args.quoteId);
+  }
+
+  return await withCashuDeterministicCounterLock(
+    {
+      mintUrl: args.mintUrl,
+      unit,
+      keysetId,
+    },
+    async () => {
+      let counter = getCashuDeterministicCounter({
+        mintUrl: args.mintUrl,
+        unit,
+        keysetId,
+      });
+      let proofs: Proof[] | null = null;
+      let lastError: unknown;
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+          proofs = await args.wallet.mintProofs(args.amount, args.quoteId, {
+            counter,
+          });
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+          if (!isOutputsAlreadySignedError(error)) throw error;
+
+          bumpCashuDeterministicCounter({
+            mintUrl: args.mintUrl,
+            unit,
+            keysetId,
+            used: 64,
+          });
+          counter = getCashuDeterministicCounter({
+            mintUrl: args.mintUrl,
+            unit,
+            keysetId,
+          });
+        }
+      }
+
+      if (!proofs) throw lastError ?? new Error("mint failed");
+
+      bumpCashuDeterministicCounter({
+        mintUrl: args.mintUrl,
+        unit,
+        keysetId,
+        used: proofs.length,
+      });
+
+      return proofs;
+    },
+  );
 };
 
 const logPayStep = (step: string, data?: PaymentLogData): void => {
@@ -1339,77 +1423,18 @@ export const useAppShellComposition = () => {
 
             const status = await wallet.checkMintQuote(quoteId);
             const quoteState = readMintQuoteState(status);
-            if (!isTopupMintQuoteClaimableState(quoteState, MintQuoteState)) {
+            if (!isClaimableMintQuoteState(quoteState, MintQuoteState)) {
               return;
             }
 
             const unit = wallet.unit ?? topupMintQuote.unit ?? null;
-            const keysetId = wallet.keysetId;
-
-            const proofs =
-              det && unit && keysetId
-                ? await withCashuDeterministicCounterLock(
-                    {
-                      mintUrl: topupMintQuote.mintUrl,
-                      unit,
-                      keysetId,
-                    },
-                    async () => {
-                      let counter = getCashuDeterministicCounter({
-                        mintUrl: topupMintQuote.mintUrl,
-                        unit,
-                        keysetId,
-                      });
-                      let mintedProofs: Awaited<
-                        ReturnType<typeof wallet.mintProofs>
-                      > | null = null;
-                      let lastError: unknown;
-
-                      for (let attempt = 0; attempt < 5; attempt += 1) {
-                        try {
-                          mintedProofs = await wallet.mintProofs(
-                            topupMintQuote.amount,
-                            quoteId,
-                            { counter },
-                          );
-                          lastError = null;
-                          break;
-                        } catch (error) {
-                          lastError = error;
-                          if (!isCashuOutputsAlreadySignedError(error)) {
-                            throw error;
-                          }
-
-                          bumpCashuDeterministicCounter({
-                            mintUrl: topupMintQuote.mintUrl,
-                            unit,
-                            keysetId,
-                            used: 64,
-                          });
-                          counter = getCashuDeterministicCounter({
-                            mintUrl: topupMintQuote.mintUrl,
-                            unit,
-                            keysetId,
-                          });
-                        }
-                      }
-
-                      if (!mintedProofs) {
-                        throw lastError ?? new Error("mint failed");
-                      }
-
-                      bumpCashuDeterministicCounter({
-                        mintUrl: topupMintQuote.mintUrl,
-                        unit,
-                        keysetId,
-                        used: mintedProofs.length,
-                      });
-
-                      return mintedProofs;
-                    },
-                  )
-                : await wallet.mintProofs(topupMintQuote.amount, quoteId);
-
+            const proofs = await mintTopupProofs({
+              amount: topupMintQuote.amount,
+              mintUrl: topupMintQuote.mintUrl,
+              quoteId,
+              unit,
+              wallet,
+            });
             const token = String(
               getEncodedToken({
                 mint: topupMintQuote.mintUrl,
@@ -1418,6 +1443,15 @@ export const useAppShellComposition = () => {
               }) ?? "",
             ).trim();
             if (!token) throw new Error("Mint produced empty token");
+
+            safeLocalStorageSetJson(claimStorageKey, {
+              amount: topupMintQuote.amount,
+              claimedAtMs: Date.now(),
+              mintUrl: topupMintQuote.mintUrl,
+              quote: quoteId,
+              token,
+              unit,
+            });
 
             if (!isCashuTokenKnownAny(token)) {
               const ownerId = await resolveOwnerIdForWrite();
@@ -1434,15 +1468,6 @@ export const useAppShellComposition = () => {
                 return;
               }
             }
-
-            safeLocalStorageSetJson(claimStorageKey, {
-              amount: topupMintQuote.amount,
-              claimedAtMs: Date.now(),
-              mintUrl: topupMintQuote.mintUrl,
-              quote: quoteId,
-              token,
-              unit,
-            });
 
             showRecentlyReceivedTokenToast(
               token,
@@ -3412,7 +3437,6 @@ export const useAppShellComposition = () => {
       knownLnAddressPayContact,
       knownLnAddressPayContactPictureUrl,
       lnAddressPayAmount,
-      npubCashLightningAddress,
       payLightningAddressWithCashu,
       pendingCashuDeleteId,
       requestDeleteCashuToken,
