@@ -12,6 +12,7 @@ bun run dev                # Start Vite dev server
 bun run build              # Production build (tsc -b && vite build)
 bun run native:android:add # Generate the Capacitor Android project once
 bun run native:apk:debug   # Build the web app, sync Capacitor, assemble debug APK
+bun run native:aab:release # Build the web app, sync Capacitor, and bundle a signed release AAB for Play upload
 bun run native:ios:add     # Generate the Capacitor iOS project once
 bun run push:dev           # Start the Bun push notification service in watch mode
 bun run push:start         # Start the Bun push notification service once
@@ -58,6 +59,8 @@ Native Android builds require Java 17. `apps/native-shell/scripts/with-java17.sh
 - Core app remains local-first/client-side; optional background notifications are handled by the separate `apps/push` Bun service
 - Native packaging uses a separate Capacitor shell in `apps/native-shell/` so Android/iOS project files stay isolated from the web app source tree
 - Native shells now load bundled `apps/web-app/dist` assets by default; Capacitor live reload must be enabled explicitly via `LINKY_CAP_SERVER_URL` / `CAP_SERVER_URL` before `cap sync` / `cap open`, preventing packaged APKs from pointing at `127.0.0.1`
+- Android release AAB builds derive `versionName` from the workspace `package.json` version and derive `versionCode` from semantic version components (`major * 10000 + minor * 100 + patch`), with optional `LINKY_ANDROID_VERSION_NAME` / `LINKY_ANDROID_VERSION_CODE` overrides for special releases
+- GitHub Actions workflow `.github/workflows/android-play-internal.yml` builds a signed Android AAB on pushes to `main` and uploads it to the Google Play `internal` track using repository secrets for the upload keystore, Play service account JSON, and `google-services.json`
 - Browser-only identity persistence is being moved behind platform adapters in `apps/web-app/src/platform/`; the Android shell now provides a real encrypted secret-storage bridge plus native QR scan, deep-link, and notification-permission bridges via `apps/web-app/src/platform/nativeBridge.ts`, while native push registration now uses Capacitor Push Notifications + FCM token registration against `apps/push`
 - Android native push delivery now uses data-only FCM payloads plus `apps/native-shell/android/app/src/main/java/fit/linky/app/LinkyFirebaseMessagingService.java`, which renders closed-app notifications locally and forwards payload extras back into `MainActivity` on tap; `google-services.json` is still required in `apps/native-shell/android/app/`
 - Android shell now also exposes live system-bar inset values through `LinkyNativeWindowInsets`, and the web app consumes them via CSS vars (`--safe-area-top`, `--safe-area-bottom`) so the fixed top bar and bottom overlays clear Android status/navigation bars
@@ -119,6 +122,7 @@ Native Android builds require Java 17. `apps/native-shell/scripts/with-java17.sh
 - SQLite WASM files served from `public/sqlite-wasm/` with `cache-control: no-store` in dev
 - On web, the `nsec` private key is still mirrored under `linky.nostr_nsec`; native shells are expected to provide secure secret storage via the platform bridge and secrets must never be logged or exposed
 - Android native shells currently back identity secrets with `EncryptedSharedPreferences`, use ZXing-based native QR scanning instead of `getUserMedia` when available, expose Android notification permission to the web app, and register Android FCM push tokens through Capacitor Push Notifications; native builds need `apps/native-shell/android/app/google-services.json`, and the push server needs `PUSH_FIREBASE_SERVICE_ACCOUNT_JSON` for delivery
+- Play upload bundles require release signing via `apps/native-shell/android/keystore.properties` or `LINKY_UPLOAD_STORE_FILE` / `LINKY_UPLOAD_STORE_PASSWORD` / `LINKY_UPLOAD_KEY_ALIAS` / `LINKY_UPLOAD_KEY_PASSWORD`; `bun run native:aab:release` fails fast when those credentials are missing
 - Android native shells also register `nostr://` and `cashu://` custom URI schemes and forward incoming URLs through `LinkyNativeDeepLinks`; the current handler accepts contact `npub` links plus Cashu token links, reuses the scanned-text add/import flows, opens the saved contact detail, and imports tokens into the wallet
 - Android native shells also accept NFC NDEF tags for the same flows: `ACTION_NDEF_DISCOVERED` URI records with `nostr://` / `cashu://` and `text/plain` NDEF records whose payload starts with those schemes are normalized in `MainActivity` and forwarded through the same deep-link bridge
 - Android native shells also expose NFC writing through `LinkyNativeNfc`; token detail writes `cashu://cashu...` and profile writes `nostr://npub...` as NDEF URI records, with web-app UI hidden when the native bridge is unavailable

@@ -1,14 +1,73 @@
+import groovy.json.JsonSlurper
+
 apply plugin: 'com.android.application'
+
+def workspacePackageJsonFile = file('../../../../package.json')
+if (!workspacePackageJsonFile.exists()) {
+    throw new GradleException("Workspace package.json not found at ${workspacePackageJsonFile.path}")
+}
+
+def workspacePackageJson = new JsonSlurper().parseText(workspacePackageJsonFile.text)
+def workspaceVersionValue = workspacePackageJson.version
+def workspaceVersionName = workspaceVersionValue instanceof String && !workspaceVersionValue.trim().isEmpty()
+    ? workspaceVersionValue.trim()
+    : '1.0.0'
+
+def semverMatcher = (workspaceVersionName =~ /^(\d+)\.(\d+)\.(\d+)/)
+def derivedWorkspaceVersionCode = 1
+if (semverMatcher.find()) {
+    def majorVersion = Integer.parseInt(semverMatcher.group(1))
+    def minorVersion = Integer.parseInt(semverMatcher.group(2))
+    def patchVersion = Integer.parseInt(semverMatcher.group(3))
+    derivedWorkspaceVersionCode = (majorVersion * 10000) + (minorVersion * 100) + patchVersion
+}
+
+def androidVersionNameOverride = (project.findProperty('LINKY_ANDROID_VERSION_NAME') ?: System.getenv('LINKY_ANDROID_VERSION_NAME'))?.toString()?.trim()
+def androidVersionCodeOverride = (project.findProperty('LINKY_ANDROID_VERSION_CODE') ?: System.getenv('LINKY_ANDROID_VERSION_CODE'))?.toString()?.trim()
+def androidVersionName = androidVersionNameOverride ?: workspaceVersionName
+def androidVersionCode = androidVersionCodeOverride ? Integer.parseInt(androidVersionCodeOverride) : derivedWorkspaceVersionCode
+
+def releaseKeystoreProperties = new Properties()
+def releaseKeystorePropertiesFile = file('../keystore.properties')
+if (releaseKeystorePropertiesFile.exists()) {
+    releaseKeystorePropertiesFile.withInputStream { releaseKeystoreProperties.load(it) }
+}
+
+def readReleaseSigningValue = { envKey, propertyKey ->
+    def envValue = System.getenv(envKey)?.trim()
+    if (envValue) {
+        return envValue
+    }
+
+    def propertyValue = releaseKeystoreProperties.getProperty(propertyKey)?.trim()
+    return propertyValue ?: null
+}
+
+def releaseStoreFilePath = readReleaseSigningValue('LINKY_UPLOAD_STORE_FILE', 'storeFile')
+def releaseStorePassword = readReleaseSigningValue('LINKY_UPLOAD_STORE_PASSWORD', 'storePassword')
+def releaseKeyAlias = readReleaseSigningValue('LINKY_UPLOAD_KEY_ALIAS', 'keyAlias')
+def releaseKeyPassword = readReleaseSigningValue('LINKY_UPLOAD_KEY_PASSWORD', 'keyPassword')
+def hasReleaseSigning = [releaseStoreFilePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null }
 
 android {
     namespace "fit.linky.app"
     compileSdk rootProject.ext.compileSdkVersion
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     defaultConfig {
         applicationId "fit.linky.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode androidVersionCode
+        versionName androidVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -19,7 +78,18 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if ((task.name == 'bundleRelease' || task.name == 'assembleRelease') && !hasReleaseSigning) {
+        task.doFirst {
+            throw new GradleException('Release signing is not configured. Set LINKY_UPLOAD_* environment variables or create apps/native-shell/android/keystore.properties before building a release.')
         }
     }
 }

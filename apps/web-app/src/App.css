@@ -3040,6 +3040,222 @@ button.tag-button {
   gap: 10px;
 }
 
+.nfc-write-overlay {
+  padding: 18px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 32%),
+    rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(18px);
+}
+
+.nfc-write-sheet {
+  width: min(420px, calc(100vw - 20px));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #1c1c1e;
+  border-radius: 28px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
+}
+
+.nfc-write-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.nfc-write-close {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(118, 118, 128, 0.24);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 34px;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.nfc-write-close:hover {
+  transform: none;
+  background: rgba(118, 118, 128, 0.34);
+  box-shadow: none;
+}
+
+.nfc-write-stage {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.nfc-write-title {
+  margin-bottom: 8px;
+  font-size: clamp(26px, 6.4vw, 34px);
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+}
+
+.nfc-write-subtitle {
+  margin: 0;
+  font-size: clamp(16px, 4.6vw, 19px);
+  line-height: 1.28;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.nfc-write-illustration {
+  margin-top: 30px;
+  margin-bottom: 28px;
+}
+
+.nfc-write-illustrationRing {
+  width: min(58vw, 232px);
+  height: min(58vw, 232px);
+  max-width: 232px;
+  max-height: 232px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 6px solid #3b82f6;
+  background:
+    radial-gradient(
+      circle at 30% 28%,
+      rgba(96, 165, 250, 0.12),
+      transparent 46%
+    ),
+    rgba(20, 54, 113, 0.18);
+}
+
+.nfc-write-phone {
+  width: 78px;
+  height: 132px;
+  position: relative;
+  border-radius: 18px 18px 12px 12px;
+  background: linear-gradient(180deg, #244c8d 0%, #1c417f 100%);
+  box-shadow: inset -6px 0 0 rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.nfc-write-phone::after {
+  content: "";
+  position: absolute;
+  inset: 28px -14px -18px 24px;
+  background: rgba(7, 24, 56, 0.54);
+  transform: skewY(38deg);
+}
+
+.nfc-write-phone-speaker {
+  width: 22px;
+  height: 3px;
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(207, 226, 255, 0.55);
+  z-index: 1;
+}
+
+.nfc-write-phone-screen {
+  position: absolute;
+  inset: 14px 8px 8px;
+  border-radius: 12px 12px 10px 10px;
+  background: linear-gradient(180deg, #2d5ca7 0%, #224989 100%);
+}
+
+.nfc-write-signal {
+  width: 88px;
+  height: 88px;
+  position: absolute;
+  color: rgba(125, 211, 252, 0.58);
+}
+
+.nfc-write-copy {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.nfc-write-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: rgba(10, 132, 255, 0.96);
+}
+
+.nfc-write-body {
+  margin: 0;
+  max-width: 320px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(235, 235, 245, 0.6);
+}
+
+.nfc-write-actions {
+  margin-top: 30px;
+}
+
+.nfc-write-cancel {
+  min-height: 64px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #4f9eff 0%, #3f86eb 100%);
+  color: #d7fff7;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 14px 36px rgba(59, 130, 246, 0.24);
+}
+
+.nfc-write-cancel:hover {
+  transform: none;
+  background: linear-gradient(180deg, #5aa6ff 0%, #478def 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 16px 38px rgba(59, 130, 246, 0.28);
+}
+
+@media (max-width: 520px) {
+  .nfc-write-overlay {
+    padding: 12px;
+  }
+
+  .nfc-write-sheet {
+    width: min(100%, 420px);
+    padding: 16px 16px 18px;
+    border-radius: 26px;
+  }
+
+  .nfc-write-illustration {
+    margin-top: 26px;
+    margin-bottom: 24px;
+  }
+
+  .nfc-write-phone {
+    width: 70px;
+    height: 118px;
+  }
+
+  .nfc-write-signal {
+    width: 78px;
+    height: 78px;
+  }
+
+  .nfc-write-cancel {
+    min-height: 60px;
+    font-size: 17px;
+  }
+}
+
 .lightning-invoice-confirm-sheet {
   width: min(560px, calc(100vw - 32px));
 }

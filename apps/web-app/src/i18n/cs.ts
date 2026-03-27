@@ -453,11 +453,12 @@ export const cs = {
   nfcWriteBusy: "Jiný NFC zápis právě probíhá.",
   nfcWriteCancelled: "NFC zápis byl zrušen.",
   nfcWriteFailed: "Nepodařilo se zapsat NFC tag",
-  nfcWriteReadyTitle: "NFC připraveno",
-  nfcWriteReadyProfileBody:
-    "Přiložte NFC tag k telefonu. Na tag se zapíše váš profil jako nostr://npub...",
-  nfcWriteReadyTokenBody:
-    "Přiložte NFC tag k telefonu. Na tag se zapíše token jako cashu://cashu...",
+  nfcWriteReadyTitle: "Připraveno ke skenování",
+  nfcWriteReadySubtitle: "Přiložte NFC tag",
+  nfcWriteProfileLabel: "Zapisuje se profil",
+  nfcWriteTokenLabel: "Zapisuje se token",
+  nfcWriteReadyProfileBody: "Na tag se zapíše váš profil jako nostr://npub...",
+  nfcWriteReadyTokenBody: "Na tag se zapíše token jako cashu://cashu...",
   nfcWriteTokenSuccess: "Token byl nahrán na NFC.",
   nfcWriteProfileSuccess: "npub byl nahrán na NFC.",
 

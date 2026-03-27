@@ -450,11 +450,12 @@ export const en = {
   nfcWriteBusy: "Another NFC write is already in progress.",
   nfcWriteCancelled: "NFC write was cancelled.",
   nfcWriteFailed: "Failed to write NFC tag",
-  nfcWriteReadyTitle: "NFC ready",
-  nfcWriteReadyProfileBody:
-    "Hold an NFC tag to the phone. Your profile will be written as nostr://npub...",
-  nfcWriteReadyTokenBody:
-    "Hold an NFC tag to the phone. The token will be written as cashu://cashu...",
+  nfcWriteReadyTitle: "Ready to Scan",
+  nfcWriteReadySubtitle: "Approach an NFC Tag",
+  nfcWriteProfileLabel: "Writing profile",
+  nfcWriteTokenLabel: "Writing token",
+  nfcWriteReadyProfileBody: "Your profile will be written as nostr://npub...",
+  nfcWriteReadyTokenBody: "The token will be written as cashu://cashu...",
   nfcWriteTokenSuccess: "Token written to NFC.",
   nfcWriteProfileSuccess: "npub written to NFC.",
 
