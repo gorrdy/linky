@@ -44,6 +44,7 @@ export interface MainSwipeRouteProps {
   setActiveGroup: (group: string | null) => void;
   setContactsSearch: (value: string) => void;
   showContactsOnboarding: boolean;
+  showWalletWarning: boolean;
   showGroupFilter: boolean;
   showNoGroupFilter: boolean;
   startContactsGuide: (task: ContactsGuideKey) => void;
@@ -52,6 +53,7 @@ export interface MainSwipeRouteProps {
     conversations: ContactRowLike[];
     others: ContactRowLike[];
   };
+  dismissWalletWarning: () => void;
 }
 
 const isContactsGuideKey = (value: string): value is ContactsGuideKey =>
@@ -76,6 +78,7 @@ export const MainSwipeContent = (): React.ReactElement => {
     contactsToolbarStyle,
     conversationsLabel,
     dismissContactsOnboarding,
+    dismissWalletWarning,
     groupNames,
     handleMainSwipeScroll,
     mainSwipeProgress,
@@ -92,6 +95,7 @@ export const MainSwipeContent = (): React.ReactElement => {
     setActiveGroup,
     setContactsSearch,
     showContactsOnboarding,
+    showWalletWarning,
     showGroupFilter,
     showNoGroupFilter,
     startContactsGuide,
@@ -166,6 +170,8 @@ export const MainSwipeContent = (): React.ReactElement => {
             openScan={openWalletScan}
             scanIsOpen={scanIsOpen}
             bottomTabActive={bottomTabActive}
+            dismissWalletWarning={dismissWalletWarning}
+            showWalletWarning={showWalletWarning}
             showBottomTabBar={false}
             t={t}
           />

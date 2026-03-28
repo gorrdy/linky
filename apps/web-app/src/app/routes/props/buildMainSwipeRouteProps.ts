@@ -13,6 +13,7 @@ interface BuildMainSwipeRoutePropsParams {
   contactsToolbarStyle: MainSwipeRoutesProps["mainSwipeProps"]["contactsToolbarStyle"];
   conversationsLabel: MainSwipeRoutesProps["mainSwipeProps"]["conversationsLabel"];
   dismissContactsOnboarding: MainSwipeRoutesProps["mainSwipeProps"]["dismissContactsOnboarding"];
+  dismissWalletWarning: MainSwipeRoutesProps["mainSwipeProps"]["dismissWalletWarning"];
   groupNames: MainSwipeRoutesProps["mainSwipeProps"]["groupNames"];
   handleMainSwipeScroll: MainSwipeRoutesProps["mainSwipeProps"]["handleMainSwipeScroll"];
   mainSwipeProgress: MainSwipeRoutesProps["mainSwipeProps"]["mainSwipeProgress"];
@@ -29,6 +30,7 @@ interface BuildMainSwipeRoutePropsParams {
   setActiveGroup: MainSwipeRoutesProps["mainSwipeProps"]["setActiveGroup"];
   setContactsSearch: MainSwipeRoutesProps["mainSwipeProps"]["setContactsSearch"];
   showContactsOnboarding: MainSwipeRoutesProps["mainSwipeProps"]["showContactsOnboarding"];
+  showWalletWarning: MainSwipeRoutesProps["mainSwipeProps"]["showWalletWarning"];
   showGroupFilter: MainSwipeRoutesProps["mainSwipeProps"]["showGroupFilter"];
   showNoGroupFilter: MainSwipeRoutesProps["mainSwipeProps"]["showNoGroupFilter"];
   startContactsGuide: MainSwipeRoutesProps["mainSwipeProps"]["startContactsGuide"];
@@ -49,6 +51,7 @@ export const buildMainSwipeRouteProps = ({
   contactsToolbarStyle,
   conversationsLabel,
   dismissContactsOnboarding,
+  dismissWalletWarning,
   groupNames,
   handleMainSwipeScroll,
   mainSwipeProgress,
@@ -65,6 +68,7 @@ export const buildMainSwipeRouteProps = ({
   setActiveGroup,
   setContactsSearch,
   showContactsOnboarding,
+  showWalletWarning,
   showGroupFilter,
   showNoGroupFilter,
   startContactsGuide,
@@ -85,6 +89,7 @@ export const buildMainSwipeRouteProps = ({
       contactsToolbarStyle,
       conversationsLabel,
       dismissContactsOnboarding,
+      dismissWalletWarning,
       groupNames,
       handleMainSwipeScroll,
       mainSwipeProgress,
@@ -101,6 +106,7 @@ export const buildMainSwipeRouteProps = ({
       setActiveGroup,
       setContactsSearch,
       showContactsOnboarding,
+      showWalletWarning,
       showGroupFilter,
       showNoGroupFilter,
       startContactsGuide,
