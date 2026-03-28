@@ -2547,6 +2547,13 @@ export const useAppShellComposition = () => {
     t,
   });
 
+  const [walletWarningDismissed, setWalletWarningDismissed] =
+    React.useState(false);
+
+  const dismissWalletWarning = React.useCallback(() => {
+    setWalletWarningDismissed(true);
+  }, []);
+
   const saveCashuFromText = useSaveCashuFromText({
     enqueueCashuOp,
     ensureCashuTokenPersisted,
@@ -3554,6 +3561,7 @@ export const useAppShellComposition = () => {
       contactsSearchInputRef,
       conversationsLabel,
       dismissContactsOnboarding,
+      dismissWalletWarning,
       groupNames,
       handleMainSwipeScroll,
       mainSwipeProgress,
@@ -3571,6 +3579,7 @@ export const useAppShellComposition = () => {
       setActiveGroup,
       setContactsSearch,
       showContactsOnboarding,
+      showWalletWarning: !walletWarningDismissed,
       startContactsGuide,
       t,
       visibleContacts,

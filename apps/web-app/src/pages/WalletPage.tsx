@@ -8,8 +8,10 @@ import { useNavigation } from "../hooks/useRouting";
 interface WalletPageProps {
   bottomTabActive: "wallet" | "contacts" | null;
   cashuBalance: number;
+  dismissWalletWarning: () => void;
   openScan: () => void;
   scanIsOpen: boolean;
+  showWalletWarning: boolean;
   showBottomTabBar?: boolean;
   t: (key: string) => string;
 }
@@ -17,15 +19,21 @@ interface WalletPageProps {
 export const WalletPage: React.FC<WalletPageProps> = ({
   bottomTabActive,
   cashuBalance,
+  dismissWalletWarning,
   openScan,
   scanIsOpen,
+  showWalletWarning,
   showBottomTabBar = true,
   t,
 }) => {
   const navigateTo = useNavigation();
   return (
     <section className="panel panel-plain wallet-panel">
-      <WalletWarning t={t} />
+      <WalletWarning
+        dismissed={!showWalletWarning}
+        onDismiss={dismissWalletWarning}
+        t={t}
+      />
       <div className="panel-header">
         <div className="wallet-hero">
           <WalletBalance balance={cashuBalance} ariaLabel={t("cashuBalance")} />
