@@ -185,9 +185,22 @@ button {
 }
 
 @media (min-width: 840px) {
+  .privacy-shell {
+    padding: 28px 24px 34px;
+  }
+
   .privacy-card {
     padding: 36px;
     border-radius: 36px;
+  }
+
+  .topbar {
+    margin-bottom: 22px;
+  }
+
+  .footer-links {
+    margin-top: 8px;
+    justify-content: flex-end;
   }
 }
 

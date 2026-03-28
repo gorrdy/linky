@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type CtaMode = "install" | "web";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-}
+type CtaMode = "google-play" | "web";
 
 type Locale = "cs" | "en";
 
@@ -15,13 +10,13 @@ interface LocaleCopy {
   title: string;
   subtitle: string;
   webCta: string;
-  installCta: string;
+  googlePlayCta: string;
+  comingSoonLabel: string;
   ctaMenuLabel: string;
   privacyLabel: string;
   imageTitle: string;
   githubLabel: string;
   nostrLabel: string;
-  installFallback: string;
 }
 
 const copy: Record<Locale, LocaleCopy> = {
@@ -32,14 +27,13 @@ const copy: Record<Locale, LocaleCopy> = {
     subtitle:
       "Linky přináší svobodu komunikace i plateb v jedné aplikaci. Díky cashu snadno zaplatíte, nostr zajistí soukromé zprávy a evolu se postará o bezpečnou synchronizaci vašich dat.",
     webCta: "Webová aplikace",
-    installCta: "Nainstalovat PWA",
+    googlePlayCta: "Google Play",
+    comingSoonLabel: "již brzy",
     ctaMenuLabel: "Možnosti otevření aplikace",
     privacyLabel: "Ochrana soukromí",
     imageTitle: "Fotorealistické setkání lidí s aplikací Linky",
     githubLabel: "GitHub",
     nostrLabel: "Nostr profil",
-    installFallback:
-      "Přímá instalace v tomto prohlížeči teď není k dispozici. Pro instalaci použij systémovou volbu pro přidání webu na plochu nebo do Docku/Home Screen.",
   },
   en: {
     htmlLang: "en",
@@ -48,14 +42,13 @@ const copy: Record<Locale, LocaleCopy> = {
     subtitle:
       "Linky brings freedom to communication and payments in a single app. Cashu makes payments easy, nostr ensures private messaging, and evolu takes care of securely syncing your data.",
     webCta: "Web app",
-    installCta: "Install PWA",
+    googlePlayCta: "Google Play",
+    comingSoonLabel: "coming soon",
     ctaMenuLabel: "App launch options",
     privacyLabel: "Privacy Policy",
     imageTitle: "Photorealistic meeting of people with the Linky app",
     githubLabel: "GitHub",
     nostrLabel: "Nostr profile",
-    installFallback:
-      "Direct install is not available in this browser right now. Use the browser or system action to add this site to your desktop, Dock, or home screen.",
   },
 };
 
@@ -67,29 +60,8 @@ const localeLabels: Record<Locale, string> = {
 const localeOptions: Locale[] = ["cs", "en"];
 const localeStorageKey = "linky.lang";
 
-const isBeforeInstallPromptEvent = (
-  event: Event,
-): event is BeforeInstallPromptEvent => {
-  return "prompt" in event && "userChoice" in event;
-};
-
 const isNodeTarget = (value: EventTarget | null): value is Node => {
   return value instanceof Node;
-};
-
-const getManualInstallSupport = (): boolean => {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return false;
-  }
-
-  if (window.matchMedia("(display-mode: standalone)").matches) {
-    return false;
-  }
-
-  const userAgent = navigator.userAgent.toLowerCase();
-  return /(macintosh|mac os x|iphone|ipad|android|chrome|chromium|crios|edg|safari)/.test(
-    userAgent,
-  );
 };
 
 const getInitialLocale = (): Locale => {
@@ -118,21 +90,10 @@ function App() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [preferredCtaMode, setPreferredCtaMode] = useState<CtaMode>("web");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [installEvent, setInstallEvent] =
-    useState<BeforeInstallPromptEvent | null>(null);
   const activeCopy = useMemo(() => copy[locale], [locale]);
   const ctaMenuRef = useRef<HTMLDivElement | null>(null);
-  const manualInstallAvailable = useMemo(() => getManualInstallSupport(), []);
-
-  const installAvailable = installEvent !== null;
-  const ctaMode =
-    preferredCtaMode === "install" &&
-    (installAvailable || manualInstallAvailable)
-      ? "install"
-      : "web";
-  const primaryCtaLabel =
-    ctaMode === "install" ? activeCopy.installCta : activeCopy.webCta;
-  const showCtaDropdown = installAvailable || manualInstallAvailable;
+  const ctaMode = preferredCtaMode === "google-play" ? "google-play" : "web";
+  const primaryCtaLabel = activeCopy.webCta;
 
   useEffect(() => {
     document.documentElement.lang = activeCopy.htmlLang;
@@ -141,32 +102,6 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(localeStorageKey, locale);
   }, [locale]);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event) => {
-      if (!isBeforeInstallPromptEvent(event)) return;
-      event.preventDefault();
-      setInstallEvent(event);
-      setPreferredCtaMode("install");
-    };
-
-    const handleInstalled = () => {
-      setInstallEvent(null);
-      setPreferredCtaMode("web");
-      setMenuOpen(false);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleInstalled);
-
-    return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
-      window.removeEventListener("appinstalled", handleInstalled);
-    };
-  }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -191,29 +126,7 @@ function App() {
     window.open("https://app.linky.fit", "_blank", "noopener,noreferrer");
   };
 
-  const installPwa = async () => {
-    if (!installEvent) {
-      window.alert(activeCopy.installFallback);
-      setMenuOpen(false);
-      return;
-    }
-
-    await installEvent.prompt();
-    const choice = await installEvent.userChoice;
-
-    if (choice.outcome === "accepted") {
-      setInstallEvent(null);
-      setPreferredCtaMode("web");
-      setMenuOpen(false);
-    }
-  };
-
   const handlePrimaryAction = () => {
-    if (ctaMode === "install") {
-      void installPwa();
-      return;
-    }
-
     openWebApp();
   };
 
@@ -255,67 +168,60 @@ function App() {
           <div className="cta-row" ref={ctaMenuRef}>
             <div className="cta-group">
               <button
-                className={
-                  showCtaDropdown ? "primary-cta" : "primary-cta is-single"
-                }
+                className="primary-cta"
                 type="button"
                 onClick={handlePrimaryAction}
               >
                 {primaryCtaLabel}
               </button>
-              {showCtaDropdown ? (
-                <>
-                  <button
-                    className={menuOpen ? "cta-toggle is-open" : "cta-toggle"}
-                    type="button"
-                    aria-haspopup="menu"
-                    aria-expanded={menuOpen}
-                    aria-label={activeCopy.ctaMenuLabel}
-                    onClick={() => setMenuOpen((value) => !value)}
-                  >
-                    <span className="cta-toggle-icon" aria-hidden="true">
-                      ▾
-                    </span>
-                  </button>
+              <>
+                <button
+                  className={menuOpen ? "cta-toggle is-open" : "cta-toggle"}
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  aria-label={activeCopy.ctaMenuLabel}
+                  onClick={() => setMenuOpen((value) => !value)}
+                >
+                  <span className="cta-toggle-icon" aria-hidden="true">
+                    ▾
+                  </span>
+                </button>
 
-                  {menuOpen ? (
-                    <div className="cta-menu" role="menu">
-                      <button
-                        className={
-                          ctaMode === "install"
-                            ? "cta-option is-selected"
-                            : "cta-option"
-                        }
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={ctaMode === "install"}
-                        onClick={() => {
-                          setPreferredCtaMode("install");
-                          setMenuOpen(false);
-                        }}
-                      >
-                        <span>{activeCopy.installCta}</span>
-                      </button>
-                      <button
-                        className={
-                          ctaMode === "web"
-                            ? "cta-option is-selected"
-                            : "cta-option"
-                        }
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={ctaMode === "web"}
-                        onClick={() => {
-                          setPreferredCtaMode("web");
-                          setMenuOpen(false);
-                        }}
-                      >
-                        <span>{activeCopy.webCta}</span>
-                      </button>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
+                {menuOpen ? (
+                  <div className="cta-menu" role="menu">
+                    <button
+                      className={
+                        ctaMode === "web"
+                          ? "cta-option is-selected"
+                          : "cta-option"
+                      }
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={ctaMode === "web"}
+                      onClick={() => {
+                        setPreferredCtaMode("web");
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <span className="cta-option-label">{activeCopy.webCta}</span>
+                    </button>
+                    <button
+                      className="cta-option is-disabled"
+                      type="button"
+                      role="menuitem"
+                      disabled
+                    >
+                      <span className="cta-option-label">
+                        {activeCopy.googlePlayCta}
+                      </span>
+                      <span className="cta-option-note">
+                        {activeCopy.comingSoonLabel}
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </>
             </div>
           </div>
         </div>

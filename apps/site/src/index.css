@@ -270,6 +270,16 @@ button {
   transition: background-color 160ms ease;
 }
 
+.cta-option-label {
+  display: block;
+}
+
+.cta-option-note {
+  display: block;
+  font-size: 0.84rem;
+  color: rgba(247, 244, 234, 0.54);
+}
+
 .cta-option:hover {
   background: rgba(255, 255, 255, 0.06);
 }
@@ -277,6 +287,10 @@ button {
 .cta-option.is-selected {
   background: rgba(20, 184, 166, 0.16);
   color: #fffdf4;
+}
+
+.cta-option.is-disabled {
+  background: transparent;
 }
 
 .cta-option:disabled {
