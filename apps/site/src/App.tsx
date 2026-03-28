@@ -204,7 +204,9 @@ function App() {
                         setMenuOpen(false);
                       }}
                     >
-                      <span className="cta-option-label">{activeCopy.webCta}</span>
+                      <span className="cta-option-label">
+                        {activeCopy.webCta}
+                      </span>
                     </button>
                     <button
                       className="cta-option is-disabled"
