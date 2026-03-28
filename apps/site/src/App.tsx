@@ -21,6 +21,7 @@ interface LocaleCopy {
   imageTitle: string;
   githubLabel: string;
   nostrLabel: string;
+  installFallback: string;
 }
 
 const copy: Record<Locale, LocaleCopy> = {
@@ -37,6 +38,8 @@ const copy: Record<Locale, LocaleCopy> = {
     imageTitle: "Fotorealistické setkání lidí s aplikací Linky",
     githubLabel: "GitHub",
     nostrLabel: "Nostr profil",
+    installFallback:
+      "Přímá instalace v tomto prohlížeči teď není k dispozici. Pro instalaci použij systémovou volbu pro přidání webu na plochu nebo do Docku/Home Screen.",
   },
   en: {
     htmlLang: "en",
@@ -51,6 +54,8 @@ const copy: Record<Locale, LocaleCopy> = {
     imageTitle: "Photorealistic meeting of people with the Linky app",
     githubLabel: "GitHub",
     nostrLabel: "Nostr profile",
+    installFallback:
+      "Direct install is not available in this browser right now. Use the browser or system action to add this site to your desktop, Dock, or home screen.",
   },
 };
 
@@ -70,6 +75,21 @@ const isBeforeInstallPromptEvent = (
 
 const isNodeTarget = (value: EventTarget | null): value is Node => {
   return value instanceof Node;
+};
+
+const getManualInstallSupport = (): boolean => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+
+  if (window.matchMedia("(display-mode: standalone)").matches) {
+    return false;
+  }
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /(macintosh|mac os x|iphone|ipad|android|chrome|chromium|crios|edg|safari)/.test(
+    userAgent,
+  );
 };
 
 const getInitialLocale = (): Locale => {
@@ -102,13 +122,17 @@ function App() {
     useState<BeforeInstallPromptEvent | null>(null);
   const activeCopy = useMemo(() => copy[locale], [locale]);
   const ctaMenuRef = useRef<HTMLDivElement | null>(null);
+  const manualInstallAvailable = useMemo(getManualInstallSupport, []);
 
   const installAvailable = installEvent !== null;
   const ctaMode =
-    preferredCtaMode === "install" && installAvailable ? "install" : "web";
+    preferredCtaMode === "install" &&
+    (installAvailable || manualInstallAvailable)
+      ? "install"
+      : "web";
   const primaryCtaLabel =
     ctaMode === "install" ? activeCopy.installCta : activeCopy.webCta;
-  const showCtaDropdown = installAvailable;
+  const showCtaDropdown = installAvailable || manualInstallAvailable;
 
   useEffect(() => {
     document.documentElement.lang = activeCopy.htmlLang;
@@ -169,7 +193,8 @@ function App() {
 
   const installPwa = async () => {
     if (!installEvent) {
-      openWebApp();
+      window.alert(activeCopy.installFallback);
+      setMenuOpen(false);
       return;
     }
 
