@@ -617,10 +617,7 @@ export const useCashuTokenChecks = ({
         if (processedKeys.has(groupKey)) continue;
         processedKeys.add(groupKey);
 
-        const result = await checkAndRefreshCashuToken(id);
-        if (result === "invalid") {
-          handleDeleteCashuToken(id, { navigate: false, setStatus: false });
-        }
+        await checkAndRefreshCashuToken(id);
       }
     } finally {
       setCashuBulkCheckIsBusy(false);
@@ -629,7 +626,6 @@ export const useCashuTokenChecks = ({
     cashuBulkCheckIsBusy,
     cashuTokensAll,
     checkAndRefreshCashuToken,
-    handleDeleteCashuToken,
     setCashuBulkCheckIsBusy,
   ]);
 
