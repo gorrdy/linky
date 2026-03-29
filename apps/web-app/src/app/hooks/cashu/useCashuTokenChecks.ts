@@ -32,6 +32,17 @@ import type { CashuTokenRowLike } from "../../types/appTypes";
 type EvoluMutations = ReturnType<typeof import("../../../evolu").useEvolu>;
 
 type CashuTokenRow = CashuTokenRowLike & { id?: CashuTokenId | string | null };
+type CashuTokenUpdatePayload = Readonly<{
+  id: CashuTokenId;
+  amount?: number | null;
+  error?: string | null;
+  isDeleted?: number;
+  mint?: string | null;
+  rawToken?: string | null;
+  state?: string | null;
+  token?: string;
+  unit?: string | null;
+}>;
 
 interface ProofLike {
   C?: string;
@@ -71,6 +82,20 @@ export const useCashuTokenChecks = ({
   t,
   update,
 }: UseCashuTokenChecksParams) => {
+  const updateCashuToken = React.useCallback(
+    function (
+      payload: CashuTokenUpdatePayload,
+    ): ReturnType<EvoluMutations["update"]> {
+      if (!appOwnerId) return update("cashuToken", payload);
+
+      const scoped = update("cashuToken", payload, { ownerId: appOwnerId });
+      if (scoped.ok) return scoped;
+
+      return update("cashuToken", payload);
+    },
+    [appOwnerId, update],
+  );
+
   const handleDeleteCashuToken = React.useCallback(
     (
       id: CashuTokenId,
@@ -186,7 +211,7 @@ export const useCashuTokenChecks = ({
           ) {
             try {
               const accepted = await acceptCashuToken(tokenText);
-              const result = update("cashuToken", {
+              const result = updateCashuToken({
                 id: row.id as CashuTokenId,
                 token: accepted.token as typeof Evolu.NonEmptyString.Type,
                 rawToken: tokenText
@@ -218,7 +243,7 @@ export const useCashuTokenChecks = ({
               const transient = looksLikeTransientError(message);
 
               if (definitive && !transient) {
-                update("cashuToken", {
+                updateCashuToken({
                   id: row.id as CashuTokenId,
                   state: "error" as typeof Evolu.NonEmptyString100.Type,
                   error: message.slice(
@@ -410,7 +435,7 @@ export const useCashuTokenChecks = ({
             proofs,
             unit: walletUnit,
           });
-          const result = update("cashuToken", {
+          const result = updateCashuToken({
             id: row.id as CashuTokenId,
             token: mergedToken as typeof Evolu.NonEmptyString.Type,
             rawToken: null,
@@ -433,7 +458,7 @@ export const useCashuTokenChecks = ({
 
           for (const id of mergeIds) {
             if (String(id) === String(row.id ?? "")) continue;
-            update("cashuToken", {
+            updateCashuToken({
               id,
               isDeleted: Evolu.sqliteTrue,
             });
@@ -499,7 +524,7 @@ export const useCashuTokenChecks = ({
           unit: walletUnit,
         });
 
-        const result = update("cashuToken", {
+        const result = updateCashuToken({
           id: row.id as CashuTokenId,
           token: refreshedToken as typeof Evolu.NonEmptyString.Type,
           rawToken: null,
@@ -523,7 +548,7 @@ export const useCashuTokenChecks = ({
         if (mergeIds.length > 0) {
           for (const id of mergeIds) {
             if (String(id) === String(row.id ?? "")) continue;
-            update("cashuToken", {
+            updateCashuToken({
               id,
               isDeleted: Evolu.sqliteTrue,
             });
@@ -539,7 +564,7 @@ export const useCashuTokenChecks = ({
         const transient = looksLikeTransientError(message);
 
         if (definitive && !transient) {
-          update("cashuToken", {
+          updateCashuToken({
             id: row.id as CashuTokenId,
             state: "error" as typeof Evolu.NonEmptyString100.Type,
             error: message.slice(
@@ -567,6 +592,7 @@ export const useCashuTokenChecks = ({
       setCashuIsBusy,
       setStatus,
       t,
+      updateCashuToken,
       update,
     ],
   );
@@ -591,10 +617,7 @@ export const useCashuTokenChecks = ({
         if (processedKeys.has(groupKey)) continue;
         processedKeys.add(groupKey);
 
-        const result = await checkAndRefreshCashuToken(id);
-        if (result === "invalid") {
-          handleDeleteCashuToken(id, { navigate: false, setStatus: false });
-        }
+        await checkAndRefreshCashuToken(id);
       }
     } finally {
       setCashuBulkCheckIsBusy(false);
@@ -603,7 +626,6 @@ export const useCashuTokenChecks = ({
     cashuBulkCheckIsBusy,
     cashuTokensAll,
     checkAndRefreshCashuToken,
-    handleDeleteCashuToken,
     setCashuBulkCheckIsBusy,
   ]);
 

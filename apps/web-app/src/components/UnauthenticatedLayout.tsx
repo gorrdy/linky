@@ -205,7 +205,6 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
                   setPendingOnboardingName(event.target.value)
                 }
                 placeholder={t("namePlaceholder")}
-                autoFocus
               />
             </div>
           </div>

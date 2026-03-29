@@ -52,10 +52,10 @@ export const en = {
   onboardingStep3: "Creating your lightning address… one moment.",
   onboardingAvatarTitle: "Choose your avatar",
   onboardingAvatarIntro:
-    "Choose an avatar and adjust your name before finishing account setup.",
+    "You can confirm the default profile right away, or adjust the name and avatar.",
   onboardingAvatarGridLabel: "Avatar selection",
   onboardingAvatarRequired: "Choose an avatar or upload your own photo.",
-  onboardingConfirmProfile: "Continue",
+  onboardingConfirmProfile: "Confirm profile",
   onboardingNameRequired: "Enter a name.",
   onboardingRetry: "Try again",
 
