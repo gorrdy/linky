@@ -147,6 +147,7 @@ export const useTopupInvoiceQuoteEffects = ({
   React.useEffect(() => {
     if (routeKind !== "topupInvoice") return;
     if (isFetchingRef.current) return;
+    if (topupInvoicePaidHandledRef.current) return;
 
     const lnAddress = currentNpub ? `${currentNpub}@npub.cash` : "";
     const amountSat = Number.parseInt(topupAmount.trim(), 10);

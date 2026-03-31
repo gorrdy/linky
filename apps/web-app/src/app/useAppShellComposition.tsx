@@ -138,8 +138,8 @@ import {
   useTopupInvoiceQuoteEffects,
   type TopupMintQuoteDraft,
 } from "./hooks/topup/useTopupInvoiceQuoteEffects";
-import { useAppDataTransfer } from "./hooks/useAppDataTransfer";
 import { useAnonymousPaymentTelemetry } from "./hooks/useAnonymousPaymentTelemetry";
+import { useAppDataTransfer } from "./hooks/useAppDataTransfer";
 import { useAppPreferences } from "./hooks/useAppPreferences";
 import { useArmedDeleteTimeouts } from "./hooks/useArmedDeleteTimeouts";
 import { useCashuDomain } from "./hooks/useCashuDomain";
@@ -1038,6 +1038,54 @@ export const useAppShellComposition = () => {
     t,
   });
 
+  const finalizeTopupInvoicePaid = React.useCallback(
+    (amountSat: number) => {
+      if (topupInvoicePaidHandledRef.current) return;
+
+      topupInvoicePaidHandledRef.current = true;
+      topupInvoiceStartBalanceRef.current = null;
+      setTopupAmount("");
+      setTopupInvoice(null);
+      setTopupInvoiceQr(null);
+      setTopupInvoiceError(null);
+      setTopupInvoiceIsBusy(false);
+
+      const displayAmount = formatDisplayedAmountParts(amountSat);
+      showPaidOverlay(
+        t("topupOverlay")
+          .replace(
+            "{amount}",
+            `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+          )
+          .replace("{unit}", displayAmount.unitLabel),
+      );
+
+      if (topupPaidNavTimerRef.current !== null) {
+        try {
+          window.clearTimeout(topupPaidNavTimerRef.current);
+        } catch {
+          // ignore
+        }
+      }
+
+      topupPaidNavTimerRef.current = window.setTimeout(() => {
+        topupPaidNavTimerRef.current = null;
+        navigateTo({ route: "wallet" });
+      }, 1400);
+    },
+    [
+      formatDisplayedAmountParts,
+      setTopupAmount,
+      setTopupInvoice,
+      setTopupInvoiceError,
+      setTopupInvoiceIsBusy,
+      setTopupInvoiceQr,
+      showPaidOverlay,
+      t,
+      topupPaidNavTimerRef,
+    ],
+  );
+
   const {
     confirmPendingOnboardingProfile,
     createNewAccount,
@@ -1398,7 +1446,12 @@ export const useAppShellComposition = () => {
           readClaimedTopupQuoteFromStorage(claimStorageKey);
         if (claimedBeforeRun) {
           const restored = await insertClaimedTopupToken(claimedBeforeRun);
-          if (restored && !cancelled) setTopupMintQuote(null);
+          if (restored && !cancelled) {
+            if (route.kind === "topupInvoice" && claimedBeforeRun.amount > 0) {
+              finalizeTopupInvoicePaid(claimedBeforeRun.amount);
+            }
+            setTopupMintQuote(null);
+          }
           return;
         }
 
@@ -1414,7 +1467,15 @@ export const useAppShellComposition = () => {
               readClaimedTopupQuoteFromStorage(claimStorageKey);
             if (alreadyClaimed) {
               const restored = await insertClaimedTopupToken(alreadyClaimed);
-              if (restored && !cancelled) setTopupMintQuote(null);
+              if (restored && !cancelled) {
+                if (
+                  route.kind === "topupInvoice" &&
+                  alreadyClaimed.amount > 0
+                ) {
+                  finalizeTopupInvoicePaid(alreadyClaimed.amount);
+                }
+                setTopupMintQuote(null);
+              }
               return;
             }
 
@@ -1480,7 +1541,9 @@ export const useAppShellComposition = () => {
               topupMintQuote.amount > 0 ? topupMintQuote.amount : null,
             );
 
-            if (route.kind !== "topupInvoice") {
+            if (route.kind === "topupInvoice") {
+              finalizeTopupInvoicePaid(topupMintQuote.amount);
+            } else {
               const displayAmount = formatDisplayedAmountParts(
                 topupMintQuote.amount,
               );
@@ -1514,6 +1577,7 @@ export const useAppShellComposition = () => {
   }, [
     appOwnerId,
     formatDisplayedAmountParts,
+    finalizeTopupInvoicePaid,
     insert,
     isCashuTokenKnownAny,
     resolveOwnerIdForWrite,
@@ -1684,30 +1748,10 @@ export const useAppShellComposition = () => {
     const expected = start + amountSat;
     if (cashuBalance < expected) return;
 
-    topupInvoicePaidHandledRef.current = true;
-    const displayAmount = formatDisplayedAmountParts(amountSat);
-    showPaidOverlay(
-      t("topupOverlay")
-        .replace(
-          "{amount}",
-          `${displayAmount.approxPrefix}${displayAmount.amountText}`,
-        )
-        .replace("{unit}", displayAmount.unitLabel),
-    );
-
-    if (topupPaidNavTimerRef.current !== null) {
-      try {
-        window.clearTimeout(topupPaidNavTimerRef.current);
-      } catch {
-        // ignore
-      }
-    }
-    topupPaidNavTimerRef.current = window.setTimeout(() => {
-      topupPaidNavTimerRef.current = null;
-      navigateTo({ route: "wallet" });
-    }, 1400);
+    finalizeTopupInvoicePaid(amountSat);
   }, [
     cashuBalance,
+    finalizeTopupInvoicePaid,
     formatDisplayedAmountParts,
     route.kind,
     showPaidOverlay,

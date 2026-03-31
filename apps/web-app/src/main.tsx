@@ -2,6 +2,7 @@ import { Buffer } from "buffer";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
+import "./index.css";
 import type {
   BroadcastChannelLike,
   BroadcastMessageHandler,
@@ -12,7 +13,6 @@ import type {
 } from "./types/browser";
 import type { JsonValue } from "./types/json";
 import { appendPushDebugLog } from "./utils/pushDebugLog";
-import "./index.css";
 
 type BufferFromArgs =
   | [arrayLike: ArrayLike<number> | ArrayBufferView]
