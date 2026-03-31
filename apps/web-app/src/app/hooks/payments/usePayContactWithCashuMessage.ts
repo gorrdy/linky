@@ -19,6 +19,12 @@ import {
   wrapEventWithPushMarker,
   wrapEventWithoutPushMarker,
 } from "../../lib/pushWrappedEvent";
+import {
+  buildPaymentAmountAttempts,
+  getNextRemainingRequestedPaymentAmount,
+  getPaymentAmountReserveCap,
+  isRetryablePaymentAmountFailure,
+} from "../../lib/paymentAmountFallback";
 import type {
   CashuTokenRowLike,
   ContactRowLike,
@@ -32,6 +38,40 @@ import type {
 type EvoluMutations = ReturnType<typeof import("../../../evolu").useEvolu>;
 
 type AppendLocalNostrMessage = (message: NewLocalNostrMessage) => string;
+
+export const buildCashuSendAmountAttempts = (args: {
+  availableAmountSat: number;
+  maxReservedFeeSat: number;
+  requestedAmountSat: number;
+  reservedFeeSat: number;
+}): number[] => {
+  const {
+    availableAmountSat,
+    maxReservedFeeSat,
+    requestedAmountSat,
+    reservedFeeSat,
+  } = args;
+
+  return buildPaymentAmountAttempts(
+    requestedAmountSat,
+    availableAmountSat,
+  ).filter((attemptAmountSat) => {
+    return (
+      reservedFeeSat + (requestedAmountSat - attemptAmountSat) <=
+      maxReservedFeeSat
+    );
+  });
+};
+
+export const getNextCashuSendRemainingAmount = (
+  remainingAmountSat: number,
+  requestedAmountSat: number,
+): number => {
+  return getNextRemainingRequestedPaymentAmount(
+    remainingAmountSat,
+    requestedAmountSat,
+  );
+};
 
 interface UsePayContactWithCashuMessageParams {
   activePublishClientIdsRef: React.MutableRefObject<Set<string>>;
@@ -262,6 +302,10 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
       const remainingAmount = amountSat;
 
       const cashuToSend = Math.min(cashuBalance, remainingAmount);
+      const maxReservedFeeSat = getPaymentAmountReserveCap(
+        cashuToSend,
+        cashuBalance,
+      );
 
       const sendBatches: Array<{
         token: string;
@@ -276,6 +320,8 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
 
       let lastError: unknown = null;
       let lastMint: string | null = null;
+      let reservedFeeSat = 0;
+      let sentAmountSat = 0;
 
       if (cashuToSend > 0) {
         const mintGroups = new Map<string, { tokens: string[]; sum: number }>();
@@ -314,82 +360,164 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
 
         for (const candidate of candidates) {
           if (remaining <= 0) break;
-          const useAmount = Math.min(remaining, candidate.sum);
-          if (useAmount <= 0) continue;
+          const requestedAmountSat = Math.min(remaining, candidate.sum);
+          if (requestedAmountSat <= 0) continue;
 
-          try {
-            logPayStep("swap-request", {
-              mint: candidate.mint,
-              amount: useAmount,
-              tokenCount: candidate.tokens.length,
-            });
-            const split = await createSendTokenWithTokensAtMint({
-              amount: useAmount,
-              mint: candidate.mint,
-              tokens: candidate.tokens,
-              unit: "sat",
-            });
+          const sendAmountAttempts = buildCashuSendAmountAttempts({
+            requestedAmountSat,
+            availableAmountSat: candidate.sum,
+            reservedFeeSat,
+            maxReservedFeeSat,
+          });
 
-            if (!split.ok) {
-              lastError = split.error;
-              lastMint = candidate.mint;
-              continue;
-            }
+          for (
+            let attemptIndex = 0;
+            attemptIndex < sendAmountAttempts.length;
+            attemptIndex += 1
+          ) {
+            const attemptAmountSat = sendAmountAttempts[attemptIndex];
+            const hasLowerAmountFallback =
+              attemptIndex < sendAmountAttempts.length - 1;
 
-            const spentTokenIds = cashuTokensWithMeta
-              .filter(
-                (row) =>
-                  isCashuTokenAcceptedState(row.state) &&
-                  String(row.mint ?? "").trim() === candidate.mint,
-              )
-              .map((row) => row.id as CashuTokenId);
-
-            for (const id of spentTokenIds) {
-              const deleted = updateCashuToken({
-                id,
-                isDeleted: Evolu.sqliteTrue,
+            try {
+              logPayStep("swap-request", {
+                mint: candidate.mint,
+                amount: attemptAmountSat,
+                requestedAmountSat,
+                reservedFeeSat,
+                tokenCount: candidate.tokens.length,
               });
-              if (!deleted.ok) throw deleted.error;
-            }
+              const split = await createSendTokenWithTokensAtMint({
+                amount: attemptAmountSat,
+                mint: candidate.mint,
+                tokens: candidate.tokens,
+                unit: "sat",
+              });
 
-            const remainingToken = split.remainingToken;
-            const remainingAmount = split.remainingAmount;
+              if (!split.ok) {
+                lastError = split.error;
+                lastMint = candidate.mint;
+                if (split.remainingToken && split.remainingAmount > 0) {
+                  const inserted = insertCashuToken(
+                    buildCashuTokenPayload({
+                      token: split.remainingToken,
+                      mint: split.mint,
+                      unit: split.unit ?? null,
+                      amount: split.remainingAmount,
+                      state: "accepted",
+                    }),
+                  );
+                  if (!inserted.ok) throw inserted.error;
 
-            if (remainingToken && remainingAmount > 0) {
-              const inserted = insertCashuToken(
-                buildCashuTokenPayload({
-                  token: remainingToken,
-                  mint: split.mint,
-                  unit: split.unit ?? null,
-                  amount: remainingAmount,
-                  state: "accepted",
-                }),
+                  const spentTokenIds = cashuTokensWithMeta
+                    .filter(
+                      (row) =>
+                        isCashuTokenAcceptedState(row.state) &&
+                        String(row.mint ?? "").trim() === candidate.mint,
+                    )
+                    .map((row) => row.id as CashuTokenId);
+
+                  for (const id of spentTokenIds) {
+                    const deleted = updateCashuToken({
+                      id,
+                      isDeleted: Evolu.sqliteTrue,
+                    });
+                    if (!deleted.ok) throw deleted.error;
+                  }
+
+                  logPayStep("swap-recovery", {
+                    mint: split.mint,
+                    requestedAmountSat,
+                    recoveryAmount: split.remainingAmount,
+                    recoveryToken: previewTokenText(split.remainingToken),
+                    error: split.error,
+                  });
+                  break;
+                }
+
+                if (
+                  hasLowerAmountFallback &&
+                  isRetryablePaymentAmountFailure(
+                    String(split.error ?? "unknown"),
+                  )
+                ) {
+                  continue;
+                }
+                break;
+              }
+
+              const spentTokenIds = cashuTokensWithMeta
+                .filter(
+                  (row) =>
+                    isCashuTokenAcceptedState(row.state) &&
+                    String(row.mint ?? "").trim() === candidate.mint,
+                )
+                .map((row) => row.id as CashuTokenId);
+
+              for (const id of spentTokenIds) {
+                const deleted = updateCashuToken({
+                  id,
+                  isDeleted: Evolu.sqliteTrue,
+                });
+                if (!deleted.ok) throw deleted.error;
+              }
+
+              const remainingToken = split.remainingToken;
+              const remainingAmount = split.remainingAmount;
+
+              if (remainingToken && remainingAmount > 0) {
+                const inserted = insertCashuToken(
+                  buildCashuTokenPayload({
+                    token: remainingToken,
+                    mint: split.mint,
+                    unit: split.unit ?? null,
+                    amount: remainingAmount,
+                    state: "accepted",
+                  }),
+                );
+                if (!inserted.ok) throw inserted.error;
+              }
+
+              sendBatches.push({
+                token: split.sendToken,
+                amount: split.sendAmount,
+                mint: split.mint,
+                unit: split.unit ?? null,
+              });
+              logPayStep("swap-ok", {
+                mint: split.mint,
+                requestedAmountSat,
+                sendAmount: split.sendAmount,
+                remainingAmount: split.remainingAmount,
+                reservedFeeDeltaSat: requestedAmountSat - split.sendAmount,
+                sendToken: previewTokenText(split.sendToken),
+                remainingToken: previewTokenText(split.remainingToken),
+              });
+              sendTokenMetaByText.set(split.sendToken, {
+                mint: split.mint,
+                unit: split.unit ?? null,
+                amount: split.sendAmount,
+              });
+              reservedFeeSat += requestedAmountSat - split.sendAmount;
+              sentAmountSat += split.sendAmount;
+              remaining = getNextCashuSendRemainingAmount(
+                remaining,
+                requestedAmountSat,
               );
-              if (!inserted.ok) throw inserted.error;
+              break;
+            } catch (e) {
+              lastError = e;
+              lastMint = candidate.mint;
+              if (
+                hasLowerAmountFallback &&
+                isRetryablePaymentAmountFailure(
+                  getUnknownErrorMessage(e, "unknown"),
+                )
+              ) {
+                continue;
+              }
+              break;
             }
-
-            sendBatches.push({
-              token: split.sendToken,
-              amount: split.sendAmount,
-              mint: split.mint,
-              unit: split.unit ?? null,
-            });
-            logPayStep("swap-ok", {
-              mint: split.mint,
-              sendAmount: split.sendAmount,
-              remainingAmount: split.remainingAmount,
-              sendToken: previewTokenText(split.sendToken),
-              remainingToken: previewTokenText(split.remainingToken),
-            });
-            sendTokenMetaByText.set(split.sendToken, {
-              mint: split.mint,
-              unit: split.unit ?? null,
-              amount: split.sendAmount,
-            });
-            remaining -= split.sendAmount;
-          } catch (e) {
-            lastError = e;
-            lastMint = candidate.mint;
           }
         }
 
@@ -615,7 +743,7 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
         logPaymentEvent({
           direction: "out",
           status: "ok",
-          amount: amountSat,
+          amount: sentAmountSat,
           fee: null,
           mint:
             usedMints.length === 0
@@ -633,7 +761,7 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
             String(contact.name ?? "").trim() ||
             String(contact.lnAddress ?? "").trim() ||
             t("appTitle");
-          const displayAmount = formatDisplayedAmountParts(amountSat);
+          const displayAmount = formatDisplayedAmountParts(sentAmountSat);
 
           showPaidOverlay(
             (hasPendingMessages ? t("paidQueuedTo") : t("paidSentTo"))

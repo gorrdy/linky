@@ -1,0 +1,14 @@
+{
+	"appId": "fit.linky.app",
+	"appName": "Linky",
+	"webDir": "../web-app/dist",
+	"android": {
+		"backgroundColor": "#0b1222"
+	},
+	"ios": {
+		"backgroundColor": "#0b1222"
+	},
+	"packageClassList": [
+		"PushNotificationsPlugin"
+	]
+}

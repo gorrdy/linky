@@ -72,6 +72,9 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
     Number.isFinite(amountSat) && amountSat > 0 ? amountSat : 0;
   const remaining = validAmount;
   const canCoverAnything = cashuBalance > 0;
+  const availableAmountText = `${t("availablePrefix")} ${formatDisplayedAmountText(
+    cashuBalance,
+  )}`;
   const invalid =
     (method === "lightning" ? !ln : !canUseCashu) ||
     !Number.isFinite(amountSat) ||
@@ -137,7 +140,17 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
               </div>
             )}
             <p className="muted">
-              {t("availablePrefix")} {formatDisplayedAmountText(cashuBalance)}
+              <button
+                type="button"
+                className="copyable available-amount-button muted"
+                disabled={!canCoverAnything}
+                onClick={() => {
+                  if (!canCoverAnything) return;
+                  setPayAmount(String(cashuBalance));
+                }}
+              >
+                {availableAmountText}
+              </button>
             </p>
           </div>
         </div>
@@ -155,8 +168,6 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
           {method === "lightning" && !ln && (
             <p className="muted">{t("payMissingLn")}</p>
           )}
-
-          {!canCoverAnything && <p className="muted">{t("payInsufficient")}</p>}
         </>
       }
       onAmountChange={setPayAmount}

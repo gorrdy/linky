@@ -12,6 +12,10 @@ import type { DisplayAmountParts } from "../../utils/displayAmounts";
 import { safeLocalStorageSet } from "../../utils/storage";
 import { getUnknownErrorMessage } from "../../utils/unknown";
 import { isCashuTokenAcceptedState } from "../lib/cashuTokenState";
+import {
+  buildPaymentAmountAttempts,
+  isRetryablePaymentAmountFailure,
+} from "../lib/paymentAmountFallback";
 import type {
   CashuTokenRowLike,
   ContactPayRowLike,
@@ -363,17 +367,6 @@ export const useLightningPaymentsDomain = ({
       const shouldOfferSave = canOfferSave && !knownContact?.id;
 
       try {
-        setStatus(t("payFetchingInvoice"));
-        let invoice: string;
-        try {
-          invoice = await fetchLnurlInvoiceForTarget(paymentTarget, amountSat);
-        } catch (e) {
-          setStatus(`${t("payFailed")}: ${String(e)}`);
-          return;
-        }
-
-        setStatus(t("payPaying"));
-
         const mintGroups = new Map<string, { tokens: string[]; sum: number }>();
         for (const row of cashuTokensWithMeta) {
           if (!isCashuTokenAcceptedState(row.state)) continue;
@@ -410,24 +403,106 @@ export const useLightningPaymentsDomain = ({
           return;
         }
 
-        let lastError: unknown = null;
-        let lastMint: string | null = null;
-        for (const candidate of candidates) {
-          try {
-            const { meltInvoiceWithTokensAtMint } =
-              await import("../../cashuMelt");
-            const result = await meltInvoiceWithTokensAtMint({
-              invoice,
-              mint: candidate.mint,
-              tokens: candidate.tokens,
-              unit: "sat",
-            });
+        const amountAttempts = buildPaymentAmountAttempts(
+          amountSat,
+          cashuBalance,
+        );
+        let finalErrorMessage: string | null = null;
+        let finalErrorMint: string | null = null;
 
-            if (!result.ok) {
+        for (
+          let attemptIndex = 0;
+          attemptIndex < amountAttempts.length;
+          attemptIndex += 1
+        ) {
+          const attemptedAmountSat = amountAttempts[attemptIndex];
+          const hasLowerAmountFallback =
+            attemptIndex < amountAttempts.length - 1;
+
+          let attemptInvoice: string;
+          try {
+            setStatus(t("payFetchingInvoice"));
+            attemptInvoice = await fetchLnurlInvoiceForTarget(
+              paymentTarget,
+              attemptedAmountSat,
+            );
+          } catch (e) {
+            const errorMessage = getUnknownErrorMessage(e, "unknown");
+            if (
+              hasLowerAmountFallback &&
+              isRetryablePaymentAmountFailure(errorMessage)
+            ) {
+              continue;
+            }
+
+            finalErrorMessage = errorMessage;
+            finalErrorMint = null;
+            break;
+          }
+
+          setStatus(t("payPaying"));
+
+          let lastError: unknown = null;
+          let lastMint: string | null = null;
+          let shouldRetryWithLowerAmount = false;
+
+          for (const candidate of candidates) {
+            try {
+              const { meltInvoiceWithTokensAtMint } =
+                await import("../../cashuMelt");
+              const result = await meltInvoiceWithTokensAtMint({
+                invoice: attemptInvoice,
+                mint: candidate.mint,
+                tokens: candidate.tokens,
+                unit: "sat",
+              });
+
+              if (!result.ok) {
+                if (result.remainingToken && result.remainingAmount > 0) {
+                  const recoveryToken = result.remainingToken;
+                  const inserted = insertCashuToken({
+                    token: recoveryToken as typeof Evolu.NonEmptyString.Type,
+                    rawToken: null,
+                    mint: result.mint as typeof Evolu.NonEmptyString1000.Type,
+                    unit: result.unit
+                      ? (result.unit as typeof Evolu.NonEmptyString100.Type)
+                      : null,
+                    amount:
+                      result.remainingAmount > 0
+                        ? (result.remainingAmount as typeof Evolu.PositiveInt.Type)
+                        : null,
+                    state: "accepted" as typeof Evolu.NonEmptyString100.Type,
+                    error: null,
+                  });
+
+                  if (inserted.ok) {
+                    for (const row of cashuTokensWithMeta) {
+                      if (
+                        isCashuTokenAcceptedState(row.state) &&
+                        String(row.mint ?? "").trim() === candidate.mint
+                      ) {
+                        markCashuTokenDeleted(row.id);
+                      }
+                    }
+                  }
+                }
+
+                lastError = result.error;
+                lastMint = candidate.mint;
+
+                if (!result.remainingToken) {
+                  continue;
+                }
+
+                finalErrorMessage = String(result.error ?? "unknown");
+                finalErrorMint = result.mint;
+                break;
+              }
+
               if (result.remainingToken && result.remainingAmount > 0) {
-                const recoveryToken = result.remainingToken;
                 const inserted = insertCashuToken({
-                  token: recoveryToken as typeof Evolu.NonEmptyString.Type,
+                  token:
+                    result.remainingToken as typeof Evolu.NonEmptyString.Type,
                   rawToken: null,
                   mint: result.mint as typeof Evolu.NonEmptyString1000.Type,
                   unit: result.unit
@@ -440,115 +515,86 @@ export const useLightningPaymentsDomain = ({
                   state: "accepted" as typeof Evolu.NonEmptyString100.Type,
                   error: null,
                 });
+                if (!inserted.ok) throw inserted.error;
+              }
 
-                if (inserted.ok) {
-                  for (const row of cashuTokensWithMeta) {
-                    if (
-                      isCashuTokenAcceptedState(row.state) &&
-                      String(row.mint ?? "").trim() === candidate.mint
-                    ) {
-                      markCashuTokenDeleted(row.id);
-                    }
-                  }
+              for (const row of cashuTokensWithMeta) {
+                if (
+                  isCashuTokenAcceptedState(row.state) &&
+                  String(row.mint ?? "").trim() === candidate.mint
+                ) {
+                  markCashuTokenDeleted(row.id);
                 }
               }
 
-              lastError = result.error;
-              lastMint = candidate.mint;
-
-              if (!result.remainingToken) {
-                continue;
-              }
+              const feePaid = Number(
+                (result as { feePaid?: unknown }).feePaid ?? 0,
+              );
 
               logPaymentEvent({
                 direction: "out",
-                status: "error",
-                amount: amountSat,
-                fee: null,
+                status: "ok",
+                amount: result.paidAmount,
+                fee: Number.isFinite(feePaid) && feePaid > 0 ? feePaid : null,
                 mint: result.mint,
                 unit: result.unit,
-                error: String(result.error ?? "unknown"),
+                error: null,
                 contactId: null,
               });
 
-              setStatus(
-                `${t("payFailed")}: ${String(result.error ?? "unknown")}`,
+              const displayAmount = formatDisplayedAmountParts(
+                result.paidAmount,
               );
-              return;
-            }
+              showPaidOverlay(
+                t("paidSentTo")
+                  .replace(
+                    "{amount}",
+                    `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+                  )
+                  .replace("{unit}", displayAmount.unitLabel)
+                  .replace(
+                    "{name}",
+                    String(knownContact?.name ?? "").trim() || displayTarget,
+                  ),
+              );
 
-            if (result.remainingToken && result.remainingAmount > 0) {
-              const inserted = insertCashuToken({
-                token:
-                  result.remainingToken as typeof Evolu.NonEmptyString.Type,
-                rawToken: null,
-                mint: result.mint as typeof Evolu.NonEmptyString1000.Type,
-                unit: result.unit
-                  ? (result.unit as typeof Evolu.NonEmptyString100.Type)
-                  : null,
-                amount:
-                  result.remainingAmount > 0
-                    ? (result.remainingAmount as typeof Evolu.PositiveInt.Type)
-                    : null,
-                state: "accepted" as typeof Evolu.NonEmptyString100.Type,
-                error: null,
-              });
-              if (!inserted.ok) throw inserted.error;
-            }
+              safeLocalStorageSet(
+                CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY,
+                "1",
+              );
+              setContactsOnboardingHasPaid(true);
 
-            for (const row of cashuTokensWithMeta) {
-              if (
-                isCashuTokenAcceptedState(row.state) &&
-                String(row.mint ?? "").trim() === candidate.mint
-              ) {
-                markCashuTokenDeleted(row.id);
+              if (shouldOfferSave) {
+                setPostPaySaveContact({
+                  lnAddress: inferredLightningAddress,
+                  amountSat: result.paidAmount,
+                });
               }
+              return;
+            } catch (e) {
+              lastError = e;
+              lastMint = candidate.mint;
             }
-
-            const feePaid = Number(
-              (result as { feePaid?: unknown }).feePaid ?? 0,
-            );
-
-            logPaymentEvent({
-              direction: "out",
-              status: "ok",
-              amount: result.paidAmount,
-              fee: Number.isFinite(feePaid) && feePaid > 0 ? feePaid : null,
-              mint: result.mint,
-              unit: result.unit,
-              error: null,
-              contactId: null,
-            });
-
-            const displayAmount = formatDisplayedAmountParts(result.paidAmount);
-            showPaidOverlay(
-              t("paidSentTo")
-                .replace(
-                  "{amount}",
-                  `${displayAmount.approxPrefix}${displayAmount.amountText}`,
-                )
-                .replace("{unit}", displayAmount.unitLabel)
-                .replace(
-                  "{name}",
-                  String(knownContact?.name ?? "").trim() || displayTarget,
-                ),
-            );
-
-            safeLocalStorageSet(CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY, "1");
-            setContactsOnboardingHasPaid(true);
-
-            // Offer to save as a contact after a successful pay to a new address.
-            if (shouldOfferSave) {
-              setPostPaySaveContact({
-                lnAddress: inferredLightningAddress,
-                amountSat: result.paidAmount,
-              });
-            }
-            return;
-          } catch (e) {
-            lastError = e;
-            lastMint = candidate.mint;
           }
+
+          if (finalErrorMessage) break;
+
+          const errorMessage = getUnknownErrorMessage(lastError, "unknown");
+          if (
+            hasLowerAmountFallback &&
+            isRetryablePaymentAmountFailure(errorMessage)
+          ) {
+            shouldRetryWithLowerAmount = true;
+          } else {
+            finalErrorMessage = errorMessage;
+            finalErrorMint = lastMint;
+          }
+
+          if (!shouldRetryWithLowerAmount) break;
+        }
+
+        if (!finalErrorMessage) {
+          finalErrorMessage = "unknown";
         }
 
         logPaymentEvent({
@@ -556,19 +602,18 @@ export const useLightningPaymentsDomain = ({
           status: "error",
           amount: amountSat,
           fee: null,
-          mint: lastMint,
+          mint: finalErrorMint,
           unit: "sat",
-          error: getUnknownErrorMessage(lastError, "unknown"),
+          error: finalErrorMessage,
           contactId: null,
         });
-        setStatus(
-          `${t("payFailed")}: ${getUnknownErrorMessage(lastError, "unknown")}`,
-        );
+        setStatus(`${t("payFailed")}: ${finalErrorMessage}`);
       } finally {
         setCashuIsBusy(false);
       }
     },
     [
+      cashuBalance,
       canPayWithCashu,
       cashuIsBusy,
       cashuTokensWithMeta,

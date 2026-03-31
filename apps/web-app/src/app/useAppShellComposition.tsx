@@ -2436,6 +2436,7 @@ export const useAppShellComposition = () => {
         setStatus(t("payMissingLn"));
         return;
       }
+      setLnAddressPayAmount(String(amountSat));
       navigateTo({ route: "lnAddressPay", lnAddress });
       return;
     }
@@ -2450,6 +2451,7 @@ export const useAppShellComposition = () => {
     payContactWithCashuMessage,
     route.kind,
     selectedContact,
+    setLnAddressPayAmount,
     setStatus,
     t,
   ]);

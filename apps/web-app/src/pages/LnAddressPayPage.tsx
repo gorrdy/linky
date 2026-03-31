@@ -53,6 +53,10 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
     ),
     36,
   );
+  const canCoverAnything = cashuBalance > 0;
+  const availableAmountText = `${t("availablePrefix")} ${formatDisplayedAmountText(
+    cashuBalance,
+  )}`;
   const invalid =
     !canPayWithCashu ||
     !Number.isFinite(amountSat) ||
@@ -86,16 +90,22 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
             {knownContact?.name ? <h3>{knownContact.name}</h3> : null}
             <p className="muted">{displayAddress}</p>
             <p className="muted">
-              {t("availablePrefix")} {formatDisplayedAmountText(cashuBalance)}
+              <button
+                type="button"
+                className="copyable available-amount-button muted"
+                disabled={!canCoverAnything}
+                onClick={() => {
+                  if (!canCoverAnything) return;
+                  setLnAddressPayAmount(String(cashuBalance));
+                }}
+              >
+                {availableAmountText}
+              </button>
             </p>
           </div>
         </div>
       }
-      notices={
-        !canPayWithCashu ? (
-          <p className="muted">{t("payInsufficient")}</p>
-        ) : undefined
-      }
+      notices={undefined}
       onAmountChange={setLnAddressPayAmount}
       onSubmit={() => {
         if (invalid) return;
