@@ -711,6 +711,28 @@
   cursor: default;
 }
 
+.available-amount-button {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  transform: none;
+}
+
+.available-amount-button:hover,
+.available-amount-button:focus,
+.available-amount-button:active {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.available-amount-button:disabled {
+  cursor: default;
+  text-decoration: none;
+}
+
 .onboarding-logo-svg {
   width: min(520px, 100%);
   height: auto;
