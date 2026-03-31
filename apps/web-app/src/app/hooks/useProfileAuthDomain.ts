@@ -55,6 +55,7 @@ export type OnboardingStep =
   | null;
 
 interface PersistNewProfileParams {
+  lnAddress: string;
   name: string;
   npub: string;
   nsec: string;
@@ -241,18 +242,26 @@ export const useProfileAuthDomain = ({
   );
 
   const publishNewProfileMetadata = React.useCallback(
-    async ({ name, npub, nsec, pictureUrl }: PersistNewProfileParams) => {
+    async ({
+      lnAddress,
+      name,
+      npub,
+      nsec,
+      pictureUrl,
+    }: PersistNewProfileParams) => {
       const privBytes = await decodeNsecPrivateBytes(nsec);
       if (!privBytes) {
         throw new Error(t("onboardingCreateFailed"));
       }
 
+      const trimmedLnAddress = lnAddress.trim();
       const trimmedName = name.trim();
       const trimmedPicture = pictureUrl.trim();
       const content: JsonRecord = {
         ...(trimmedName
           ? { name: trimmedName, display_name: trimmedName }
           : {}),
+        ...(trimmedLnAddress ? { lud16: trimmedLnAddress } : {}),
         ...(trimmedPicture
           ? { picture: trimmedPicture, image: trimmedPicture }
           : {}),
@@ -270,6 +279,7 @@ export const useProfileAuthDomain = ({
 
       saveCachedProfileMetadata(npub, {
         ...(trimmedName ? { name: trimmedName, displayName: trimmedName } : {}),
+        ...(trimmedLnAddress ? { lud16: trimmedLnAddress } : {}),
         ...(trimmedPicture
           ? { picture: trimmedPicture, image: trimmedPicture }
           : {}),
@@ -533,8 +543,11 @@ export const useProfileAuthDomain = ({
     }));
 
     try {
+      const lnAddress = deriveDefaultProfile(onboardingStep.npub).lnAddress;
+
       try {
         await publishNewProfileMetadata({
+          lnAddress,
           name: trimmedName,
           npub: onboardingStep.npub,
           nsec: onboardingStep.nsec,
