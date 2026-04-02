@@ -33,6 +33,7 @@ interface LocaleCopy {
   openInWalletLabel: string;
   redeemButton: string;
   redeemConfirmed: string;
+  redeemLnurlComment: string;
   redeemSuccessAddress: string;
   redeeming: string;
   showTokenButton: string;
@@ -109,6 +110,7 @@ const copy: Record<Locale, LocaleCopy> = {
     openInWalletLabel: "Otevřít v peněžence",
     redeemButton: "Vyzvednout bitcoin",
     redeemConfirmed: "Hotovo",
+    redeemLnurlComment: "Vybráno pomocí Linky",
     redeemSuccessAddress: "Prostředky vybrány na {address}",
     redeeming: "Vyzvedávám…",
     showTokenButton: "Zobrazit token",
@@ -145,6 +147,7 @@ const copy: Record<Locale, LocaleCopy> = {
     openInWalletLabel: "Open in wallet",
     redeemButton: "Redeem bitcoin",
     redeemConfirmed: "Success",
+    redeemLnurlComment: "Redeemed with Linky",
     redeemSuccessAddress: "Funds redeemed to {address}",
     redeeming: "Redeeming…",
     showTokenButton: "Show token",
@@ -527,6 +530,7 @@ const findBestRedeemQuote = async (
   wallet: CashuWalletLike,
   lightningAddress: string,
   availableAmount: number,
+  comment?: string,
 ): Promise<{
   feeReserve: number;
   quote: Awaited<ReturnType<CashuWalletLike["createMeltQuote"]>>;
@@ -549,6 +553,7 @@ const findBestRedeemQuote = async (
       const invoice = await fetchLnurlInvoice(
         lightningAddress,
         requestedAmount,
+        comment,
       );
       const quote = await wallet.createMeltQuote(invoice);
       const quoteAmount = Number(quote.amount ?? 0);
@@ -736,6 +741,7 @@ const getLnurlEndpoint = (lightningAddress: string): string => {
 const fetchLnurlInvoice = async (
   lightningAddress: string,
   amountSat: number,
+  comment?: string,
 ): Promise<string> => {
   if (!isLightningAddress(lightningAddress)) {
     throw new Error("Invalid lightning address");
@@ -761,6 +767,7 @@ const fetchLnurlInvoice = async (
   }
 
   const callback = String(payRequest.callback ?? "").trim();
+  const commentAllowed = Number(payRequest.commentAllowed ?? NaN);
   const minSendable = Number(payRequest.minSendable ?? NaN);
   const maxSendable = Number(payRequest.maxSendable ?? NaN);
   const amountMsat = Math.round(amountSat * 1000);
@@ -780,6 +787,13 @@ const fetchLnurlInvoice = async (
 
   const invoiceUrl = new URL(callback);
   invoiceUrl.searchParams.set("amount", String(amountMsat));
+  const trimmedComment = String(comment ?? "").trim();
+  if (trimmedComment && Number.isFinite(commentAllowed) && commentAllowed > 0) {
+    invoiceUrl.searchParams.set(
+      "comment",
+      trimmedComment.slice(0, Math.trunc(commentAllowed)),
+    );
+  }
 
   const invoiceResponse = await (async () => {
     try {
@@ -928,6 +942,7 @@ const inspectToken = async (token: string): Promise<TokenSnapshot> => {
 const redeemToken = async (
   token: string,
   lightningAddress: string,
+  comment?: string,
 ): Promise<{
   amountSent: number;
   changeAmount: number;
@@ -959,6 +974,7 @@ const redeemToken = async (
     wallet,
     lightningAddress,
     availableAmount,
+    comment,
   );
   const total = bestQuote.quoteAmount + bestQuote.feeReserve;
   const swapped = await wallet.swap(total, unspentProofs);
@@ -985,12 +1001,13 @@ const redeemToken = async (
 const redeemTokenFully = async (
   token: string,
   lightningAddress: string,
+  comment?: string,
 ): Promise<{
   amountSent: number;
   changeAmount: number;
   changeToken: string | null;
 }> => {
-  return await redeemToken(token.trim(), lightningAddress);
+  return await redeemToken(token.trim(), lightningAddress, comment);
 };
 
 function CashuPage() {
@@ -1173,7 +1190,11 @@ function CashuPage() {
     setIsRedeeming(true);
 
     try {
-      const result = await redeemTokenFully(trimmedToken, trimmedAddress);
+      const result = await redeemTokenFully(
+        trimmedToken,
+        trimmedAddress,
+        activeCopy.redeemLnurlComment,
+      );
       const nextToken = String(result.changeToken ?? "").trim();
 
       if (nextToken && result.changeAmount > 0) {
