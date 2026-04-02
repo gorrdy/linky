@@ -12,6 +12,25 @@ const __dirname = path.dirname(__filename);
 
 type NextFunction = () => void;
 
+const cashuRedirect = (): Plugin => ({
+  name: "cashu-redirect",
+  configureServer(server: ViteDevServer) {
+    server.middlewares.use(
+      (req: IncomingMessage, res: ServerResponse, next: NextFunction) => {
+        const url = req.url ?? "";
+        if (url === "/cashu") {
+          res.statusCode = 302;
+          res.setHeader("Location", "/cashu/");
+          res.end();
+          return;
+        }
+
+        next();
+      },
+    );
+  },
+});
+
 const lnurlProxy = (): Plugin => ({
   name: "lnurl-proxy",
   configureServer(server: ViteDevServer) {
@@ -100,5 +119,5 @@ export default defineConfig({
       },
     },
   },
-  plugins: [react(), lnurlProxy()],
+  plugins: [react(), cashuRedirect(), lnurlProxy()],
 });

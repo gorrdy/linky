@@ -1,42 +1,46 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { SiteHeaderMenu } from "../SiteHeaderMenu";
+import {
+  getInitialSiteDisplayCurrency,
+  siteDisplayCurrencyStorageKey,
+  type SiteDisplayCurrency,
+} from "../siteDisplayCurrency";
+import { forwardCashuTokenPrivately } from "./nostrGiftWrap";
 
 type Locale = "cs" | "en";
 
 interface LocaleCopy {
-  changeTokenLabel: string;
+  cashuLabel: string;
+  czechLabel: string;
+  copyTokenLabel: string;
+  currencyLabel: string;
+  englishLabel: string;
   githubLabel: string;
   invalidToken: string;
   lightningAddressLabel: string;
   lightningAddressPlaceholder: string;
   loadingToken: string;
-  mintLabel: string;
-  mppLabel: string;
-  mppNo: string;
-  mppUnknown: string;
-  mppYes: string;
   noTokenLoaded: string;
   nostrLabel: string;
-  openDifferentTokenLabel: string;
   pageTitle: string;
+  payoutIntroLead: string;
+  payoutIntroLink: string;
+  payoutIntroTail: string;
   privacyLabel: string;
-  privacySearch: string;
-  privacyUnknown: string;
-  privacyHash: string;
+  menuLabel: string;
+  openAppLabel: string;
+  openInWalletLabel: string;
   redeemButton: string;
-  redeemDone: string;
-  redeemDoneWithChange: string;
-  redeemFailed: string;
+  redeemConfirmed: string;
+  redeemSuccessAddress: string;
   redeeming: string;
-  satAmountLabel: string;
   showTokenButton: string;
-  statusLabel: string;
+  spentInfo: string;
   statusSpent: string;
-  statusValid: string;
   subtitle: string;
   switchLabel: string;
   tokenLabel: string;
-  tokenMissing: string;
   validUnknown: string;
 }
 
@@ -47,7 +51,18 @@ interface TokenSnapshot {
   isValid: boolean;
   mint: string;
   mintHost: string;
+  totalAmount: number;
   unit: string;
+}
+
+interface RedeemSuccessState {
+  lightningAddress: string;
+}
+
+interface SiteFiatRates {
+  czkPerBtc: number;
+  fetchedAtMs: number;
+  usdPerBtc: number;
 }
 
 type MintInfoSearchPrimitive = boolean | number | string | null | undefined;
@@ -62,95 +77,83 @@ type MintInfoSearchValue =
   | MintInfoSearchValue[];
 
 const localeStorageKey = "linky.lang";
-const localeOptions: Locale[] = ["cs", "en"];
-const localeLabels: Record<Locale, string> = {
-  cs: "CZ",
-  en: "EN",
-};
+const fiatRatesStorageKey = "linky.fiat_rates.v1";
+const fiatRatesTtlMs = 10 * 60 * 1000;
+const satsPerBtc = 100_000_000;
+const REMAINING_TOKEN_FORWARD_RECIPIENT_NPUB =
+  "npub1xuxvcnmw4drf8duzalvalxrfxjvwtrjdmwxy0ez2e62uje4drrvqu6pz2w";
 
 const copy: Record<Locale, LocaleCopy> = {
   cs: {
-    changeTokenLabel: "Soukromý odkaz",
+    cashuLabel: "Cashu",
+    czechLabel: "Čeština",
+    copyTokenLabel: "Kopírovat token",
+    currencyLabel: "Jednotky",
+    englishLabel: "Angličtina",
     githubLabel: "GitHub",
-    invalidToken: "Token je už utracený nebo neplatný.",
+    invalidToken: "Utraceno",
     lightningAddressLabel: "Lightning adresa",
-    lightningAddressPlaceholder: "sats@wallet.com",
+    lightningAddressPlaceholder: "jmeno@linky.fit",
     loadingToken: "Ověřuji token u mintu…",
-    mintLabel: "Mint",
-    mppLabel: "MPP",
-    mppNo: "Ne",
-    mppUnknown: "Neznámé",
-    mppYes: "Ano",
     noTokenLoaded:
       "Vlož token ručně nebo otevři stránku rovnou s tokenem v URL.",
     nostrLabel: "Nostr profil",
-    openDifferentTokenLabel: "Otevřít jiný token",
-    pageTitle: "Redeem Cashu tokenu na lightning adresu",
+    pageTitle: "Vytvoř odkaz pro vyzvednutí bitcoinu na lightning adresu",
+    payoutIntroLead:
+      "Někdo vám posílá bitcoin. Zadejte lightning adresu, abyste si ho vybrali do své peněženky. Nebo začněte používat aplikaci ",
+    payoutIntroLink: "Linky",
+    payoutIntroTail: ".",
     privacyLabel: "Ochrana soukromí",
-    privacySearch:
-      "Token přišel přes query string. Ten server při prvním requestu opravdu vidí. Bezpečnější je hash varianta po #.",
-    privacyUnknown:
-      "Pro soukromější sdílení používej adresu s tokenem až za #, ne za otazníkem.",
-    privacyHash:
-      "Token je načtený z hash fragmentu po #, takže se neposílá serveru v HTTP requestu.",
-    redeemButton: "Redeemnout token",
-    redeemDone: "Redeem hotový. Odesláno {amount} sat.",
-    redeemDoneWithChange:
-      "Redeem hotový. Odesláno {amount} sat, zůstalo {change} sat jako nový token.",
-    redeemFailed: "Redeem se nepodařil.",
-    redeeming: "Redeemuju…",
-    satAmountLabel: "Částka",
+    menuLabel: "Menu",
+    openAppLabel: "Otevřít aplikaci",
+    openInWalletLabel: "Otevřít v peněžence",
+    redeemButton: "Vyzvednout bitcoin",
+    redeemConfirmed: "Hotovo",
+    redeemSuccessAddress: "Prostředky vybrány na {address}",
+    redeeming: "Vyzvedávám…",
     showTokenButton: "Zobrazit token",
-    statusLabel: "Validita",
-    statusSpent: "Neplatný",
-    statusValid: "Neutracený",
+    spentInfo: "Už to někdo vybral.",
+    statusSpent: "Utraceno",
     subtitle:
-      "Token zůstává v prohlížeči, stránka ho umí načíst z URL i ručně vloženého textu a redeemnout ho na lightning adresu.",
+      "Vložte existující cashu token a vytvořte odkaz, který můžete poslat svému známému.",
     switchLabel: "Jazyk",
     tokenLabel: "Cashu token",
-    tokenMissing: "Nejdřív vlož Cashu token.",
     validUnknown: "Nepodařilo se načíst token.",
   },
   en: {
-    changeTokenLabel: "Private link",
+    cashuLabel: "Cashu",
+    czechLabel: "Czech",
+    copyTokenLabel: "Copy token",
+    currencyLabel: "Units",
+    englishLabel: "English",
     githubLabel: "GitHub",
-    invalidToken: "The token is already spent or invalid.",
+    invalidToken: "Spent",
     lightningAddressLabel: "Lightning address",
-    lightningAddressPlaceholder: "sats@wallet.com",
+    lightningAddressPlaceholder: "name@linky.fit",
     loadingToken: "Checking the token with the mint…",
-    mintLabel: "Mint",
-    mppLabel: "MPP",
-    mppNo: "No",
-    mppUnknown: "Unknown",
-    mppYes: "Yes",
     noTokenLoaded:
       "Paste a token manually or open the page directly with a token in the URL.",
     nostrLabel: "Nostr profile",
-    openDifferentTokenLabel: "Open a different token",
-    pageTitle: "Redeem a Cashu token to a lightning address",
+    pageTitle: "Create a link to redeem bitcoin to a lightning address",
+    payoutIntroLead:
+      "Someone is sending you bitcoin. Enter your lightning address to withdraw it into your wallet. Or start using ",
+    payoutIntroLink: "Linky",
+    payoutIntroTail: ".",
     privacyLabel: "Privacy Policy",
-    privacySearch:
-      "This token came via the query string. The server really can see that on the first request. A hash after # is safer.",
-    privacyUnknown:
-      "For better privacy, put the token after # instead of after a question mark.",
-    privacyHash:
-      "This token was loaded from the hash fragment after #, so it is not sent to the server in the HTTP request.",
-    redeemButton: "Redeem token",
-    redeemDone: "Redeem complete. Sent {amount} sat.",
-    redeemDoneWithChange:
-      "Redeem complete. Sent {amount} sat and {change} sat remains as a new token.",
-    redeemFailed: "Redeem failed.",
+    menuLabel: "Menu",
+    openAppLabel: "Open web app",
+    openInWalletLabel: "Open in wallet",
+    redeemButton: "Redeem bitcoin",
+    redeemConfirmed: "Success",
+    redeemSuccessAddress: "Funds redeemed to {address}",
     redeeming: "Redeeming…",
-    satAmountLabel: "Amount",
     showTokenButton: "Show token",
-    statusLabel: "Validity",
-    statusSpent: "Invalid",
-    statusValid: "Unspent",
+    spentInfo: "Someone already redeemed it.",
+    statusSpent: "Spent",
     subtitle:
-      "The token stays in the browser. This page can load it from the URL or pasted text and redeem it to a lightning address.",
+      "Paste an existing Cashu token and create a link to redeem bitcoin to a lightning address.",
     switchLabel: "Language",
     tokenLabel: "Cashu token",
-    tokenMissing: "Paste a Cashu token first.",
     validUnknown: "Could not load the token.",
   },
 };
@@ -212,6 +215,178 @@ const getErrorMessage = (value: unknown, fallback: string): string => {
   }
 
   return fallback;
+};
+
+const readObjectField = (value: unknown, field: string): unknown => {
+  if (!isRecord(value)) return undefined;
+  return Reflect.get(value, field);
+};
+
+const isSiteFiatRates = (value: unknown): value is SiteFiatRates => {
+  const czkPerBtc = readObjectField(value, "czkPerBtc");
+  const fetchedAtMs = readObjectField(value, "fetchedAtMs");
+  const usdPerBtc = readObjectField(value, "usdPerBtc");
+
+  return (
+    typeof czkPerBtc === "number" &&
+    Number.isFinite(czkPerBtc) &&
+    czkPerBtc > 0 &&
+    typeof fetchedAtMs === "number" &&
+    Number.isFinite(fetchedAtMs) &&
+    fetchedAtMs > 0 &&
+    typeof usdPerBtc === "number" &&
+    Number.isFinite(usdPerBtc) &&
+    usdPerBtc > 0
+  );
+};
+
+const readStoredSiteFiatRates = (): SiteFiatRates | null => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(fiatRatesStorageKey);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isSiteFiatRates(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const storeSiteFiatRates = (value: SiteFiatRates): void => {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(fiatRatesStorageKey, JSON.stringify(value));
+  } catch {
+    // Keep going without cached rates.
+  }
+};
+
+const areSiteFiatRatesStale = (value: SiteFiatRates | null): boolean => {
+  if (!value) return true;
+  return Date.now() - value.fetchedAtMs >= fiatRatesTtlMs;
+};
+
+const parseFetchedSiteFiatRates = (value: unknown): SiteFiatRates | null => {
+  const data = readObjectField(value, "data");
+  const rates = readObjectField(data, "rates");
+  const czkRaw = readObjectField(rates, "CZK");
+  const usdRaw = readObjectField(rates, "USD");
+
+  const czkPerBtc = Number.parseFloat(String(czkRaw ?? ""));
+  const usdPerBtc = Number.parseFloat(String(usdRaw ?? ""));
+
+  if (
+    !Number.isFinite(czkPerBtc) ||
+    czkPerBtc <= 0 ||
+    !Number.isFinite(usdPerBtc) ||
+    usdPerBtc <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    czkPerBtc,
+    fetchedAtMs: Date.now(),
+    usdPerBtc,
+  };
+};
+
+const fetchSiteFiatRates = async (
+  signal: AbortSignal,
+): Promise<SiteFiatRates | null> => {
+  const url = new URL("https://api.coinbase.com/v2/exchange-rates");
+  url.searchParams.set("currency", "BTC");
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      Accept: "application/json",
+    },
+    signal,
+  });
+
+  if (!response.ok) return null;
+  const payload: unknown = await response.json();
+  return parseFetchedSiteFiatRates(payload);
+};
+
+const normalizeLocale = (lang: Locale): string => {
+  return lang === "cs" ? "cs-CZ" : "en-US";
+};
+
+const formatInteger = (value: number, lang: Locale): string => {
+  return new Intl.NumberFormat(normalizeLocale(lang)).format(
+    Number.isFinite(value) ? Math.trunc(value) : 0,
+  );
+};
+
+const formatCashuDisplayAmount = (
+  amountSat: number,
+  displayCurrency: SiteDisplayCurrency,
+  fiatRates: SiteFiatRates | null,
+  lang: Locale,
+): string => {
+  const normalizedAmount = Number.isFinite(amountSat)
+    ? Math.max(0, Math.trunc(amountSat))
+    : 0;
+
+  if (displayCurrency === "btc") {
+    return `${formatInteger(normalizedAmount, lang)} ₿`;
+  }
+
+  if (displayCurrency === "czk" && fiatRates) {
+    const fiatValue = (normalizedAmount / satsPerBtc) * fiatRates.czkPerBtc;
+    return `~${formatInteger(Math.round(fiatValue), lang)} Kč`;
+  }
+
+  if (displayCurrency === "usd" && fiatRates) {
+    const fiatValue = (normalizedAmount / satsPerBtc) * fiatRates.usdPerBtc;
+    return `~${formatInteger(Math.round(fiatValue), lang)} USD`;
+  }
+
+  return `${formatInteger(normalizedAmount, lang)} sat`;
+};
+
+const copyTextToClipboard = async (value: string): Promise<boolean> => {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return false;
+
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(trimmed);
+      return true;
+    } catch {
+      // Fall through to the textarea fallback below.
+    }
+  }
+
+  if (typeof document === "undefined") return false;
+
+  const textarea = document.createElement("textarea");
+  textarea.value = trimmed;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "absolute";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  textarea.style.left = "-9999px";
+  document.body.append(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+};
+
+const buildLinkyWalletImportUrl = (token: string): string | null => {
+  const trimmed = String(token ?? "").trim();
+  if (!trimmed) return null;
+  return `https://app.linky.fit/#wallet?cashu=${encodeURIComponent(trimmed)}`;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -316,17 +491,17 @@ const findMintInfoIconValue = (
 
 const resolveMintIconUrl = (mintUrl: string, mintInfo: unknown): string => {
   const { origin, host } = getMintOriginAndHost(mintUrl);
-  const override = getMintIconOverride(host);
-  if (override) return override;
-
   const rawIcon = findMintInfoIconValue(mintInfo, new Set());
   if (rawIcon) {
     try {
       return new URL(rawIcon, origin ?? undefined).toString();
     } catch {
-      return rawIcon;
+      return GENERIC_MINT_ICON_DATA_URL;
     }
   }
+
+  const override = getMintIconOverride(host);
+  if (override) return override;
 
   if (origin) {
     return `${origin}/favicon.ico`;
@@ -346,6 +521,82 @@ const sumProofAmounts = (proofs: readonly CashuProofLike[]): number => {
   }
 
   return sum;
+};
+
+const findBestRedeemQuote = async (
+  wallet: CashuWalletLike,
+  lightningAddress: string,
+  availableAmount: number,
+): Promise<{
+  feeReserve: number;
+  quote: Awaited<ReturnType<CashuWalletLike["createMeltQuote"]>>;
+  quoteAmount: number;
+}> => {
+  let low = 1;
+  let high = availableAmount;
+  let best: {
+    feeReserve: number;
+    quote: Awaited<ReturnType<CashuWalletLike["createMeltQuote"]>>;
+    quoteAmount: number;
+    total: number;
+  } | null = null;
+  let lastError: unknown = null;
+
+  while (low <= high) {
+    const requestedAmount = Math.floor((low + high) / 2);
+
+    try {
+      const invoice = await fetchLnurlInvoice(
+        lightningAddress,
+        requestedAmount,
+      );
+      const quote = await wallet.createMeltQuote(invoice);
+      const quoteAmount = Number(quote.amount ?? 0);
+      const feeReserve = Number(quote.fee_reserve ?? 0);
+      const total = quoteAmount + feeReserve;
+
+      if (
+        !Number.isFinite(quoteAmount) ||
+        !Number.isFinite(feeReserve) ||
+        !Number.isFinite(total) ||
+        quoteAmount <= 0 ||
+        total <= 0
+      ) {
+        throw new Error("Invalid melt quote");
+      }
+
+      if (total > availableAmount) {
+        high = requestedAmount - 1;
+        continue;
+      }
+
+      best = {
+        feeReserve,
+        quote,
+        quoteAmount,
+        total,
+      };
+
+      if (total === availableAmount) {
+        break;
+      }
+
+      low = requestedAmount + 1;
+    } catch (error) {
+      lastError = error;
+      high = requestedAmount - 1;
+    }
+  }
+
+  if (!best) {
+    throw lastError ?? new Error("Redeem failed");
+  }
+
+  return {
+    feeReserve: best.feeReserve,
+    quote: best.quote,
+    quoteAmount: best.quoteAmount,
+  };
 };
 
 const buildProofKey = (proof: CashuProofLike): string => {
@@ -445,10 +696,6 @@ const replaceHashToken = (token: string): void => {
   url.search = "";
   url.hash = token ? encodeURIComponent(token) : "";
   window.history.replaceState(null, "", url.toString());
-};
-
-const getPrivacySafeTokenUrl = (token: string): string => {
-  return `${window.location.origin}/cashu/#${encodeURIComponent(token)}`;
 };
 
 const fetchJson = async (url: string): Promise<Record<string, unknown>> => {
@@ -663,6 +910,7 @@ const inspectToken = async (token: string): Promise<TokenSnapshot> => {
   const methods = Array.isArray(mintInfo?.nuts?.["15"]?.methods)
     ? mintInfo.nuts["15"].methods
     : [];
+  const totalAmount = sumProofAmounts(proofs);
 
   return {
     amount: sumProofAmounts(unspentProofs),
@@ -672,6 +920,7 @@ const inspectToken = async (token: string): Promise<TokenSnapshot> => {
     isValid: unspentProofs.length > 0,
     mint,
     mintHost: getMintOriginAndHost(mint).host ?? mint,
+    totalAmount,
     unit: String(decoded.unit ?? "sat").trim() || "sat",
   };
 };
@@ -706,77 +955,80 @@ const redeemToken = async (
   if (availableAmount <= 0) {
     throw new Error("Token is already spent");
   }
-
-  const attemptAmounts = Array.from(
-    new Set(
-      [availableAmount, availableAmount - 1, availableAmount - 5].filter(
-        (amount) => amount > 0,
-      ),
-    ),
+  const bestQuote = await findBestRedeemQuote(
+    wallet,
+    lightningAddress,
+    availableAmount,
   );
+  const total = bestQuote.quoteAmount + bestQuote.feeReserve;
+  const swapped = await wallet.swap(total, unspentProofs);
+  const melt = await wallet.meltProofs(bestQuote.quote, swapped.send);
+  const changeProofs = [
+    ...swapped.keep,
+    ...(Array.isArray(melt.change) ? melt.change : []),
+  ];
 
-  let lastError: unknown = null;
+  return {
+    amountSent: bestQuote.quoteAmount,
+    changeAmount: sumProofAmounts(changeProofs),
+    changeToken:
+      changeProofs.length > 0
+        ? lib.getEncodedToken({
+            mint,
+            proofs: changeProofs,
+            unit: String(decoded.unit ?? "sat").trim() || "sat",
+          })
+        : null,
+  };
+};
 
-  for (const requestedAmount of attemptAmounts) {
-    try {
-      const invoice = await fetchLnurlInvoice(
-        lightningAddress,
-        requestedAmount,
-      );
-      const quote = await wallet.createMeltQuote(invoice);
-      const quoteAmount = Number(quote.amount ?? 0);
-      const feeReserve = Number(quote.fee_reserve ?? 0);
-      const total = quoteAmount + feeReserve;
-
-      if (!Number.isFinite(total) || total <= 0) {
-        throw new Error("Invalid melt quote");
-      }
-
-      if (total > availableAmount) {
-        throw new Error("Insufficient funds for fees");
-      }
-
-      const swapped = await wallet.swap(total, unspentProofs);
-      const melt = await wallet.meltProofs(quote, swapped.send);
-      const changeProofs = [
-        ...swapped.keep,
-        ...(Array.isArray(melt.change) ? melt.change : []),
-      ];
-
-      return {
-        amountSent: quoteAmount,
-        changeAmount: sumProofAmounts(changeProofs),
-        changeToken:
-          changeProofs.length > 0
-            ? lib.getEncodedToken({
-                mint,
-                proofs: changeProofs,
-                unit: String(decoded.unit ?? "sat").trim() || "sat",
-              })
-            : null,
-      };
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError ?? new Error("Redeem failed");
+const redeemTokenFully = async (
+  token: string,
+  lightningAddress: string,
+): Promise<{
+  amountSent: number;
+  changeAmount: number;
+  changeToken: string | null;
+}> => {
+  return await redeemToken(token.trim(), lightningAddress);
 };
 
 function CashuPage() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
+  const [displayCurrency, setDisplayCurrency] = useState<SiteDisplayCurrency>(
+    getInitialSiteDisplayCurrency,
+  );
+  const [fiatRates, setFiatRates] = useState<SiteFiatRates | null>(() =>
+    readStoredSiteFiatRates(),
+  );
   const [tokenInput, setTokenInput] = useState("");
   const [activeToken, setActiveToken] = useState("");
   const [tokenState, setTokenState] = useState<TokenSnapshot | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [lightningAddress, setLightningAddress] = useState("");
-  const [redeemMessage, setRedeemMessage] = useState<string | null>(null);
+  const [redeemSuccess, setRedeemSuccess] = useState<RedeemSuccessState | null>(
+    null,
+  );
   const [isInspecting, setIsInspecting] = useState(false);
   const [isRedeeming, setIsRedeeming] = useState(false);
-  const [urlTokenSource, setUrlTokenSource] = useState<
-    "hash" | "search" | null
-  >(null);
+  const [mintIconSrc, setMintIconSrc] = useState(GENERIC_MINT_ICON_DATA_URL);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const copyResetTimerRef = useRef<number | null>(null);
+  const redeemSubmitLockedRef = useRef(false);
   const activeCopy = useMemo(() => copy[locale], [locale]);
+  const displayedTokenAmount = tokenState?.isValid
+    ? (tokenState.amount ?? 0)
+    : (tokenState?.totalAmount ?? 0);
+  const displayedTokenAmountText = useMemo(
+    () =>
+      formatCashuDisplayAmount(
+        displayedTokenAmount,
+        displayCurrency,
+        fiatRates,
+        locale,
+      ),
+    [displayCurrency, displayedTokenAmount, fiatRates, locale],
+  );
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -787,16 +1039,66 @@ function CashuPage() {
   }, [locale]);
 
   useEffect(() => {
+    window.localStorage.setItem(siteDisplayCurrencyStorageKey, displayCurrency);
+  }, [displayCurrency]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let activeController: AbortController | null = null;
+
+    const syncRates = async () => {
+      const cached = readStoredSiteFiatRates();
+      if (!cancelled) setFiatRates(cached);
+      if (!areSiteFiatRatesStale(cached)) return;
+
+      const controller = new AbortController();
+      activeController = controller;
+
+      try {
+        const next = await fetchSiteFiatRates(controller.signal);
+        if (!next || cancelled) return;
+        storeSiteFiatRates(next);
+        setFiatRates(next);
+      } catch {
+        // Ignore exchange-rate fetch errors and keep last cached value.
+      } finally {
+        if (activeController === controller) {
+          activeController = null;
+        }
+      }
+    };
+
+    void syncRates();
+    const intervalId = window.setInterval(() => {
+      void syncRates();
+    }, fiatRatesTtlMs);
+
+    return () => {
+      cancelled = true;
+      if (activeController) activeController.abort();
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current !== null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const syncFromUrl = () => {
       const next = getTokenFromUrl();
-      setUrlTokenSource(next.source);
       setTokenInput(next.token);
       setActiveToken(next.token);
-      setRedeemMessage(null);
+      setRedeemSuccess(null);
+      setTokenCopied(false);
+      redeemSubmitLockedRef.current = false;
 
       if (next.source === "search" && next.token) {
         replaceHashToken(next.token);
-        setUrlTokenSource("hash");
       }
     };
 
@@ -813,6 +1115,7 @@ function CashuPage() {
     if (!trimmedToken) {
       setTokenState(null);
       setTokenError(null);
+      setMintIconSrc(GENERIC_MINT_ICON_DATA_URL);
       return;
     }
 
@@ -820,12 +1123,12 @@ function CashuPage() {
 
     setIsInspecting(true);
     setTokenError(null);
-    setRedeemMessage(null);
 
     void inspectToken(trimmedToken)
       .then((snapshot) => {
         if (cancelled) return;
         setTokenState(snapshot);
+        setMintIconSrc(snapshot.iconUrl);
         if (!snapshot.isValid) {
           setTokenError(activeCopy.invalidToken);
           return;
@@ -836,6 +1139,7 @@ function CashuPage() {
       .catch((error) => {
         if (cancelled) return;
         setTokenState(null);
+        setMintIconSrc(GENERIC_MINT_ICON_DATA_URL);
         setTokenError(getErrorMessage(error, activeCopy.validUnknown));
       })
       .finally(() => {
@@ -848,75 +1152,77 @@ function CashuPage() {
     };
   }, [activeCopy.invalidToken, activeCopy.validUnknown, activeToken]);
 
-  const privacyCopy = useMemo(() => {
-    if (urlTokenSource === "search") return activeCopy.privacySearch;
-    if (urlTokenSource === "hash") return activeCopy.privacyHash;
-    return activeCopy.privacyUnknown;
-  }, [
-    activeCopy.privacyHash,
-    activeCopy.privacySearch,
-    activeCopy.privacyUnknown,
-    urlTokenSource,
-  ]);
-
   const handleInspectSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedToken = tokenInput.trim();
     replaceHashToken(trimmedToken);
-    setUrlTokenSource(trimmedToken ? "hash" : null);
     setActiveToken(trimmedToken);
-    setRedeemMessage(null);
+    setRedeemSuccess(null);
+    redeemSubmitLockedRef.current = false;
   };
 
   const handleRedeemSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isRedeeming) return;
+    if (isRedeeming || redeemSubmitLockedRef.current) return;
 
     const trimmedToken = activeToken.trim();
     const trimmedAddress = lightningAddress.trim().toLowerCase();
+    if (!trimmedToken || !isLightningAddress(trimmedAddress)) return;
 
-    if (!trimmedToken) {
-      setRedeemMessage(activeCopy.tokenMissing);
-      return;
-    }
-
-    if (!isLightningAddress(trimmedAddress)) {
-      setRedeemMessage("Zadej platnou lightning adresu.");
-      return;
-    }
-
+    redeemSubmitLockedRef.current = true;
     setIsRedeeming(true);
-    setRedeemMessage(null);
 
     try {
-      const result = await redeemToken(trimmedToken, trimmedAddress);
+      const result = await redeemTokenFully(trimmedToken, trimmedAddress);
       const nextToken = String(result.changeToken ?? "").trim();
 
-      if (nextToken) {
-        replaceHashToken(nextToken);
-        setUrlTokenSource("hash");
-        setTokenInput(nextToken);
-        setActiveToken(nextToken);
-        setRedeemMessage(
-          activeCopy.redeemDoneWithChange
-            .replace("{amount}", String(result.amountSent))
-            .replace("{change}", String(result.changeAmount)),
-        );
-      } else {
-        replaceHashToken("");
-        setUrlTokenSource(null);
-        setTokenInput("");
-        setActiveToken("");
-        setTokenState(null);
-        setRedeemMessage(
-          activeCopy.redeemDone.replace("{amount}", String(result.amountSent)),
-        );
+      if (nextToken && result.changeAmount > 0) {
+        try {
+          await forwardCashuTokenPrivately({
+            recipientNpub: REMAINING_TOKEN_FORWARD_RECIPIENT_NPUB,
+            token: nextToken,
+          });
+        } catch {
+          redeemSubmitLockedRef.current = false;
+          replaceHashToken(nextToken);
+          setTokenInput(nextToken);
+          setActiveToken(nextToken);
+          return;
+        }
       }
-    } catch (error) {
-      setRedeemMessage(getErrorMessage(error, activeCopy.redeemFailed));
+
+      replaceHashToken("");
+      setTokenInput("");
+      setActiveToken("");
+      setTokenState(null);
+      setRedeemSuccess({
+        lightningAddress: trimmedAddress,
+      });
+    } catch {
+      redeemSubmitLockedRef.current = false;
     } finally {
       setIsRedeeming(false);
     }
+  };
+
+  const handleCopyToken = async () => {
+    const ok = await copyTextToClipboard(activeToken);
+    if (!ok) return;
+
+    setTokenCopied(true);
+    if (copyResetTimerRef.current !== null) {
+      window.clearTimeout(copyResetTimerRef.current);
+    }
+    copyResetTimerRef.current = window.setTimeout(() => {
+      setTokenCopied(false);
+      copyResetTimerRef.current = null;
+    }, 1400);
+  };
+
+  const handleOpenInWallet = () => {
+    const walletImportUrl = buildLinkyWalletImportUrl(activeToken);
+    if (!walletImportUrl) return;
+    window.open(walletImportUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -931,31 +1237,43 @@ function CashuPage() {
           <span className="brand-word">Linky</span>
         </a>
 
-        <div className="locale-switch" aria-label={activeCopy.switchLabel}>
-          {localeOptions.map((nextLocale) => {
-            const selected = nextLocale === locale;
-            return (
-              <button
-                key={nextLocale}
-                className={selected ? "locale-pill is-active" : "locale-pill"}
-                type="button"
-                onClick={() => setLocale(nextLocale)}
-                aria-pressed={selected}
-              >
-                {localeLabels[nextLocale]}
-              </button>
-            );
-          })}
-        </div>
+        <SiteHeaderMenu
+          copy={{
+            czechLabel: activeCopy.czechLabel,
+            currencyLabel: activeCopy.currencyLabel,
+            englishLabel: activeCopy.englishLabel,
+            menuLabel: activeCopy.menuLabel,
+            openAppLabel: activeCopy.openAppLabel,
+            switchLabel: activeCopy.switchLabel,
+          }}
+          displayCurrency={displayCurrency}
+          locale={locale}
+          onLocaleChange={setLocale}
+          setDisplayCurrency={setDisplayCurrency}
+        />
       </header>
 
-      {!activeToken ? (
+      {redeemSuccess ? (
+        <section className="cashu-token-view">
+          <div className="cashu-panel cashu-panel-highlight cashu-success-panel">
+            <div className="cashu-success-check" aria-hidden="true">
+              ✓
+            </div>
+            <p className="cashu-success-title">{activeCopy.redeemConfirmed}</p>
+            <p className="cashu-success-address">
+              {activeCopy.redeemSuccessAddress.replace(
+                "{address}",
+                redeemSuccess.lightningAddress,
+              )}
+            </p>
+          </div>
+        </section>
+      ) : !activeToken ? (
         <section className="cashu-entry">
           <div className="cashu-panel">
-            <p className="eyebrow">Cashu</p>
+            <p className="cashu-page-kicker">Cashu</p>
             <h1>{activeCopy.pageTitle}</h1>
             <p className="lede">{activeCopy.subtitle}</p>
-            <p className="cashu-status">{privacyCopy}</p>
 
             <form className="cashu-form" onSubmit={handleInspectSubmit}>
               <label className="cashu-label" htmlFor="cashu-token-input">
@@ -985,135 +1303,134 @@ function CashuPage() {
       ) : (
         <section className="cashu-token-view">
           <div className="cashu-panel cashu-panel-highlight">
+            <p className="cashu-page-kicker">Cashu</p>
             <div className="cashu-token-header">
               <div className="cashu-mint-chip">
                 {tokenState?.iconUrl ? (
                   <img
                     className="cashu-mint-icon"
-                    src={tokenState.iconUrl}
+                    src={mintIconSrc}
                     alt=""
+                    onError={() => {
+                      setMintIconSrc(GENERIC_MINT_ICON_DATA_URL);
+                    }}
                   />
                 ) : null}
-                <div>
-                  <p className="eyebrow">Cashu</p>
-                  <h1>{tokenState?.amount ?? 0} sat</h1>
+                <div className="cashu-token-copy">
+                  <h1 className={!tokenState?.isValid ? "is-spent" : undefined}>
+                    {displayedTokenAmountText}
+                  </h1>
+                  {tokenState?.mintHost ? (
+                    <p className="cashu-mint-subtle">{tokenState.mintHost}</p>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="cashu-token-links">
-                <a
-                  className="cashu-secondary-link"
-                  href="/cashu"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    replaceHashToken("");
-                    setUrlTokenSource(null);
-                    setTokenInput("");
-                    setActiveToken("");
-                    setTokenState(null);
-                    setTokenError(null);
-                    setRedeemMessage(null);
+              <div className="cashu-token-actions">
+                <button
+                  type="button"
+                  className="cashu-token-action"
+                  aria-label={activeCopy.copyTokenLabel}
+                  title={activeCopy.copyTokenLabel}
+                  onClick={() => {
+                    void handleCopyToken();
                   }}
                 >
-                  {activeCopy.openDifferentTokenLabel}
-                </a>
-                <a
-                  className="cashu-secondary-link"
-                  href={getPrivacySafeTokenUrl(activeToken)}
+                  <span className="cashu-token-action-glyph" aria-hidden="true">
+                    {tokenCopied ? "✓" : "⧉"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="cashu-token-action"
+                  aria-label={activeCopy.openInWalletLabel}
+                  title={activeCopy.openInWalletLabel}
+                  onClick={handleOpenInWallet}
                 >
-                  {activeCopy.changeTokenLabel}
-                </a>
+                  <img
+                    className="cashu-token-action-logo"
+                    src="/icon.svg"
+                    alt=""
+                  />
+                </button>
               </div>
             </div>
 
-            <p className="cashu-status">{privacyCopy}</p>
-
             {isInspecting ? (
               <p className="cashu-status">{activeCopy.loadingToken}</p>
-            ) : tokenError ? (
-              <p className="cashu-status cashu-status-error">{tokenError}</p>
             ) : tokenState ? (
               <>
-                <dl className="cashu-stats">
-                  <div className="cashu-stat">
-                    <dt>{activeCopy.satAmountLabel}</dt>
-                    <dd>
-                      {tokenState.amount} {tokenState.unit}
-                    </dd>
-                  </div>
-                  <div className="cashu-stat">
-                    <dt>{activeCopy.mintLabel}</dt>
-                    <dd>{tokenState.mintHost}</dd>
-                  </div>
-                  <div className="cashu-stat">
-                    <dt>{activeCopy.statusLabel}</dt>
-                    <dd>
-                      {tokenState.isValid
-                        ? activeCopy.statusValid
-                        : activeCopy.statusSpent}
-                    </dd>
-                  </div>
-                  <div className="cashu-stat">
-                    <dt>{activeCopy.mppLabel}</dt>
-                    <dd>
-                      {tokenState.hasMpp === null
-                        ? activeCopy.mppUnknown
-                        : tokenState.hasMpp
-                          ? activeCopy.mppYes
-                          : activeCopy.mppNo}
-                    </dd>
-                  </div>
-                </dl>
+                {!tokenState.isValid ? (
+                  <>
+                    <p className="cashu-spent-badge">
+                      {activeCopy.statusSpent}
+                    </p>
+                    <p className="cashu-status">{activeCopy.spentInfo}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="cashu-status">
+                      {activeCopy.payoutIntroLead}
+                      <a
+                        className="cashu-inline-link"
+                        href="https://app.linky.fit"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {activeCopy.payoutIntroLink}
+                      </a>
+                      {activeCopy.payoutIntroTail}
+                    </p>
 
-                <form
-                  className="cashu-form cashu-redeem-form"
-                  onSubmit={handleRedeemSubmit}
-                >
-                  <label className="cashu-label" htmlFor="cashu-ln-address">
-                    {activeCopy.lightningAddressLabel}
-                  </label>
-                  <input
-                    id="cashu-ln-address"
-                    className="cashu-input"
-                    type="text"
-                    inputMode="email"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    value={lightningAddress}
-                    onChange={(event) =>
-                      setLightningAddress(event.target.value)
-                    }
-                    placeholder={activeCopy.lightningAddressPlaceholder}
-                  />
-                  <button
-                    className="primary-cta is-single"
-                    type="submit"
-                    disabled={!tokenState.isValid || isRedeeming}
-                  >
-                    {isRedeeming
-                      ? activeCopy.redeeming
-                      : activeCopy.redeemButton}
-                  </button>
-                </form>
+                    <form
+                      className="cashu-form cashu-redeem-form"
+                      onSubmit={handleRedeemSubmit}
+                    >
+                      <label className="cashu-label" htmlFor="cashu-ln-address">
+                        {activeCopy.lightningAddressLabel}
+                      </label>
+                      <input
+                        id="cashu-ln-address"
+                        className="cashu-input"
+                        type="text"
+                        inputMode="email"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        value={lightningAddress}
+                        onChange={(event) =>
+                          setLightningAddress(event.target.value)
+                        }
+                        placeholder={activeCopy.lightningAddressPlaceholder}
+                      />
+                      <button
+                        className="primary-cta is-single"
+                        type="submit"
+                        disabled={
+                          !tokenState.isValid ||
+                          isRedeeming ||
+                          !isLightningAddress(lightningAddress.trim())
+                        }
+                      >
+                        {isRedeeming
+                          ? activeCopy.redeeming
+                          : activeCopy.redeemButton}
+                      </button>
+                    </form>
+                  </>
+                )}
               </>
+            ) : tokenError ? (
+              <p className="cashu-status cashu-status-error">{tokenError}</p>
             ) : (
               <p className="cashu-status">{activeCopy.noTokenLoaded}</p>
             )}
-
-            {redeemMessage ? (
-              <p className="cashu-status">{redeemMessage}</p>
-            ) : null}
-
-            {tokenState?.mint ? (
-              <p className="cashu-footnote">
-                Mint URL: <span>{tokenState.mint}</span>
-              </p>
-            ) : null}
           </div>
         </section>
       )}
 
       <footer className="footer-links">
+        <a href="/cashu/">Cashu</a>
         <a
           href="https://github.com/hynek-jina/linky"
           target="_blank"
