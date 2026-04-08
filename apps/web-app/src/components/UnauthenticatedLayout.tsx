@@ -413,106 +413,111 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
             {t("onboardingAvatarIntro")}
           </p>
 
-          <div className="onboarding-avatar-preview">
-            <div
-              className="contact-avatar is-xl onboarding-avatar-previewImage"
-              aria-hidden="true"
-            >
-              {profile.pictureUrl ? (
-                <img
-                  src={profile.pictureUrl}
-                  alt=""
-                  loading="eager"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className="contact-avatar-fallback">
-                  {getInitials(profile.name || t("profileNoName"))}
-                </span>
-              )}
-            </div>
-
-            <div className="onboarding-avatar-nameWrap">
-              <label
-                className="onboarding-avatar-nameLabel"
-                htmlFor="onboarding-profile-name"
+          <div className="onboarding-avatar-scroll">
+            <div className="onboarding-avatar-preview">
+              <div
+                className="contact-avatar is-xl onboarding-avatar-previewImage"
+                aria-hidden="true"
               >
-                {t("name")}
-              </label>
-              <input
-                id="onboarding-profile-name"
-                value={profile.name}
-                onChange={(event) =>
-                  setPendingOnboardingName(event.target.value)
-                }
-                placeholder={t("namePlaceholder")}
-              />
-            </div>
-          </div>
+                {profile.pictureUrl ? (
+                  <img
+                    src={profile.pictureUrl}
+                    alt=""
+                    loading="eager"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="contact-avatar-fallback">
+                    {getInitials(profile.name || t("profileNoName"))}
+                  </span>
+                )}
+              </div>
 
-          <input
-            ref={onboardingPhotoInputRef}
-            type="file"
-            accept="image/*"
-            onChange={(event) => void onPendingOnboardingPhotoSelected(event)}
-            style={{ display: "none" }}
-          />
-
-          <div
-            className="onboarding-avatar-grid"
-            role="list"
-            aria-label={t("onboardingAvatarGridLabel")}
-          >
-            {profile.avatarChoices.map((choice) => {
-              const isSelected = choice.pictureUrl === profile.pictureUrl;
-
-              return (
-                <button
-                  key={choice.id}
-                  type="button"
-                  className={`onboarding-avatar-choice${isSelected ? " is-selected" : ""}`}
-                  onClick={() =>
-                    selectPendingOnboardingAvatar(choice.pictureUrl)
-                  }
-                  aria-pressed={isSelected}
+              <div className="onboarding-avatar-nameWrap">
+                <label
+                  className="onboarding-avatar-nameLabel"
+                  htmlFor="onboarding-profile-name"
                 >
-                  <span
-                    className="contact-avatar onboarding-avatar-choiceImage"
-                    aria-hidden="true"
+                  {t("name")}
+                </label>
+                <input
+                  id="onboarding-profile-name"
+                  value={profile.name}
+                  onChange={(event) =>
+                    setPendingOnboardingName(event.target.value)
+                  }
+                  placeholder={t("namePlaceholder")}
+                />
+              </div>
+            </div>
+
+            <input
+              ref={onboardingPhotoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(event) => void onPendingOnboardingPhotoSelected(event)}
+              style={{ display: "none" }}
+            />
+
+            <div
+              className="onboarding-avatar-grid"
+              role="list"
+              aria-label={t("onboardingAvatarGridLabel")}
+            >
+              {profile.avatarChoices.map((choice) => {
+                const isSelected = choice.pictureUrl === profile.pictureUrl;
+
+                return (
+                  <button
+                    key={choice.id}
+                    type="button"
+                    className={`onboarding-avatar-choice${isSelected ? " is-selected" : ""}`}
+                    onClick={() =>
+                      selectPendingOnboardingAvatar(choice.pictureUrl)
+                    }
+                    aria-pressed={isSelected}
                   >
+                    <span
+                      className="contact-avatar onboarding-avatar-choiceImage"
+                      aria-hidden="true"
+                    >
+                      <img
+                        src={choice.pictureUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                className={`onboarding-avatar-choice onboarding-avatar-choiceCustom${selectedGeneratedAvatar ? "" : " is-selected"}`}
+                onClick={() => void pickPendingOnboardingPhoto()}
+                aria-pressed={!selectedGeneratedAvatar}
+              >
+                <span
+                  className="onboarding-avatar-choicePlus"
+                  aria-hidden="true"
+                >
+                  {profile.pictureUrl && !selectedGeneratedAvatar ? (
                     <img
-                      src={choice.pictureUrl}
+                      src={profile.pictureUrl}
                       alt=""
                       loading="lazy"
                       referrerPolicy="no-referrer"
                     />
-                  </span>
-                </button>
-              );
-            })}
-
-            <button
-              type="button"
-              className={`onboarding-avatar-choice onboarding-avatar-choiceCustom${selectedGeneratedAvatar ? "" : " is-selected"}`}
-              onClick={() => void pickPendingOnboardingPhoto()}
-              aria-pressed={!selectedGeneratedAvatar}
-            >
-              <span className="onboarding-avatar-choicePlus" aria-hidden="true">
-                {profile.pictureUrl && !selectedGeneratedAvatar ? (
-                  <img
-                    src={profile.pictureUrl}
-                    alt=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  "+"
-                )}
-              </span>
-              <span className="onboarding-avatar-choiceLabel">
-                {t("profileUploadPhoto")}
-              </span>
-            </button>
+                  ) : (
+                    "+"
+                  )}
+                </span>
+                <span className="onboarding-avatar-choiceLabel">
+                  {t("profileUploadPhoto")}
+                </span>
+              </button>
+            </div>
           </div>
 
           {profile.error ? (
@@ -523,7 +528,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
             </div>
           ) : null}
 
-          <div className="onboarding-avatar-actions">
+          <div className="onboarding-avatar-actions onboarding-avatar-actionsAdaptive">
             <button
               type="button"
               className="btn-wide"
