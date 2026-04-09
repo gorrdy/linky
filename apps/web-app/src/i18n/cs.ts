@@ -98,6 +98,15 @@ export const cs = {
   restoreNothing: "Žádné chybějící tokeny nenalezeny.",
   restoreDone: "Obnoveno {proofs} proofů do {tokens} tokenů.",
   restoreFailed: "Obnova selhala",
+  cashuMeltToMainMint: "Směnit na {mint}",
+  cashuMeltToMainMintUnavailable:
+    "Žádné tokeny na jiném mintu než hlavním nebyly nalezeny.",
+  cashuMeltToMainMintProcessing: "Převádím tokeny do hlavního mintu…",
+  cashuMeltToMainMintPending:
+    "Převod {amount} {unit} do hlavního mintu běží na pozadí.",
+  cashuMeltToMainMintDone:
+    "Převedeno {amount} {unit} do hlavního mintu {mint}.",
+  cashuMeltToMainMintFailed: "Převod do hlavního mintu selhal",
   nostrKeysUpdated: "Nostr klíče byly uloženy.",
   nostrKeysDerived: "Nostr klíče byly znovu odvozeny z klíčů.",
   nostrPasteArmedHint:

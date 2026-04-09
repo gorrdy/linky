@@ -10,6 +10,7 @@ interface UseSystemRoutePropsParams {
   appOwnerIdRef: SystemRoutesProps["mintDetailProps"]["appOwnerIdRef"];
   appVersion: SystemRoutesProps["advancedProps"]["__APP_VERSION__"];
   applyDefaultMintSelection: SystemRoutesProps["mintsProps"]["applyDefaultMintSelection"];
+  cashuMeltToMainMintButtonLabel: SystemRoutesProps["mintsProps"]["cashuMeltToMainMintButtonLabel"];
   canSaveNewRelay: SystemRoutesProps["nostrRelayNewProps"]["canSaveNewRelay"];
   cashuIsBusy: SystemRoutesProps["advancedProps"]["cashuIsBusy"];
   connectedRelayCount: SystemRoutesProps["advancedProps"]["connectedRelayCount"];
@@ -61,6 +62,7 @@ interface UseSystemRoutePropsParams {
   LOCAL_MINT_INFO_STORAGE_KEY_PREFIX: SystemRoutesProps["mintDetailProps"]["LOCAL_MINT_INFO_STORAGE_KEY_PREFIX"];
   logoutArmed: SystemRoutesProps["advancedProps"]["logoutArmed"];
   MAIN_MINT_URL: SystemRoutesProps["mintsProps"]["MAIN_MINT_URL"];
+  meltLargestForeignMintToMainMint: SystemRoutesProps["mintsProps"]["meltLargestForeignMintToMainMint"];
   mintInfoByUrl: SystemRoutesProps["mintDetailProps"]["mintInfoByUrl"];
   newEvoluServerUrl: SystemRoutesProps["evoluServerNewProps"]["newEvoluServerUrl"];
   newRelayUrl: SystemRoutesProps["nostrRelayNewProps"]["newRelayUrl"];
@@ -108,8 +110,9 @@ export const useSystemRouteProps = ({
   appOwnerIdRef,
   appVersion,
   applyDefaultMintSelection,
-  canSaveNewRelay,
   cashuIsBusy,
+  cashuMeltToMainMintButtonLabel,
+  canSaveNewRelay,
   connectedRelayCount,
   copyNostrKeys,
   copySeed,
@@ -159,6 +162,7 @@ export const useSystemRouteProps = ({
   LOCAL_MINT_INFO_STORAGE_KEY_PREFIX,
   logoutArmed,
   MAIN_MINT_URL,
+  meltLargestForeignMintToMainMint,
   mintInfoByUrl,
   newEvoluServerUrl,
   newRelayUrl,
@@ -345,14 +349,17 @@ export const useSystemRouteProps = ({
       t,
     },
     mintsProps: {
+      cashuIsBusy,
       defaultMintUrl,
       defaultMintUrlDraft,
+      cashuMeltToMainMintButtonLabel,
       setDefaultMintUrlDraft,
       normalizeMintUrl,
       MAIN_MINT_URL,
       PRESET_MINTS,
       getMintIconUrl,
       applyDefaultMintSelection,
+      meltLargestForeignMintToMainMint,
       t,
     },
     nostrRelayNewProps: {

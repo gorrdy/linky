@@ -11,6 +11,7 @@ interface BuildMoneyRoutePropsParams {
   cashuDraft: MoneyRoutesProps["cashuTokenNewProps"]["cashuDraft"];
   cashuDraftRef: MoneyRoutesProps["cashuTokenNewProps"]["cashuDraftRef"];
   cashuIsBusy: MoneyRoutesProps["cashuTokenNewProps"]["cashuIsBusy"];
+  cashuMeltToMainMintButtonLabel: MoneyRoutesProps["cashuTokenNewProps"]["cashuMeltToMainMintButtonLabel"];
   cashuTokensAll: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
   >["cashuTokensAll"];
@@ -28,6 +29,7 @@ interface BuildMoneyRoutePropsParams {
   knownLnAddressPayContact: MoneyRoutesProps["lnAddressPayProps"]["knownContact"];
   knownLnAddressPayContactPictureUrl: MoneyRoutesProps["lnAddressPayProps"]["knownContactPictureUrl"];
   lnAddressPayAmount: MoneyRoutesProps["lnAddressPayProps"]["lnAddressPayAmount"];
+  meltLargestForeignMintToMainMint: MoneyRoutesProps["cashuTokenNewProps"]["meltLargestForeignMintToMainMint"];
   payLightningAddressWithCashu: MoneyRoutesProps["lnAddressPayProps"]["payLightningAddressWithCashu"];
   pendingCashuDeleteId: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
@@ -68,6 +70,7 @@ export const buildMoneyRouteProps = ({
   cashuDraft,
   cashuDraftRef,
   cashuIsBusy,
+  cashuMeltToMainMintButtonLabel,
   cashuTokensAll,
   cashuTokensWithMeta,
   checkAllCashuTokensAndDeleteInvalid,
@@ -81,6 +84,7 @@ export const buildMoneyRouteProps = ({
   knownLnAddressPayContact,
   knownLnAddressPayContactPictureUrl,
   lnAddressPayAmount,
+  meltLargestForeignMintToMainMint,
   payLightningAddressWithCashu,
   pendingCashuDeleteId,
   requestDeleteCashuToken,
@@ -109,8 +113,10 @@ export const buildMoneyRouteProps = ({
       setCashuDraft,
       cashuDraftRef,
       cashuIsBusy,
+      cashuMeltToMainMintButtonLabel,
       checkAllCashuTokensAndDeleteInvalid,
       setMintIconUrlByMint,
+      meltLargestForeignMintToMainMint,
       saveCashuFromText,
       getMintIconUrl,
       t,

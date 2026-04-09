@@ -98,6 +98,13 @@ export const en = {
   restoreNothing: "No missing tokens found.",
   restoreDone: "Restored {proofs} proofs into {tokens} tokens.",
   restoreFailed: "Restore failed",
+  cashuMeltToMainMint: "Melt to {mint}",
+  cashuMeltToMainMintUnavailable: "No tokens on a non-main mint were found.",
+  cashuMeltToMainMintProcessing: "Converting tokens to the main mint…",
+  cashuMeltToMainMintPending:
+    "Converting {amount} {unit} to the main mint in the background.",
+  cashuMeltToMainMintDone: "Converted {amount} {unit} to the main mint {mint}.",
+  cashuMeltToMainMintFailed: "Main mint conversion failed",
   nostrKeysUpdated: "Nostr keys saved.",
   nostrKeysDerived: "Nostr keys derived from keys.",
   nostrPasteArmedHint:

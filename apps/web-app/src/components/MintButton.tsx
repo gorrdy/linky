@@ -10,6 +10,7 @@ interface MintIcon {
 }
 
 interface MintButtonProps {
+  disabled?: boolean;
   fallbackLetter: string;
   getMintIconUrl: (mint: MintUrlInput) => MintIcon;
   isSelected: boolean;
@@ -19,6 +20,7 @@ interface MintButtonProps {
 }
 
 export function MintButton({
+  disabled = false,
   fallbackLetter,
   getMintIconUrl,
   isSelected,
@@ -38,6 +40,7 @@ export function MintButton({
       key={mint}
       type="button"
       className="ghost"
+      disabled={disabled}
       onClick={onClick}
       style={{
         display: "inline-flex",
