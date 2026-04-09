@@ -33,6 +33,7 @@ Native Android builds require Java 17. `apps/native-shell/scripts/with-java17.sh
 
 - `apps/site/` - Public marketing/landing website intended for `linky.fit`
   - includes a feature-video showcase fed from static assets in `apps/site/public/videos/`, with mobile viewport-triggered playback, desktop hover-triggered playback, and automatic once-only progression to the next clip
+  - landing CTA offers Web app, Google Play, and APK targets; it defaults to Web app generally, but prefers Google Play when the browser is on an Android phone
   - landing page and `/cashu` share a top-right site menu with language + display-currency selectors and a CTA into `https://app.linky.fit`; `/cashu` uses the selected display currency for its token amount header, with `₿` still meaning sats rather than whole bitcoin
   - includes a dedicated `cashu/` entry page for `linky.fit/cashu`, which can ingest a token from manual paste, query string, or preferably URL hash, inspect the token client-side, expose quick actions to copy the token or open it in Linky via `https://app.linky.fit/#wallet?cashu=...` hash-carried import, and redeem it to a Lightning address; redeem sends the maximum LN-address amount the mint+LNURL flow allows, and any leftover token value is forwarded as a private Nostr gift wrap to the configured collector `npub` from a one-time sender identity instead of returning change
 - `apps/web-app/` - Main React app (Vite + SWC)
