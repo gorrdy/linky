@@ -1,6 +1,7 @@
 import type { Event as NostrToolsEvent } from "nostr-tools";
 import { getPublicKey, type UnsignedEvent } from "nostr-tools";
 import { getPlatformTarget } from "../../platform/runtime";
+import { normalizeMintUrl } from "../../utils/mint";
 import { makeLocalId } from "../../utils/validation";
 import type {
   LocalPaymentTelemetryEvent,
@@ -78,6 +79,14 @@ export const normalizePaymentTelemetryErrorDetail = (
   return text.slice(0, 500);
 };
 
+export const normalizePaymentTelemetryMint = (
+  value: string | null | undefined,
+): string | null => {
+  const normalized = normalizeMintUrl(value);
+  if (!normalized) return null;
+  return normalized.slice(0, 500);
+};
+
 export const classifyPaymentErrorCode = (
   value: string | null | undefined,
 ): string | null => {
@@ -129,6 +138,7 @@ export const createLocalPaymentTelemetryEvent = (
     status: event.status,
     method: asTelemetryMethod(event.method),
     phase: asTelemetryPhase(event.phase),
+    mint: normalizePaymentTelemetryMint(event.mint),
     amountBucket: bucketPositiveNumber(event.amount, AMOUNT_BUCKETS),
     feeBucket: bucketPositiveNumber(event.fee, FEE_BUCKETS),
     errorCode: classifyPaymentErrorCode(event.error),
@@ -173,6 +183,7 @@ export const createPaymentTelemetryWrappedEvent = (args: {
       status: args.item.status,
       method: args.item.method,
       phase: args.item.phase,
+      mint: args.item.mint,
       amountBucket: args.item.amountBucket,
       feeBucket: args.item.feeBucket,
       errorCode: args.item.errorCode,

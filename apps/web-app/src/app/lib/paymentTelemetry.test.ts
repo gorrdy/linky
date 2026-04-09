@@ -3,6 +3,7 @@ import {
   classifyPaymentErrorCode,
   createLocalPaymentTelemetryEvent,
   normalizePaymentTelemetryErrorDetail,
+  normalizePaymentTelemetryMint,
 } from "./paymentTelemetry";
 
 beforeAll(() => {
@@ -46,12 +47,22 @@ describe("createLocalPaymentTelemetryEvent", () => {
           amount: 123,
           fee: null,
           error,
+          mint: "https://mint.minibits.cash",
         },
         1_700_000_000,
       ),
     ).toMatchObject({
       errorCode: "short_keyset_id_unmapped",
       errorDetail: error,
+      mint: "https://mint.minibits.cash/Bitcoin",
     });
+  });
+});
+
+describe("normalizePaymentTelemetryMint", () => {
+  it("normalizes the mint URL before storing telemetry", () => {
+    expect(normalizePaymentTelemetryMint("https://mint.minibits.cash")).toBe(
+      "https://mint.minibits.cash/Bitcoin",
+    );
   });
 });

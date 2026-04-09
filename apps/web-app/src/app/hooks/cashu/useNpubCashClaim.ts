@@ -42,6 +42,7 @@ interface UseNpubCashClaimParams {
   recentlyReceivedTokenTimerRef: React.MutableRefObject<number | null>;
   refreshMintInfo: (mintUrl: string) => Promise<void> | void;
   resolveOwnerIdForWrite: () => Promise<Evolu.OwnerId | null>;
+  rememberCashuTokenKnown: (...tokens: readonly string[]) => void;
   routeKind: Route["kind"];
   setCashuIsBusy: React.Dispatch<React.SetStateAction<boolean>>;
   setRecentlyReceivedToken: React.Dispatch<
@@ -71,6 +72,7 @@ export const useNpubCashClaim = ({
   recentlyReceivedTokenTimerRef,
   refreshMintInfo,
   resolveOwnerIdForWrite,
+  rememberCashuTokenKnown,
   routeKind,
   setCashuIsBusy,
   setRecentlyReceivedToken,
@@ -186,6 +188,7 @@ export const useNpubCashClaim = ({
             return;
           }
 
+          rememberCashuTokenKnown(tokenRaw, String(accepted.token ?? ""));
           // Remember the last successfully accepted token so we can recover it
           // if storage gets wiped (e.g., private browsing) or if persistence
           // glitches.
@@ -337,6 +340,7 @@ export const useNpubCashClaim = ({
       mintInfoByUrl,
       refreshMintInfo,
       resolveOwnerIdForWrite,
+      rememberCashuTokenKnown,
       routeKind,
       setCashuIsBusy,
       setRecentlyReceivedToken,

@@ -32,6 +32,7 @@ interface UseSaveCashuFromTextParams {
   recentlyReceivedTokenTimerRef: React.MutableRefObject<number | null>;
   refreshMintInfo: (mintUrl: string) => Promise<void>;
   resolveOwnerIdForWrite: () => Promise<Evolu.OwnerId | null>;
+  rememberCashuTokenKnown: (...tokens: readonly string[]) => void;
   setCashuDraft: React.Dispatch<React.SetStateAction<string>>;
   setCashuIsBusy: React.Dispatch<React.SetStateAction<boolean>>;
   setRecentlyReceivedToken: React.Dispatch<
@@ -55,6 +56,7 @@ export const useSaveCashuFromText = ({
   recentlyReceivedTokenTimerRef,
   refreshMintInfo,
   resolveOwnerIdForWrite,
+  rememberCashuTokenKnown,
   setCashuDraft,
   setCashuIsBusy,
   setRecentlyReceivedToken,
@@ -191,6 +193,7 @@ export const useSaveCashuFromText = ({
             return;
           }
 
+          rememberCashuTokenKnown(tokenRaw, acceptedToken);
           safeLocalStorageSet(
             LAST_ACCEPTED_CASHU_TOKEN_STORAGE_KEY,
             acceptedToken,
@@ -330,6 +333,7 @@ export const useSaveCashuFromText = ({
       refreshMintInfo,
       recentlyReceivedTokenTimerRef,
       resolveOwnerIdForWrite,
+      rememberCashuTokenKnown,
       setCashuDraft,
       setCashuIsBusy,
       setRecentlyReceivedToken,

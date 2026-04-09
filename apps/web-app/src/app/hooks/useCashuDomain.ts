@@ -62,9 +62,20 @@ export const useCashuDomain = ({
     cashuTokensAllRef.current = cashuTokensAll;
   }, [cashuTokensAll]);
 
+  const optimisticallyKnownCashuTokensRef = React.useRef<Set<string>>(
+    new Set(),
+  );
+
+  const normalizeCashuTokenText = React.useCallback(
+    (tokenRaw: string): string => {
+      return String(tokenRaw ?? "").trim();
+    },
+    [],
+  );
+
   const rowMatchesToken = React.useCallback(
     (row: CashuTokenRowLike, tokenRaw: string): boolean => {
-      const candidate = String(tokenRaw ?? "").trim();
+      const candidate = normalizeCashuTokenText(tokenRaw);
       if (!candidate) return false;
 
       const storedRaw = String(row.rawToken ?? "").trim();
@@ -75,7 +86,27 @@ export const useCashuDomain = ({
         (storedToken !== "" && storedToken === candidate)
       );
     },
-    [],
+    [normalizeCashuTokenText],
+  );
+
+  const isOptimisticallyKnownCashuToken = React.useCallback(
+    (tokenRaw: string): boolean => {
+      const normalized = normalizeCashuTokenText(tokenRaw);
+      if (!normalized) return false;
+      return optimisticallyKnownCashuTokensRef.current.has(normalized);
+    },
+    [normalizeCashuTokenText],
+  );
+
+  const rememberCashuTokenKnown = React.useCallback(
+    (...tokens: readonly string[]) => {
+      for (const token of tokens) {
+        const normalized = normalizeCashuTokenText(token);
+        if (!normalized) continue;
+        optimisticallyKnownCashuTokensRef.current.add(normalized);
+      }
+    },
+    [normalizeCashuTokenText],
   );
 
   const cashuTokensHydratedRef = React.useRef(false);
@@ -119,8 +150,9 @@ export const useCashuDomain = ({
 
   const isCashuTokenStored = React.useCallback(
     (tokenRaw: string): boolean => {
-      const raw = String(tokenRaw ?? "").trim();
+      const raw = normalizeCashuTokenText(tokenRaw);
       if (!raw) return false;
+      if (isOptimisticallyKnownCashuToken(raw)) return true;
 
       const current = cashuTokensAllRef.current;
       return current.some((row) => {
@@ -128,18 +160,19 @@ export const useCashuDomain = ({
         return rowMatchesToken(row, raw);
       });
     },
-    [rowMatchesToken],
+    [isOptimisticallyKnownCashuToken, normalizeCashuTokenText, rowMatchesToken],
   );
 
   const isCashuTokenKnownAny = React.useCallback(
     (tokenRaw: string): boolean => {
-      const raw = String(tokenRaw ?? "").trim();
+      const raw = normalizeCashuTokenText(tokenRaw);
       if (!raw) return false;
+      if (isOptimisticallyKnownCashuToken(raw)) return true;
 
       const current = cashuTokensAllRef.current;
       return current.some((row) => rowMatchesToken(row, raw));
     },
-    [rowMatchesToken],
+    [isOptimisticallyKnownCashuToken, normalizeCashuTokenText, rowMatchesToken],
   );
 
   const ensuredTokenRef = React.useRef<Set<string>>(new Set());
@@ -305,5 +338,6 @@ export const useCashuDomain = ({
     ensureCashuTokenPersisted,
     isCashuTokenKnownAny,
     isCashuTokenStored,
+    rememberCashuTokenKnown,
   };
 };

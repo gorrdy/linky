@@ -6,7 +6,7 @@ import {
   type SiteDisplayCurrency,
 } from "./siteDisplayCurrency";
 
-type CtaMode = "android-apk" | "web";
+type CtaMode = "android-apk" | "google-play" | "web";
 
 type Locale = "cs" | "en";
 
@@ -26,6 +26,7 @@ interface LocaleCopy {
   title: string;
   subtitle: string;
   webCta: string;
+  googlePlayCta: string;
   androidApkCta: string;
   ctaMenuLabel: string;
   privacyLabel: string;
@@ -43,6 +44,8 @@ interface LocaleCopy {
 
 const latestAndroidApkUrl =
   "https://github.com/hynek-jina/linky/releases/latest/download/linky.apk";
+const googlePlayUrl =
+  "https://play.google.com/store/apps/details?id=fit.linky.app&pli=1";
 
 const copy: Record<Locale, LocaleCopy> = {
   cs: {
@@ -57,6 +60,7 @@ const copy: Record<Locale, LocaleCopy> = {
     subtitle:
       "Linky přináší svobodu komunikace i plateb v jedné aplikaci. Díky cashu snadno zaplatíte, nostr zajistí soukromé zprávy a evolu se postará o bezpečnou synchronizaci vašich dat.",
     webCta: "Webová aplikace",
+    googlePlayCta: "Google Play",
     androidApkCta: "Android APK",
     ctaMenuLabel: "Možnosti otevření aplikace",
     privacyLabel: "Ochrana soukromí",
@@ -97,6 +101,7 @@ const copy: Record<Locale, LocaleCopy> = {
     subtitle:
       "Linky brings freedom to communication and payments in a single app. Cashu makes payments easy, nostr ensures private messaging, and evolu takes care of securely syncing your data.",
     webCta: "Web app",
+    googlePlayCta: "Google Play",
     androidApkCta: "Android APK",
     ctaMenuLabel: "App launch options",
     privacyLabel: "Privacy Policy",
@@ -173,12 +178,25 @@ const getInitialLocale = (): Locale => {
   return "cs";
 };
 
+const getDefaultCtaMode = (): CtaMode => {
+  if (typeof navigator === "undefined") {
+    return "web";
+  }
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isAndroid = userAgent.includes("android");
+  const isMobile = userAgent.includes("mobile");
+
+  return isAndroid && isMobile ? "google-play" : "web";
+};
+
 function App() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [displayCurrency, setDisplayCurrency] = useState<SiteDisplayCurrency>(
     getInitialSiteDisplayCurrency,
   );
-  const [preferredCtaMode, setPreferredCtaMode] = useState<CtaMode>("web");
+  const [preferredCtaMode, setPreferredCtaMode] =
+    useState<CtaMode>(getDefaultCtaMode);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [isFeaturePlaying, setIsFeaturePlaying] = useState(false);
@@ -191,9 +209,13 @@ function App() {
   const featureVideoRef = useRef<HTMLVideoElement | null>(null);
   const featurePlaybackStartedRef = useRef(false);
   const playedFeatureIndexesRef = useRef<Set<number>>(new Set());
-  const ctaMode = preferredCtaMode === "android-apk" ? "android-apk" : "web";
+  const ctaMode = preferredCtaMode;
   const primaryCtaLabel =
-    ctaMode === "android-apk" ? activeCopy.androidApkCta : activeCopy.webCta;
+    ctaMode === "google-play"
+      ? activeCopy.googlePlayCta
+      : ctaMode === "android-apk"
+        ? activeCopy.androidApkCta
+        : activeCopy.webCta;
 
   useEffect(() => {
     document.documentElement.lang = activeCopy.htmlLang;
@@ -346,7 +368,16 @@ function App() {
     window.open(latestAndroidApkUrl, "_blank", "noopener,noreferrer");
   };
 
+  const openGooglePlay = () => {
+    window.open(googlePlayUrl, "_blank", "noopener,noreferrer");
+  };
+
   const handlePrimaryAction = () => {
+    if (ctaMode === "google-play") {
+      openGooglePlay();
+      return;
+    }
+
     if (ctaMode === "android-apk") {
       openAndroidApk();
       return;
@@ -432,6 +463,24 @@ function App() {
                     >
                       <span className="cta-option-label">
                         {activeCopy.webCta}
+                      </span>
+                    </button>
+                    <button
+                      className={
+                        ctaMode === "google-play"
+                          ? "cta-option is-selected"
+                          : "cta-option"
+                      }
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={ctaMode === "google-play"}
+                      onClick={() => {
+                        setPreferredCtaMode("google-play");
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <span className="cta-option-label">
+                        {activeCopy.googlePlayCta}
                       </span>
                     </button>
                     <button
