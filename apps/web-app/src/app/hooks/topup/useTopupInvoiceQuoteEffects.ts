@@ -11,6 +11,56 @@ export interface TopupMintQuoteDraft {
   unit: string | null;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+export const requestMintQuoteBolt11 = async (args: {
+  amountSat: number;
+  mintUrl: string;
+}): Promise<{ invoice: string; quoteId: string }> => {
+  const { amountSat, mintUrl } = args;
+  const targetUrl = isNativePlatform()
+    ? `${mintUrl.replace(/\/+$/, "")}/v1/mint/quote/bolt11`
+    : `/api/mint-quote?mint=${encodeURIComponent(mintUrl)}`;
+
+  const quoteRes = await fetch(targetUrl, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ amount: amountSat, unit: "sat" }),
+  });
+
+  if (!quoteRes.ok) {
+    throw new Error(`Mint quote HTTP ${quoteRes.status}`);
+  }
+
+  const rawText = await quoteRes.text();
+  let mintQuote: Record<string, unknown> | null = null;
+  try {
+    const parsed = rawText ? JSON.parse(rawText) : null;
+    mintQuote = isRecord(parsed) ? parsed : null;
+  } catch {
+    throw new Error(
+      `Mint quote parse failed (${quoteRes.status}): ${rawText.slice(0, 200)}`,
+    );
+  }
+
+  const quoteId = String(mintQuote?.quote ?? mintQuote?.id ?? "").trim();
+  const invoice = String(
+    mintQuote?.request ?? mintQuote?.pr ?? mintQuote?.paymentRequest ?? "",
+  ).trim();
+
+  if (!quoteId || !invoice) {
+    throw new Error(
+      `Missing mint quote (quote=${quoteId || "-"}, invoice=${invoice || "-"})`,
+    );
+  }
+
+  return { quoteId, invoice };
+};
+
 export const topupMintQuoteMatchesRequest = (
   quote: TopupMintQuoteDraft | null,
   args: {
@@ -190,85 +240,27 @@ export const useTopupInvoiceQuoteEffects = ({
     topupInvoiceStartBalanceRef.current = null;
     topupInvoicePaidHandledRef.current = false;
 
-    let quoteController: AbortController | null = null;
     void (async () => {
       try {
-        const fetchWithTimeout = async (
-          url: string,
-          options: RequestInit,
-          ms: number,
-        ) => {
-          quoteController = new AbortController();
+        const requestQuote = async (baseUrl: string) => {
           let timeoutId: number | null = null;
           const timeout = new Promise<never>((_, reject) => {
             timeoutId = window.setTimeout(() => {
-              try {
-                quoteController?.abort();
-              } catch {
-                // ignore
-              }
               reject(new Error("Mint quote timeout"));
-            }, ms);
+            }, 12_000);
           });
+
           try {
             return await Promise.race([
-              fetch(url, { ...options, signal: quoteController.signal }),
+              requestMintQuoteBolt11({
+                amountSat,
+                mintUrl: baseUrl,
+              }),
               timeout,
             ]);
           } finally {
             if (timeoutId !== null) window.clearTimeout(timeoutId);
           }
-        };
-
-        const requestQuote = async (baseUrl: string) => {
-          const targetUrl = isNativePlatform()
-            ? `${baseUrl.replace(/\/+$/, "")}/v1/mint/quote/bolt11`
-            : `/api/mint-quote?mint=${encodeURIComponent(baseUrl)}`;
-
-          const quoteRes = await fetchWithTimeout(
-            targetUrl,
-            {
-              method: "POST",
-              headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ amount: amountSat, unit: "sat" }),
-            },
-            12_000,
-          );
-
-          if (!quoteRes.ok) {
-            throw new Error(`Mint quote HTTP ${quoteRes.status}`);
-          }
-
-          const rawText = await quoteRes.text();
-          let mintQuote: Record<string, unknown> | null = null;
-          try {
-            const parsed = rawText ? JSON.parse(rawText) : null;
-            mintQuote =
-              parsed && typeof parsed === "object"
-                ? (parsed as Record<string, unknown>)
-                : null;
-          } catch {
-            throw new Error(
-              `Mint quote parse failed (${quoteRes.status}): ${rawText.slice(
-                0,
-                200,
-              )}`,
-            );
-          }
-          const quoteId = String(
-            mintQuote?.quote ?? mintQuote?.id ?? "",
-          ).trim();
-          const invoice = String(
-            mintQuote?.request ??
-              mintQuote?.pr ??
-              mintQuote?.paymentRequest ??
-              "",
-          ).trim();
-
-          return { quoteId, invoice };
         };
 
         const { quoteId, invoice } = await requestQuote(mintUrl);
@@ -330,13 +322,6 @@ export const useTopupInvoiceQuoteEffects = ({
     return () => {
       cancelled = true;
       isFetchingRef.current = false;
-      if (quoteController) {
-        try {
-          quoteController.abort();
-        } catch {
-          // ignore
-        }
-      }
     };
 
     // (topupInvoice, topupInvoiceQr, topupInvoiceError, topupInvoiceIsBusy)

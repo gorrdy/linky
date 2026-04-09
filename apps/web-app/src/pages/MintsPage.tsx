@@ -12,9 +12,12 @@ interface MintsPageProps {
   MAIN_MINT_URL: string;
   PRESET_MINTS: readonly string[];
   applyDefaultMintSelection: (mint: string) => Promise<void>;
+  cashuIsBusy: boolean;
+  cashuMeltToMainMintButtonLabel: string | null;
   defaultMintUrl: string | null;
   defaultMintUrlDraft: string;
   getMintIconUrl: (mint: MintUrlInput) => MintIcon;
+  meltLargestForeignMintToMainMint: () => Promise<void>;
   normalizeMintUrl: (url: string) => string;
   setDefaultMintUrlDraft: (value: string) => void;
   t: (key: string) => string;
@@ -24,9 +27,12 @@ export function MintsPage({
   MAIN_MINT_URL,
   PRESET_MINTS,
   applyDefaultMintSelection,
+  cashuIsBusy,
+  cashuMeltToMainMintButtonLabel,
   defaultMintUrl,
   defaultMintUrlDraft,
   getMintIconUrl,
+  meltLargestForeignMintToMainMint,
   normalizeMintUrl,
   setDefaultMintUrlDraft,
   t,
@@ -84,6 +90,7 @@ export function MintsPage({
                 isSelected={isSelected}
                 label={label}
                 fallbackLetter={fallbackLetter}
+                disabled={cashuIsBusy}
                 onClick={() => void applyDefaultMintSelection(mint)}
               />
             );
@@ -97,6 +104,7 @@ export function MintsPage({
         value={defaultMintUrlDraft}
         onChange={(e) => setDefaultMintUrlDraft(e.target.value)}
         placeholder="https://…"
+        disabled={cashuIsBusy}
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
@@ -106,6 +114,7 @@ export function MintsPage({
         {canSave ? (
           <button
             type="button"
+            disabled={cashuIsBusy}
             onClick={async () => {
               await applyDefaultMintSelection(defaultMintUrlDraft);
             }}
@@ -114,6 +123,19 @@ export function MintsPage({
           </button>
         ) : null}
       </div>
+
+      {cashuMeltToMainMintButtonLabel ? (
+        <div className="panel-header" style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={cashuIsBusy}
+            onClick={() => void meltLargestForeignMintToMainMint()}
+          >
+            {cashuMeltToMainMintButtonLabel}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

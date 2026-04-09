@@ -137,6 +137,7 @@ import {
 } from "./hooks/topup/topupMintQuoteState";
 import {
   useTopupInvoiceQuoteEffects,
+  requestMintQuoteBolt11,
   type TopupMintQuoteDraft,
 } from "./hooks/topup/useTopupInvoiceQuoteEffects";
 import { useAnonymousPaymentTelemetry } from "./hooks/useAnonymousPaymentTelemetry";
@@ -167,6 +168,11 @@ import {
   CASHU_TOKEN_STATE_EXTERNALIZED,
   isCashuTokenAcceptedState,
 } from "./lib/cashuTokenState";
+import {
+  buildPaymentAmountAttempts,
+  buildPaymentFailureAmountAttempts,
+  isRetryablePaymentAmountFailure,
+} from "./lib/paymentAmountFallback";
 import type { AppNostrPool } from "./lib/nostrPool";
 import {
   publishSingleWrappedWithRetry as publishSingleWrappedWithRetryBase,
@@ -2471,6 +2477,7 @@ export const useAppShellComposition = () => {
   });
 
   const paySelectedContact = React.useCallback(async () => {
+    if (cashuIsBusy) return;
     if (route.kind !== "contactPay") return;
     if (!selectedContact) return;
 
@@ -2496,16 +2503,23 @@ export const useAppShellComposition = () => {
       return;
     }
 
-    await payContactWithCashuMessage({
-      contact: selectedContact,
-      amountSat,
-    });
+    setCashuIsBusy(true);
+    try {
+      await payContactWithCashuMessage({
+        contact: selectedContact,
+        amountSat,
+      });
+    } finally {
+      setCashuIsBusy(false);
+    }
   }, [
+    cashuIsBusy,
     contactPayMethod,
     payAmount,
     payContactWithCashuMessage,
     route.kind,
     selectedContact,
+    setCashuIsBusy,
     setLnAddressPayAmount,
     setStatus,
     t,
@@ -3149,6 +3163,402 @@ export const useAppShellComposition = () => {
     tokensRestoreIsBusy,
   });
 
+  const mainMintForTokenList = React.useMemo(
+    () => normalizeMintUrl(defaultMintUrl ?? MAIN_MINT_URL),
+    [defaultMintUrl],
+  );
+
+  const largestForeignMintForTokenList = React.useMemo(() => {
+    if (!mainMintForTokenList) return null;
+
+    const groups = new Map<
+      string,
+      { mint: string; sum: number; tokens: string[] }
+    >();
+    for (const row of cashuTokensWithMeta) {
+      if (!isCashuTokenAcceptedState(row.state)) continue;
+
+      const mint = normalizeMintUrl(String(row.mint ?? "").trim());
+      if (!mint || mint === mainMintForTokenList) continue;
+
+      const tokenText = String(row.token ?? row.rawToken ?? "").trim();
+      if (!tokenText) continue;
+
+      const amount = Number(row.amount ?? 0);
+      const nextAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
+      const entry = groups.get(mint) ?? { mint, sum: 0, tokens: [] };
+      entry.sum += nextAmount;
+      entry.tokens.push(tokenText);
+      groups.set(mint, entry);
+    }
+
+    let selected: { mint: string; sum: number; tokens: string[] } | null = null;
+    for (const entry of groups.values()) {
+      if (!selected || entry.sum > selected.sum) {
+        selected = entry;
+      }
+    }
+
+    return selected;
+  }, [cashuTokensWithMeta, mainMintForTokenList]);
+
+  const formatMintButtonLabel = React.useCallback((mintUrl: string) => {
+    try {
+      return new URL(mintUrl).host || mintUrl.replace(/^https?:\/\//i, "");
+    } catch {
+      return mintUrl.replace(/^https?:\/\//i, "");
+    }
+  }, []);
+
+  const cashuMeltToMainMintButtonLabel =
+    mainMintForTokenList && largestForeignMintForTokenList
+      ? t("cashuMeltToMainMint").replace(
+          "{mint}",
+          formatMintButtonLabel(mainMintForTokenList),
+        )
+      : null;
+
+  const meltLargestForeignMintToMainMint = React.useCallback(async () => {
+    if (cashuIsBusy) return;
+
+    const targetMint = normalizeMintUrl(defaultMintUrl ?? MAIN_MINT_URL);
+    if (!targetMint) {
+      setStatus(t("mintUrlInvalid"));
+      return;
+    }
+
+    const sourceGroups = new Map<string, { mint: string; sum: number }>();
+    for (const row of cashuTokensWithMeta) {
+      if (!isCashuTokenAcceptedState(row.state)) continue;
+
+      const mint = normalizeMintUrl(String(row.mint ?? "").trim());
+      if (!mint || mint === targetMint) continue;
+
+      const amount = Number(row.amount ?? 0);
+      const nextAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
+      const entry = sourceGroups.get(mint) ?? { mint, sum: 0 };
+      entry.sum += nextAmount;
+      sourceGroups.set(mint, entry);
+    }
+
+    let sourceMint: string | null = null;
+    let sourceBalance = 0;
+    for (const entry of sourceGroups.values()) {
+      if (!sourceMint || entry.sum > sourceBalance) {
+        sourceMint = entry.mint;
+        sourceBalance = entry.sum;
+      }
+    }
+
+    if (!sourceMint || sourceBalance <= 0) {
+      setStatus(t("cashuMeltToMainMintUnavailable"));
+      return;
+    }
+
+    const sourceRows = cashuTokensWithMeta.filter((row) => {
+      if (!isCashuTokenAcceptedState(row.state)) return false;
+      return normalizeMintUrl(String(row.mint ?? "").trim()) === sourceMint;
+    });
+    const sourceTokens = sourceRows
+      .map((row) => String(row.token ?? row.rawToken ?? "").trim())
+      .filter((tokenText) => tokenText.length > 0);
+
+    if (sourceTokens.length === 0) {
+      setStatus(t("cashuMeltToMainMintUnavailable"));
+      return;
+    }
+
+    interface AcceptedCashuTokenPayload {
+      amount?: number;
+      mint?: string;
+      rawToken?: string;
+      state: "accepted";
+      token: string;
+      unit?: string;
+    }
+
+    const insertAcceptedToken = async (args: {
+      amount?: number | null;
+      mint?: string | null;
+      rawToken?: string | null;
+      token: string;
+      unit?: string | null;
+    }) => {
+      const payload: AcceptedCashuTokenPayload = {
+        token: args.token,
+        state: "accepted",
+      };
+      if (args.rawToken) payload.rawToken = args.rawToken;
+      if (args.mint) payload.mint = args.mint;
+      if (args.unit) payload.unit = args.unit;
+      if (typeof args.amount === "number" && args.amount > 0) {
+        payload.amount = args.amount;
+      }
+
+      const ownerId = await resolveOwnerIdForWrite();
+      const result = ownerId
+        ? insert("cashuToken", payload, { ownerId })
+        : insert("cashuToken", payload);
+      return { ownerId, result };
+    };
+
+    const markRowsDeleted = async (
+      rows: Array<{ id?: CashuTokenId | string | null }>,
+      ownerIdOverride?: Evolu.OwnerId | null,
+    ) => {
+      for (const row of rows) {
+        if (!row.id) continue;
+        const payload = { id: row.id, isDeleted: Evolu.sqliteTrue };
+        const result = ownerIdOverride
+          ? update("cashuToken", payload, { ownerId: ownerIdOverride })
+          : update("cashuToken", payload);
+        if (!result.ok) {
+          throw new Error(String(result.error));
+        }
+      }
+    };
+
+    const initialAmountAttempts = buildPaymentAmountAttempts(
+      sourceBalance,
+      sourceBalance,
+    );
+    const queuedAmountAttempts = [...initialAmountAttempts];
+    const seenAmountAttempts = new Set(queuedAmountAttempts);
+    let finalError = t("cashuMeltToMainMintFailed");
+
+    setCashuIsBusy(true);
+    setStatus(t("cashuMeltToMainMintProcessing"));
+
+    try {
+      rememberSeenMint(targetMint);
+      await refreshMintInfo(targetMint);
+
+      const { CashuMint, CashuWallet, MintQuoteState, getEncodedToken } =
+        await getCashuLib();
+      const det = getCashuDeterministicSeedFromStorage();
+      const targetWallet = await createLoadedCashuWallet({
+        CashuMint,
+        CashuWallet,
+        mintUrl: targetMint,
+        unit: "sat",
+        ...(det ? { bip39seed: det.bip39seed } : {}),
+      });
+      const waitForClaimableQuote = async (quoteId: string) => {
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+          const status = await targetWallet.checkMintQuote(quoteId);
+          const state = readMintQuoteState(status);
+          if (isClaimableMintQuoteState(state, MintQuoteState)) {
+            return true;
+          }
+          if (attempt < 11) {
+            await new Promise<void>((resolve) => {
+              window.setTimeout(resolve, 500);
+            });
+          }
+        }
+
+        return false;
+      };
+      const { meltInvoiceWithTokensAtMint } = await import("../cashuMelt");
+
+      let activeSourceRows: Array<{ id?: CashuTokenId | string | null }> =
+        sourceRows;
+      let activeSourceOwnerId = cashuOwnerId;
+      let activeSourceTokens = sourceTokens;
+
+      for (
+        let attemptIndex = 0;
+        attemptIndex < queuedAmountAttempts.length;
+        attemptIndex += 1
+      ) {
+        const amountSat = queuedAmountAttempts[attemptIndex];
+        let quoteId = "";
+        let invoice = "";
+
+        try {
+          const requestedQuote = await requestMintQuoteBolt11({
+            amountSat,
+            mintUrl: targetMint,
+          });
+          quoteId = requestedQuote.quoteId;
+          invoice = requestedQuote.invoice;
+
+          const meltResult = await meltInvoiceWithTokensAtMint({
+            invoice,
+            mint: sourceMint,
+            tokens: activeSourceTokens,
+            unit: "sat",
+          });
+
+          if (!meltResult.ok) {
+            const errorMessage = String(meltResult.error ?? "unknown");
+
+            if (meltResult.remainingToken && meltResult.remainingAmount > 0) {
+              const retryable = isRetryablePaymentAmountFailure(errorMessage);
+
+              if (retryable) {
+                const recoveryInsert = await insertAcceptedToken({
+                  token: meltResult.remainingToken,
+                  mint: meltResult.mint,
+                  unit: meltResult.unit,
+                  amount: meltResult.remainingAmount,
+                });
+                if (!recoveryInsert.result.ok) {
+                  throw new Error(String(recoveryInsert.result.error));
+                }
+
+                await markRowsDeleted(activeSourceRows, activeSourceOwnerId);
+
+                activeSourceRows = [
+                  {
+                    id: recoveryInsert.result.value.id,
+                  },
+                ];
+                activeSourceOwnerId = recoveryInsert.ownerId;
+                activeSourceTokens = [meltResult.remainingToken];
+
+                finalError = errorMessage;
+                break;
+              }
+
+              const recoveryInsert = await insertAcceptedToken({
+                token: meltResult.remainingToken,
+                mint: meltResult.mint,
+                unit: meltResult.unit,
+                amount: meltResult.remainingAmount,
+              });
+              if (!recoveryInsert.result.ok) {
+                throw new Error(String(recoveryInsert.result.error));
+              }
+              await markRowsDeleted(activeSourceRows, activeSourceOwnerId);
+              finalError = errorMessage;
+              break;
+            }
+
+            if (isRetryablePaymentAmountFailure(errorMessage)) {
+              const retryAmounts = buildPaymentFailureAmountAttempts(
+                amountSat,
+                errorMessage,
+              );
+              for (const retryAmount of retryAmounts) {
+                if (seenAmountAttempts.has(retryAmount)) continue;
+                seenAmountAttempts.add(retryAmount);
+                queuedAmountAttempts.push(retryAmount);
+              }
+            }
+
+            finalError = errorMessage;
+            continue;
+          }
+
+          if (meltResult.remainingToken && meltResult.remainingAmount > 0) {
+            const remainingInsert = await insertAcceptedToken({
+              token: meltResult.remainingToken,
+              mint: meltResult.mint,
+              unit: meltResult.unit,
+              amount: meltResult.remainingAmount,
+            });
+            if (!remainingInsert.result.ok) {
+              throw new Error(String(remainingInsert.result.error));
+            }
+          }
+
+          await markRowsDeleted(activeSourceRows, activeSourceOwnerId);
+
+          setTopupMintQuote({
+            invoice,
+            mintUrl: targetMint,
+            quote: quoteId,
+            amount: amountSat,
+            unit: targetWallet.unit ?? "sat",
+          });
+
+          const claimable = await waitForClaimableQuote(quoteId);
+
+          if (!claimable) {
+            const displayAmount = formatDisplayedAmountParts(amountSat);
+            setStatus(
+              t("cashuMeltToMainMintPending")
+                .replace(
+                  "{amount}",
+                  `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+                )
+                .replace("{unit}", displayAmount.unitLabel),
+            );
+            return;
+          }
+
+          const mintedUnit = targetWallet.unit ?? "sat";
+          const mintedProofs = await mintTopupProofs({
+            amount: amountSat,
+            mintUrl: targetMint,
+            quoteId,
+            unit: mintedUnit,
+            wallet: targetWallet,
+          });
+          const mintedToken = String(
+            getEncodedToken({
+              mint: targetMint,
+              proofs: mintedProofs,
+              unit: mintedUnit,
+            }) ?? "",
+          ).trim();
+          if (!mintedToken) {
+            throw new Error("Mint produced empty token");
+          }
+
+          const mintedInsert = await insertAcceptedToken({
+            token: mintedToken,
+            mint: targetMint,
+            unit: mintedUnit,
+            amount: amountSat,
+          });
+          if (!mintedInsert.result.ok) {
+            throw new Error(String(mintedInsert.result.error));
+          }
+
+          setTopupMintQuote(null);
+
+          const displayAmount = formatDisplayedAmountParts(amountSat);
+          setStatus(
+            t("cashuMeltToMainMintDone")
+              .replace(
+                "{amount}",
+                `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+              )
+              .replace("{unit}", displayAmount.unitLabel)
+              .replace("{mint}", formatMintButtonLabel(targetMint)),
+          );
+          return;
+        } catch (error) {
+          finalError = getUnknownErrorMessage(error, "unknown");
+          if (!isRetryablePaymentAmountFailure(finalError)) {
+            break;
+          }
+        }
+      }
+
+      setStatus(`${t("cashuMeltToMainMintFailed")}: ${finalError}`);
+    } finally {
+      setCashuIsBusy(false);
+    }
+  }, [
+    cashuIsBusy,
+    cashuOwnerId,
+    cashuTokensWithMeta,
+    defaultMintUrl,
+    formatDisplayedAmountParts,
+    formatMintButtonLabel,
+    insert,
+    refreshMintInfo,
+    rememberSeenMint,
+    resolveOwnerIdForWrite,
+    setCashuIsBusy,
+    setStatus,
+    t,
+    update,
+  ]);
+
   useChatNostrSyncEffect({
     appendLocalNostrMessage,
     appendLocalNostrReaction,
@@ -3511,6 +3921,7 @@ export const useAppShellComposition = () => {
       cashuDraft,
       cashuDraftRef,
       cashuIsBusy,
+      cashuMeltToMainMintButtonLabel,
       cashuTokensAll: cashuTokensAllFiltered,
       cashuTokensWithMeta,
       checkAllCashuTokensAndDeleteInvalid,
@@ -3524,6 +3935,7 @@ export const useAppShellComposition = () => {
       knownLnAddressPayContact,
       knownLnAddressPayContactPictureUrl,
       lnAddressPayAmount,
+      meltLargestForeignMintToMainMint,
       payLightningAddressWithCashu,
       pendingCashuDeleteId,
       requestDeleteCashuToken,
@@ -3672,6 +4084,7 @@ export const useAppShellComposition = () => {
       appOwnerIdRef,
       appVersion: __APP_VERSION__,
       applyDefaultMintSelection,
+      cashuMeltToMainMintButtonLabel,
       canSaveNewRelay,
       cashuIsBusy,
       connectedRelayCount,
@@ -3723,6 +4136,7 @@ export const useAppShellComposition = () => {
       LOCAL_MINT_INFO_STORAGE_KEY_PREFIX,
       logoutArmed,
       MAIN_MINT_URL,
+      meltLargestForeignMintToMainMint,
       mintInfoByUrl,
       newEvoluServerUrl,
       newRelayUrl,

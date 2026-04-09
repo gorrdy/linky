@@ -13,6 +13,7 @@ interface CashuTokenNewPageProps {
   cashuDraft: string;
   cashuDraftRef: React.RefObject<HTMLTextAreaElement | null>;
   cashuIsBusy: boolean;
+  cashuMeltToMainMintButtonLabel: string | null;
   cashuTokens: readonly CashuTokenListItem[];
   checkAllCashuTokensAndDeleteInvalid: () => Promise<void>;
   getMintIconUrl: (mint: MintUrlInput) => {
@@ -21,6 +22,7 @@ interface CashuTokenNewPageProps {
     host: string | null;
     failed: boolean;
   };
+  meltLargestForeignMintToMainMint: () => Promise<void>;
   saveCashuFromText: (
     text: string,
     opts: { navigateToWallet: boolean },
@@ -38,9 +40,11 @@ export const CashuTokenNewPage: FC<CashuTokenNewPageProps> = ({
   cashuDraft,
   cashuDraftRef,
   cashuIsBusy,
+  cashuMeltToMainMintButtonLabel,
   cashuTokens,
   checkAllCashuTokensAndDeleteInvalid,
   getMintIconUrl,
+  meltLargestForeignMintToMainMint,
   saveCashuFromText,
   setCashuDraft,
   setMintIconUrlByMint,
@@ -97,6 +101,18 @@ export const CashuTokenNewPage: FC<CashuTokenNewPageProps> = ({
             ))}
           </div>
         )}
+        {cashuMeltToMainMintButtonLabel ? (
+          <div className="settings-row" style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className="btn-wide secondary"
+              onClick={() => void meltLargestForeignMintToMainMint()}
+              disabled={cashuIsBusy || cashuBulkCheckIsBusy}
+            >
+              {cashuMeltToMainMintButtonLabel}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <label>{t("cashuToken")}</label>
