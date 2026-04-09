@@ -1402,10 +1402,11 @@ export const useAppShellComposition = () => {
     ensureCashuTokenPersisted,
     isCashuTokenKnownAny,
     isCashuTokenStored,
+    rememberCashuTokenKnown,
   } = useCashuDomain({
     appOwnerId: cashuOwnerId,
     appOwnerIdRef: cashuOwnerIdRef,
-    cashuTokensAll: cashuTokensAllFiltered,
+    cashuTokensAll,
     insert,
     logPaymentEvent,
   });
@@ -1865,7 +1866,7 @@ export const useAppShellComposition = () => {
 
   const { claimNpubCashOnce, claimNpubCashOnceLatestRef } = useNpubCashClaim({
     cashuIsBusy,
-    cashuTokensAll: cashuTokensAllFiltered,
+    cashuTokensAll,
     currentNpub,
     currentNsec,
     enqueueCashuOp,
@@ -1881,6 +1882,7 @@ export const useAppShellComposition = () => {
     recentlyReceivedTokenTimerRef,
     refreshMintInfo,
     resolveOwnerIdForWrite,
+    rememberCashuTokenKnown,
     routeKind: route.kind,
     setCashuIsBusy,
     setRecentlyReceivedToken,
@@ -2637,6 +2639,7 @@ export const useAppShellComposition = () => {
     recentlyReceivedTokenTimerRef,
     refreshMintInfo,
     resolveOwnerIdForWrite,
+    rememberCashuTokenKnown,
     setCashuDraft,
     setCashuIsBusy,
     setRecentlyReceivedToken,
