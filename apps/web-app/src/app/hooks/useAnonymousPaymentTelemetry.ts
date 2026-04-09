@@ -86,6 +86,7 @@ const isLocalPaymentTelemetryEvent = (
   const feeBucket = Reflect.get(value, "feeBucket");
   const errorCode = Reflect.get(value, "errorCode");
   const errorDetail = Reflect.get(value, "errorDetail");
+  const mint = Reflect.get(value, "mint");
 
   return (
     typeof id === "string" &&
@@ -99,6 +100,7 @@ const isLocalPaymentTelemetryEvent = (
     isTelemetryPhase(phase) &&
     isTelemetryPlatform(platform) &&
     typeof appVersion === "string" &&
+    (typeof mint === "string" || mint === null) &&
     (typeof amountBucket === "string" || amountBucket === null) &&
     (typeof feeBucket === "string" || feeBucket === null) &&
     (typeof errorCode === "string" || errorCode === null) &&

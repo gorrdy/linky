@@ -59,6 +59,7 @@ export type LocalPaymentTelemetryEvent = {
   id: string;
   lastAttemptAtSec: number | null;
   method: PaymentTelemetryMethod;
+  mint: string | null;
   nextAttemptAtSec: number;
   phase: PaymentTelemetryPhase;
   platform: "android" | "ios" | "web";
