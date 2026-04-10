@@ -2631,6 +2631,14 @@ export const useAppShellComposition = () => {
   const [walletWarningDismissed, setWalletWarningDismissed] =
     React.useState(false);
 
+  const walletWarningApplies = cashuBalance > lightningInvoiceAutoPayLimit;
+
+  React.useEffect(() => {
+    if (!walletWarningApplies) {
+      setWalletWarningDismissed(false);
+    }
+  }, [walletWarningApplies]);
+
   const dismissWalletWarning = React.useCallback(() => {
     setWalletWarningDismissed(true);
   }, []);
@@ -4082,7 +4090,7 @@ export const useAppShellComposition = () => {
       setActiveGroup,
       setContactsSearch,
       showContactsOnboarding,
-      showWalletWarning: !walletWarningDismissed,
+      showWalletWarning: walletWarningApplies && !walletWarningDismissed,
       startContactsGuide,
       t,
       visibleContacts,
