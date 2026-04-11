@@ -1,3 +1,4 @@
+import { getDefaultLang } from "../utils/browserPreferences";
 import { cs } from "./cs";
 import { en } from "./en";
 
@@ -7,16 +8,11 @@ export type I18nKey = keyof typeof translations.cs;
 
 const STORAGE_KEY = "linky.lang";
 
-const getSystemLang = (): Lang => {
-  if (typeof navigator === "undefined") return "en";
-  return navigator.language?.toLowerCase().startsWith("cs") ? "cs" : "en";
-};
-
 export const getInitialLang = (): Lang => {
-  if (typeof localStorage === "undefined") return getSystemLang();
+  if (typeof localStorage === "undefined") return getDefaultLang();
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "cs" || stored === "en") return stored;
-  return getSystemLang();
+  return getDefaultLang();
 };
 
 export const persistLang = (lang: Lang) => {

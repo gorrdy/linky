@@ -1,3 +1,4 @@
+import { getDefaultDisplayCurrency } from "./browserPreferences";
 import {
   ALLOW_PROMISES_STORAGE_KEY,
   DISPLAY_CURRENCY_STORAGE_KEY,
@@ -190,9 +191,9 @@ export const getInitialDisplayCurrency = (): DisplayCurrency => {
     if (stored) return stored;
     return localStorage.getItem(UNIT_TOGGLE_STORAGE_KEY) === "1"
       ? "btc"
-      : "sat";
+      : getDefaultDisplayCurrency();
   } catch {
-    return "sat";
+    return getDefaultDisplayCurrency();
   }
 };
 

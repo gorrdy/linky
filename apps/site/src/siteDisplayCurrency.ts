@@ -1,5 +1,7 @@
 export type SiteDisplayCurrency = "sat" | "btc" | "czk" | "usd";
 
+import { getDefaultSiteDisplayCurrency } from "./sitePreferences";
+
 export const siteDisplayCurrencyStorageKey = "linky.display_currency.v1";
 
 export const parseSiteDisplayCurrency = (
@@ -16,8 +18,9 @@ export const parseSiteDisplayCurrency = (
 };
 
 export const getInitialSiteDisplayCurrency = (): SiteDisplayCurrency => {
-  if (typeof window === "undefined") return "sat";
+  if (typeof window === "undefined") return getDefaultSiteDisplayCurrency();
   return parseSiteDisplayCurrency(
-    window.localStorage.getItem(siteDisplayCurrencyStorageKey),
+    window.localStorage.getItem(siteDisplayCurrencyStorageKey) ??
+      getDefaultSiteDisplayCurrency(),
   );
 };

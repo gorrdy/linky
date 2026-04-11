@@ -1,11 +1,12 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SiteHeaderMenu } from "../SiteHeaderMenu";
 import {
   getInitialSiteDisplayCurrency,
   siteDisplayCurrencyStorageKey,
   type SiteDisplayCurrency,
 } from "../siteDisplayCurrency";
+import { SiteHeaderMenu } from "../SiteHeaderMenu";
+import { getDefaultSiteLocale } from "../sitePreferences";
 import { forwardCashuTokenPrivately } from "./nostrGiftWrap";
 import {
   flushPaymentTelemetryQueue,
@@ -208,18 +209,7 @@ const getInitialLocale = (): Locale => {
     }
   }
 
-  if (typeof navigator === "undefined") return "cs";
-  const languages = Array.isArray(navigator.languages)
-    ? navigator.languages
-    : [navigator.language];
-
-  for (const language of languages) {
-    const normalized = String(language ?? "").toLowerCase();
-    if (normalized.startsWith("cs")) return "cs";
-    if (normalized.startsWith("en")) return "en";
-  }
-
-  return "cs";
+  return getDefaultSiteLocale();
 };
 
 const getErrorMessage = (value: unknown, fallback: string): string => {
