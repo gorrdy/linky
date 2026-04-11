@@ -1,12 +1,17 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SiteHeaderMenu } from "../SiteHeaderMenu";
 import {
   getInitialSiteDisplayCurrency,
   siteDisplayCurrencyStorageKey,
   type SiteDisplayCurrency,
 } from "../siteDisplayCurrency";
+import { SiteHeaderMenu } from "../SiteHeaderMenu";
+import { getDefaultSiteLocale } from "../sitePreferences";
 import { forwardCashuTokenPrivately } from "./nostrGiftWrap";
+import {
+  flushPaymentTelemetryQueue,
+  queuePaymentTelemetry,
+} from "./paymentTelemetry";
 
 type Locale = "cs" | "en";
 
@@ -33,6 +38,7 @@ interface LocaleCopy {
   openInWalletLabel: string;
   redeemButton: string;
   redeemConfirmed: string;
+  redeemFailed: string;
   redeemLnurlComment: string;
   redeemSuccessAddress: string;
   redeeming: string;
@@ -60,6 +66,18 @@ interface RedeemSuccessState {
   lightningAddress: string;
 }
 
+type RedeemTelemetryPhase = "invoice_fetch" | "melt";
+
+class RedeemError extends Error {
+  phase: RedeemTelemetryPhase;
+
+  constructor(message: string, phase: RedeemTelemetryPhase) {
+    super(message);
+    this.name = "RedeemError";
+    this.phase = phase;
+  }
+}
+
 interface SiteFiatRates {
   czkPerBtc: number;
   fetchedAtMs: number;
@@ -81,6 +99,9 @@ const localeStorageKey = "linky.lang";
 const fiatRatesStorageKey = "linky.fiat_rates.v1";
 const fiatRatesTtlMs = 10 * 60 * 1000;
 const satsPerBtc = 100_000_000;
+const linkyWebAppUrl = "https://app.linky.fit";
+const nativeLaunchFallbackDelayMs = 700;
+const pwaLaunchFallbackDelayMs = 1600;
 const REMAINING_TOKEN_FORWARD_RECIPIENT_NPUB =
   "npub1xuxvcnmw4drf8duzalvalxrfxjvwtrjdmwxy0ez2e62uje4drrvqu6pz2w";
 
@@ -110,6 +131,7 @@ const copy: Record<Locale, LocaleCopy> = {
     openInWalletLabel: "Otevřít v peněžence",
     redeemButton: "Vyzvednout bitcoin",
     redeemConfirmed: "Hotovo",
+    redeemFailed: "Vyzvednutí se nepodařilo.",
     redeemLnurlComment: "Vybráno pomocí Linky",
     redeemSuccessAddress: "Prostředky vybrány na {address}",
     redeeming: "Vyzvedávám…",
@@ -147,6 +169,7 @@ const copy: Record<Locale, LocaleCopy> = {
     openInWalletLabel: "Open in wallet",
     redeemButton: "Redeem bitcoin",
     redeemConfirmed: "Success",
+    redeemFailed: "Redeem failed.",
     redeemLnurlComment: "Redeemed with Linky",
     redeemSuccessAddress: "Funds redeemed to {address}",
     redeeming: "Redeeming…",
@@ -189,18 +212,7 @@ const getInitialLocale = (): Locale => {
     }
   }
 
-  if (typeof navigator === "undefined") return "cs";
-  const languages = Array.isArray(navigator.languages)
-    ? navigator.languages
-    : [navigator.language];
-
-  for (const language of languages) {
-    const normalized = String(language ?? "").toLowerCase();
-    if (normalized.startsWith("cs")) return "cs";
-    if (normalized.startsWith("en")) return "en";
-  }
-
-  return "cs";
+  return getDefaultSiteLocale();
 };
 
 const getErrorMessage = (value: unknown, fallback: string): string => {
@@ -386,10 +398,101 @@ const copyTextToClipboard = async (value: string): Promise<boolean> => {
   }
 };
 
-const buildLinkyWalletImportUrl = (token: string): string | null => {
+interface LinkyWalletImportTargets {
+  browserUrl: string;
+  nativeUrl: string;
+  pwaUrl: string;
+}
+
+const buildLinkyWalletImportTargets = (
+  token: string,
+): LinkyWalletImportTargets | null => {
   const trimmed = String(token ?? "").trim();
   if (!trimmed) return null;
-  return `https://app.linky.fit/#wallet?cashu=${encodeURIComponent(trimmed)}`;
+  const encodedToken = encodeURIComponent(trimmed);
+  return {
+    browserUrl: `${linkyWebAppUrl}/#wallet?cashu=${encodedToken}`,
+    nativeUrl: `cashu://receive?token=${encodedToken}`,
+    pwaUrl: `web+cashu://receive?token=${encodedToken}`,
+  };
+};
+
+const openLinkyWalletImport = (token: string): void => {
+  const targets = buildLinkyWalletImportTargets(token);
+  if (!targets || typeof window === "undefined") return;
+
+  let finished = false;
+  const cleanupCallbacks: Array<() => void> = [];
+  const timeoutIds: number[] = [];
+
+  const cleanup = () => {
+    while (timeoutIds.length > 0) {
+      const timeoutId = timeoutIds.pop();
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
+    while (cleanupCallbacks.length > 0) {
+      const callback = cleanupCallbacks.pop();
+      callback?.();
+    }
+  };
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    cleanup();
+  };
+
+  const isDocumentVisible = () =>
+    typeof document === "undefined" || document.visibilityState === "visible";
+
+  const tryNavigate = (url: string) => {
+    if (finished || !isDocumentVisible()) {
+      finish();
+      return;
+    }
+
+    window.location.assign(url);
+  };
+
+  if (typeof document !== "undefined") {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        finish();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    cleanupCallbacks.push(() => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    });
+  }
+
+  const handlePageHide = () => {
+    finish();
+  };
+
+  window.addEventListener("pagehide", handlePageHide);
+  cleanupCallbacks.push(() => {
+    window.removeEventListener("pagehide", handlePageHide);
+  });
+
+  timeoutIds.push(
+    window.setTimeout(() => {
+      tryNavigate(targets.pwaUrl);
+    }, nativeLaunchFallbackDelayMs),
+  );
+
+  timeoutIds.push(
+    window.setTimeout(() => {
+      finish();
+      window.location.assign(targets.browserUrl);
+    }, pwaLaunchFallbackDelayMs),
+  );
+
+  tryNavigate(targets.nativeUrl);
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -526,22 +629,212 @@ const sumProofAmounts = (proofs: readonly CashuProofLike[]): number => {
   return sum;
 };
 
+const getMeltSwapTargetAmount = (
+  quotedTotalAmount: number,
+  availableAmount: number,
+): number => {
+  const normalizedQuotedTotalAmount = Math.trunc(quotedTotalAmount);
+  const normalizedAvailableAmount = Math.trunc(availableAmount);
+
+  if (
+    !Number.isFinite(normalizedQuotedTotalAmount) ||
+    normalizedQuotedTotalAmount <= 0
+  ) {
+    return 0;
+  }
+
+  if (
+    !Number.isFinite(normalizedAvailableAmount) ||
+    normalizedAvailableAmount <= normalizedQuotedTotalAmount
+  ) {
+    return normalizedQuotedTotalAmount;
+  }
+
+  return normalizedQuotedTotalAmount + 1;
+};
+
+const FULL_BALANCE_PAYMENT_RETRY_FEE_RESERVES = [0, 1, 2, 3, 5, 8, 13, 21];
+
+const getPositiveInteger = (value: string | undefined): number | null => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.trunc(parsed);
+};
+
+const getPaymentAmountShortage = (errorMessage: string): number | null => {
+  const normalizedMessage = errorMessage.trim();
+
+  const providedNeededMatch = normalizedMessage.match(
+    /provided:\s*(\d+)\s*,\s*needed:\s*(\d+)/i,
+  );
+  if (providedNeededMatch) {
+    const provided = getPositiveInteger(providedNeededMatch[1]);
+    const needed = getPositiveInteger(providedNeededMatch[2]);
+    if (provided !== null && needed !== null && needed > provided) {
+      return needed - provided;
+    }
+  }
+
+  const needHaveMatch = normalizedMessage.match(
+    /need\s*(\d+)\s*,\s*have\s*(\d+)/i,
+  );
+  if (needHaveMatch) {
+    const needed = getPositiveInteger(needHaveMatch[1]);
+    const have = getPositiveInteger(needHaveMatch[2]);
+    if (needed !== null && have !== null && needed > have) {
+      return needed - have;
+    }
+  }
+
+  const feeMatch = normalizedMessage.match(/fee\s*:\s*(\d+)/i);
+  if (feeMatch) {
+    return getPositiveInteger(feeMatch[1]);
+  }
+
+  return null;
+};
+
+const isRetryablePaymentAmountFailure = (errorMessage: string): boolean => {
+  const normalizedMessage = errorMessage.trim().toLowerCase();
+  return (
+    normalizedMessage.includes("insufficient funds") ||
+    normalizedMessage.includes("not enough funds") ||
+    normalizedMessage.includes("not enough balance") ||
+    normalizedMessage.includes("amount out of lnurl range") ||
+    normalizedMessage.includes("not enough inputs provided for melt")
+  );
+};
+
+const buildPaymentAmountAttempts = (
+  requestedAmountSat: number,
+  availableBalanceSat: number,
+): number[] => {
+  const normalizedRequestedAmount = Math.trunc(requestedAmountSat);
+  const normalizedAvailableBalance = Math.trunc(availableBalanceSat);
+
+  if (
+    !Number.isFinite(normalizedRequestedAmount) ||
+    normalizedRequestedAmount <= 0
+  ) {
+    return [];
+  }
+
+  if (normalizedRequestedAmount !== normalizedAvailableBalance) {
+    return [normalizedRequestedAmount];
+  }
+
+  const attempts: number[] = [];
+  for (const feeReserveSat of FULL_BALANCE_PAYMENT_RETRY_FEE_RESERVES) {
+    const candidateAmount = normalizedRequestedAmount - feeReserveSat;
+    if (candidateAmount <= 0 || attempts.includes(candidateAmount)) continue;
+    attempts.push(candidateAmount);
+  }
+
+  return attempts;
+};
+
+const buildPaymentFailureAmountAttempts = (
+  requestedAmountSat: number,
+  errorMessage: string,
+): number[] => {
+  const normalizedRequestedAmount = Math.trunc(requestedAmountSat);
+  if (
+    !Number.isFinite(normalizedRequestedAmount) ||
+    normalizedRequestedAmount <= 1 ||
+    !isRetryablePaymentAmountFailure(errorMessage)
+  ) {
+    return [];
+  }
+
+  const attempts: number[] = [];
+  const pushAttempt = (candidateAmountSat: number) => {
+    const normalizedCandidate = Math.trunc(candidateAmountSat);
+    if (
+      !Number.isFinite(normalizedCandidate) ||
+      normalizedCandidate <= 0 ||
+      normalizedCandidate >= normalizedRequestedAmount ||
+      attempts.includes(normalizedCandidate)
+    ) {
+      return;
+    }
+    attempts.push(normalizedCandidate);
+  };
+
+  const shortage = getPaymentAmountShortage(errorMessage);
+  if (shortage !== null) {
+    pushAttempt(normalizedRequestedAmount - shortage);
+    pushAttempt(normalizedRequestedAmount - shortage - 1);
+  }
+
+  for (const feeReserveSat of FULL_BALANCE_PAYMENT_RETRY_FEE_RESERVES) {
+    if (feeReserveSat <= 0) continue;
+    pushAttempt(normalizedRequestedAmount - feeReserveSat);
+  }
+
+  return attempts;
+};
+
+const getMeltQuoteState = (value: unknown): string => {
+  const quote = readObjectField(value, "quote");
+  return String(readObjectField(quote, "state") ?? "")
+    .trim()
+    .toUpperCase();
+};
+
+const getMeltQuoteStateErrorMessage = (state: string): string => {
+  switch (state) {
+    case "PENDING":
+      return "Lightning payment is still pending at the mint";
+    case "UNPAID":
+      return "Lightning payment was not paid by the mint";
+    default:
+      return state
+        ? `Unexpected melt quote state: ${state}`
+        : "Melt quote was not paid";
+  }
+};
+
+const isFakeLightningMint = (mintUrl: string, mintInfo: unknown): boolean => {
+  const normalizedMintUrl = normalizeMintUrl(mintUrl).toLowerCase();
+  if (normalizedMintUrl.includes("testnut.cashu.space")) {
+    return true;
+  }
+
+  try {
+    const serializedMintInfo = JSON.stringify(mintInfo).toLowerCase();
+    return (
+      serializedMintInfo.includes("fakewallet") ||
+      serializedMintInfo.includes(
+        "all your lightning invoices will always be marked paid",
+      )
+    );
+  } catch {
+    return false;
+  }
+};
+
 const findBestRedeemQuote = async (
   wallet: CashuWalletLike,
   lightningAddress: string,
+  requestedAmountCap: number,
   availableAmount: number,
   comment?: string,
 ): Promise<{
   feeReserve: number;
   quote: Awaited<ReturnType<CashuWalletLike["createMeltQuote"]>>;
   quoteAmount: number;
+  swapTargetAmount: number;
 }> => {
   let low = 1;
-  let high = availableAmount;
+  let high = Math.min(
+    Math.max(1, Math.trunc(requestedAmountCap)),
+    Math.max(1, Math.trunc(availableAmount)),
+  );
   let best: {
     feeReserve: number;
     quote: Awaited<ReturnType<CashuWalletLike["createMeltQuote"]>>;
     quoteAmount: number;
+    swapTargetAmount: number;
     total: number;
   } | null = null;
   let lastError: unknown = null;
@@ -559,18 +852,20 @@ const findBestRedeemQuote = async (
       const quoteAmount = Number(quote.amount ?? 0);
       const feeReserve = Number(quote.fee_reserve ?? 0);
       const total = quoteAmount + feeReserve;
+      const swapTargetAmount = getMeltSwapTargetAmount(total, availableAmount);
 
       if (
         !Number.isFinite(quoteAmount) ||
         !Number.isFinite(feeReserve) ||
         !Number.isFinite(total) ||
+        !Number.isFinite(swapTargetAmount) ||
         quoteAmount <= 0 ||
         total <= 0
       ) {
         throw new Error("Invalid melt quote");
       }
 
-      if (total > availableAmount) {
+      if (swapTargetAmount > availableAmount) {
         high = requestedAmount - 1;
         continue;
       }
@@ -579,10 +874,11 @@ const findBestRedeemQuote = async (
         feeReserve,
         quote,
         quoteAmount,
+        swapTargetAmount,
         total,
       };
 
-      if (total === availableAmount) {
+      if (swapTargetAmount === availableAmount) {
         break;
       }
 
@@ -601,6 +897,7 @@ const findBestRedeemQuote = async (
     feeReserve: best.feeReserve,
     quote: best.quote,
     quoteAmount: best.quoteAmount,
+    swapTargetAmount: best.swapTargetAmount,
   };
 };
 
@@ -640,6 +937,40 @@ const filterUnspentProofs = (
         .toUpperCase() === "UNSPENT"
     );
   });
+};
+
+const sleep = async (delayMs: number): Promise<void> => {
+  await new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+};
+
+const waitForConfirmedMeltQuote = async (
+  wallet: CashuWalletLike,
+  quote: Awaited<ReturnType<CashuWalletLike["createMeltQuote"]>>,
+  initialState: string,
+): Promise<string> => {
+  let state = initialState;
+
+  if (state === "PAID" || state === "UNPAID") {
+    return state;
+  }
+
+  const maxAttempts = 8;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    await sleep(500);
+
+    const checkedQuote = await wallet.checkMeltQuote(quote);
+    state = String(checkedQuote.state ?? "")
+      .trim()
+      .toUpperCase();
+
+    if (state === "PAID" || state === "UNPAID") {
+      return state;
+    }
+  }
+
+  return state;
 };
 
 const parseTokenFromSearch = (search: string): string | null => {
@@ -722,12 +1053,16 @@ const fetchJson = async (url: string): Promise<Record<string, unknown>> => {
   return data;
 };
 
+const stripLightningPrefix = (value: string): string => {
+  return value.replace(/^lightning:/i, "").trim();
+};
+
 const isLightningAddress = (value: string): boolean => {
-  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.trim());
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(stripLightningPrefix(value));
 };
 
 const getLnurlEndpoint = (lightningAddress: string): string => {
-  const trimmed = lightningAddress.trim();
+  const trimmed = stripLightningPrefix(lightningAddress);
   const atIndex = trimmed.lastIndexOf("@");
   if (atIndex <= 0 || atIndex === trimmed.length - 1) {
     throw new Error("Invalid lightning address");
@@ -788,14 +1123,37 @@ const fetchLnurlInvoice = async (
   const invoiceUrl = new URL(callback);
   invoiceUrl.searchParams.set("amount", String(amountMsat));
   const trimmedComment = String(comment ?? "").trim();
-  if (trimmedComment && Number.isFinite(commentAllowed) && commentAllowed > 0) {
-    invoiceUrl.searchParams.set(
-      "comment",
-      trimmedComment.slice(0, Math.trunc(commentAllowed)),
-    );
-  }
+  const canUseComment = trimmedComment.length > 0;
+  const providerAdvertisesComment =
+    Number.isFinite(commentAllowed) && commentAllowed > 0;
+  const maybeWithCommentUrl = (() => {
+    if (!canUseComment) return null;
+    const url = new URL(invoiceUrl.toString());
+    const maxLen = providerAdvertisesComment
+      ? Math.max(0, Math.trunc(commentAllowed))
+      : 140;
+    if (maxLen <= 0) return null;
+    url.searchParams.set("comment", trimmedComment.slice(0, maxLen));
+    return url.toString();
+  })();
 
   const invoiceResponse = await (async () => {
+    if (maybeWithCommentUrl && !providerAdvertisesComment) {
+      try {
+        return await (async () => {
+          try {
+            return await fetchJson(maybeWithCommentUrl);
+          } catch {
+            return await fetchJson(
+              `/api/lnurlp?url=${encodeURIComponent(maybeWithCommentUrl)}`,
+            );
+          }
+        })();
+      } catch {
+        // Retry without comment when the provider rejects a best-effort comment.
+      }
+    }
+
     try {
       return await fetchJson(invoiceUrl.toString());
     } catch {
@@ -907,6 +1265,7 @@ const inspectToken = async (token: string): Promise<TokenSnapshot> => {
   }
 
   const wallet = await createLoadedWallet(lib, mint, "sat");
+
   const decoded = lib.getDecodedToken(token, wallet.keysets);
   const proofs = dedupeProofs(
     Array.isArray(decoded.proofs) ? decoded.proofs : [],
@@ -947,6 +1306,8 @@ const redeemToken = async (
   amountSent: number;
   changeAmount: number;
   changeToken: string | null;
+  feePaid: number | null;
+  mint: string;
 }> => {
   const lib = await cashuLibPromise;
   const metadata = lib.getTokenMetadata(token);
@@ -956,6 +1317,14 @@ const redeemToken = async (
   }
 
   const wallet = await createLoadedWallet(lib, mint, "sat");
+  const mintInfo = wallet.getMintInfo ? await wallet.getMintInfo() : null;
+  if (isFakeLightningMint(mint, mintInfo)) {
+    throw new RedeemError(
+      "This testing mint uses fake Lightning settlement, so no real Lightning payment can be completed",
+      "melt",
+    );
+  }
+
   const decoded = lib.getDecodedToken(token, wallet.keysets);
   const proofs = dedupeProofs(
     Array.isArray(decoded.proofs) ? decoded.proofs : [],
@@ -970,32 +1339,157 @@ const redeemToken = async (
   if (availableAmount <= 0) {
     throw new Error("Token is already spent");
   }
-  const bestQuote = await findBestRedeemQuote(
-    wallet,
-    lightningAddress,
+  const queuedAmountAttempts = buildPaymentAmountAttempts(
     availableAmount,
-    comment,
+    availableAmount,
   );
-  const total = bestQuote.quoteAmount + bestQuote.feeReserve;
-  const swapped = await wallet.swap(total, unspentProofs);
-  const melt = await wallet.meltProofs(bestQuote.quote, swapped.send);
-  const changeProofs = [
-    ...swapped.keep,
-    ...(Array.isArray(melt.change) ? melt.change : []),
-  ];
+  const seenAmountAttempts = new Set(queuedAmountAttempts);
+  let finalError: unknown = null;
+  let finalPhase: RedeemTelemetryPhase = "melt";
 
-  return {
-    amountSent: bestQuote.quoteAmount,
-    changeAmount: sumProofAmounts(changeProofs),
-    changeToken:
-      changeProofs.length > 0
-        ? lib.getEncodedToken({
-            mint,
-            proofs: changeProofs,
-            unit: String(decoded.unit ?? "sat").trim() || "sat",
-          })
-        : null,
-  };
+  for (
+    let attemptIndex = 0;
+    attemptIndex < queuedAmountAttempts.length;
+    attemptIndex += 1
+  ) {
+    const attemptedAmount = queuedAmountAttempts[attemptIndex];
+    const hasLowerAmountFallback =
+      attemptIndex < queuedAmountAttempts.length - 1;
+    const queueLowerAmountAttempts = (errorMessage: string): boolean => {
+      const retryAttempts = buildPaymentFailureAmountAttempts(
+        attemptedAmount,
+        errorMessage,
+      );
+      let queuedAny = false;
+      for (const retryAmount of retryAttempts) {
+        if (seenAmountAttempts.has(retryAmount)) continue;
+        seenAmountAttempts.add(retryAmount);
+        queuedAmountAttempts.push(retryAmount);
+        queuedAny = true;
+      }
+      return queuedAny;
+    };
+
+    let bestQuote: Awaited<ReturnType<typeof findBestRedeemQuote>>;
+    try {
+      bestQuote = await findBestRedeemQuote(
+        wallet,
+        lightningAddress,
+        attemptedAmount,
+        availableAmount,
+        comment,
+      );
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "LNURL invoice error");
+      if (
+        (hasLowerAmountFallback || queueLowerAmountAttempts(errorMessage)) &&
+        isRetryablePaymentAmountFailure(errorMessage)
+      ) {
+        continue;
+      }
+
+      finalError = error;
+      finalPhase = "invoice_fetch";
+      break;
+    }
+
+    let swapped: Awaited<ReturnType<CashuWalletLike["swap"]>>;
+    try {
+      swapped = await wallet.swap(bestQuote.swapTargetAmount, unspentProofs);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Swap failed");
+      if (
+        (hasLowerAmountFallback || queueLowerAmountAttempts(errorMessage)) &&
+        isRetryablePaymentAmountFailure(errorMessage)
+      ) {
+        continue;
+      }
+
+      finalError = error;
+      finalPhase = "melt";
+      break;
+    }
+
+    let melt: Awaited<ReturnType<CashuWalletLike["meltProofs"]>>;
+
+    try {
+      melt = await wallet.meltProofs(bestQuote.quote, swapped.send);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Melt failed");
+      if (
+        (hasLowerAmountFallback || queueLowerAmountAttempts(errorMessage)) &&
+        isRetryablePaymentAmountFailure(errorMessage)
+      ) {
+        continue;
+      }
+
+      finalError = error;
+      finalPhase = "melt";
+      break;
+    }
+
+    let meltQuoteState = getMeltQuoteState(melt);
+    try {
+      meltQuoteState = await waitForConfirmedMeltQuote(
+        wallet,
+        bestQuote.quote,
+        meltQuoteState,
+      );
+    } catch {
+      finalError = new Error(
+        "Could not confirm Lightning payment status with the mint",
+      );
+      finalPhase = "melt";
+      break;
+    }
+
+    if (meltQuoteState !== "PAID") {
+      const error = new Error(getMeltQuoteStateErrorMessage(meltQuoteState));
+      const errorMessage = getErrorMessage(error, "Melt quote was not paid");
+      if (
+        (hasLowerAmountFallback || queueLowerAmountAttempts(errorMessage)) &&
+        isRetryablePaymentAmountFailure(errorMessage)
+      ) {
+        continue;
+      }
+
+      finalError = error;
+      finalPhase = "melt";
+      break;
+    }
+
+    const changeProofs = [
+      ...swapped.keep,
+      ...(Array.isArray(melt.change) ? melt.change : []),
+    ];
+    const feePaidRaw =
+      readObjectField(melt, "fee_paid") ??
+      readObjectField(melt, "feePaid") ??
+      readObjectField(melt, "fee") ??
+      bestQuote.feeReserve;
+    const feePaid = Number(feePaidRaw ?? NaN);
+
+    return {
+      amountSent: bestQuote.quoteAmount,
+      changeAmount: sumProofAmounts(changeProofs),
+      changeToken:
+        changeProofs.length > 0
+          ? lib.getEncodedToken({
+              mint,
+              proofs: changeProofs,
+              unit: String(decoded.unit ?? "sat").trim() || "sat",
+            })
+          : null,
+      feePaid:
+        Number.isFinite(feePaid) && feePaid > 0 ? Math.trunc(feePaid) : null,
+      mint,
+    };
+  }
+
+  throw new RedeemError(
+    getErrorMessage(finalError, "Redeem failed"),
+    finalPhase,
+  );
 };
 
 const redeemTokenFully = async (
@@ -1006,6 +1500,8 @@ const redeemTokenFully = async (
   amountSent: number;
   changeAmount: number;
   changeToken: string | null;
+  feePaid: number | null;
+  mint: string;
 }> => {
   return await redeemToken(token.trim(), lightningAddress, comment);
 };
@@ -1023,14 +1519,17 @@ function CashuPage() {
   const [tokenState, setTokenState] = useState<TokenSnapshot | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [lightningAddress, setLightningAddress] = useState("");
+  const [redeemError, setRedeemError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState<RedeemSuccessState | null>(
     null,
   );
   const [isInspecting, setIsInspecting] = useState(false);
   const [isRedeeming, setIsRedeeming] = useState(false);
+  const [isRedeemButtonLocked, setIsRedeemButtonLocked] = useState(false);
   const [mintIconSrc, setMintIconSrc] = useState(GENERIC_MINT_ICON_DATA_URL);
   const [tokenCopied, setTokenCopied] = useState(false);
   const copyResetTimerRef = useRef<number | null>(null);
+  const redeemButtonRef = useRef<HTMLButtonElement | null>(null);
   const redeemSubmitLockedRef = useRef(false);
   const activeCopy = useMemo(() => copy[locale], [locale]);
   const displayedTokenAmount = tokenState?.isValid
@@ -1098,6 +1597,19 @@ function CashuPage() {
   }, []);
 
   useEffect(() => {
+    void flushPaymentTelemetryQueue();
+
+    const handleOnline = () => {
+      void flushPaymentTelemetryQueue();
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (copyResetTimerRef.current !== null) {
         window.clearTimeout(copyResetTimerRef.current);
@@ -1105,14 +1617,31 @@ function CashuPage() {
     };
   }, []);
 
+  const lockRedeemButton = () => {
+    redeemSubmitLockedRef.current = true;
+    setIsRedeemButtonLocked(true);
+    if (redeemButtonRef.current) {
+      redeemButtonRef.current.disabled = true;
+    }
+  };
+
+  const unlockRedeemButton = () => {
+    redeemSubmitLockedRef.current = false;
+    setIsRedeemButtonLocked(false);
+    if (redeemButtonRef.current) {
+      redeemButtonRef.current.disabled = false;
+    }
+  };
+
   useEffect(() => {
     const syncFromUrl = () => {
       const next = getTokenFromUrl();
       setTokenInput(next.token);
       setActiveToken(next.token);
       setRedeemSuccess(null);
+      setRedeemError(null);
       setTokenCopied(false);
-      redeemSubmitLockedRef.current = false;
+      unlockRedeemButton();
 
       if (next.source === "search" && next.token) {
         replaceHashToken(next.token);
@@ -1175,18 +1704,24 @@ function CashuPage() {
     replaceHashToken(trimmedToken);
     setActiveToken(trimmedToken);
     setRedeemSuccess(null);
-    redeemSubmitLockedRef.current = false;
+    setRedeemError(null);
+    unlockRedeemButton();
   };
 
   const handleRedeemSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isRedeeming || redeemSubmitLockedRef.current) return;
+    if (isRedeeming || isRedeemButtonLocked || redeemSubmitLockedRef.current) {
+      return;
+    }
 
     const trimmedToken = activeToken.trim();
-    const trimmedAddress = lightningAddress.trim().toLowerCase();
+    const trimmedAddress = stripLightningPrefix(lightningAddress)
+      .trim()
+      .toLowerCase();
     if (!trimmedToken || !isLightningAddress(trimmedAddress)) return;
 
-    redeemSubmitLockedRef.current = true;
+    setRedeemError(null);
+    lockRedeemButton();
     setIsRedeeming(true);
 
     try {
@@ -1204,7 +1739,7 @@ function CashuPage() {
             token: nextToken,
           });
         } catch {
-          redeemSubmitLockedRef.current = false;
+          unlockRedeemButton();
           replaceHashToken(nextToken);
           setTokenInput(nextToken);
           setActiveToken(nextToken);
@@ -1212,15 +1747,41 @@ function CashuPage() {
         }
       }
 
+      queuePaymentTelemetry({
+        amount: result.amountSent,
+        direction: "out",
+        fee: result.feePaid,
+        method: "lightning_address",
+        mint: result.mint,
+        phase: "complete",
+        status: "ok",
+      });
+      void flushPaymentTelemetryQueue();
+
       replaceHashToken("");
       setTokenInput("");
       setActiveToken("");
       setTokenState(null);
+      setRedeemError(null);
       setRedeemSuccess({
         lightningAddress: trimmedAddress,
       });
-    } catch {
-      redeemSubmitLockedRef.current = false;
+    } catch (error) {
+      const phase = error instanceof RedeemError ? error.phase : "melt";
+      const message = getErrorMessage(error, activeCopy.redeemFailed);
+      setRedeemError(message);
+      queuePaymentTelemetry({
+        amount: tokenState?.amount ?? null,
+        direction: "out",
+        error: message,
+        fee: null,
+        method: "lightning_address",
+        mint: tokenState?.mint ?? null,
+        phase,
+        status: "error",
+      });
+      void flushPaymentTelemetryQueue();
+      unlockRedeemButton();
     } finally {
       setIsRedeeming(false);
     }
@@ -1241,9 +1802,7 @@ function CashuPage() {
   };
 
   const handleOpenInWallet = () => {
-    const walletImportUrl = buildLinkyWalletImportUrl(activeToken);
-    if (!walletImportUrl) return;
-    window.open(walletImportUrl, "_blank", "noopener,noreferrer");
+    openLinkyWalletImport(activeToken);
   };
 
   return (
@@ -1395,9 +1954,14 @@ function CashuPage() {
                       {activeCopy.payoutIntroLead}
                       <a
                         className="cashu-inline-link"
-                        href="https://app.linky.fit"
-                        target="_blank"
-                        rel="noreferrer"
+                        href={
+                          buildLinkyWalletImportTargets(activeToken)
+                            ?.browserUrl ?? linkyWebAppUrl
+                        }
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handleOpenInWallet();
+                        }}
                       >
                         {activeCopy.payoutIntroLink}
                       </a>
@@ -1419,17 +1983,22 @@ function CashuPage() {
                         autoCapitalize="none"
                         autoCorrect="off"
                         value={lightningAddress}
-                        onChange={(event) =>
-                          setLightningAddress(event.target.value)
-                        }
+                        onChange={(event) => {
+                          setLightningAddress(event.target.value);
+                          if (redeemError) {
+                            setRedeemError(null);
+                          }
+                        }}
                         placeholder={activeCopy.lightningAddressPlaceholder}
                       />
                       <button
+                        ref={redeemButtonRef}
                         className="primary-cta is-single"
                         type="submit"
                         disabled={
                           !tokenState.isValid ||
                           isRedeeming ||
+                          isRedeemButtonLocked ||
                           !isLightningAddress(lightningAddress.trim())
                         }
                       >
@@ -1437,6 +2006,11 @@ function CashuPage() {
                           ? activeCopy.redeeming
                           : activeCopy.redeemButton}
                       </button>
+                      {redeemError ? (
+                        <p className="cashu-status cashu-status-error">
+                          {redeemError}
+                        </p>
+                      ) : null}
                     </form>
                   </>
                 )}

@@ -49,6 +49,8 @@ export const NO_GROUP_FILTER = "__linky_no_group__";
 
 export const LAST_ACCEPTED_CASHU_TOKEN_STORAGE_KEY =
   "linky.lastAcceptedCashuToken.v1";
+export const PENDING_DEEP_LINK_TEXT_STORAGE_KEY =
+  "linky.pendingDeepLinkText.v1";
 
 export const PROMISE_TOTAL_CAP_SAT = 100_000;
 export const PROMISE_EXPIRES_SEC = 30 * 24 * 60 * 60;

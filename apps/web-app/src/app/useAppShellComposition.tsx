@@ -57,6 +57,7 @@ import {
   LOCAL_PENDING_TOPUP_QUOTE_STORAGE_KEY_PREFIX,
   MAX_CONTACTS_PER_OWNER,
   NO_GROUP_FILTER,
+  PENDING_DEEP_LINK_TEXT_STORAGE_KEY,
 } from "../utils/constants";
 import { buildCashuDeepLink, parseNativeDeepLinkUrl } from "../utils/deepLinks";
 import {
@@ -1411,6 +1412,119 @@ export const useAppShellComposition = () => {
     logPaymentEvent,
   });
 
+  const migratedMisplacedCashuTokenIdsRef = React.useRef<Set<string>>(
+    new Set(),
+  );
+
+  React.useEffect(() => {
+    if (!appOwnerId) return;
+
+    const sourceOwnerId = String(appOwnerId ?? "").trim();
+    if (!sourceOwnerId) return;
+    if (!activeCashuOwnerId) return;
+    if (sourceOwnerId === activeCashuOwnerId) return;
+    if (!cashuOwnerId) return;
+
+    const activeRows = cashuTokensAll.filter((row) => {
+      if (row.isDeleted) return false;
+      return readCashuRowOwnerId(row) === activeCashuOwnerId;
+    });
+
+    const hasActiveDuplicate = (row: (typeof cashuTokensAll)[number]) => {
+      const rowCandidates = [
+        String(row.rawToken ?? "").trim(),
+        String(row.token ?? "").trim(),
+      ].filter(Boolean);
+      if (rowCandidates.length === 0) return false;
+
+      return activeRows.some((activeRow) => {
+        const activeCandidates = [
+          String(activeRow.rawToken ?? "").trim(),
+          String(activeRow.token ?? "").trim(),
+        ].filter(Boolean);
+
+        return rowCandidates.some((candidate) =>
+          activeCandidates.includes(candidate),
+        );
+      });
+    };
+
+    const misplacedRows = cashuTokensAll.filter((row) => {
+      if (row.isDeleted) return false;
+      return readCashuRowOwnerId(row) === sourceOwnerId;
+    });
+
+    for (const row of misplacedRows) {
+      const rowId = String(row.id ?? "").trim();
+      if (!rowId) continue;
+      if (migratedMisplacedCashuTokenIdsRef.current.has(rowId)) continue;
+
+      migratedMisplacedCashuTokenIdsRef.current.add(rowId);
+
+      if (!hasActiveDuplicate(row)) {
+        const token = String(row.token ?? row.rawToken ?? "").trim();
+        const rawToken = String(row.rawToken ?? "").trim();
+        const mint = String(row.mint ?? "").trim();
+        const unit = String(row.unit ?? "").trim();
+        const state = String(row.state ?? "").trim() || "accepted";
+        const error = String(row.error ?? "").trim();
+        const amount = Number(row.amount ?? 0);
+
+        if (token) {
+          const payload: {
+            token: typeof Evolu.NonEmptyString.Type;
+            state: typeof Evolu.NonEmptyString100.Type;
+            amount?: typeof Evolu.PositiveInt.Type;
+            error?: typeof Evolu.NonEmptyString1000.Type;
+            mint?: typeof Evolu.NonEmptyString1000.Type;
+            rawToken?: typeof Evolu.NonEmptyString.Type;
+            unit?: typeof Evolu.NonEmptyString100.Type;
+          } = {
+            token: token as typeof Evolu.NonEmptyString.Type,
+            state: state as typeof Evolu.NonEmptyString100.Type,
+          };
+
+          if (rawToken) {
+            payload.rawToken = rawToken as typeof Evolu.NonEmptyString.Type;
+          }
+          if (mint) {
+            payload.mint = mint as typeof Evolu.NonEmptyString1000.Type;
+          }
+          if (unit) {
+            payload.unit = unit as typeof Evolu.NonEmptyString100.Type;
+          }
+          if (Number.isFinite(amount) && amount > 0) {
+            payload.amount = Math.trunc(
+              amount,
+            ) as typeof Evolu.PositiveInt.Type;
+          }
+          if (error) {
+            payload.error = error as typeof Evolu.NonEmptyString1000.Type;
+          }
+
+          insert("cashuToken", payload, { ownerId: cashuOwnerId });
+        }
+      }
+
+      update(
+        "cashuToken",
+        {
+          id: row.id as CashuTokenId,
+          isDeleted: Evolu.sqliteTrue,
+        },
+        { ownerId: appOwnerId },
+      );
+    }
+  }, [
+    activeCashuOwnerId,
+    appOwnerId,
+    cashuOwnerId,
+    cashuTokensAll,
+    insert,
+    readCashuRowOwnerId,
+    update,
+  ]);
+
   React.useEffect(() => {
     if (!topupMintQuote) return;
 
@@ -1782,7 +1896,28 @@ export const useAppShellComposition = () => {
   }>(null);
   const [pendingDeepLinkText, setPendingDeepLinkText] = React.useState<
     string | null
-  >(null);
+  >(() => {
+    const stored = String(
+      safeLocalStorageGet(PENDING_DEEP_LINK_TEXT_STORAGE_KEY) ?? "",
+    ).trim();
+    return stored || null;
+  });
+
+  const updatePendingDeepLinkText = React.useCallback(
+    (value: string | null) => {
+      const normalized = String(value ?? "").trim();
+
+      if (!normalized) {
+        safeLocalStorageRemove(PENDING_DEEP_LINK_TEXT_STORAGE_KEY);
+        setPendingDeepLinkText(null);
+        return;
+      }
+
+      safeLocalStorageSet(PENDING_DEEP_LINK_TEXT_STORAGE_KEY, normalized);
+      setPendingDeepLinkText(normalized);
+    },
+    [],
+  );
 
   const [postPaySaveContact, setPostPaySaveContact] = React.useState<null | {
     lnAddress: string;
@@ -3802,7 +3937,7 @@ export const useAppShellComposition = () => {
       }
 
       setPendingDeleteId(null);
-      setPendingDeepLinkText(parsed.text);
+      updatePendingDeepLinkText(parsed.text);
       consumePendingNativeDeepLinkUrl();
     };
 
@@ -3823,7 +3958,7 @@ export const useAppShellComposition = () => {
 
     window.addEventListener(NATIVE_DEEP_LINK_EVENT, onDeepLink);
     return () => window.removeEventListener(NATIVE_DEEP_LINK_EVENT, onDeepLink);
-  }, [setPendingDeleteId]);
+  }, [setPendingDeleteId, updatePendingDeepLinkText]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -3837,7 +3972,7 @@ export const useAppShellComposition = () => {
     }
 
     setPendingDeleteId(null);
-    setPendingDeepLinkText(`cashu:${token}`);
+    updatePendingDeepLinkText(`cashu:${token}`);
 
     const cleanHash = rawHash.split("?")[0] ?? "#wallet";
     const nextHash = cleanHash || "#wallet";
@@ -3846,20 +3981,28 @@ export const useAppShellComposition = () => {
       "",
       `${window.location.pathname}${window.location.search}${nextHash}`,
     );
-  }, [setPendingDeleteId]);
+  }, [setPendingDeleteId, updatePendingDeepLinkText]);
 
   React.useEffect(() => {
     if (!pendingDeepLinkText) {
       return;
     }
 
-    if (!currentNsec && !contactsOwnerId) {
+    if (!currentNsec || !cashuOwnerId) {
       return;
     }
 
-    setPendingDeepLinkText(null);
-    void handleScannedText(pendingDeepLinkText);
-  }, [contactsOwnerId, currentNsec, handleScannedText, pendingDeepLinkText]);
+    updatePendingDeepLinkText(null);
+    void handleScannedText(pendingDeepLinkText).catch(() => {
+      updatePendingDeepLinkText(pendingDeepLinkText);
+    });
+  }, [
+    cashuOwnerId,
+    currentNsec,
+    handleScannedText,
+    pendingDeepLinkText,
+    updatePendingDeepLinkText,
+  ]);
 
   const pasteScanValue = React.useCallback(async () => {
     let text = "";
