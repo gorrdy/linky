@@ -69,6 +69,7 @@
       "name": "@linky/web-app",
       "version": "26.4.4",
       "dependencies": {
+        "@capacitor/clipboard": "^7.0.0",
         "@capacitor/core": "^7.4.3",
         "@capacitor/push-notifications": "^7.0.0",
         "@capacitor/share": "^7.0.0",
