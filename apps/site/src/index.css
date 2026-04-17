@@ -87,6 +87,29 @@ button {
   margin-top: 20px;
 }
 
+.cashu-primary-actions {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cashu-additional-options {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.cashu-option-column {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.cashu-option-column-qr {
+  justify-items: start;
+}
+
 .cashu-label,
 .cashu-card-title,
 .cashu-mint-subtle {
@@ -98,6 +121,17 @@ button {
 
 .cashu-card-title {
   margin: 0 0 18px;
+}
+
+.cashu-option-title {
+  margin: 0;
+}
+
+.cashu-option-description {
+  margin: 0;
+  color: rgba(247, 244, 234, 0.72);
+  font-size: 0.98rem;
+  line-height: 1.45;
 }
 
 .cashu-textarea,
@@ -154,6 +188,11 @@ button {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+}
+
+.cashu-header-cta {
+  flex-shrink: 0;
 }
 
 .cashu-token-actions {
@@ -284,8 +323,7 @@ button {
   overflow-wrap: anywhere;
 }
 
-.cashu-status,
-.cashu-footnote {
+.cashu-status {
   margin: 18px 0 0;
   color: rgba(247, 244, 234, 0.8);
 }
@@ -301,8 +339,49 @@ button {
   text-decoration-thickness: 0.08em;
 }
 
-.cashu-footnote span {
-  word-break: break-all;
+.cashu-text-button {
+  justify-self: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(247, 244, 234, 0.78);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 0.08em;
+}
+
+.cashu-text-button:hover {
+  color: #fffdf4;
+}
+
+.cashu-qr-button {
+  width: min(100%, 360px);
+  margin-top: 6px;
+  padding: 14px;
+  border: 0;
+  border-radius: 24px;
+  background: rgba(255, 253, 244, 0.98);
+  cursor: pointer;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cashu-qr-button:hover {
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.3);
+}
+
+.cashu-qr-button:active {
+  transform: translateY(1px);
+}
+
+.cashu-token-qr {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
 }
 
 .site-shell {
@@ -608,6 +687,35 @@ button {
   box-shadow: 0 22px 46px rgba(20, 184, 166, 0.42);
 }
 
+.primary-cta:disabled,
+.secondary-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  box-shadow: none;
+}
+
+.secondary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 232px;
+  padding: 14px 22px;
+  border: 1px solid rgba(255, 253, 244, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fffdf4;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.secondary-cta:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(143, 225, 212, 0.3);
+}
+
 .cta-toggle {
   display: inline-flex;
   align-items: center;
@@ -881,6 +989,12 @@ button {
   .feature-stage {
     grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
     align-items: center;
+    gap: 28px;
+  }
+
+  .cashu-additional-options {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+    align-items: start;
     gap: 28px;
   }
 
