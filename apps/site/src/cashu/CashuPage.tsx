@@ -17,25 +17,27 @@ type Locale = "cs" | "en";
 
 interface LocaleCopy {
   cashuLabel: string;
+  cashuOptionDescription: string;
+  collapseOptionsLabel: string;
   czechLabel: string;
-  copyTokenLabel: string;
   currencyLabel: string;
+  expandOptionsLabel: string;
   englishLabel: string;
   githubLabel: string;
   invalidToken: string;
+  linkyPrimaryAction: string;
   lightningAddressLabel: string;
+  lightningOptionDescription: string;
   lightningAddressPlaceholder: string;
   loadingToken: string;
   noTokenLoaded: string;
   nostrLabel: string;
+  openInWalletLabel: string;
   pageTitle: string;
-  payoutIntroLead: string;
-  payoutIntroLink: string;
-  payoutIntroTail: string;
+  payoutIntro: string;
   privacyLabel: string;
   menuLabel: string;
   openAppLabel: string;
-  openInWalletLabel: string;
   redeemButton: string;
   redeemConfirmed: string;
   redeemFailed: string;
@@ -108,28 +110,30 @@ const REMAINING_TOKEN_FORWARD_RECIPIENT_NPUB =
 const copy: Record<Locale, LocaleCopy> = {
   cs: {
     cashuLabel: "Cashu",
+    cashuOptionDescription: "Nascanujte kód vaší cashu peněženkou",
+    collapseOptionsLabel: "Skrýt možnosti ↑",
     czechLabel: "Čeština",
-    copyTokenLabel: "Kopírovat token",
     currencyLabel: "Jednotky",
+    expandOptionsLabel: "Další možnosti ↓",
     englishLabel: "Angličtina",
     githubLabel: "GitHub",
     invalidToken: "Utraceno",
+    linkyPrimaryAction: "Vyzvednout v Linky",
     lightningAddressLabel: "Lightning adresa",
+    lightningOptionDescription: "Vyberte prostředky na vaši lightning adresu.",
     lightningAddressPlaceholder: "jmeno@linky.fit",
     loadingToken: "Ověřuji token u mintu…",
     noTokenLoaded:
       "Vlož token ručně nebo otevři stránku rovnou s tokenem v URL.",
     nostrLabel: "Nostr profil",
+    openInWalletLabel: "Otevřít v peněžence",
     pageTitle: "Vytvoř odkaz pro vyzvednutí bitcoinu na lightning adresu",
-    payoutIntroLead:
-      "Někdo vám posílá bitcoin. Zadejte lightning adresu, abyste si ho vybrali do své peněženky. Nebo začněte používat aplikaci ",
-    payoutIntroLink: "Linky",
-    payoutIntroTail: ".",
+    payoutIntro:
+      "Někdo vám posílá bitcoin. Vyzvednout si ho můžete v aplikaci Linky nebo jakékoliv lightning peněžence",
     privacyLabel: "Ochrana soukromí",
     menuLabel: "Menu",
     openAppLabel: "Otevřít aplikaci",
-    openInWalletLabel: "Otevřít v peněžence",
-    redeemButton: "Vyzvednout bitcoin",
+    redeemButton: "Vybrat na adresu",
     redeemConfirmed: "Hotovo",
     redeemFailed: "Vyzvednutí se nepodařilo.",
     redeemLnurlComment: "Vybráno pomocí Linky",
@@ -146,28 +150,30 @@ const copy: Record<Locale, LocaleCopy> = {
   },
   en: {
     cashuLabel: "Cashu",
+    cashuOptionDescription: "Scan the code with your Cashu wallet",
+    collapseOptionsLabel: "Hide options ↑",
     czechLabel: "Czech",
-    copyTokenLabel: "Copy token",
     currencyLabel: "Units",
+    expandOptionsLabel: "Show options ↓",
     englishLabel: "English",
     githubLabel: "GitHub",
     invalidToken: "Spent",
+    linkyPrimaryAction: "Redeem in Linky",
     lightningAddressLabel: "Lightning address",
+    lightningOptionDescription: "Withdraw the funds to your Lightning address.",
     lightningAddressPlaceholder: "name@linky.fit",
     loadingToken: "Checking the token with the mint…",
     noTokenLoaded:
       "Paste a token manually or open the page directly with a token in the URL.",
     nostrLabel: "Nostr profile",
+    openInWalletLabel: "Open in wallet",
     pageTitle: "Create a link to redeem bitcoin to a lightning address",
-    payoutIntroLead:
-      "Someone is sending you bitcoin. Enter your lightning address to withdraw it into your wallet. Or start using ",
-    payoutIntroLink: "Linky",
-    payoutIntroTail: ".",
+    payoutIntro:
+      "Someone is sending you bitcoin. You can redeem it in the Linky app or in any Lightning wallet.",
     privacyLabel: "Privacy Policy",
     menuLabel: "Menu",
     openAppLabel: "Open web app",
-    openInWalletLabel: "Open in wallet",
-    redeemButton: "Redeem bitcoin",
+    redeemButton: "Redeem to address",
     redeemConfirmed: "Success",
     redeemFailed: "Redeem failed.",
     redeemLnurlComment: "Redeemed with Linky",
@@ -1526,9 +1532,10 @@ function CashuPage() {
   const [isInspecting, setIsInspecting] = useState(false);
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isRedeemButtonLocked, setIsRedeemButtonLocked] = useState(false);
+  const [isAdditionalOptionsVisible, setIsAdditionalOptionsVisible] =
+    useState(false);
   const [mintIconSrc, setMintIconSrc] = useState(GENERIC_MINT_ICON_DATA_URL);
-  const [tokenCopied, setTokenCopied] = useState(false);
-  const copyResetTimerRef = useRef<number | null>(null);
+  const [tokenQr, setTokenQr] = useState<string | null>(null);
   const redeemButtonRef = useRef<HTMLButtonElement | null>(null);
   const redeemSubmitLockedRef = useRef(false);
   const activeCopy = useMemo(() => copy[locale], [locale]);
@@ -1609,14 +1616,6 @@ function CashuPage() {
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (copyResetTimerRef.current !== null) {
-        window.clearTimeout(copyResetTimerRef.current);
-      }
-    };
-  }, []);
-
   const lockRedeemButton = () => {
     redeemSubmitLockedRef.current = true;
     setIsRedeemButtonLocked(true);
@@ -1638,9 +1637,10 @@ function CashuPage() {
       const next = getTokenFromUrl();
       setTokenInput(next.token);
       setActiveToken(next.token);
+      setIsAdditionalOptionsVisible(false);
       setRedeemSuccess(null);
       setRedeemError(null);
-      setTokenCopied(false);
+      setTokenQr(null);
       unlockRedeemButton();
 
       if (next.source === "search" && next.token) {
@@ -1655,6 +1655,40 @@ function CashuPage() {
       window.removeEventListener("hashchange", syncFromUrl);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const generateQr = async () => {
+      if (!activeToken.trim() || !isAdditionalOptionsVisible) {
+        setTokenQr(null);
+        return;
+      }
+
+      try {
+        const QRCode = await import("qrcode");
+        const qr = await QRCode.toDataURL(activeToken, {
+          errorCorrectionLevel: "M",
+          margin: 1,
+          width: 420,
+        });
+
+        if (!cancelled) {
+          setTokenQr(qr);
+        }
+      } catch {
+        if (!cancelled) {
+          setTokenQr(null);
+        }
+      }
+    };
+
+    void generateQr();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeToken, isAdditionalOptionsVisible]);
 
   useEffect(() => {
     const trimmedToken = activeToken.trim();
@@ -1788,17 +1822,7 @@ function CashuPage() {
   };
 
   const handleCopyToken = async () => {
-    const ok = await copyTextToClipboard(activeToken);
-    if (!ok) return;
-
-    setTokenCopied(true);
-    if (copyResetTimerRef.current !== null) {
-      window.clearTimeout(copyResetTimerRef.current);
-    }
-    copyResetTimerRef.current = window.setTimeout(() => {
-      setTokenCopied(false);
-      copyResetTimerRef.current = null;
-    }, 1400);
+    await copyTextToClipboard(activeToken);
   };
 
   const handleOpenInWallet = () => {
@@ -1906,35 +1930,17 @@ function CashuPage() {
                 </div>
               </div>
 
-              <div className="cashu-token-actions">
+              {tokenState?.isValid && !isInspecting ? (
                 <button
                   type="button"
-                  className="cashu-token-action"
-                  aria-label={activeCopy.copyTokenLabel}
-                  title={activeCopy.copyTokenLabel}
-                  onClick={() => {
-                    void handleCopyToken();
-                  }}
-                >
-                  <span className="cashu-token-action-glyph" aria-hidden="true">
-                    {tokenCopied ? "✓" : "⧉"}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  className="cashu-token-action"
+                  className="primary-cta is-single cashu-header-cta"
                   aria-label={activeCopy.openInWalletLabel}
                   title={activeCopy.openInWalletLabel}
                   onClick={handleOpenInWallet}
                 >
-                  <img
-                    className="cashu-token-action-logo"
-                    src="/icon.svg"
-                    alt=""
-                  />
+                  {activeCopy.linkyPrimaryAction}
                 </button>
-              </div>
+              ) : null}
             </div>
 
             {isInspecting ? (
@@ -1950,68 +1956,105 @@ function CashuPage() {
                   </>
                 ) : (
                   <>
-                    <p className="cashu-status">
-                      {activeCopy.payoutIntroLead}
-                      <a
-                        className="cashu-inline-link"
-                        href={
-                          buildLinkyWalletImportTargets(activeToken)
-                            ?.browserUrl ?? linkyWebAppUrl
-                        }
-                        onClick={(event) => {
-                          event.preventDefault();
-                          handleOpenInWallet();
-                        }}
-                      >
-                        {activeCopy.payoutIntroLink}
-                      </a>
-                      {activeCopy.payoutIntroTail}
-                    </p>
+                    <p className="cashu-status">{activeCopy.payoutIntro}</p>
 
-                    <form
-                      className="cashu-form cashu-redeem-form"
-                      onSubmit={handleRedeemSubmit}
-                    >
-                      <label className="cashu-label" htmlFor="cashu-ln-address">
-                        {activeCopy.lightningAddressLabel}
-                      </label>
-                      <input
-                        id="cashu-ln-address"
-                        className="cashu-input"
-                        type="text"
-                        inputMode="email"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        value={lightningAddress}
-                        onChange={(event) => {
-                          setLightningAddress(event.target.value);
-                          if (redeemError) {
-                            setRedeemError(null);
-                          }
-                        }}
-                        placeholder={activeCopy.lightningAddressPlaceholder}
-                      />
+                    <div className="cashu-primary-actions">
                       <button
-                        ref={redeemButtonRef}
-                        className="primary-cta is-single"
-                        type="submit"
-                        disabled={
-                          !tokenState.isValid ||
-                          isRedeeming ||
-                          isRedeemButtonLocked ||
-                          !isLightningAddress(lightningAddress.trim())
-                        }
+                        type="button"
+                        className="cashu-text-button"
+                        onClick={() => {
+                          setIsAdditionalOptionsVisible((prev) => !prev);
+                        }}
+                        aria-expanded={isAdditionalOptionsVisible}
                       >
-                        {isRedeeming
-                          ? activeCopy.redeeming
-                          : activeCopy.redeemButton}
+                        {isAdditionalOptionsVisible
+                          ? activeCopy.collapseOptionsLabel
+                          : activeCopy.expandOptionsLabel}
                       </button>
-                      {redeemError ? (
-                        <p className="cashu-status cashu-status-error">
-                          {redeemError}
-                        </p>
-                      ) : null}
-                    </form>
+                    </div>
+
+                    {isAdditionalOptionsVisible ? (
+                      <div className="cashu-additional-options">
+                        <div className="cashu-option-column">
+                          <p className="cashu-label cashu-option-title">
+                            {activeCopy.lightningAddressLabel}
+                          </p>
+                          <p className="cashu-option-description">
+                            {activeCopy.lightningOptionDescription}
+                          </p>
+                          <form
+                            className="cashu-form cashu-redeem-form"
+                            onSubmit={handleRedeemSubmit}
+                          >
+                            <input
+                              id="cashu-ln-address"
+                              className="cashu-input"
+                              type="text"
+                              inputMode="email"
+                              autoCapitalize="none"
+                              autoCorrect="off"
+                              value={lightningAddress}
+                              onChange={(event) => {
+                                setLightningAddress(event.target.value);
+                                if (redeemError) {
+                                  setRedeemError(null);
+                                }
+                              }}
+                              placeholder={
+                                activeCopy.lightningAddressPlaceholder
+                              }
+                              aria-label={activeCopy.lightningAddressLabel}
+                            />
+                            <button
+                              ref={redeemButtonRef}
+                              className="secondary-cta"
+                              type="submit"
+                              disabled={
+                                !tokenState.isValid ||
+                                isRedeeming ||
+                                isRedeemButtonLocked ||
+                                !isLightningAddress(lightningAddress.trim())
+                              }
+                            >
+                              {isRedeeming
+                                ? activeCopy.redeeming
+                                : activeCopy.redeemButton}
+                            </button>
+                            {redeemError ? (
+                              <p className="cashu-status cashu-status-error">
+                                {redeemError}
+                              </p>
+                            ) : null}
+                          </form>
+                        </div>
+
+                        <div className="cashu-option-column cashu-option-column-qr">
+                          <p className="cashu-label cashu-option-title">
+                            {activeCopy.cashuLabel}
+                          </p>
+                          <p className="cashu-option-description">
+                            {activeCopy.cashuOptionDescription}
+                          </p>
+                          {tokenQr ? (
+                            <button
+                              type="button"
+                              className="cashu-qr-button"
+                              onClick={() => {
+                                void handleCopyToken();
+                              }}
+                              aria-label={activeCopy.cashuLabel}
+                              title={activeCopy.cashuLabel}
+                            >
+                              <img
+                                className="cashu-token-qr"
+                                src={tokenQr}
+                                alt="Cashu token QR"
+                              />
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
                   </>
                 )}
               </>
