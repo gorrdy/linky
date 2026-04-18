@@ -47,6 +47,10 @@ import {
   startNativeNfcWrite,
   supportsNativeNfcWrite,
 } from "../platform/nativeBridge";
+import {
+  triggerPasswordManagerSeedSave,
+  type PasswordManagerSaveResult,
+} from "../platform/passwordManager";
 import { isNativePlatform } from "../platform/runtime";
 import {
   bumpCashuDeterministicCounter,
@@ -3708,6 +3712,19 @@ export const useAppShellComposition = () => {
     pushToast(t("seedMissing"));
   };
 
+  const saveSeedToPasswordManager =
+    async (): Promise<PasswordManagerSaveResult> => {
+      const password = String(slip39Seed ?? "").trim();
+      const username = String(effectiveProfileName ?? currentNpub ?? "").trim();
+      if (!password || !username) return "failed";
+
+      return triggerPasswordManagerSeedSave({
+        displayName: username,
+        password,
+        username,
+      });
+    };
+
   const restoreMissingTokens = useRestoreMissingTokens({
     cashuIsBusy,
     cashuTokensAll: cashuTokensAllFiltered,
@@ -5023,6 +5040,9 @@ export const useAppShellComposition = () => {
       connectedRelayCount,
       copyNostrKeys,
       copySeed,
+      passwordManagerSeedUsername: String(
+        effectiveProfileName ?? currentNpub ?? "",
+      ).trim(),
       currentNpub,
       currentNsec,
       dedupeContacts,
@@ -5090,6 +5110,7 @@ export const useAppShellComposition = () => {
       requestDeriveNostrKeys,
       requestLogout,
       restoreMissingTokens,
+      saveSeedToPasswordManager,
       route,
       safeLocalStorageSetJson,
       saveEvoluServerUrls,

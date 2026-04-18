@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
+import {
+  PasswordManagerSaveForm,
+  type PasswordManagerSaveFormHandle,
+} from "../components/PasswordManagerSaveForm";
 import { useNavigation } from "../hooks/useRouting";
+import type { PasswordManagerSaveResult } from "../platform/passwordManager";
 import { LIGHTNING_INVOICE_AUTO_PAY_LIMIT_OPTIONS } from "../utils/constants";
 
 interface AdvancedPageProps {
@@ -24,6 +29,7 @@ interface AdvancedPageProps {
   lightningInvoiceAutoPayLimit: number;
   logoutArmed: boolean;
   nostrRelayOverallStatus: "connected" | "checking" | "disconnected";
+  passwordManagerSeedUsername: string;
   payWithCashuEnabled: boolean;
   pushToast: (message: string) => void;
   relayUrls: string[];
@@ -31,6 +37,7 @@ interface AdvancedPageProps {
   requestDeriveNostrKeys: () => Promise<void>;
   requestLogout: () => void;
   restoreMissingTokens: () => Promise<void>;
+  saveSeedToPasswordManager: () => Promise<PasswordManagerSaveResult>;
   seedMnemonic: string | null;
   setLightningInvoiceAutoPayLimit: (value: number) => void;
   setPayWithCashuEnabled: (value: boolean) => void;
@@ -57,6 +64,7 @@ export function AdvancedPage({
   lightningInvoiceAutoPayLimit,
   logoutArmed,
   nostrRelayOverallStatus,
+  passwordManagerSeedUsername,
   payWithCashuEnabled,
   pushToast,
   relayUrls,
@@ -64,6 +72,7 @@ export function AdvancedPage({
   requestDeriveNostrKeys,
   requestLogout,
   restoreMissingTokens,
+  saveSeedToPasswordManager,
   seedMnemonic,
   setLightningInvoiceAutoPayLimit,
   setPayWithCashuEnabled,
@@ -76,6 +85,8 @@ export function AdvancedPage({
   const [pushError, setPushError] = useState<string>("");
   const [nostrDeriveArmed, setNostrDeriveArmed] = useState(false);
   const armTimeoutRef = useRef<number | null>(null);
+  const passwordManagerSaveFormRef =
+    useRef<PasswordManagerSaveFormHandle | null>(null);
   const hasSeedMnemonic = String(seedMnemonic ?? "").trim().length > 0;
   const hasCurrentNsec = String(currentNsec ?? "").trim().length > 0;
   const customAutoPayLimitSelected =
@@ -173,8 +184,38 @@ export function AdvancedPage({
     }
   };
 
+  const handleSaveSeed = useCallback(async () => {
+    if (!hasSeedMnemonic) {
+      pushToast(t("seedMissing"));
+      return;
+    }
+
+    passwordManagerSaveFormRef.current?.requestSave();
+
+    const result = await saveSeedToPasswordManager();
+    if (result === "failed") {
+      pushToast(t("onboardingBackupSaveFailed"));
+      return;
+    }
+
+    if (result === "unsupported") {
+      pushToast(t("onboardingBackupSaveUnavailable"));
+      return;
+    }
+
+    if (result === "saved") {
+      pushToast(t("onboardingBackupSaveRequested"));
+    }
+  }, [hasSeedMnemonic, pushToast, saveSeedToPasswordManager, t]);
+
   return (
     <section className="panel">
+      <PasswordManagerSaveForm
+        ref={passwordManagerSaveFormRef}
+        username={passwordManagerSeedUsername}
+        password={String(seedMnemonic ?? "")}
+      />
+
       <div className="settings-row">
         <div className="settings-left">
           <span className="settings-icon" aria-hidden="true">
@@ -184,6 +225,13 @@ export function AdvancedPage({
         </div>
         <div className="settings-right">
           <div className="badge-box">
+            <button
+              className="ghost"
+              onClick={() => void handleSaveSeed()}
+              disabled={!hasSeedMnemonic}
+            >
+              {t("onboardingBackupSave")}
+            </button>
             <button className="ghost" onClick={copySeed} data-guide="copy-seed">
               {t("copyCurrent")}
             </button>

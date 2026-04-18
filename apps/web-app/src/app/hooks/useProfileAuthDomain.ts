@@ -8,6 +8,7 @@ import {
   type DerivedGeneratedAvatar,
 } from "../../derivedProfile";
 import { evolu } from "../../evolu";
+import type { Lang } from "../../i18n";
 import {
   NOSTR_RELAYS,
   saveCachedProfileMetadata,
@@ -38,7 +39,6 @@ import {
   looksLikeSlip39Seed,
 } from "../../utils/slip39Nostr";
 import { safeLocalStorageSet } from "../../utils/storage";
-import type { Lang } from "../../i18n";
 
 export interface PendingOnboardingProfile {
   customPictureUrl: string | null;
