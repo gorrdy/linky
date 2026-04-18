@@ -1138,8 +1138,8 @@ export const useAppShellComposition = () => {
     requestLogout,
     savePendingOnboardingBackupToPasswordManager,
     seedMnemonic,
+    cyclePendingOnboardingAvatarControl,
     selectReturningSlip39Suggestion,
-    selectPendingOnboardingAvatar,
     slip39Seed,
     setReturningSlip39Input,
     setOnboardingStep,
@@ -1147,6 +1147,7 @@ export const useAppShellComposition = () => {
     submitReturningSlip39,
   } = useProfileAuthComposition({
     currentNsec,
+    lang,
     pushToast,
     t,
   });
@@ -1979,8 +1980,8 @@ export const useAppShellComposition = () => {
 
   const derivedProfile = useMemo(() => {
     if (!currentNpub) return null;
-    return deriveDefaultProfile(currentNpub);
-  }, [currentNpub]);
+    return deriveDefaultProfile(currentNpub, lang);
+  }, [currentNpub, lang]);
 
   const effectiveProfileName = myProfileName ?? derivedProfile?.name ?? null;
   const effectiveProfilePicture =
@@ -5223,8 +5224,8 @@ export const useAppShellComposition = () => {
     pushToast,
     recentlyReceivedToken,
     route,
+    cyclePendingOnboardingAvatarControl,
     selectReturningSlip39Suggestion,
-    selectPendingOnboardingAvatar,
     savePendingOnboardingBackupToPasswordManager,
     setLang,
     setReturningSlip39Input,

@@ -1,8 +1,7 @@
-// Mixed Czech + English first names used for deterministic default profiles.
-// Keep as plain strings (no diacritics normalization) so the output is stable.
+// Deterministic onboarding names split by language.
+// Keep as plain strings so the output stays stable for a given locale.
 
-export const FIRST_NAMES: string[] = [
-  // Czech
+export const CZECH_FIRST_NAMES: readonly string[] = [
   "Alžběta",
   "Adéla",
   "Adriana",
@@ -113,8 +112,9 @@ export const FIRST_NAMES: string[] = [
   "Viktor",
   "Vojtěch",
   "Zdeněk",
+];
 
-  // English
+export const ENGLISH_FIRST_NAMES: readonly string[] = [
   "Alice",
   "Amelia",
   "Ava",
@@ -169,4 +169,9 @@ export const FIRST_NAMES: string[] = [
   "Theodore",
   "Thomas",
   "William",
+];
+
+export const FIRST_NAMES: readonly string[] = [
+  ...CZECH_FIRST_NAMES,
+  ...ENGLISH_FIRST_NAMES,
 ];

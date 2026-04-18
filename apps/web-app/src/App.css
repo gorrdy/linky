@@ -419,6 +419,15 @@
   color: #e2e8f0;
 }
 
+.onboarding-avatar-editButton {
+  min-height: 68px;
+}
+
+.onboarding-avatar-editEmoji {
+  font-size: 30px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
 .onboarding-avatar-choiceLabel {
   font-size: 11px;
   font-weight: 700;
@@ -3230,7 +3239,7 @@ button.tag-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.78);
+  background: rgba(15, 23, 42, 0.32);
 }
 
 .modal-overlay {
@@ -3240,7 +3249,7 @@ button.tag-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.78);
+  background: rgba(15, 23, 42, 0.28);
 }
 
 .modal-sheet {
@@ -3260,7 +3269,7 @@ button.tag-button {
   align-items: flex-start;
   justify-content: flex-end;
   padding: 56px 12px 12px;
-  background: rgba(15, 23, 42, 0.18);
+  background: rgba(15, 23, 42, 0.1);
 }
 
 .menu-modal-sheet {
@@ -3313,7 +3322,7 @@ button.tag-button {
   padding: 18px;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 32%),
-    rgba(0, 0, 0, 0.72);
+    rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(18px);
 }
 
@@ -3713,13 +3722,10 @@ button.tag-button {
   .panel,
   .message-actions-backdrop,
   .message-actions-sheet,
-  .modal-overlay,
   .modal-sheet,
-  .menu-modal-overlay,
   .menu-modal-sheet,
   .contact-avatar,
   .contact-detail-card,
-  .nfc-write-overlay,
   .nfc-write-sheet,
   .nfc-write-close,
   .nfc-write-illustrationRing,
