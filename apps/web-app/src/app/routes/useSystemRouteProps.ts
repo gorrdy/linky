@@ -69,6 +69,7 @@ interface UseSystemRoutePropsParams {
   normalizeEvoluServerUrl: SystemRoutesProps["evoluServerNewProps"]["normalizeEvoluServerUrl"];
   normalizeMintUrl: SystemRoutesProps["mintsProps"]["normalizeMintUrl"];
   nostrRelayOverallStatus: SystemRoutesProps["advancedProps"]["nostrRelayOverallStatus"];
+  passwordManagerSeedUsername: SystemRoutesProps["advancedProps"]["passwordManagerSeedUsername"];
   pendingEvoluServerDeleteUrl: SystemRoutesProps["evoluServerProps"]["pendingEvoluServerDeleteUrl"];
   pendingMintDeleteUrl: SystemRoutesProps["mintDetailProps"]["pendingMintDeleteUrl"];
   pendingRelayDeleteUrl: SystemRoutesProps["nostrRelayProps"]["pendingRelayDeleteUrl"];
@@ -83,6 +84,7 @@ interface UseSystemRoutePropsParams {
   requestImportAppData: SystemRoutesProps["advancedProps"]["requestImportAppData"];
   requestLogout: SystemRoutesProps["advancedProps"]["requestLogout"];
   restoreMissingTokens: SystemRoutesProps["advancedProps"]["restoreMissingTokens"];
+  saveSeedToPasswordManager: SystemRoutesProps["advancedProps"]["saveSeedToPasswordManager"];
   route: Route;
   safeLocalStorageSetJson: SystemRoutesProps["mintDetailProps"]["safeLocalStorageSetJson"];
   saveEvoluServerUrls: SystemRoutesProps["evoluServerNewProps"]["saveEvoluServerUrls"];
@@ -169,6 +171,7 @@ export const useSystemRouteProps = ({
   normalizeEvoluServerUrl,
   normalizeMintUrl,
   nostrRelayOverallStatus,
+  passwordManagerSeedUsername,
   pendingEvoluServerDeleteUrl,
   pendingMintDeleteUrl,
   pendingRelayDeleteUrl,
@@ -183,6 +186,7 @@ export const useSystemRouteProps = ({
   requestImportAppData,
   requestLogout,
   restoreMissingTokens,
+  saveSeedToPasswordManager,
   route,
   safeLocalStorageSetJson,
   saveEvoluServerUrls,
@@ -253,7 +257,9 @@ export const useSystemRouteProps = ({
       lightningInvoiceAutoPayLimit,
       copyNostrKeys,
       copySeed,
+      passwordManagerSeedUsername,
       restoreMissingTokens,
+      saveSeedToPasswordManager,
       setLightningInvoiceAutoPayLimit,
       setPayWithCashuEnabled,
       exportAppData,

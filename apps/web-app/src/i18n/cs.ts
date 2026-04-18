@@ -64,8 +64,8 @@ export const cs = {
   onboardingStep3: "Vytvářím lightning adresu… chvíli strpení.",
   onboardingAvatarTitle: "Vyber svého avatara",
   onboardingAvatarIntro:
-    "Výchozí profil můžete rovnou potvrdit, nebo upravit jméno a avatara.",
-  onboardingAvatarGridLabel: "Výběr avatara",
+    "Výchozí profil můžete rovnou potvrdit, nebo upravit jméno a doladit jednoho avatara.",
+  onboardingAvatarGridLabel: "Úpravy avatara",
   onboardingAvatarRequired: "Vyberte avatar nebo nahrajte vlastní fotku.",
   onboardingBackupTitle: "Zálohujte si přístup",
   onboardingBackupIntro:

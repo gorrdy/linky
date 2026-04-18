@@ -1,11 +1,14 @@
 import * as Evolu from "@evolu/common";
 import React from "react";
 import {
-  deriveAvatarChoices,
+  cycleGeneratedAvatar,
   deriveDefaultProfile,
-  type DerivedAvatarChoice,
+  deriveGeneratedAvatar,
+  type AvatarEditorControlId,
+  type DerivedGeneratedAvatar,
 } from "../../derivedProfile";
 import { evolu } from "../../evolu";
+import type { Lang } from "../../i18n";
 import {
   NOSTR_RELAYS,
   saveCachedProfileMetadata,
@@ -38,13 +41,15 @@ import {
 import { safeLocalStorageSet } from "../../utils/storage";
 
 export interface PendingOnboardingProfile {
-  avatarChoices: readonly DerivedAvatarChoice[];
+  customPictureUrl: string | null;
   error: string | null;
+  generatedAvatar: DerivedGeneratedAvatar;
   kind: "profile";
   name: string;
   npub: string;
   nsec: string;
   pictureUrl: string;
+  selectedPictureKind: "custom" | "generated";
   slip39Seed: string;
 }
 
@@ -77,6 +82,7 @@ interface PersistNewProfileParams {
 
 interface UseProfileAuthDomainParams {
   currentNsec: string | null;
+  lang: Lang;
   pushToast: (message: string) => void;
   t: (key: string) => string;
 }
@@ -103,8 +109,10 @@ interface UseProfileAuthDomainResult {
     password: string,
   ) => Promise<void>;
   seedMnemonic: string | null;
+  cyclePendingOnboardingAvatarControl: (
+    controlId: AvatarEditorControlId,
+  ) => void;
   selectReturningSlip39Suggestion: (value: string) => void;
-  selectPendingOnboardingAvatar: (pictureUrl: string) => void;
   cashuSeedMnemonic: string | null;
   slip39Seed: string | null;
   setReturningSlip39Input: (value: string) => void;
@@ -115,6 +123,7 @@ interface UseProfileAuthDomainResult {
 
 export const useProfileAuthDomain = ({
   currentNsec,
+  lang,
   pushToast,
   t,
 }: UseProfileAuthDomainParams): UseProfileAuthDomainResult => {
@@ -450,7 +459,7 @@ export const useProfileAuthDomain = ({
         return;
       }
 
-      const defaults = deriveDefaultProfile(npub);
+      const defaults = deriveDefaultProfile(npub, lang);
       setOnboardingStep({
         kind: "preparing",
         step: 1,
@@ -458,7 +467,7 @@ export const useProfileAuthDomain = ({
         error: null,
       });
 
-      const avatarChoices = deriveAvatarChoices(npub, 8);
+      const generatedAvatar = deriveGeneratedAvatar(npub);
 
       setOnboardingStep({
         kind: "preparing",
@@ -469,18 +478,20 @@ export const useProfileAuthDomain = ({
 
       setOnboardingStep({
         kind: "profile",
-        avatarChoices,
+        customPictureUrl: null,
         error: null,
+        generatedAvatar,
         name: defaults.name,
         npub,
         nsec: normalizedNsec,
-        pictureUrl: avatarChoices[0]?.pictureUrl ?? defaults.pictureUrl,
+        pictureUrl: generatedAvatar.pictureUrl || defaults.pictureUrl,
+        selectedPictureKind: "generated",
         slip39Seed: slip39,
       });
     } finally {
       setOnboardingIsBusy(false);
     }
-  }, [onboardingIsBusy, pushToast, t]);
+  }, [lang, onboardingIsBusy, pushToast, t]);
 
   const setPendingOnboardingName = React.useCallback(
     (value: string) => {
@@ -493,16 +504,22 @@ export const useProfileAuthDomain = ({
     [updatePendingOnboardingProfile],
   );
 
-  const selectPendingOnboardingAvatar = React.useCallback(
-    (pictureUrl: string) => {
-      const normalizedPicture = String(pictureUrl ?? "").trim();
-      if (!normalizedPicture) return;
+  const cyclePendingOnboardingAvatarControl = React.useCallback(
+    (controlId: AvatarEditorControlId) => {
+      updatePendingOnboardingProfile((current) => {
+        const nextGeneratedAvatar = cycleGeneratedAvatar(
+          current.generatedAvatar.selection,
+          controlId,
+        );
 
-      updatePendingOnboardingProfile((current) => ({
-        ...current,
-        error: null,
-        pictureUrl: normalizedPicture,
-      }));
+        return {
+          ...current,
+          error: null,
+          generatedAvatar: nextGeneratedAvatar,
+          pictureUrl: nextGeneratedAvatar.pictureUrl,
+          selectedPictureKind: "generated",
+        };
+      });
     },
     [updatePendingOnboardingProfile],
   );
@@ -521,8 +538,10 @@ export const useProfileAuthDomain = ({
         const pictureUrl = await createSquareAvatarDataUrl(file, 160);
         updatePendingOnboardingProfile((current) => ({
           ...current,
+          customPictureUrl: pictureUrl,
           error: null,
           pictureUrl,
+          selectedPictureKind: "custom",
         }));
       } catch (error) {
         const message = `${t("errorPrefix")}: ${String(error ?? "unknown")}`;
@@ -847,8 +866,8 @@ export const useProfileAuthDomain = ({
     requestDeriveNostrKeys,
     requestLogout,
     savePendingOnboardingBackupToPasswordManager,
+    cyclePendingOnboardingAvatarControl,
     selectReturningSlip39Suggestion,
-    selectPendingOnboardingAvatar,
     cashuSeedMnemonic,
     seedMnemonic,
     slip39Seed,

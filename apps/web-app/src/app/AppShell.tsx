@@ -35,8 +35,8 @@ const AppShell = () => {
     pickPendingOnboardingPhoto,
     pushToast,
     recentlyReceivedToken,
+    cyclePendingOnboardingAvatarControl,
     selectReturningSlip39Suggestion,
-    selectPendingOnboardingAvatar,
     savePendingOnboardingBackupToPasswordManager,
     setReturningSlip39Input,
     setOnboardingStep,
@@ -94,10 +94,12 @@ const AppShell = () => {
           onPendingOnboardingPhotoSelected={onPendingOnboardingPhotoSelected}
           setOnboardingStep={setOnboardingStep}
           createNewAccount={createNewAccount}
+          cyclePendingOnboardingAvatarControl={
+            cyclePendingOnboardingAvatarControl
+          }
           pasteReturningSlip39FromClipboard={pasteReturningSlip39FromClipboard}
           pickPendingOnboardingPhoto={pickPendingOnboardingPhoto}
           selectReturningSlip39Suggestion={selectReturningSlip39Suggestion}
-          selectPendingOnboardingAvatar={selectPendingOnboardingAvatar}
           savePendingOnboardingBackupToPasswordManager={
             savePendingOnboardingBackupToPasswordManager
           }

@@ -4,13 +4,24 @@ import type {
   PendingOnboardingProfile,
   ReturningOnboardingStep,
 } from "../app/hooks/useProfileAuthDomain";
+import {
+  AVATAR_EDITOR_CONTROLS,
+  type AvatarEditorControlId,
+} from "../derivedProfile";
 import type { Lang } from "../i18n";
 import { getInitials } from "../utils/formatting";
 import { analyzeSlip39Input, SLIP39_WORD_COUNT } from "../utils/slip39Input";
+import {
+  PasswordManagerSaveForm,
+  type PasswordManagerSaveFormHandle,
+} from "./PasswordManagerSaveForm";
 
 type UnauthenticatedLayoutProps = {
   confirmPendingOnboardingProfile: () => Promise<void>;
   createNewAccount: () => Promise<void>;
+  cyclePendingOnboardingAvatarControl: (
+    controlId: AvatarEditorControlId,
+  ) => void;
   lang: Lang;
   onboardingIsBusy: boolean;
   onboardingPhotoInputRef: React.RefObject<HTMLInputElement | null>;
@@ -26,7 +37,6 @@ type UnauthenticatedLayoutProps = {
     password: string,
   ) => Promise<void>;
   selectReturningSlip39Suggestion: (value: string) => void;
-  selectPendingOnboardingAvatar: (pictureUrl: string) => void;
   setReturningSlip39Input: (value: string) => void;
   setOnboardingStep: React.Dispatch<React.SetStateAction<OnboardingStep>>;
   setLang: (lang: Lang) => void;
@@ -40,11 +50,10 @@ const formatTemplate = (template: string, vars: Record<string, string>) =>
     String(vars[key] ?? ""),
   );
 
-const PASSWORD_MANAGER_SAVE_TARGET = "linky-password-manager-save-target";
-
 export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
   confirmPendingOnboardingProfile,
   createNewAccount,
+  cyclePendingOnboardingAvatarControl,
   lang,
   onboardingIsBusy,
   onboardingPhotoInputRef,
@@ -55,7 +64,6 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
   pickPendingOnboardingPhoto,
   savePendingOnboardingBackupToPasswordManager,
   selectReturningSlip39Suggestion,
-  selectPendingOnboardingAvatar,
   setReturningSlip39Input,
   setOnboardingStep,
   setLang,
@@ -66,7 +74,49 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
   const showOnboardingHeader =
     onboardingStep?.kind !== "profile" && onboardingStep?.kind !== "returning";
   const [pickerMenuIsOpen, setPickerMenuIsOpen] = React.useState(false);
-  const passwordManagerSaveFormRef = React.useRef<HTMLFormElement | null>(null);
+  const passwordManagerSaveFormRef =
+    React.useRef<PasswordManagerSaveFormHandle | null>(null);
+
+  const renderPickerMenu = () => {
+    if (!pickerMenuIsOpen) return null;
+
+    return (
+      <div
+        className="menu-modal-overlay"
+        role="dialog"
+        aria-modal="false"
+        aria-label={t("menu")}
+        onClick={() => setPickerMenuIsOpen(false)}
+      >
+        <div
+          className="menu-modal-sheet"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="settings-row">
+            <div className="settings-left">
+              <span className="settings-icon" aria-hidden="true">
+                🌐
+              </span>
+              <span className="settings-label">{t("language")}</span>
+            </div>
+            <div className="settings-right">
+              <select
+                className="select"
+                value={lang}
+                onChange={(event) =>
+                  setLang(event.target.value === "cs" ? "cs" : "en")
+                }
+                aria-label={t("language")}
+              >
+                <option value="cs">{t("czech")}</option>
+                <option value="en">{t("english")}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   React.useEffect(() => {
     if (
@@ -177,42 +227,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           </button>
         </header>
 
-        {pickerMenuIsOpen ? (
-          <div
-            className="menu-modal-overlay"
-            role="dialog"
-            aria-modal="false"
-            aria-label={t("menu")}
-            onClick={() => setPickerMenuIsOpen(false)}
-          >
-            <div
-              className="menu-modal-sheet"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="settings-row">
-                <div className="settings-left">
-                  <span className="settings-icon" aria-hidden="true">
-                    🌐
-                  </span>
-                  <span className="settings-label">{t("language")}</span>
-                </div>
-                <div className="settings-right">
-                  <select
-                    className="select"
-                    value={lang}
-                    onChange={(event) =>
-                      setLang(event.target.value === "cs" ? "cs" : "en")
-                    }
-                    aria-label={t("language")}
-                  >
-                    <option value="cs">{t("czech")}</option>
-                    <option value="en">{t("english")}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {renderPickerMenu()}
 
         <div className="onboarding-return-scroll">
           <div className="onboarding-return-copy">
@@ -349,19 +364,9 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
   };
 
   const renderProfilePicker = (profile: PendingOnboardingProfile) => {
-    const selectedGeneratedAvatar = profile.avatarChoices.some(
-      (choice) => choice.pictureUrl === profile.pictureUrl,
-    );
+    const selectedGeneratedAvatar = profile.selectedPictureKind === "generated";
     const submitPasswordManagerForm = () => {
-      const form = passwordManagerSaveFormRef.current;
-      if (!form) return;
-
-      if (typeof form.requestSubmit === "function") {
-        form.requestSubmit();
-        return;
-      }
-
-      form.submit();
+      passwordManagerSaveFormRef.current?.requestSave();
     };
 
     const submitProfile = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -414,203 +419,115 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           </button>
         </header>
 
-        {pickerMenuIsOpen ? (
-          <div
-            className="menu-modal-overlay"
-            role="dialog"
-            aria-modal="false"
-            aria-label={t("menu")}
-            onClick={() => setPickerMenuIsOpen(false)}
-          >
-            <div
-              className="menu-modal-sheet"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="settings-row">
-                <div className="settings-left">
-                  <span className="settings-icon" aria-hidden="true">
-                    🌐
-                  </span>
-                  <span className="settings-label">{t("language")}</span>
-                </div>
-                <div className="settings-right">
-                  <select
-                    className="select"
-                    value={lang}
-                    onChange={(event) =>
-                      setLang(event.target.value === "cs" ? "cs" : "en")
-                    }
-                    aria-label={t("language")}
-                  >
-                    <option value="cs">{t("czech")}</option>
-                    <option value="en">{t("english")}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {renderPickerMenu()}
 
-        <iframe
-          aria-hidden="true"
-          className="onboarding-password-save-frame"
-          name={PASSWORD_MANAGER_SAVE_TARGET}
-          tabIndex={-1}
-          title=""
+        <PasswordManagerSaveForm
+          ref={passwordManagerSaveFormRef}
+          username={profile.name.trim()}
+          password={profile.slip39Seed}
         />
 
         <form
-          ref={passwordManagerSaveFormRef}
-          className="onboarding-password-save-form"
-          method="post"
-          action="/"
-          target={PASSWORD_MANAGER_SAVE_TARGET}
-          autoComplete="on"
-          aria-hidden="true"
-        >
-          <input
-            className="onboarding-password-save-input"
-            name="username"
-            type="text"
-            value={profile.name.trim()}
-            readOnly
-            tabIndex={-1}
-            autoCapitalize="words"
-            autoCorrect="off"
-            autoComplete="username"
-            spellCheck={false}
-          />
-          <input
-            className="onboarding-password-save-input"
-            name="password"
-            type="password"
-            value={profile.slip39Seed}
-            readOnly
-            tabIndex={-1}
-            autoCapitalize="none"
-            autoComplete="new-password"
-            spellCheck={false}
-          />
-        </form>
-
-        <form
-          autoComplete="off"
+          className="onboarding-avatar-scroll"
           onSubmit={(event) => void submitProfile(event)}
         >
-          <p className="muted onboarding-avatar-copy">
-            {t("onboardingAvatarIntro")}
-          </p>
+          <div className="onboarding-avatar-preview">
+            <div
+              className="contact-avatar is-xl onboarding-avatar-previewImage"
+              aria-hidden="true"
+            >
+              {profile.pictureUrl ? (
+                <img
+                  src={profile.pictureUrl}
+                  alt=""
+                  loading="eager"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="contact-avatar-fallback">
+                  {getInitials(profile.name || t("profileNoName"))}
+                </span>
+              )}
+            </div>
 
-          <div className="onboarding-avatar-scroll">
-            <div className="onboarding-avatar-preview">
-              <div
-                className="contact-avatar is-xl onboarding-avatar-previewImage"
-                aria-hidden="true"
+            <div className="onboarding-avatar-nameWrap">
+              <label
+                className="onboarding-avatar-nameLabel"
+                htmlFor="onboarding-profile-name"
               >
-                {profile.pictureUrl ? (
+                {t("name")}
+              </label>
+              <input
+                id="onboarding-profile-name"
+                name="profileName"
+                value={profile.name}
+                onChange={(event) =>
+                  setPendingOnboardingName(event.target.value)
+                }
+                placeholder={t("namePlaceholder")}
+                autoComplete="nickname"
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+            </div>
+          </div>
+
+          <input
+            ref={onboardingPhotoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(event) => void onPendingOnboardingPhotoSelected(event)}
+            style={{ display: "none" }}
+          />
+
+          <div
+            className="onboarding-avatar-grid"
+            role="list"
+            aria-label={t("onboardingAvatarGridLabel")}
+          >
+            {AVATAR_EDITOR_CONTROLS.map((control) => (
+              <button
+                key={control.id}
+                type="button"
+                className="onboarding-avatar-choice onboarding-avatar-editButton"
+                onClick={() => cyclePendingOnboardingAvatarControl(control.id)}
+                disabled={onboardingIsBusy}
+                aria-label={control.label}
+                title={control.label}
+              >
+                <span
+                  className="onboarding-avatar-choicePlus onboarding-avatar-editEmoji"
+                  aria-hidden="true"
+                >
+                  {control.icon}
+                </span>
+              </button>
+            ))}
+
+            <button
+              type="button"
+              className={`onboarding-avatar-choice onboarding-avatar-choiceCustom${selectedGeneratedAvatar ? "" : " is-selected"}`}
+              onClick={() => void pickPendingOnboardingPhoto()}
+              disabled={onboardingIsBusy}
+              aria-pressed={!selectedGeneratedAvatar}
+            >
+              <span className="onboarding-avatar-choicePlus" aria-hidden="true">
+                {profile.customPictureUrl ? (
                   <img
-                    src={profile.pictureUrl}
+                    src={profile.customPictureUrl}
                     alt=""
-                    loading="eager"
+                    loading="lazy"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span className="contact-avatar-fallback">
-                    {getInitials(profile.name || t("profileNoName"))}
-                  </span>
+                  "+"
                 )}
-              </div>
-
-              <div className="onboarding-avatar-nameWrap">
-                <label
-                  className="onboarding-avatar-nameLabel"
-                  htmlFor="onboarding-profile-name"
-                >
-                  {t("name")}
-                </label>
-                <input
-                  id="onboarding-profile-name"
-                  name="profileName"
-                  value={profile.name}
-                  onChange={(event) =>
-                    setPendingOnboardingName(event.target.value)
-                  }
-                  placeholder={t("namePlaceholder")}
-                  autoComplete="nickname"
-                  autoCapitalize="words"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-              </div>
-            </div>
-
-            <input
-              ref={onboardingPhotoInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(event) => void onPendingOnboardingPhotoSelected(event)}
-              style={{ display: "none" }}
-            />
-
-            <div
-              className="onboarding-avatar-grid"
-              role="list"
-              aria-label={t("onboardingAvatarGridLabel")}
-            >
-              {profile.avatarChoices.map((choice) => {
-                const isSelected = choice.pictureUrl === profile.pictureUrl;
-
-                return (
-                  <button
-                    key={choice.id}
-                    type="button"
-                    className={`onboarding-avatar-choice${isSelected ? " is-selected" : ""}`}
-                    onClick={() =>
-                      selectPendingOnboardingAvatar(choice.pictureUrl)
-                    }
-                    aria-pressed={isSelected}
-                  >
-                    <span
-                      className="contact-avatar onboarding-avatar-choiceImage"
-                      aria-hidden="true"
-                    >
-                      <img
-                        src={choice.pictureUrl}
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    </span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                className={`onboarding-avatar-choice onboarding-avatar-choiceCustom${selectedGeneratedAvatar ? "" : " is-selected"}`}
-                onClick={() => void pickPendingOnboardingPhoto()}
-                aria-pressed={!selectedGeneratedAvatar}
-              >
-                <span
-                  className="onboarding-avatar-choicePlus"
-                  aria-hidden="true"
-                >
-                  {profile.pictureUrl && !selectedGeneratedAvatar ? (
-                    <img
-                      src={profile.pictureUrl}
-                      alt=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    "+"
-                  )}
-                </span>
-                <span className="onboarding-avatar-choiceLabel">
-                  {t("profileUploadPhoto")}
-                </span>
-              </button>
-            </div>
+              </span>
+              <span className="onboarding-avatar-choiceLabel">
+                {t("profileUploadPhoto")}
+              </span>
+            </button>
           </div>
 
           {profile.error ? (
@@ -641,6 +558,23 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
     >
       {showOnboardingHeader ? (
         <>
+          <header className="topbar onboarding-avatar-nav">
+            <div className="topbar-left">
+              <span className="topbar-spacer" aria-hidden="true" />
+            </div>
+            <span className="topbar-title-spacer" aria-hidden="true" />
+            <button
+              type="button"
+              className="topbar-btn"
+              onClick={() => setPickerMenuIsOpen((current) => !current)}
+              aria-label={t("menu")}
+              title={t("menu")}
+              disabled={onboardingIsBusy}
+            >
+              <span aria-hidden="true">☰</span>
+            </button>
+          </header>
+
           <div className="onboarding-logo" aria-hidden="true">
             <img
               className="onboarding-logo-svg"
@@ -664,6 +598,8 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           >
             {t("onboardingSubtitle")}
           </p>
+
+          {renderPickerMenu()}
         </>
       ) : null}
 
