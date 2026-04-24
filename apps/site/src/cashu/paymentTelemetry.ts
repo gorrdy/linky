@@ -20,11 +20,23 @@ type PaymentTelemetryPhase =
   | "swap"
   | "unknown";
 
+type PaymentTelemetryStatus = "declined" | "error" | "ok";
+
 interface LocalPaymentTelemetryEvent {
   amountBucket: string | null;
+  appRuntime?: "native" | "pwa" | "web" | null;
   appVersion: string;
   attemptCount: number;
   createdAtSec: number;
+  devicePlatform?:
+    | "android"
+    | "iphone"
+    | "ipad"
+    | "linux"
+    | "mac"
+    | "windows"
+    | "unknown"
+    | null;
   direction: "in" | "out";
   errorCode: string | null;
   errorDetail: string | null;
@@ -35,8 +47,7 @@ interface LocalPaymentTelemetryEvent {
   mint: string | null;
   nextAttemptAtSec: number;
   phase: PaymentTelemetryPhase;
-  platform: "android" | "ios" | "web";
-  status: "ok" | "error";
+  status: PaymentTelemetryStatus;
 }
 
 interface QueuePaymentTelemetryArgs {
@@ -47,7 +58,7 @@ interface QueuePaymentTelemetryArgs {
   method: PaymentTelemetryMethod;
   mint?: string | null;
   phase: PaymentTelemetryPhase;
-  status: "ok" | "error";
+  status: PaymentTelemetryStatus;
 }
 
 const PAYMENT_ANALYTICS_RECIPIENT_NPUB =
@@ -62,6 +73,93 @@ const AMOUNT_BUCKETS = [1, 10, 100, 1_000, 10_000, 100_000];
 const FEE_BUCKETS = [1, 5, 10, 25, 100, 500];
 
 let flushPromise: Promise<void> | null = null;
+
+const getLowercaseUserAgent = (): string => {
+  if (typeof navigator === "undefined") {
+    return "";
+  }
+
+  return String(navigator.userAgent ?? "").toLowerCase();
+};
+
+const getNavigatorStandalone = (): boolean => {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const standalone = Reflect.get(navigator, "standalone");
+  return standalone === true;
+};
+
+const getNavigatorMaxTouchPoints = (): number => {
+  if (typeof navigator === "undefined") {
+    return 0;
+  }
+
+  return typeof navigator.maxTouchPoints === "number"
+    ? navigator.maxTouchPoints
+    : 0;
+};
+
+const getTelemetryAppRuntime = (): "native" | "pwa" | "web" => {
+  if (typeof window !== "undefined") {
+    try {
+      if (window.matchMedia("(display-mode: standalone)").matches) {
+        return "pwa";
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (getNavigatorStandalone()) {
+    return "pwa";
+  }
+
+  return "web";
+};
+
+const getTelemetryDevicePlatform = ():
+  | "android"
+  | "iphone"
+  | "ipad"
+  | "linux"
+  | "mac"
+  | "windows"
+  | "unknown" => {
+  const userAgent = getLowercaseUserAgent();
+  const maxTouchPoints = getNavigatorMaxTouchPoints();
+
+  if (userAgent.includes("android")) {
+    return "android";
+  }
+
+  if (userAgent.includes("iphone") || userAgent.includes("ipod")) {
+    return "iphone";
+  }
+
+  if (userAgent.includes("ipad")) {
+    return "ipad";
+  }
+
+  if (userAgent.includes("macintosh") && maxTouchPoints > 1) {
+    return "ipad";
+  }
+
+  if (userAgent.includes("macintosh") || userAgent.includes("mac os x")) {
+    return "mac";
+  }
+
+  if (userAgent.includes("windows")) {
+    return "windows";
+  }
+
+  if (userAgent.includes("linux") || userAgent.includes("x11")) {
+    return "linux";
+  }
+
+  return "unknown";
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -145,6 +243,22 @@ const classifyPaymentErrorCode = (
   return "unknown";
 };
 
+const isDeclinedPaymentErrorCode = (value: string | null): boolean => {
+  return value === "insufficient" || value === "invalid_amount";
+};
+
+const normalizePaymentTelemetryStatus = (args: {
+  error: string | null | undefined;
+  status: PaymentTelemetryStatus;
+}): PaymentTelemetryStatus => {
+  if (args.status === "ok" || args.status === "declined") {
+    return args.status;
+  }
+
+  const errorCode = classifyPaymentErrorCode(args.error);
+  return isDeclinedPaymentErrorCode(errorCode) ? "declined" : "error";
+};
+
 const getPaymentTelemetryRetryDelaySec = (attemptCount: number): number => {
   const safeAttempts =
     Number.isFinite(attemptCount) && attemptCount > 0
@@ -159,8 +273,8 @@ const isTelemetryDirection = (value: unknown): value is "in" | "out" => {
   return value === "in" || value === "out";
 };
 
-const isTelemetryStatus = (value: unknown): value is "ok" | "error" => {
-  return value === "ok" || value === "error";
+const isTelemetryStatus = (value: unknown): value is PaymentTelemetryStatus => {
+  return value === "declined" || value === "error" || value === "ok";
 };
 
 const isTelemetryMethod = (value: unknown): value is PaymentTelemetryMethod => {
@@ -187,6 +301,33 @@ const isTelemetryPhase = (value: unknown): value is PaymentTelemetryPhase => {
   );
 };
 
+const isTelemetryAppRuntime = (
+  value: unknown,
+): value is "native" | "pwa" | "web" => {
+  return value === "native" || value === "pwa" || value === "web";
+};
+
+const isTelemetryDevicePlatform = (
+  value: unknown,
+): value is
+  | "android"
+  | "iphone"
+  | "ipad"
+  | "linux"
+  | "mac"
+  | "windows"
+  | "unknown" => {
+  return (
+    value === "android" ||
+    value === "iphone" ||
+    value === "ipad" ||
+    value === "linux" ||
+    value === "mac" ||
+    value === "windows" ||
+    value === "unknown"
+  );
+};
+
 const isLocalPaymentTelemetryEvent = (
   value: unknown,
 ): value is LocalPaymentTelemetryEvent => {
@@ -203,10 +344,15 @@ const isLocalPaymentTelemetryEvent = (
     isTelemetryStatus(value.status) &&
     isTelemetryMethod(value.method) &&
     isTelemetryPhase(value.phase) &&
-    value.platform === "web" &&
     typeof value.appVersion === "string" &&
+    (typeof value.appRuntime === "undefined" ||
+      value.appRuntime === null ||
+      isTelemetryAppRuntime(value.appRuntime)) &&
     (typeof value.mint === "string" || value.mint === null) &&
     (typeof value.amountBucket === "string" || value.amountBucket === null) &&
+    (typeof value.devicePlatform === "undefined" ||
+      value.devicePlatform === null ||
+      isTelemetryDevicePlatform(value.devicePlatform)) &&
     (typeof value.feeBucket === "string" || value.feeBucket === null) &&
     (typeof value.errorCode === "string" || value.errorCode === null) &&
     (typeof value.errorDetail === "string" || value.errorDetail === null)
@@ -267,7 +413,8 @@ const createPaymentTelemetryWrappedEvent = (args: {
       feeBucket: args.item.feeBucket,
       errorCode: args.item.errorCode,
       errorDetail: args.item.errorDetail,
-      platform: args.item.platform,
+      devicePlatform: args.item.devicePlatform ?? null,
+      appRuntime: args.item.appRuntime ?? null,
       appVersion: args.item.appVersion,
     }),
   };
@@ -279,6 +426,8 @@ const createLocalPaymentTelemetryEvent = (
   args: QueuePaymentTelemetryArgs,
   createdAtSec: number,
 ): LocalPaymentTelemetryEvent => {
+  const errorCode = classifyPaymentErrorCode(args.error);
+
   return {
     id: makeLocalId(),
     createdAtSec,
@@ -286,15 +435,19 @@ const createLocalPaymentTelemetryEvent = (
     lastAttemptAtSec: null,
     nextAttemptAtSec: createdAtSec,
     direction: args.direction,
-    status: args.status,
+    status: normalizePaymentTelemetryStatus({
+      error: args.error,
+      status: args.status,
+    }),
     method: args.method,
     phase: args.phase,
     mint: normalizeMintUrl(args.mint),
     amountBucket: bucketPositiveNumber(args.amount, AMOUNT_BUCKETS),
     feeBucket: bucketPositiveNumber(args.fee, FEE_BUCKETS),
-    errorCode: classifyPaymentErrorCode(args.error),
+    errorCode,
     errorDetail: normalizePaymentTelemetryErrorDetail(args.error),
-    platform: "web",
+    devicePlatform: getTelemetryDevicePlatform(),
+    appRuntime: getTelemetryAppRuntime(),
     appVersion: __APP_VERSION__,
   };
 };

@@ -13,7 +13,10 @@ import {
   safeLocalStorageSetJson,
 } from "../../utils/storage";
 import { makeLocalId } from "../../utils/validation";
-import { createLocalPaymentTelemetryEvent } from "../lib/paymentTelemetry";
+import {
+  createLocalPaymentTelemetryEvent,
+  normalizePaymentTelemetryStatus,
+} from "../lib/paymentTelemetry";
 import type {
   LocalPaymentEvent,
   LocalPaymentTelemetryEvent,
@@ -96,12 +99,16 @@ export const useOwnerScopedStorage = ({
       const mint = String(event.mint ?? "").trim();
       const unit = String(event.unit ?? "").trim();
       const err = String(event.error ?? "").trim();
+      const status = normalizePaymentTelemetryStatus({
+        error: event.error,
+        status: event.status,
+      });
 
       const entry: LocalPaymentEvent = {
         id: makeLocalId(),
         createdAtSec: nowSec,
         direction: event.direction,
-        status: event.status,
+        status,
         amount,
         fee,
         mint: mint || null,
