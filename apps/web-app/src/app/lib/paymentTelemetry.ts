@@ -1,6 +1,9 @@
 import type { Event as NostrToolsEvent } from "nostr-tools";
 import { getPublicKey, type UnsignedEvent } from "nostr-tools";
-import { getPlatformTarget } from "../../platform/runtime";
+import {
+  getTelemetryAppRuntime,
+  getTelemetryDevicePlatform,
+} from "../../platform/runtime";
 import { normalizeMintUrl } from "../../utils/mint";
 import { makeLocalId } from "../../utils/validation";
 import type {
@@ -8,6 +11,7 @@ import type {
   LoggedPaymentEventParams,
   PaymentTelemetryMethod,
   PaymentTelemetryPhase,
+  PaymentTelemetryStatus,
 } from "../types/appTypes";
 import {
   LINKY_PAYMENT_TELEMETRY_KIND,
@@ -124,10 +128,32 @@ export const classifyPaymentErrorCode = (
   return "unknown";
 };
 
+const isDeclinedPaymentErrorCode = (value: string | null): boolean => {
+  return (
+    value === "insufficient" ||
+    value === "invalid_amount" ||
+    value === "multi_mint_unsupported"
+  );
+};
+
+export const normalizePaymentTelemetryStatus = (args: {
+  error: string | null | undefined;
+  status: PaymentTelemetryStatus;
+}): PaymentTelemetryStatus => {
+  if (args.status === "ok" || args.status === "declined") {
+    return args.status;
+  }
+
+  const errorCode = classifyPaymentErrorCode(args.error);
+  return isDeclinedPaymentErrorCode(errorCode) ? "declined" : "error";
+};
+
 export const createLocalPaymentTelemetryEvent = (
   event: LoggedPaymentEventParams,
   createdAtSec: number,
 ): LocalPaymentTelemetryEvent => {
+  const errorCode = classifyPaymentErrorCode(event.error);
+
   return {
     id: makeLocalId(),
     createdAtSec,
@@ -135,15 +161,19 @@ export const createLocalPaymentTelemetryEvent = (
     lastAttemptAtSec: null,
     nextAttemptAtSec: createdAtSec,
     direction: event.direction,
-    status: event.status,
+    status: normalizePaymentTelemetryStatus({
+      error: event.error,
+      status: event.status,
+    }),
     method: asTelemetryMethod(event.method),
     phase: asTelemetryPhase(event.phase),
     mint: normalizePaymentTelemetryMint(event.mint),
     amountBucket: bucketPositiveNumber(event.amount, AMOUNT_BUCKETS),
     feeBucket: bucketPositiveNumber(event.fee, FEE_BUCKETS),
-    errorCode: classifyPaymentErrorCode(event.error),
+    errorCode,
     errorDetail: normalizePaymentTelemetryErrorDetail(event.error),
-    platform: getPlatformTarget(),
+    devicePlatform: getTelemetryDevicePlatform(),
+    appRuntime: getTelemetryAppRuntime(),
     appVersion: __APP_VERSION__,
   };
 };
@@ -188,7 +218,8 @@ export const createPaymentTelemetryWrappedEvent = (args: {
       feeBucket: args.item.feeBucket,
       errorCode: args.item.errorCode,
       errorDetail: args.item.errorDetail,
-      platform: args.item.platform,
+      devicePlatform: args.item.devicePlatform ?? null,
+      appRuntime: args.item.appRuntime ?? null,
       appVersion: args.item.appVersion,
     }),
   };

@@ -1,5 +1,11 @@
 import type { CashuTokenId, ContactId } from "../../evolu";
+import type {
+  TelemetryAppRuntime,
+  TelemetryDevicePlatform,
+} from "../../platform/runtime";
 import type { JsonValue } from "../../types/json";
+
+export type PaymentTelemetryStatus = "declined" | "error" | "ok";
 
 export type LocalPaymentEvent = {
   amount: number | null;
@@ -12,7 +18,7 @@ export type LocalPaymentEvent = {
   method?: PaymentTelemetryMethod | null;
   mint: string | null;
   phase?: PaymentTelemetryPhase | null;
-  status: "ok" | "error";
+  status: PaymentTelemetryStatus;
   unit: string | null;
 };
 
@@ -43,15 +49,17 @@ export type LoggedPaymentEventParams = {
   method?: PaymentTelemetryMethod | null;
   mint?: string | null;
   phase?: PaymentTelemetryPhase | null;
-  status: "ok" | "error";
+  status: PaymentTelemetryStatus;
   unit?: string | null;
 };
 
 export type LocalPaymentTelemetryEvent = {
   amountBucket: string | null;
+  appRuntime?: TelemetryAppRuntime | null;
   appVersion: string;
   attemptCount: number;
   createdAtSec: number;
+  devicePlatform?: TelemetryDevicePlatform | null;
   direction: "in" | "out";
   errorCode: string | null;
   errorDetail: string | null;
@@ -62,8 +70,7 @@ export type LocalPaymentTelemetryEvent = {
   mint: string | null;
   nextAttemptAtSec: number;
   phase: PaymentTelemetryPhase;
-  platform: "android" | "ios" | "web";
-  status: "ok" | "error";
+  status: PaymentTelemetryStatus;
 };
 
 export type LocalNostrMessage = {

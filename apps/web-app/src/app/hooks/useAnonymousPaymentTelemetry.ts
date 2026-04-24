@@ -32,8 +32,10 @@ const isTelemetryDirection = (value: unknown): value is "in" | "out" => {
   return value === "in" || value === "out";
 };
 
-const isTelemetryStatus = (value: unknown): value is "ok" | "error" => {
-  return value === "ok" || value === "error";
+const isTelemetryStatus = (
+  value: unknown,
+): value is "declined" | "error" | "ok" => {
+  return value === "declined" || value === "error" || value === "ok";
 };
 
 const isTelemetryMethod = (value: unknown): boolean => {
@@ -60,10 +62,31 @@ const isTelemetryPhase = (value: unknown): boolean => {
   );
 };
 
-const isTelemetryPlatform = (
+const isTelemetryAppRuntime = (
   value: unknown,
-): value is "android" | "ios" | "web" => {
-  return value === "android" || value === "ios" || value === "web";
+): value is "native" | "pwa" | "web" => {
+  return value === "native" || value === "pwa" || value === "web";
+};
+
+const isTelemetryDevicePlatform = (
+  value: unknown,
+): value is
+  | "android"
+  | "iphone"
+  | "ipad"
+  | "linux"
+  | "mac"
+  | "windows"
+  | "unknown" => {
+  return (
+    value === "android" ||
+    value === "iphone" ||
+    value === "ipad" ||
+    value === "linux" ||
+    value === "mac" ||
+    value === "windows" ||
+    value === "unknown"
+  );
 };
 
 const isLocalPaymentTelemetryEvent = (
@@ -80,9 +103,10 @@ const isLocalPaymentTelemetryEvent = (
   const status = Reflect.get(value, "status");
   const method = Reflect.get(value, "method");
   const phase = Reflect.get(value, "phase");
-  const platform = Reflect.get(value, "platform");
   const appVersion = Reflect.get(value, "appVersion");
+  const appRuntime = Reflect.get(value, "appRuntime");
   const amountBucket = Reflect.get(value, "amountBucket");
+  const devicePlatform = Reflect.get(value, "devicePlatform");
   const feeBucket = Reflect.get(value, "feeBucket");
   const errorCode = Reflect.get(value, "errorCode");
   const errorDetail = Reflect.get(value, "errorDetail");
@@ -98,10 +122,15 @@ const isLocalPaymentTelemetryEvent = (
     isTelemetryStatus(status) &&
     isTelemetryMethod(method) &&
     isTelemetryPhase(phase) &&
-    isTelemetryPlatform(platform) &&
     typeof appVersion === "string" &&
+    (typeof appRuntime === "undefined" ||
+      appRuntime === null ||
+      isTelemetryAppRuntime(appRuntime)) &&
     (typeof mint === "string" || mint === null) &&
     (typeof amountBucket === "string" || amountBucket === null) &&
+    (typeof devicePlatform === "undefined" ||
+      devicePlatform === null ||
+      isTelemetryDevicePlatform(devicePlatform)) &&
     (typeof feeBucket === "string" || feeBucket === null) &&
     (typeof errorCode === "string" || errorCode === null) &&
     (typeof errorDetail === "string" || errorDetail === null)
