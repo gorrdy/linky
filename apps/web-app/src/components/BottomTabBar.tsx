@@ -6,6 +6,7 @@ interface BottomTabBarProps {
   activeTab: "contacts" | "wallet" | null;
   activeProgress?: number;
   contactsLabel: string;
+  disableIndicatorTransition?: boolean;
   onTabChange?: (tab: "contacts" | "wallet") => void;
   t: (key: string) => string;
   walletLabel: string;
@@ -15,6 +16,7 @@ export function BottomTabBar({
   activeTab,
   activeProgress,
   contactsLabel,
+  disableIndicatorTransition = false,
   onTabChange,
   t,
   walletLabel,
@@ -114,9 +116,13 @@ export function BottomTabBar({
     <div className="contacts-qr-bar" role="region">
       <div className="bottom-tabs-bar" role="tablist" aria-label={t("list")}>
         <div
-          className={
-            tabMetrics.ready ? "bottom-tabs" : "bottom-tabs no-indicator"
-          }
+          className={[
+            "bottom-tabs",
+            tabMetrics.ready ? null : "no-indicator",
+            disableIndicatorTransition ? "is-interactive" : null,
+          ]
+            .filter(Boolean)
+            .join(" ")}
           ref={tabsRef}
         >
           <div

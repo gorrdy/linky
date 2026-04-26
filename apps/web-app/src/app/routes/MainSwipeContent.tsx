@@ -31,6 +31,7 @@ export interface MainSwipeRouteProps {
     | ((event: React.UIEvent<HTMLDivElement>) => void)
     | undefined;
   handleMainSwipeTabChange: (target: "contacts" | "wallet") => void;
+  isMainSwipeDragging: boolean;
   mainSwipeProgress: number;
   mainSwipeRef: React.RefObject<HTMLDivElement | null>;
   mainSwipeScrollY: number;
@@ -83,6 +84,7 @@ export const MainSwipeContent = (): React.ReactElement => {
     groupNames,
     handleMainSwipeScroll,
     handleMainSwipeTabChange,
+    isMainSwipeDragging,
     mainSwipeProgress,
     mainSwipeRef,
     mainSwipeScrollY,
@@ -183,13 +185,14 @@ export const MainSwipeContent = (): React.ReactElement => {
         activeTab={bottomTabActive}
         activeProgress={mainSwipeProgress}
         contactsLabel={t("contactsTitle")}
+        disableIndicatorTransition={isMainSwipeDragging}
         onTabChange={handleMainSwipeTabChange}
         t={t}
         walletLabel={t("wallet")}
       />
       <button
         type="button"
-        className={`contacts-fab main-swipe-fab${canAddContact ? "" : " is-disabled"}`}
+        className={`contacts-fab main-swipe-fab${canAddContact ? "" : " is-disabled"}${isMainSwipeDragging ? " is-interactive" : ""}`}
         onClick={openScan}
         aria-disabled={!canAddContact}
         aria-label={t("addContact")}

@@ -2653,6 +2653,10 @@ button.icon {
   display: none;
 }
 
+.bottom-tabs.is-interactive .bottom-tabs-indicator {
+  transition: none;
+}
+
 .bottom-tab {
   background: transparent;
   border: none;
@@ -2704,6 +2708,10 @@ button.icon {
   transition:
     transform 220ms ease,
     opacity 220ms ease;
+}
+
+.main-swipe-fab.is-interactive {
+  transition: none;
 }
 
 .main-swipe-page {
