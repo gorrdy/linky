@@ -8,6 +8,7 @@ interface UseMainSwipeNavigationParams {
   mainSwipeRef: React.RefObject<HTMLDivElement | null>;
   mainSwipeScrollTimerRef: React.MutableRefObject<number | null>;
   routeKind: Route["kind"];
+  setIsMainSwipeDragging: React.Dispatch<React.SetStateAction<boolean>>;
   setMainSwipeProgress: React.Dispatch<React.SetStateAction<number>>;
 }
 
@@ -16,6 +17,8 @@ interface MainSwipeScrollable {
   scrollLeft: number;
   scrollTo: (options: { behavior: ScrollBehavior; left: number }) => void;
 }
+
+type MainSwipeTarget = "contacts" | "wallet";
 
 const ROUTES_WITHOUT_WALLET_RETURN_ANIMATION = new Set<Route["kind"]>([
   "cashuTokens",
@@ -28,8 +31,13 @@ const ROUTES_WITHOUT_WALLET_RETURN_ANIMATION = new Set<Route["kind"]>([
 
 const getMainSwipeTargetLeft = (
   width: number,
-  target: "contacts" | "wallet",
+  target: MainSwipeTarget,
 ): number => (target === "wallet" ? width : 0);
+
+const getMainSwipeProgress = (element: MainSwipeScrollable): number => {
+  const width = element.clientWidth || 1;
+  return element.scrollLeft / width;
+};
 
 const shouldDisableWalletReturnAnimation = (
   routeKind: Route["kind"],
@@ -58,7 +66,8 @@ const restoreScrollBehaviorNextFrame = (
 
 export const alignMainSwipeToTarget = (
   element: MainSwipeScrollable,
-  target: "contacts" | "wallet",
+  target: MainSwipeTarget,
+  behavior: ScrollBehavior = "auto",
 ): void => {
   const width = element.clientWidth || 1;
   const targetLeft = getMainSwipeTargetLeft(width, target);
@@ -67,7 +76,7 @@ export const alignMainSwipeToTarget = (
     return;
   }
 
-  element.scrollTo({ left: targetLeft, behavior: "auto" });
+  element.scrollTo({ left: targetLeft, behavior });
 };
 
 export const useMainSwipeNavigation = ({
@@ -76,20 +85,18 @@ export const useMainSwipeNavigation = ({
   mainSwipeRef,
   mainSwipeScrollTimerRef,
   routeKind,
+  setIsMainSwipeDragging,
   setMainSwipeProgress,
 }: UseMainSwipeNavigationParams) => {
   const previousRouteKindRef = React.useRef<Route["kind"]>(routeKind);
-  const programmaticScrollRef = React.useRef(false);
+  const programmaticTargetRef = React.useRef<MainSwipeTarget | null>(null);
+  const programmaticFrameRef = React.useRef<number | null>(null);
+  const isDraggingRef = React.useRef(false);
 
-  const releaseProgrammaticScrollNextFrame = React.useCallback(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      programmaticScrollRef.current = false;
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      programmaticScrollRef.current = false;
-    };
+  const cancelProgrammaticFrame = React.useCallback(() => {
+    if (programmaticFrameRef.current === null) return;
+    window.cancelAnimationFrame(programmaticFrameRef.current);
+    programmaticFrameRef.current = null;
   }, []);
 
   const updateMainSwipeProgress = React.useCallback(
@@ -101,30 +108,108 @@ export const useMainSwipeNavigation = ({
     [mainSwipeProgressRef, setMainSwipeProgress],
   );
 
+  const stopInteractiveState = React.useCallback(() => {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+    }
+    setIsMainSwipeDragging(false);
+  }, [setIsMainSwipeDragging]);
+
+  const finishProgrammaticScroll = React.useCallback(
+    (target: MainSwipeTarget, shouldNavigate: boolean) => {
+      cancelProgrammaticFrame();
+      programmaticTargetRef.current = null;
+      stopInteractiveState();
+
+      const element = mainSwipeRef.current;
+      if (element) {
+        alignMainSwipeToTarget(element, target, "auto");
+        updateMainSwipeProgress(getMainSwipeProgress(element));
+      } else {
+        updateMainSwipeProgress(target === "wallet" ? 1 : 0);
+      }
+
+      if (shouldNavigate && target !== routeKind) {
+        navigateTo({ route: target });
+      }
+    },
+    [
+      cancelProgrammaticFrame,
+      mainSwipeRef,
+      routeKind,
+      stopInteractiveState,
+      updateMainSwipeProgress,
+    ],
+  );
+
+  const trackProgrammaticScroll = React.useCallback(
+    (target: MainSwipeTarget, shouldNavigate: boolean) => {
+      cancelProgrammaticFrame();
+
+      const tick = () => {
+        const element = mainSwipeRef.current;
+        if (!element) {
+          finishProgrammaticScroll(target, shouldNavigate);
+          return;
+        }
+
+        const width = element.clientWidth || 1;
+        const targetLeft = getMainSwipeTargetLeft(width, target);
+        updateMainSwipeProgress(getMainSwipeProgress(element));
+
+        if (Math.abs(element.scrollLeft - targetLeft) <= 1) {
+          finishProgrammaticScroll(target, shouldNavigate);
+          return;
+        }
+
+        programmaticFrameRef.current = window.requestAnimationFrame(tick);
+      };
+
+      programmaticFrameRef.current = window.requestAnimationFrame(tick);
+    },
+    [
+      cancelProgrammaticFrame,
+      finishProgrammaticScroll,
+      mainSwipeRef,
+      updateMainSwipeProgress,
+    ],
+  );
+
   const commitMainSwipe = React.useCallback(
-    (target: "contacts" | "wallet") => {
+    (target: MainSwipeTarget) => {
       if (mainSwipeScrollTimerRef.current !== null) {
         window.clearTimeout(mainSwipeScrollTimerRef.current);
         mainSwipeScrollTimerRef.current = null;
       }
 
-      updateMainSwipeProgress(target === "wallet" ? 1 : 0);
       const element = mainSwipeRef.current;
-      if (element) {
-        programmaticScrollRef.current = true;
-        alignMainSwipeToTarget(element, target);
-        void releaseProgrammaticScrollNextFrame();
+      if (!element) {
+        finishProgrammaticScroll(target, true);
+        return;
       }
-      if (target !== routeKind) {
-        navigateTo({ route: target });
+
+      const targetLeft = getMainSwipeTargetLeft(
+        element.clientWidth || 1,
+        target,
+      );
+      if (Math.abs(element.scrollLeft - targetLeft) <= 1) {
+        finishProgrammaticScroll(target, true);
+        return;
       }
+
+      stopInteractiveState();
+      programmaticTargetRef.current = target;
+      setIsMainSwipeDragging(true);
+      alignMainSwipeToTarget(element, target, "smooth");
+      trackProgrammaticScroll(target, true);
     },
     [
+      finishProgrammaticScroll,
       mainSwipeRef,
       mainSwipeScrollTimerRef,
-      releaseProgrammaticScrollNextFrame,
-      routeKind,
-      updateMainSwipeProgress,
+      setIsMainSwipeDragging,
+      stopInteractiveState,
+      trackProgrammaticScroll,
     ],
   );
 
@@ -144,17 +229,17 @@ export const useMainSwipeNavigation = ({
       element.style.scrollBehavior = "auto";
     }
 
-    programmaticScrollRef.current = true;
+    cancelProgrammaticFrame();
+    programmaticTargetRef.current = null;
     alignMainSwipeToTarget(
       element,
       routeKind === "wallet" ? "wallet" : "contacts",
     );
 
-    const releaseProgrammaticScroll = releaseProgrammaticScrollNextFrame();
-
     updateMainSwipeProgress(routeKind === "wallet" ? 1 : 0);
+    stopInteractiveState();
 
-    if (!disableSmoothAlignment) return releaseProgrammaticScroll;
+    if (!disableSmoothAlignment) return;
 
     const restoreScrollBehavior = restoreScrollBehaviorNextFrame(
       element,
@@ -163,14 +248,14 @@ export const useMainSwipeNavigation = ({
     );
 
     return () => {
-      releaseProgrammaticScroll();
       restoreScrollBehavior();
     };
   }, [
+    cancelProgrammaticFrame,
     isMainSwipeRoute,
     mainSwipeRef,
-    releaseProgrammaticScrollNextFrame,
     routeKind,
+    stopInteractiveState,
     updateMainSwipeProgress,
   ]);
 
@@ -180,21 +265,42 @@ export const useMainSwipeNavigation = ({
 
   React.useEffect(() => {
     if (isMainSwipeRoute) return;
+    cancelProgrammaticFrame();
+    programmaticTargetRef.current = null;
     if (mainSwipeScrollTimerRef.current === null) return;
 
     window.clearTimeout(mainSwipeScrollTimerRef.current);
     mainSwipeScrollTimerRef.current = null;
-  }, [isMainSwipeRoute, mainSwipeScrollTimerRef]);
+    stopInteractiveState();
+  }, [
+    cancelProgrammaticFrame,
+    isMainSwipeRoute,
+    mainSwipeScrollTimerRef,
+    stopInteractiveState,
+  ]);
+
+  React.useEffect(
+    () => () => {
+      cancelProgrammaticFrame();
+    },
+    [cancelProgrammaticFrame],
+  );
 
   const handleMainSwipeScroll = isMainSwipeRoute
     ? (event: React.UIEvent<HTMLDivElement>) => {
-        if (programmaticScrollRef.current) {
+        const element = event.currentTarget;
+        const progress = getMainSwipeProgress(element);
+
+        if (programmaticTargetRef.current !== null) {
+          updateMainSwipeProgress(progress);
           return;
         }
 
-        const element = event.currentTarget;
-        const width = element.clientWidth || 1;
-        const progress = element.scrollLeft / width;
+        if (!isDraggingRef.current) {
+          isDraggingRef.current = true;
+          setIsMainSwipeDragging(true);
+        }
+
         updateMainSwipeProgress(progress);
 
         if (mainSwipeScrollTimerRef.current !== null) {
@@ -204,6 +310,8 @@ export const useMainSwipeNavigation = ({
         mainSwipeScrollTimerRef.current = window.setTimeout(() => {
           mainSwipeScrollTimerRef.current = null;
           const current = mainSwipeProgressRef.current;
+          isDraggingRef.current = false;
+          setIsMainSwipeDragging(false);
           commitMainSwipe(current > 0.5 ? "wallet" : "contacts");
         }, 140);
       }

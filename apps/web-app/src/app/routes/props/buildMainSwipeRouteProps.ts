@@ -17,6 +17,7 @@ interface BuildMainSwipeRoutePropsParams {
   groupNames: MainSwipeRoutesProps["mainSwipeProps"]["groupNames"];
   handleMainSwipeScroll: MainSwipeRoutesProps["mainSwipeProps"]["handleMainSwipeScroll"];
   handleMainSwipeTabChange: MainSwipeRoutesProps["mainSwipeProps"]["handleMainSwipeTabChange"];
+  isMainSwipeDragging: MainSwipeRoutesProps["mainSwipeProps"]["isMainSwipeDragging"];
   mainSwipeProgress: MainSwipeRoutesProps["mainSwipeProps"]["mainSwipeProgress"];
   mainSwipeRef: MainSwipeRoutesProps["mainSwipeProps"]["mainSwipeRef"];
   mainSwipeScrollY: MainSwipeRoutesProps["mainSwipeProps"]["mainSwipeScrollY"];
@@ -56,6 +57,7 @@ export const buildMainSwipeRouteProps = ({
   groupNames,
   handleMainSwipeScroll,
   handleMainSwipeTabChange,
+  isMainSwipeDragging,
   mainSwipeProgress,
   mainSwipeRef,
   mainSwipeScrollY,
@@ -95,6 +97,7 @@ export const buildMainSwipeRouteProps = ({
       groupNames,
       handleMainSwipeScroll,
       handleMainSwipeTabChange,
+      isMainSwipeDragging,
       mainSwipeProgress,
       mainSwipeRef,
       mainSwipeScrollY,

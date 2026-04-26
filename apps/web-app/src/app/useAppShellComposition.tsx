@@ -667,6 +667,7 @@ export const useAppShellComposition = () => {
   const [mainSwipeProgress, setMainSwipeProgress] = useState(() =>
     route.kind === "wallet" ? 1 : 0,
   );
+  const [isMainSwipeDragging, setIsMainSwipeDragging] = useState(false);
   const [mainSwipeScrollY, setMainSwipeScrollY] = useState(0);
   const mainSwipeProgressRef = React.useRef(route.kind === "wallet" ? 1 : 0);
   const mainSwipeScrollTimerRef = React.useRef<number | null>(null);
@@ -2294,6 +2295,7 @@ export const useAppShellComposition = () => {
     mainSwipeRef,
     mainSwipeScrollTimerRef,
     routeKind: route.kind,
+    setIsMainSwipeDragging,
     setMainSwipeProgress,
   });
 
@@ -5270,6 +5272,7 @@ export const useAppShellComposition = () => {
       groupNames,
       handleMainSwipeScroll,
       handleMainSwipeTabChange: commitMainSwipe,
+      isMainSwipeDragging,
       mainSwipeProgress,
       mainSwipeRef,
       mainSwipeScrollY,
