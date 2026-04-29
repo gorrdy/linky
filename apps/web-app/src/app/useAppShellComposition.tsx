@@ -63,7 +63,10 @@ import {
   getCashuDeterministicSeedFromStorage,
   withCashuDeterministicCounterLock,
 } from "../utils/cashuDeterministic";
-import { isCashuOutputsAlreadySignedError } from "../utils/cashuErrors";
+import {
+  isCashuOutputsAlreadySignedError,
+  isCashuOutputsArePendingError,
+} from "../utils/cashuErrors";
 import { getCashuLib } from "../utils/cashuLib";
 import { createLoadedCashuWallet } from "../utils/cashuWallet";
 import {
@@ -519,56 +522,87 @@ const mintTopupProofs = async (args: {
       keysetId,
     },
     async () => {
-      const counter = getCashuDeterministicCounter({
+      let counter = getCashuDeterministicCounter({
         mintUrl: args.mintUrl,
         unit,
         keysetId,
       });
 
-      try {
-        const proofs = await args.wallet.mintProofs(args.amount, args.quoteId, {
-          counter,
-        });
+      // OutputsArePending (NUT 11004) can occur if the mint already has an
+      // orphan `c_ IS NULL` row matching one of our derived B_'s — typically
+      // because a previous melt on the same seed left blanks behind (see
+      // report.md). NUT-09 restore won't surface those (it only returns
+      // signed promises), so the only safe response is to bump the counter
+      // past the colliding range and retry. Capped to avoid spinning.
+      let pendingRetries = 0;
+      const maxPendingRetries = 5;
 
-        bumpCashuDeterministicCounter({
-          mintUrl: args.mintUrl,
-          unit,
-          keysetId,
-          used: proofs.length,
-        });
-
-        return proofs;
-      } catch (error) {
-        if (!isCashuOutputsAlreadySignedError(error)) throw error;
-
-        let restored: {
-          lastCounterWithSignature?: number;
-          proofs: Proof[];
-        } | null = null;
+      while (true) {
         try {
-          restored = await restoreAlreadySignedTopupProofs({
-            amount: args.amount,
-            counter,
+          const proofs = await args.wallet.mintProofs(
+            args.amount,
+            args.quoteId,
+            { counter },
+          );
+
+          bumpCashuDeterministicCounter({
+            mintUrl: args.mintUrl,
+            unit,
             keysetId,
-            wallet: args.wallet,
+            used: proofs.length,
           });
-        } catch {
-          throw error;
+
+          return proofs;
+        } catch (error) {
+          if (
+            isCashuOutputsArePendingError(error) &&
+            pendingRetries < maxPendingRetries
+          ) {
+            pendingRetries += 1;
+            bumpCashuDeterministicCounter({
+              mintUrl: args.mintUrl,
+              unit,
+              keysetId,
+              used: 64,
+            });
+            counter = getCashuDeterministicCounter({
+              mintUrl: args.mintUrl,
+              unit,
+              keysetId,
+            });
+            continue;
+          }
+          if (!isCashuOutputsAlreadySignedError(error)) throw error;
+
+          let restored: {
+            lastCounterWithSignature?: number;
+            proofs: Proof[];
+          } | null = null;
+          try {
+            restored = await restoreAlreadySignedTopupProofs({
+              amount: args.amount,
+              counter,
+              keysetId,
+              wallet: args.wallet,
+            });
+          } catch {
+            throw error;
+          }
+          if (!restored) throw error;
+
+          const lastCounter = restored.lastCounterWithSignature;
+          ensureCashuDeterministicCounterAtLeast({
+            mintUrl: args.mintUrl,
+            unit,
+            keysetId,
+            atLeast:
+              typeof lastCounter === "number" && Number.isFinite(lastCounter)
+                ? lastCounter + 1
+                : counter + restored.proofs.length,
+          });
+
+          return restored.proofs;
         }
-        if (!restored) throw error;
-
-        const lastCounter = restored.lastCounterWithSignature;
-        ensureCashuDeterministicCounterAtLeast({
-          mintUrl: args.mintUrl,
-          unit,
-          keysetId,
-          atLeast:
-            typeof lastCounter === "number" && Number.isFinite(lastCounter)
-              ? lastCounter + 1
-              : counter + restored.proofs.length,
-        });
-
-        return restored.proofs;
       }
     },
   );
@@ -1835,7 +1869,9 @@ export const useAppShellComposition = () => {
         if (
           shouldKeepTopupQuoteAfterClaimError(
             error,
-            isCashuOutputsAlreadySignedError,
+            (e: unknown) =>
+              isCashuOutputsAlreadySignedError(e) ||
+              isCashuOutputsArePendingError(e),
           )
         ) {
           setStatus(`${t("restoreFailed")}: ${message}`);
