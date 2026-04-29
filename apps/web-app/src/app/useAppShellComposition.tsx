@@ -462,38 +462,103 @@ const filterSpendableTopupProofs = async (
   }
 };
 
+const findExactSubsetByAmount = (
+  proofs: Proof[],
+  target: number,
+): Proof[] | null => {
+  if (target <= 0) return null;
+  const indexed = proofs
+    .map((proof, idx) => ({
+      idx,
+      amount: Number(proof.amount ?? 0) || 0,
+      proof,
+    }))
+    .filter((entry) => entry.amount > 0 && entry.amount <= target)
+    .sort((a, b) => b.amount - a.amount);
+  if (indexed.length === 0) return null;
+
+  const memo = new Set<string>();
+  const dfs = (start: number, remaining: number): Proof[] | null => {
+    if (remaining === 0) return [];
+    if (start >= indexed.length) return null;
+    const memoKey = `${start}|${remaining}`;
+    if (memo.has(memoKey)) return null;
+    for (let i = start; i < indexed.length; i += 1) {
+      const entry = indexed[i];
+      if (!entry || entry.amount > remaining) continue;
+      const rest = dfs(i + 1, remaining - entry.amount);
+      if (rest) return [entry.proof, ...rest];
+    }
+    memo.add(memoKey);
+    return null;
+  };
+
+  return dfs(0, target);
+};
+
+type RestoreAlreadySignedResult =
+  | {
+      kind: "recovery";
+      lastCounterWithSignature?: number;
+      proofs: Proof[];
+    }
+  | {
+      kind: "collision";
+      lastCounterWithSignature?: number;
+    }
+  | { kind: "empty" };
+
 const restoreAlreadySignedTopupProofs = async (args: {
   amount: number;
   counter: number;
   keysetId: string;
   wallet: TopupMintProofsWalletLike;
-}): Promise<{
-  lastCounterWithSignature?: number;
-  proofs: Proof[];
-} | null> => {
+}): Promise<RestoreAlreadySignedResult> => {
   const restoreCount = 100;
   const restored = await args.wallet.restore(args.counter, restoreCount, {
     keysetId: args.keysetId,
   });
+
+  if (restored.proofs.length === 0) {
+    return { kind: "empty" };
+  }
+
   const spendableProofs = await filterSpendableTopupProofs(
     args.wallet,
     restored.proofs,
   );
 
-  const selected: Proof[] = [];
-  let selectedAmount = 0;
-  for (const proof of spendableProofs) {
-    selected.push(proof);
-    selectedAmount += Number(proof.amount ?? 0) || 0;
-    if (selectedAmount >= args.amount) break;
+  const totalSpendable = spendableProofs.reduce(
+    (sum, proof) => sum + (Number(proof.amount ?? 0) || 0),
+    0,
+  );
+
+  if (totalSpendable < args.amount) {
+    // Mint has signatures here but they're (mostly) SPENT. Common cause:
+    // the wallet's deterministic counter window overlaps proofs from a
+    // prior unrelated operation (melt blanks, an old quote already
+    // claimed and spent). The CURRENT quote was never issued — it's
+    // still PAID at the mint. Caller must bump past `lastCounterWithSignature`
+    // and retry `mintProofs` with fresh outputs against the same quote.
+    const result: {
+      kind: "collision";
+      lastCounterWithSignature?: number;
+    } = { kind: "collision" };
+    if (restored.lastCounterWithSignature !== undefined) {
+      result.lastCounterWithSignature = restored.lastCounterWithSignature;
+    }
+    return result;
   }
 
-  if (selectedAmount !== args.amount) return null;
+  // Prefer an exact subset matching `amount`; fall back to the full set.
+  const exact = findExactSubsetByAmount(spendableProofs, args.amount);
+  const proofs = exact ?? spendableProofs;
 
   const result: {
+    kind: "recovery";
     lastCounterWithSignature?: number;
     proofs: Proof[];
-  } = { proofs: selected };
+  } = { kind: "recovery", proofs };
   if (restored.lastCounterWithSignature !== undefined) {
     result.lastCounterWithSignature = restored.lastCounterWithSignature;
   }
@@ -528,14 +593,22 @@ const mintTopupProofs = async (args: {
         keysetId,
       });
 
-      // OutputsArePending (NUT 11004) can occur if the mint already has an
-      // orphan `c_ IS NULL` row matching one of our derived B_'s — typically
-      // because a previous melt on the same seed left blanks behind (see
-      // report.md). NUT-09 restore won't surface those (it only returns
-      // signed promises), so the only safe response is to bump the counter
-      // past the colliding range and retry. Capped to avoid spinning.
+      // OutputsArePending (NUT 11004) — orphan `c_ IS NULL` row matching one
+      // of our B_'s. NUT-09 restore won't surface unsigned promises, so we
+      // bump the counter by a fixed margin and retry.
+      //
+      // OutputsAlreadySigned (NUT 11005, some mints surface 11003) — disambiguate
+      // via NUT-09 restore:
+      // - Recovery: quote was issued in a prior session, restored proofs
+      //   are still spendable. Use them.
+      // - Collision: deterministic counter window overlaps spent proofs
+      //   from an unrelated past operation. The current quote is still
+      //   PAID; bump past `lastCounterWithSignature` and retry mintProofs
+      //   with fresh outputs.
       let pendingRetries = 0;
       const maxPendingRetries = 5;
+      let collisionRetries = 0;
+      const maxCollisionRetries = 5;
 
       while (true) {
         try {
@@ -573,11 +646,10 @@ const mintTopupProofs = async (args: {
             continue;
           }
           if (!isCashuOutputsAlreadySignedError(error)) throw error;
+          if (collisionRetries >= maxCollisionRetries) throw error;
+          collisionRetries += 1;
 
-          let restored: {
-            lastCounterWithSignature?: number;
-            proofs: Proof[];
-          } | null = null;
+          let restored: RestoreAlreadySignedResult;
           try {
             restored = await restoreAlreadySignedTopupProofs({
               amount: args.amount,
@@ -588,20 +660,48 @@ const mintTopupProofs = async (args: {
           } catch {
             throw error;
           }
-          if (!restored) throw error;
 
-          const lastCounter = restored.lastCounterWithSignature;
-          ensureCashuDeterministicCounterAtLeast({
+          if (restored.kind === "recovery") {
+            const lastCounter = restored.lastCounterWithSignature;
+            ensureCashuDeterministicCounterAtLeast({
+              mintUrl: args.mintUrl,
+              unit,
+              keysetId,
+              atLeast:
+                typeof lastCounter === "number" && Number.isFinite(lastCounter)
+                  ? lastCounter + 1
+                  : counter + restored.proofs.length,
+            });
+            return restored.proofs;
+          }
+
+          // Collision (or empty restore): bump past colliding range and
+          // retry mintProofs against the still-PAID quote.
+          if (
+            restored.kind === "collision" &&
+            typeof restored.lastCounterWithSignature === "number" &&
+            Number.isFinite(restored.lastCounterWithSignature)
+          ) {
+            ensureCashuDeterministicCounterAtLeast({
+              mintUrl: args.mintUrl,
+              unit,
+              keysetId,
+              atLeast: restored.lastCounterWithSignature + 1,
+            });
+          } else {
+            bumpCashuDeterministicCounter({
+              mintUrl: args.mintUrl,
+              unit,
+              keysetId,
+              used: 64,
+            });
+          }
+          counter = getCashuDeterministicCounter({
             mintUrl: args.mintUrl,
             unit,
             keysetId,
-            atLeast:
-              typeof lastCounter === "number" && Number.isFinite(lastCounter)
-                ? lastCounter + 1
-                : counter + restored.proofs.length,
           });
-
-          return restored.proofs;
+          continue;
         }
       }
     },

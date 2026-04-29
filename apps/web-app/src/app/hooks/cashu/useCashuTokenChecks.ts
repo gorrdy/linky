@@ -5,12 +5,7 @@ import { parseCashuToken } from "../../../cashu";
 import { acceptCashuToken } from "../../../cashuAccept";
 import type { CashuTokenId } from "../../../evolu";
 import { navigateTo } from "../../../hooks/useRouting";
-import {
-  bumpCashuDeterministicCounter,
-  getCashuDeterministicCounter,
-  getCashuDeterministicSeedFromStorage,
-  withCashuDeterministicCounterLock,
-} from "../../../utils/cashuDeterministic";
+import { getCashuDeterministicSeedFromStorage } from "../../../utils/cashuDeterministic";
 import { getCashuLib } from "../../../utils/cashuLib";
 import {
   createLoadedCashuWallet,
@@ -26,8 +21,6 @@ import {
   safeLocalStorageGet,
   safeLocalStorageSet,
 } from "../../../utils/storage";
-import { getUnknownErrorMessage } from "../../../utils/unknown";
-import { buildPaymentFailureAmountAttempts } from "../../lib/paymentAmountFallback";
 import {
   CASHU_TOKEN_STATE_ACCEPTED,
   CASHU_TOKEN_STATE_ERROR,
@@ -361,9 +354,18 @@ export const useCashuTokenChecks = ({
           const candidateState = normalizeCashuTokenState(candidate.state);
           if (candidateState === CASHU_TOKEN_STATE_PENDING) continue;
 
-          const candidateText = String(
-            candidate.token ?? candidate.rawToken ?? "",
-          ).trim();
+          const candidateIsPrimary =
+            candidate.id !== null &&
+            candidate.id !== undefined &&
+            String(candidate.id) === String(primaryRow.id ?? "");
+
+          // After a re-accept the primary row's in-memory `token` is the
+          // pre-swap text (its proofs are now spent on the mint). Use the
+          // freshly accepted `tokenText` for the primary candidate so we
+          // check the live proofs, not the consumed ones.
+          const candidateText = candidateIsPrimary
+            ? tokenText
+            : String(candidate.token ?? candidate.rawToken ?? "").trim();
           if (!candidateText) continue;
 
           let candidateDecoded: {
@@ -521,200 +523,39 @@ export const useCashuTokenChecks = ({
         }
 
         const walletUnit = wallet.unit;
-        const keysetId = wallet.keysetId;
-        const getSwapFeeForProofs = (): number | null => {
-          const fn = (
-            wallet as {
-              getFeesForProofs?: (
-                proofs: Array<{
-                  C: string;
-                  amount: number;
-                  id: string;
-                  secret: string;
-                }>,
-              ) => number | null | undefined;
-            }
-          ).getFeesForProofs;
-          if (typeof fn !== "function") return null;
-          try {
-            const fee = Number(fn(proofs));
-            return Number.isFinite(fee) && fee > 0 ? fee : null;
-          } catch {
-            return null;
-          }
-        };
-        const runSwap = async (amountToSend: number) => {
-          return det
-            ? withCashuDeterministicCounterLock(
-                { mintUrl: mint, unit: walletUnit, keysetId },
-                async () => {
-                  const counter = getCashuDeterministicCounter({
-                    mintUrl: mint,
-                    unit: walletUnit,
-                    keysetId,
-                  });
 
-                  const swapped = await wallet.swap(
-                    amountToSend,
-                    proofs,
-                    typeof counter === "number" ? { counter } : undefined,
-                  );
-
-                  const keepLen = Array.isArray(swapped.keep)
-                    ? swapped.keep.length
-                    : 0;
-                  const sendLen = Array.isArray(swapped.send)
-                    ? swapped.send.length
-                    : 0;
-                  bumpCashuDeterministicCounter({
-                    mintUrl: mint,
-                    unit: walletUnit,
-                    keysetId,
-                    used: keepLen + sendLen,
-                  });
-
-                  return swapped;
-                },
-              )
-            : wallet.swap(amountToSend, proofs);
-        };
-
-        const applyLocalMerge = (): boolean => {
-          if (mergeIds.length <= 1) return false;
-          const mergedToken = getEncodedToken({
-            mint,
-            proofs,
-            unit: walletUnit,
-          });
-          const result = updateCashuToken({
-            id: primaryRow.id as CashuTokenId,
-            token: mergedToken as typeof Evolu.NonEmptyString.Type,
-            rawToken: null,
-            mint: mint ? (mint as typeof Evolu.NonEmptyString1000.Type) : null,
-            unit: walletUnit
-              ? (walletUnit as typeof Evolu.NonEmptyString100.Type)
-              : null,
-            amount:
-              total > 0
-                ? (Math.floor(total) as typeof Evolu.PositiveInt.Type)
-                : null,
-            state:
-              CASHU_TOKEN_STATE_ACCEPTED as typeof Evolu.NonEmptyString100.Type,
-            error: null,
-          });
-
-          if (!result.ok) {
-            throw new Error(String(result.error));
-          }
-
-          for (const mergeId of mergeIds) {
-            if (String(mergeId) === String(primaryRow.id ?? "")) continue;
-            updateCashuToken({
-              id: mergeId,
-              isDeleted: Evolu.sqliteTrue,
-            });
-          }
-          return true;
-        };
-
-        const initialFee = getSwapFeeForProofs();
-        if (initialFee && total - initialFee <= 0) {
-          if (applyLocalMerge()) {
-            setStatus(t("cashuCheckOk"));
-            pushToast(t("cashuCheckOk"));
-            return "ok";
-          }
-          setStatus(t("cashuCheckOk"));
-          pushToast(t("cashuCheckOk"));
-          return "ok";
-        }
-
-        const initialAmount =
-          initialFee && total - initialFee > 0 ? total - initialFee : total;
-        const amountAttempts = [
-          initialAmount,
-          ...buildPaymentFailureAmountAttempts(
-            initialAmount,
-            initialFee ? `fee: ${initialFee}` : "",
-          ),
-        ];
-        let swapped: { keep?: ProofLike[]; send?: ProofLike[] } | null = null;
-        let swapFailure: unknown = null;
-        for (const amountAttempt of amountAttempts) {
-          try {
-            swapped = (await runSwap(amountAttempt)) as {
-              keep?: ProofLike[];
-              send?: ProofLike[];
-            };
-            swapFailure = null;
-            break;
-          } catch (error) {
-            swapFailure = error;
-            const message = getUnknownErrorMessage(error, "").toLowerCase();
-            if (message.includes("not enough funds available for swap")) {
-              if (applyLocalMerge()) {
-                setStatus(t("cashuCheckOk"));
-                pushToast(t("cashuCheckOk"));
-                return "ok";
-              }
-              setStatus(t("cashuCheckOk"));
-              pushToast(t("cashuCheckOk"));
-              return "ok";
-            }
-
-            const retryAttempts = buildPaymentFailureAmountAttempts(
-              amountAttempt,
-              getUnknownErrorMessage(error, ""),
-            );
-            let appendedRetry = false;
-            for (const retryAmount of retryAttempts) {
-              if (amountAttempts.includes(retryAmount)) continue;
-              amountAttempts.push(retryAmount);
-              appendedRetry = true;
-            }
-            if (appendedRetry) continue;
-          }
-        }
-        if (!swapped) {
-          throw swapFailure ?? new Error("Swap produced empty token");
-        }
-
-        const newProofs = normalizeProofs([
-          ...(swapped?.keep ?? []),
-          ...(swapped?.send ?? []),
-        ]);
-        const newTotal = newProofs.reduce(
-          (sum, p) => sum + (Number(p?.amount ?? 0) || 0),
-          0,
-        );
-        if (!Number.isFinite(newTotal) || newTotal <= 0) {
-          throw new Error("Swap produced empty token");
-        }
-
-        const refreshedToken = getEncodedToken({
+        // Authoritative validity per NUT-07: the bulk checkProofsStates
+        // response above is the truth. We do NOT run a NUT-03 swap here —
+        // a swap consumes the proofs at the mint and can fail (counter
+        // collisions, transient mint errors) for reasons unrelated to
+        // token validity, which previously surfaced as "valid token marked
+        // spent" in the UI. Verification stops at NUT-07; merge across
+        // rows is handled locally by re-encoding the surviving proofs into
+        // a single token (no mint round-trip).
+        const verifiedToken = getEncodedToken({
           mint,
-          proofs: newProofs,
+          proofs,
           unit: walletUnit,
         });
-        const result = updateCashuToken({
+        const persistResult = updateCashuToken({
           id: primaryRow.id as CashuTokenId,
-          token: refreshedToken as typeof Evolu.NonEmptyString.Type,
+          token: verifiedToken as typeof Evolu.NonEmptyString.Type,
           rawToken: null,
           mint: mint ? (mint as typeof Evolu.NonEmptyString1000.Type) : null,
           unit: walletUnit
             ? (walletUnit as typeof Evolu.NonEmptyString100.Type)
             : null,
           amount:
-            newTotal > 0
-              ? (Math.floor(newTotal) as typeof Evolu.PositiveInt.Type)
+            total > 0
+              ? (Math.floor(total) as typeof Evolu.PositiveInt.Type)
               : null,
           state:
             CASHU_TOKEN_STATE_ACCEPTED as typeof Evolu.NonEmptyString100.Type,
           error: null,
         });
 
-        if (!result.ok) {
-          throw new Error(String(result.error));
+        if (!persistResult.ok) {
+          throw new Error(String(persistResult.error));
         }
 
         for (const mergeId of mergeIds) {
@@ -725,7 +566,7 @@ export const useCashuTokenChecks = ({
           });
         }
 
-        setStatus(t("cashuCheckOk"));
+        setStatus(null);
         pushToast(t("cashuCheckOk"));
         return "ok";
       } catch (e) {
