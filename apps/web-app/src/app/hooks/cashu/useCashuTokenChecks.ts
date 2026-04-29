@@ -1,3 +1,4 @@
+import type { Proof, ProofState } from "@cashu/cashu-ts";
 import * as Evolu from "@evolu/common";
 import React from "react";
 import { parseCashuToken } from "../../../cashu";
@@ -15,7 +16,10 @@ import {
   createLoadedCashuWallet,
   decodeCashuTokenForMint,
 } from "../../../utils/cashuWallet";
-import { dedupeCashuProofs } from "../../../utils/cashuProofs";
+import {
+  dedupeCashuProofs,
+  partitionCashuProofGroupsByState,
+} from "../../../utils/cashuProofs";
 import { LAST_ACCEPTED_CASHU_TOKEN_STORAGE_KEY } from "../../../utils/constants";
 import { normalizeMintUrl } from "../../../utils/mint";
 import {
@@ -187,13 +191,35 @@ export const useCashuTokenChecks = ({
         );
       };
 
-      const looksLikeDefinitiveInvalid = (message: string) => {
-        const m = message.toLowerCase();
+      // NUT error codes signalling a definitively invalid token. Preferred
+      // signal: cashu-ts surfaces these as `MintOperationError` instances
+      // with a numeric `.code` field. We fall back to substring matching
+      // for non-mint errors (e.g. local "Token proofs missing" thrown
+      // above), but the substring match is intentionally narrower than
+      // before — the previous loose `.includes("spent")` could trip on
+      // unrelated errors and on a single spent proof in the merge group.
+      const DEFINITIVE_INVALID_CODES = new Set<number>([
+        11001, // TokenAlreadySpentError
+      ]);
+      const isDefinitiveInvalidError = (error: unknown): boolean => {
+        if (
+          error &&
+          typeof error === "object" &&
+          "code" in error &&
+          typeof (error as { code?: unknown }).code === "number" &&
+          DEFINITIVE_INVALID_CODES.has((error as { code: number }).code)
+        ) {
+          return true;
+        }
+        const m = String(
+          (error && typeof error === "object" && "message" in error
+            ? (error as { message?: unknown }).message
+            : error) ?? "",
+        )
+          .trim()
+          .toLowerCase();
         return (
-          m.includes("spent") ||
-          m.includes("already spent") ||
-          m.includes("not enough funds") ||
-          m.includes("insufficient funds") ||
+          m.includes("token already spent") ||
           m.includes("invalid proof") ||
           m.includes("invalid proofs") ||
           m.includes("token proofs missing") ||
@@ -256,7 +282,7 @@ export const useCashuTokenChecks = ({
               effectiveState = CASHU_TOKEN_STATE_ACCEPTED;
             } catch (e) {
               const message = String(e).trim() || "Token invalid";
-              const definitive = looksLikeDefinitiveInvalid(message);
+              const definitive = isDefinitiveInvalidError(e);
               const transient = looksLikeTransientError(message);
 
               if (definitive && !transient) {
@@ -316,8 +342,19 @@ export const useCashuTokenChecks = ({
 
         const normalizedMint = normalizeMintUrl(mint);
         const normalizedUnit = String(wallet.unit ?? unit).trim() || "sat";
-        const mergedProofs: ProofLike[] = [];
-        const mergeIds: CashuTokenId[] = [];
+
+        // Build per-candidate proof groups so we can ask the mint about each
+        // row's proofs separately. Previously this loop flattened all proofs
+        // into a single merge — if any token in the merge was spent, the
+        // subsequent swap failed with "Token already spent" and the catch
+        // handler marked the *primary* row as invalid even when its own
+        // proofs were unspent (user could still claim it in another wallet).
+        type Candidate = {
+          id: CashuTokenId | null;
+          isPrimary: boolean;
+          proofs: Proof[];
+        };
+        const candidates: Candidate[] = [];
 
         for (const candidate of rows) {
           if (candidate.isDeleted) continue;
@@ -357,23 +394,120 @@ export const useCashuTokenChecks = ({
             "sat";
           if (candidateUnit !== normalizedUnit) continue;
 
-          const candidateProofs = Array.isArray(candidateDecoded?.proofs)
-            ? candidateDecoded.proofs
-            : [];
+          const candidateProofs = normalizeProofs(
+            Array.isArray(candidateDecoded?.proofs)
+              ? candidateDecoded.proofs
+              : [],
+          );
           if (!candidateProofs.length) continue;
 
-          mergedProofs.push(...candidateProofs);
-          if (candidate.id) mergeIds.push(candidate.id as CashuTokenId);
+          const candidateId = candidate.id ?? null;
+          candidates.push({
+            id: candidateId as CashuTokenId | null,
+            isPrimary:
+              candidateId !== null &&
+              String(candidateId) === String(primaryRow.id ?? ""),
+            proofs: candidateProofs,
+          });
         }
 
+        // Fall back to the primary row's own decoded proofs if no candidates
+        // matched (e.g. all rows are pending or fail to decode against the
+        // active keyset). Mark this synthetic group as the primary so the
+        // partition logic still tracks it.
+        if (candidates.length === 0) {
+          const fallbackProofs = normalizeProofs(
+            Array.isArray(decoded?.proofs)
+              ? (decoded.proofs as ProofLike[])
+              : [],
+          );
+          if (fallbackProofs.length) {
+            candidates.push({
+              id: (primaryRow.id as CashuTokenId | null) ?? null,
+              isPrimary: true,
+              proofs: fallbackProofs,
+            });
+          }
+        }
+
+        if (candidates.length === 0) {
+          throw new Error("Token proofs missing");
+        }
+
+        // Bulk state check across all candidate proofs in one round-trip.
+        // cashu-ts batches into chunks of 100 internally and re-emits states
+        // aligned to input order, so partitioning by group offset is safe.
+        let bulkStates: ProofState[] | null = null;
+        try {
+          const flatProofs = candidates.flatMap((c) => c.proofs);
+          const result = await wallet.checkProofsStates(flatProofs);
+          bulkStates = Array.isArray(result) ? result : [];
+        } catch {
+          // If the mint is unreachable the existing behaviour was to push on
+          // and let the swap surface the error. Preserve that by leaving
+          // bulkStates null — we'll fall back to a single-candidate (primary
+          // only) flow below to avoid merge poisoning.
+          bulkStates = null;
+        }
+
+        let liveCandidates: Array<{
+          id: CashuTokenId | null;
+          proofs: Proof[];
+        }>;
+
+        if (bulkStates) {
+          const partition = partitionCashuProofGroupsByState(
+            candidates.map((c) => ({ id: c.id, proofs: c.proofs })),
+            bulkStates,
+          );
+
+          // Mark every fully-spent row as error individually. Crucially we
+          // do NOT mark unrelated rows just because one row in the same
+          // mint+unit group is spent.
+          for (const id of partition.fullySpentIds) {
+            if (!id) continue;
+            updateCashuToken({
+              id,
+              state: "error" as typeof Evolu.NonEmptyString100.Type,
+              error:
+                "Token already spent" as typeof Evolu.NonEmptyString1000.Type,
+            });
+          }
+
+          // If the primary row is fully spent, surface that to the user and
+          // stop — there is nothing to refresh.
+          const primaryFullySpent = partition.fullySpentIds.some(
+            (id) => id !== null && String(id) === String(primaryRow.id ?? ""),
+          );
+          if (primaryFullySpent) {
+            setStatus(`${t("cashuCheckFailed")}: Token already spent`);
+            pushToast(t("cashuInvalid"));
+            return "invalid";
+          }
+
+          liveCandidates = partition.liveGroups;
+
+          // If no row has any unspent proofs left, the entire group is dead.
+          if (liveCandidates.length === 0) {
+            setStatus(`${t("cashuCheckFailed")}: Token already spent`);
+            pushToast(t("cashuInvalid"));
+            return "invalid";
+          }
+        } else {
+          // State check unreachable — verify only the primary row to avoid
+          // poisoning it with another row's spent proofs in the swap merge.
+          const primary = candidates.find((c) => c.isPrimary);
+          liveCandidates = primary
+            ? [{ id: primary.id, proofs: primary.proofs }]
+            : [{ id: candidates[0].id, proofs: candidates[0].proofs }];
+        }
+
+        const mergeIds: CashuTokenId[] = liveCandidates
+          .map((c) => c.id)
+          .filter((id): id is CashuTokenId => !!id);
+
         const proofs = dedupeCashuProofs(
-          normalizeProofs(
-            mergedProofs.length
-              ? mergedProofs
-              : Array.isArray(decoded?.proofs)
-                ? (decoded.proofs as ProofLike[])
-                : [],
-          ),
+          liveCandidates.flatMap((c) => c.proofs),
         );
         if (!proofs.length) throw new Error("Token proofs missing");
 
@@ -596,7 +730,7 @@ export const useCashuTokenChecks = ({
         return "ok";
       } catch (e) {
         const message = String(e).trim() || "Token invalid";
-        const definitive = looksLikeDefinitiveInvalid(message);
+        const definitive = isDefinitiveInvalidError(e);
         const transient = looksLikeTransientError(message);
 
         if (definitive && !transient) {
