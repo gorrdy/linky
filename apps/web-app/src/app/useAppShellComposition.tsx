@@ -114,6 +114,7 @@ import {
 } from "../utils/pushNsecStorage";
 import {
   getInitialAllowedDisplayCurrencies,
+  getInitialCashuAutoswapEnabled,
   getInitialDisplayCurrency,
   getInitialLightningInvoiceAutoPayLimit,
   getInitialNostrNsec,
@@ -852,6 +853,9 @@ export const useAppShellComposition = () => {
   );
   const [payWithCashuEnabled, setPayWithCashuEnabled] = useState<boolean>(() =>
     getInitialPayWithCashuEnabled(),
+  );
+  const [cashuAutoswapEnabled, setCashuAutoswapEnabled] = useState<boolean>(
+    () => getInitialCashuAutoswapEnabled(),
   );
   const [lightningInvoiceAutoPayLimit, setLightningInvoiceAutoPayLimit] =
     useState<number>(() => getInitialLightningInvoiceAutoPayLimit());
@@ -1600,6 +1604,7 @@ export const useAppShellComposition = () => {
   useAppPreferences({
     allowPromisesEnabled,
     allowedDisplayCurrencies,
+    cashuAutoswapEnabled,
     displayCurrency,
     lang,
     lightningInvoiceAutoPayLimit,
@@ -4926,6 +4931,43 @@ export const useAppShellComposition = () => {
     update,
   ]);
 
+  const autoswapAttemptedSignatureRef = React.useRef<string | null>(null);
+  const autoswapInFlightRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!cashuAutoswapEnabled) return;
+    if (cashuIsBusy) return;
+    if (autoswapInFlightRef.current) return;
+    if (!largestForeignMintForTokenList) {
+      autoswapAttemptedSignatureRef.current = null;
+      return;
+    }
+    if (largestForeignMintForTokenList.sum <= 0) return;
+
+    const signature = `${largestForeignMintForTokenList.mint}|${largestForeignMintForTokenList.sum}|${largestForeignMintForTokenList.tokens.length}`;
+    if (autoswapAttemptedSignatureRef.current === signature) return;
+
+    const timeoutId = window.setTimeout(() => {
+      autoswapAttemptedSignatureRef.current = signature;
+      autoswapInFlightRef.current = true;
+      void (async () => {
+        try {
+          await meltLargestForeignMintToMainMint();
+        } finally {
+          autoswapInFlightRef.current = false;
+        }
+      })();
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    cashuAutoswapEnabled,
+    cashuIsBusy,
+    largestForeignMintForTokenList,
+    meltLargestForeignMintToMainMint,
+  ]);
+
   useChatNostrSyncEffect({
     appendLocalNostrMessage,
     appendLocalNostrReaction,
@@ -5766,6 +5808,7 @@ export const useAppShellComposition = () => {
       pendingMintDeleteUrl,
       pendingRelayDeleteUrl,
       payWithCashuEnabled,
+      cashuAutoswapEnabled,
       PRESET_MINTS,
       pushToast,
       refreshMintInfo,
@@ -5790,6 +5833,7 @@ export const useAppShellComposition = () => {
       setNewEvoluServerUrl,
       setNewRelayUrl,
       setPayWithCashuEnabled,
+      setCashuAutoswapEnabled,
       setPendingEvoluServerDeleteUrl,
       setPendingMintDeleteUrl,
       setStatus,

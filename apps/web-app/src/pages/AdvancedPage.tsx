@@ -31,6 +31,7 @@ interface AdvancedPageProps {
   nostrRelayOverallStatus: "connected" | "checking" | "disconnected";
   passwordManagerSeedUsername: string;
   payWithCashuEnabled: boolean;
+  cashuAutoswapEnabled: boolean;
   pushToast: (message: string) => void;
   relayUrls: string[];
   requestImportAppData: () => void;
@@ -41,6 +42,7 @@ interface AdvancedPageProps {
   seedMnemonic: string | null;
   setLightningInvoiceAutoPayLimit: (value: number) => void;
   setPayWithCashuEnabled: (value: boolean) => void;
+  setCashuAutoswapEnabled: (value: boolean) => void;
   t: (key: string) => string;
   tokensRestoreIsBusy: boolean;
 }
@@ -66,6 +68,7 @@ export function AdvancedPage({
   nostrRelayOverallStatus,
   passwordManagerSeedUsername,
   payWithCashuEnabled,
+  cashuAutoswapEnabled,
   pushToast,
   relayUrls,
   requestImportAppData,
@@ -76,6 +79,7 @@ export function AdvancedPage({
   seedMnemonic,
   setLightningInvoiceAutoPayLimit,
   setPayWithCashuEnabled,
+  setCashuAutoswapEnabled,
   t,
   tokensRestoreIsBusy,
 }: AdvancedPageProps): React.ReactElement {
@@ -318,6 +322,26 @@ export function AdvancedPage({
               aria-label={t("payWithCashu")}
               checked={payWithCashuEnabled}
               onChange={(e) => setPayWithCashuEnabled(e.target.checked)}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="settings-row">
+        <div className="settings-left">
+          <span className="settings-icon" aria-hidden="true">
+            🔄
+          </span>
+          <span className="settings-label">{t("cashuAutoswap")}</span>
+        </div>
+        <div className="settings-right">
+          <label className="switch">
+            <input
+              className="switch-input"
+              type="checkbox"
+              aria-label={t("cashuAutoswap")}
+              checked={cashuAutoswapEnabled}
+              onChange={(e) => setCashuAutoswapEnabled(e.target.checked)}
             />
           </label>
         </div>
