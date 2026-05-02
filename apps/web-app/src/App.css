@@ -485,6 +485,12 @@
   margin-top: 4px;
 }
 
+.profile-avatar-editor {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 @media (max-height: 760px) {
   .onboarding-avatar-stage {
     grid-template-rows: minmax(0, 1fr) auto;
