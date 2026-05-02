@@ -109,13 +109,19 @@ export function AuthenticatedLayout({
           profileEditName={state.profileEditName}
           profileEditPicture={state.profileEditPicture}
           profileEditsSavable={state.profileEditsSavable}
+          profileStatusCurrencies={state.profileStatusCurrencies}
+          profileStatusIsSaving={state.profileStatusIsSaving}
           profilePhotoInputRef={state.profilePhotoInputRef}
+          selectedProfileStatusCurrencies={
+            state.selectedProfileStatusCurrencies
+          }
           profileSelectedPictureKind={state.profileSelectedPictureKind}
           setIsProfileEditing={actions.setIsProfileEditing}
           setProfileEditLnAddress={actions.setProfileEditLnAddress}
           setProfileEditName={actions.setProfileEditName}
           t={state.t}
           toggleProfileEditing={actions.toggleProfileEditing}
+          toggleProfileStatusCurrency={actions.toggleProfileStatusCurrency}
           writeCurrentNpubToNfc={actions.writeCurrentNpubToNfc}
         />
       )}

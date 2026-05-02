@@ -7,6 +7,7 @@ import type {
 import type { ContactId } from "../../evolu";
 import type { Lang } from "../../i18n";
 import type { LnurlWithdrawPreview } from "../../lnurlPay";
+import type { ProfileStatusCurrency } from "../../nostrStatus";
 import type { Route } from "../../types/route";
 import type {
   DisplayAmountParts,
@@ -80,7 +81,10 @@ export interface AppShellCoreContextValue {
   profileEditName: string;
   profileEditPicture: string;
   profileEditsSavable: boolean;
+  profileStatusCurrencies: readonly ProfileStatusCurrency[];
+  profileStatusIsSaving: boolean;
   profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
+  selectedProfileStatusCurrencies: readonly ProfileStatusCurrency[];
   profileSelectedPictureKind: "custom" | "generated";
   profileQrIsOpen: boolean;
   route: Route;
@@ -144,6 +148,9 @@ export interface AppShellActionsContextValue {
   shareOptionsViaSms: () => void;
   shareOptionsViaWhatsApp: () => void;
   toggleProfileEditing: () => void;
+  toggleProfileStatusCurrency: (
+    currency: ProfileStatusCurrency,
+  ) => Promise<void>;
   writeCurrentNpubToNfc: () => Promise<void>;
 }
 

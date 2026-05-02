@@ -154,6 +154,8 @@ import { usePayContactWithCashuMessage } from "./hooks/payments/usePayContactWit
 import { useRouteAmountResetEffects } from "./hooks/payments/useRouteAmountResetEffects";
 import { useProfileEditor } from "./hooks/profile/useProfileEditor";
 import { useProfileMetadataSyncEffect } from "./hooks/profile/useProfileMetadataSyncEffect";
+import { useProfileStatusEditor } from "./hooks/profile/useProfileStatusEditor";
+import { useProfileStatusSyncEffect } from "./hooks/profile/useProfileStatusSyncEffect";
 import { shouldKeepTopupQuoteAfterClaimError } from "./hooks/topup/topupMintClaim";
 import {
   isClaimableMintQuoteState,
@@ -1059,6 +1061,9 @@ export const useAppShellComposition = () => {
   const [nostrPictureByNpub, setNostrPictureByNpub] = useState<
     Record<string, string | null>
   >(() => Object.fromEntries(inMemoryNostrPictureCache.entries()));
+  const [nostrStatusByNpub, setNostrStatusByNpub] = useState<
+    Record<string, string | null>
+  >({});
 
   const avatarObjectUrlsByNpubRef = React.useRef<Map<string, string>>(
     new Map(),
@@ -1277,6 +1282,7 @@ export const useAppShellComposition = () => {
   const [myProfileLnAddress, setMyProfileLnAddress] = useState<string | null>(
     null,
   );
+  const [myProfileStatus, setMyProfileStatus] = useState<string | null>(null);
   const [myProfileMetadata, setMyProfileMetadata] =
     useState<NostrProfileMetadata | null>(null);
 
@@ -1288,6 +1294,7 @@ export const useAppShellComposition = () => {
 
   const nostrInFlight = React.useRef<Set<string>>(new Set());
   const nostrMetadataInFlight = React.useRef<Set<string>>(new Set());
+  const nostrStatusInFlight = React.useRef<Set<string>>(new Set());
   const pendingUnknownContactAddRef = React.useRef<{
     sourceContactId: string;
     targetNpub: string;
@@ -2394,6 +2401,27 @@ export const useAppShellComposition = () => {
     setMyProfilePicture,
   });
 
+  useProfileStatusSyncEffect({
+    currentNpub,
+    nostrFetchRelays,
+    setMyProfileStatus,
+  });
+
+  const {
+    profileStatusCurrencies,
+    profileStatusIsSaving,
+    selectedProfileStatusCurrencies,
+    toggleProfileStatusCurrency,
+  } = useProfileStatusEditor({
+    currentNpub,
+    currentNsec,
+    myProfileStatus,
+    nostrFetchRelays,
+    setMyProfileStatus,
+    setStatus,
+    t,
+  });
+
   useProfileNpubCashEffects({
     claimNpubCashOnce,
     claimNpubCashOnceLatestRef,
@@ -2421,10 +2449,13 @@ export const useAppShellComposition = () => {
     nostrFetchRelays,
     nostrInFlight,
     nostrMetadataInFlight,
+    nostrStatusByNpub,
+    nostrStatusInFlight,
     nostrPictureByNpub,
     rememberBlobAvatarUrl,
     routeKind: route.kind,
     setNostrPictureByNpub,
+    setNostrStatusByNpub,
     update,
   });
 
@@ -4001,6 +4032,7 @@ export const useAppShellComposition = () => {
   const renderContactCard = (contact: DisplayContact) => {
     const npub = normalizeNpubIdentifier(contact.npub);
     const avatarUrl = npub ? nostrPictureByNpub[npub] : null;
+    const statusText = npub ? (nostrStatusByNpub[npub] ?? null) : null;
     const contactId = String(contact.id ?? "").trim();
     const last = contactId ? lastMessageByContactId.get(contactId) : null;
     const lastText = String(last?.content ?? "").trim();
@@ -4017,6 +4049,7 @@ export const useAppShellComposition = () => {
         lastMessage={last ?? null}
         hasAttention={hasAttention}
         isUnknownContact={Boolean(contact.isUnknownContact)}
+        statusText={statusText}
         tokenInfo={tokenInfo}
         getMintIconUrl={getMintIconUrl}
         onSelect={() => {
@@ -5460,6 +5493,8 @@ export const useAppShellComposition = () => {
       isSavingContact,
       lang,
       myProfileQr,
+      profileStatusCurrencies,
+      profileStatusIsSaving,
       nostrPictureByNpub,
       onCancelEdit,
       onCancelReply,
@@ -5489,6 +5524,7 @@ export const useAppShellComposition = () => {
       profileEditsSavable,
       profilePhotoInputRef,
       profileSelectedPictureKind,
+      selectedProfileStatusCurrencies,
       requestDeleteCurrentContact,
       resetEditedContactFieldFromNostr,
       replyContext,
@@ -5504,6 +5540,7 @@ export const useAppShellComposition = () => {
       setProfileEditLnAddress,
       setProfileEditName,
       t,
+      toggleProfileStatusCurrency,
     },
   });
 
@@ -5696,7 +5733,10 @@ export const useAppShellComposition = () => {
     profileEditName,
     profileEditPicture,
     profileEditsSavable,
+    profileStatusCurrencies,
+    profileStatusIsSaving,
     profilePhotoInputRef,
+    selectedProfileStatusCurrencies,
     profileSelectedPictureKind,
     profileQrIsOpen,
     route,
@@ -5749,6 +5789,7 @@ export const useAppShellComposition = () => {
     shareOptionsViaSms,
     shareOptionsViaWhatsApp,
     toggleProfileEditing,
+    toggleProfileStatusCurrency,
     writeCurrentNpubToNfc,
   };
 

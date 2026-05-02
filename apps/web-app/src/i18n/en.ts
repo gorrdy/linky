@@ -282,6 +282,7 @@ export const en = {
 
   profile: "Profile",
   profileNoName: "Nostr profile",
+  profileExchangeStatusLabel: "I exchange small amounts with people I know:",
   myNpubQr: "Your contact",
   profileMissingNpub: "Missing Nostr keys.",
   profileUploadPhoto: "Upload photo",
