@@ -494,6 +494,9 @@ export const en = {
   cashuAddToken: "Add token",
   cashuEmit: "Issue",
   cashuEmitting: "Creating token…",
+  cashuMultipleMintsWarningTitle: "Tokens are split across mints",
+  cashuMultipleMintsWarningBody:
+    "Available shows the largest single mint because one token cannot be issued from several mints at once.",
   cashuMine: "mine",
   cashuIssued: "issued",
   coinsLabel: "coins:",

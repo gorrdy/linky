@@ -501,6 +501,9 @@ export const cs = {
   cashuAddToken: "Přidat token",
   cashuEmit: "Emitovat",
   cashuEmitting: "Vytvářím token…",
+  cashuMultipleMintsWarningTitle: "Tokeny jsou rozdělené mezi minty",
+  cashuMultipleMintsWarningBody:
+    "Dostupné ukazuje největší jeden mint, protože jeden token nejde emitovat z více mintů najednou.",
   cashuMine: "moje",
   cashuIssued: "emitované",
   coinsLabel: "mince:",

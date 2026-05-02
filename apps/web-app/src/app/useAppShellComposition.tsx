@@ -2153,13 +2153,40 @@ export const useAppShellComposition = () => {
 
   // lastMessageByContactId provided by the derived Nostr index above.
 
-  const cashuBalance = useMemo(() => {
+  const cashuTotalBalance = useMemo(() => {
     return cashuTokensWithMeta.reduce((sum, token) => {
       if (!isCashuTokenAcceptedState(token.state)) return sum;
       const amount = Number(token.amount ?? 0);
       return sum + (Number.isFinite(amount) ? amount : 0);
     }, 0);
   }, [cashuTokensWithMeta]);
+
+  const cashuAcceptedMintBalances = useMemo(() => {
+    const balances = new Map<string, number>();
+    for (const token of cashuTokensWithMeta) {
+      if (!isCashuTokenAcceptedState(token.state)) continue;
+
+      const mint = normalizeMintUrl(String(token.mint ?? "").trim());
+      if (!mint) continue;
+
+      const amount = Number(token.amount ?? 0);
+      const nextAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
+      balances.set(mint, (balances.get(mint) ?? 0) + nextAmount);
+    }
+
+    return balances;
+  }, [cashuTokensWithMeta]);
+
+  const cashuBalance = useMemo(() => {
+    let largestBalance = 0;
+    for (const balance of cashuAcceptedMintBalances.values()) {
+      if (balance > largestBalance) largestBalance = balance;
+    }
+
+    return largestBalance;
+  }, [cashuAcceptedMintBalances]);
+
+  const cashuHasMultipleAcceptedMints = cashuAcceptedMintBalances.size > 1;
 
   const cashuOwnTokens = React.useMemo(
     () =>
@@ -2192,7 +2219,7 @@ export const useAppShellComposition = () => {
     if (!Number.isFinite(amountSat) || amountSat <= 0) return;
 
     if (topupInvoiceStartBalanceRef.current === null) {
-      topupInvoiceStartBalanceRef.current = cashuBalance;
+      topupInvoiceStartBalanceRef.current = cashuTotalBalance;
       return;
     }
 
@@ -2200,11 +2227,11 @@ export const useAppShellComposition = () => {
 
     const start = topupInvoiceStartBalanceRef.current ?? 0;
     const expected = start + amountSat;
-    if (cashuBalance < expected) return;
+    if (cashuTotalBalance < expected) return;
 
     finalizeTopupInvoicePaid(amountSat);
   }, [
-    cashuBalance,
+    cashuTotalBalance,
     finalizeTopupInvoicePaid,
     formatDisplayedAmountParts,
     route.kind,
@@ -5320,6 +5347,7 @@ export const useAppShellComposition = () => {
       cashuDraft,
       cashuDraftRef,
       cashuEmitAmount,
+      cashuHasMultipleAcceptedMints,
       cashuIsBusy,
       cashuIssuedTokens,
       cashuMeltToMainMintButtonLabel,

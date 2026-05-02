@@ -2351,6 +2351,23 @@ button.danger {
   line-height: 1.35;
 }
 
+.cashu-emit-mint-warning {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.cashu-emit-mint-warning + .panel {
+  margin-top: 10px;
+}
+
+.cashu-emit-mint-warning .wallet-warning-text {
+  width: 100%;
+}
+
+.cashu-emit-mint-warning .btn-wide {
+  margin-top: 4px;
+}
+
 .ln-row {
   display: flex;
   gap: 10px;
