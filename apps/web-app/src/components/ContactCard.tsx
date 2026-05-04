@@ -7,6 +7,7 @@ import type {
   LocalNostrMessage,
   MintUrlInput,
 } from "../app/types/appTypes";
+import { formatDisplayGeneralStatus } from "../nostrStatus";
 import {
   formatContactMessageTimestamp,
   getInitials,
@@ -48,7 +49,10 @@ export const ContactCard: React.FC<ContactCardProps> = ({
   const { formatDisplayedAmountParts, formatDisplayedAmountText, t } =
     useAppShellCore();
   const initials = getInitials(String(contact.name ?? ""));
-  const contactStatus = String(statusText ?? "").trim();
+  const contactStatus = formatDisplayGeneralStatus({
+    status: statusText,
+    providesLabel: t("contactStatusProvides"),
+  });
   const lastText = String(lastMessage?.content ?? "").trim();
   const rawDirection = String(lastMessage?.direction ?? "").trim();
   const previewDirection =

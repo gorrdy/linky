@@ -49,6 +49,29 @@ const normalizeStatusText = (value: unknown): string | null => {
   return trimmed ? trimmed : null;
 };
 
+const parseLinkyProfileExchangeStatus = (
+  status: string | null | undefined,
+): ProfileStatusCurrency[] | null => {
+  const normalizedStatus = normalizeStatusText(status);
+  if (!normalizedStatus) return null;
+
+  const parts = normalizedStatus
+    .split(",")
+    .map((part) => part.trim().toUpperCase())
+    .filter(Boolean);
+  if (parts.length === 0) return null;
+
+  const uniqueParts = [...new Set(parts)];
+  if (uniqueParts.length !== parts.length) return null;
+
+  const validCurrencies = new Set<string>(PROFILE_STATUS_CURRENCIES);
+  if (!parts.every((part) => validCurrencies.has(part))) return null;
+
+  return parts.filter((part): part is ProfileStatusCurrency =>
+    validCurrencies.has(part),
+  );
+};
+
 const getExpirationTimestamp = (event: NostrToolsEvent): number | null => {
   for (const tag of event.tags) {
     if (tag[0] !== "expiration") continue;
@@ -75,14 +98,22 @@ const hasGeneralStatusIdentifier = (event: NostrToolsEvent): boolean => {
 export const parseProfileExchangeStatusCurrencies = (
   status: string | null | undefined,
 ): ProfileStatusCurrency[] => {
-  const parts = String(status ?? "")
-    .split(",")
-    .map((part) => part.trim().toUpperCase())
-    .filter(Boolean);
+  return parseLinkyProfileExchangeStatus(status) ?? [];
+};
 
-  return PROFILE_STATUS_CURRENCIES.filter((currency) =>
-    parts.includes(currency),
-  );
+export const formatDisplayGeneralStatus = (params: {
+  status: string | null | undefined;
+  providesLabel: string;
+}): string | null => {
+  const normalizedStatus = normalizeStatusText(params.status);
+  if (!normalizedStatus) return null;
+
+  const linkyCurrencies = parseLinkyProfileExchangeStatus(normalizedStatus);
+  if (!linkyCurrencies || linkyCurrencies.length === 0) {
+    return normalizedStatus;
+  }
+
+  return `${params.providesLabel} ${linkyCurrencies.join(", ")}`;
 };
 
 export const buildProfileExchangeStatus = (
