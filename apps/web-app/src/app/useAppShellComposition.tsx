@@ -42,6 +42,12 @@ import {
   saveCachedProfilePicture,
   type NostrProfileMetadata,
 } from "../nostrProfile";
+import {
+  extractStatusFilterCurrencies,
+  isStatusFilterValue,
+  parseStatusFilterValue,
+  PROFILE_STATUS_CURRENCIES,
+} from "../nostrStatus";
 import { writeClipboardText } from "../platform/clipboard";
 import { readStoredNostrNsec } from "../platform/identitySecrets";
 import {
@@ -80,6 +86,7 @@ import {
   MAX_CONTACTS_PER_OWNER,
   NO_GROUP_FILTER,
   PENDING_DEEP_LINK_TEXT_STORAGE_KEY,
+  WALLET_WARNING_BALANCE_THRESHOLD_SAT,
 } from "../utils/constants";
 import { buildCashuDeepLink, parseNativeDeepLinkUrl } from "../utils/deepLinks";
 import {
@@ -2824,12 +2831,17 @@ export const useAppShellComposition = () => {
     return displayContacts.map((contact) => {
       const idKey = String(contact.id ?? "").trim();
       const groupName = String(contact.groupName ?? "").trim();
+      const normalizedNpub = normalizeNpubIdentifier(contact.npub);
+      const statusFilterValues = normalizedNpub
+        ? extractStatusFilterCurrencies(nostrStatusByNpub[normalizedNpub])
+        : [];
       const haystack = [
         contact.name,
         contact.npub,
         contact.lnAddress,
         contact.groupName,
         contact.unknownPubkeyHex,
+        ...statusFilterValues,
       ]
         .map((value) =>
           String(value ?? "")
@@ -2844,9 +2856,55 @@ export const useAppShellComposition = () => {
         idKey,
         groupName,
         haystack,
+        statusFilterValues,
       };
     });
-  }, [displayContacts]);
+  }, [displayContacts, nostrStatusByNpub]);
+
+  const statusFilterCurrencies = React.useMemo(() => {
+    const uniqueCurrencies = new Set<string>();
+
+    for (const contact of displayContacts) {
+      const normalizedNpub = normalizeNpubIdentifier(contact.npub);
+      if (!normalizedNpub) continue;
+
+      for (const currency of extractStatusFilterCurrencies(
+        nostrStatusByNpub[normalizedNpub],
+      )) {
+        uniqueCurrencies.add(currency);
+      }
+    }
+
+    return [...uniqueCurrencies].sort((left, right) => {
+      const leftKnownIndex = PROFILE_STATUS_CURRENCIES.indexOf(
+        left as (typeof PROFILE_STATUS_CURRENCIES)[number],
+      );
+      const rightKnownIndex = PROFILE_STATUS_CURRENCIES.indexOf(
+        right as (typeof PROFILE_STATUS_CURRENCIES)[number],
+      );
+
+      if (leftKnownIndex >= 0 && rightKnownIndex >= 0) {
+        return leftKnownIndex - rightKnownIndex;
+      }
+      if (leftKnownIndex >= 0) return -1;
+      if (rightKnownIndex >= 0) return 1;
+      return left.localeCompare(right);
+    });
+  }, [displayContacts, nostrStatusByNpub]);
+
+  React.useEffect(() => {
+    if (!isStatusFilterValue(activeGroup)) return;
+
+    const selectedCurrency = parseStatusFilterValue(activeGroup);
+    if (!selectedCurrency) {
+      setActiveGroup(null);
+      return;
+    }
+
+    if (!statusFilterCurrencies.includes(selectedCurrency)) {
+      setActiveGroup(null);
+    }
+  }, [activeGroup, setActiveGroup, statusFilterCurrencies]);
 
   const visibleContacts = useVisibleContacts<DisplayContact>({
     activeGroup,
@@ -3258,7 +3316,8 @@ export const useAppShellComposition = () => {
   const [walletWarningDismissed, setWalletWarningDismissed] =
     React.useState(false);
 
-  const walletWarningApplies = cashuBalance > lightningInvoiceAutoPayLimit;
+  const walletWarningApplies =
+    cashuBalance > WALLET_WARNING_BALANCE_THRESHOLD_SAT;
 
   React.useEffect(() => {
     if (!walletWarningApplies) {
@@ -5627,10 +5686,12 @@ export const useAppShellComposition = () => {
       setContactsSearch,
       showContactsOnboarding,
       showWalletWarning: walletWarningApplies && !walletWarningDismissed,
+      statusFilterCurrencies,
       startContactsGuide,
       t,
       visibleContacts,
     },
+    statusFilterCount: statusFilterCurrencies.length,
     ungroupedCount,
   });
 

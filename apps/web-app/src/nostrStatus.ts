@@ -3,6 +3,7 @@ import { NOSTR_RELAYS } from "./nostrProfile";
 import { getSharedNostrPool } from "./utils/nostrPool";
 
 export const PROFILE_STATUS_CURRENCIES = ["BTC", "CZK", "USD"] as const;
+export const STATUS_FILTER_PREFIX = "status:";
 
 export type ProfileStatusCurrency = (typeof PROFILE_STATUS_CURRENCIES)[number];
 
@@ -49,9 +50,11 @@ const normalizeStatusText = (value: unknown): string | null => {
   return trimmed ? trimmed : null;
 };
 
-const parseLinkyProfileExchangeStatus = (
+const CURRENCY_CODE_PATTERN = /^[A-Z0-9]{2,10}$/;
+
+const parseCurrencyStatusCodes = (
   status: string | null | undefined,
-): ProfileStatusCurrency[] | null => {
+): string[] | null => {
   const normalizedStatus = normalizeStatusText(status);
   if (!normalizedStatus) return null;
 
@@ -63,6 +66,19 @@ const parseLinkyProfileExchangeStatus = (
 
   const uniqueParts = [...new Set(parts)];
   if (uniqueParts.length !== parts.length) return null;
+  if (!uniqueParts.every((part) => CURRENCY_CODE_PATTERN.test(part))) {
+    return null;
+  }
+
+  return uniqueParts;
+};
+
+const parseLinkyProfileExchangeStatus = (
+  status: string | null | undefined,
+): ProfileStatusCurrency[] | null => {
+  const parts = parseCurrencyStatusCodes(status);
+  if (!parts) return null;
+  if (parts.length === 0) return null;
 
   const validCurrencies = new Set<string>(PROFILE_STATUS_CURRENCIES);
   if (!parts.every((part) => validCurrencies.has(part))) return null;
@@ -108,12 +124,40 @@ export const formatDisplayGeneralStatus = (params: {
   const normalizedStatus = normalizeStatusText(params.status);
   if (!normalizedStatus) return null;
 
-  const linkyCurrencies = parseLinkyProfileExchangeStatus(normalizedStatus);
-  if (!linkyCurrencies || linkyCurrencies.length === 0) {
+  const currencyCodes = parseCurrencyStatusCodes(normalizedStatus);
+  if (!currencyCodes || currencyCodes.length === 0) {
     return normalizedStatus;
   }
 
-  return `${params.providesLabel} ${linkyCurrencies.join(", ")}`;
+  return `${params.providesLabel} ${currencyCodes.join(", ")}`;
+};
+
+export const extractStatusFilterCurrencies = (
+  status: string | null | undefined,
+): string[] => {
+  return parseCurrencyStatusCodes(status) ?? [];
+};
+
+export const buildStatusFilterValue = (currency: string): string => {
+  return `${STATUS_FILTER_PREFIX}${String(currency ?? "")
+    .trim()
+    .toUpperCase()}`;
+};
+
+export const isStatusFilterValue = (
+  value: string | null | undefined,
+): boolean => {
+  return String(value ?? "").startsWith(STATUS_FILTER_PREFIX);
+};
+
+export const parseStatusFilterValue = (
+  value: string | null | undefined,
+): string | null => {
+  if (!isStatusFilterValue(value)) return null;
+  const currency = String(value ?? "")
+    .slice(STATUS_FILTER_PREFIX.length)
+    .trim();
+  return currency || null;
 };
 
 export const buildProfileExchangeStatus = (
