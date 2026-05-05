@@ -2037,6 +2037,11 @@ export const useAppShellComposition = () => {
           )
         ) {
           setStatus(`${t("restoreFailed")}: ${message}`);
+        } else if (isCashuOutputsAlreadySignedError(error) && !cancelled) {
+          // Recovery already ran inside mintTopupProofs. Drop the pending
+          // quote so the 5s tick stops re-issuing the same failing mint
+          // call against the same deterministic counter.
+          setTopupMintQuote(null);
         }
       } finally {
         claimInFlight = false;
