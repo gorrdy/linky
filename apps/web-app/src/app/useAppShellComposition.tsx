@@ -4837,14 +4837,11 @@ export const useAppShellComposition = () => {
 
           await markRowsDeleted(activeSourceRows, activeSourceOwnerId);
 
-          setTopupMintQuote({
-            invoice,
-            mintUrl: targetMint,
-            quote: quoteId,
-            amount: amountSat,
-            unit: targetWallet.unit ?? "sat",
-          });
-
+          // Intentionally do not call setTopupMintQuote here: the receive-quote
+          // claim effect would race this autoswap path on the same quote and
+          // both would call mintProofs against the same deterministic counter,
+          // surfacing as "outputs already signed". On crash, the foreign tokens
+          // are still in Evolu and the next boot's autoswap pass will recover.
           const claimable = await waitForClaimableQuote(quoteId);
 
           if (!claimable) {
@@ -4888,8 +4885,6 @@ export const useAppShellComposition = () => {
           if (!mintedInsert.result.ok) {
             throw new Error(String(mintedInsert.result.error));
           }
-
-          setTopupMintQuote(null);
 
           const displayAmount = formatDisplayedAmountParts(amountSat);
           setStatus(
