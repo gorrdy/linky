@@ -4933,25 +4933,36 @@ export const useAppShellComposition = () => {
 
   const autoswapAttemptedSignatureRef = React.useRef<string | null>(null);
   const autoswapInFlightRef = React.useRef(false);
+  const meltLargestForeignMintToMainMintRef = React.useRef(
+    meltLargestForeignMintToMainMint,
+  );
+  React.useEffect(() => {
+    meltLargestForeignMintToMainMintRef.current =
+      meltLargestForeignMintToMainMint;
+  }, [meltLargestForeignMintToMainMint]);
+
+  const autoswapSignature = React.useMemo(() => {
+    if (!largestForeignMintForTokenList) return null;
+    if (largestForeignMintForTokenList.sum <= 0) return null;
+    return `${largestForeignMintForTokenList.mint}|${largestForeignMintForTokenList.sum}|${largestForeignMintForTokenList.tokens.length}`;
+  }, [largestForeignMintForTokenList]);
+
   React.useEffect(() => {
     if (!cashuAutoswapEnabled) return;
     if (cashuIsBusy) return;
     if (autoswapInFlightRef.current) return;
-    if (!largestForeignMintForTokenList) {
+    if (!autoswapSignature) {
       autoswapAttemptedSignatureRef.current = null;
       return;
     }
-    if (largestForeignMintForTokenList.sum <= 0) return;
-
-    const signature = `${largestForeignMintForTokenList.mint}|${largestForeignMintForTokenList.sum}|${largestForeignMintForTokenList.tokens.length}`;
-    if (autoswapAttemptedSignatureRef.current === signature) return;
+    if (autoswapAttemptedSignatureRef.current === autoswapSignature) return;
 
     const timeoutId = window.setTimeout(() => {
-      autoswapAttemptedSignatureRef.current = signature;
+      autoswapAttemptedSignatureRef.current = autoswapSignature;
       autoswapInFlightRef.current = true;
       void (async () => {
         try {
-          await meltLargestForeignMintToMainMint();
+          await meltLargestForeignMintToMainMintRef.current();
         } finally {
           autoswapInFlightRef.current = false;
         }
@@ -4961,12 +4972,7 @@ export const useAppShellComposition = () => {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [
-    cashuAutoswapEnabled,
-    cashuIsBusy,
-    largestForeignMintForTokenList,
-    meltLargestForeignMintToMainMint,
-  ]);
+  }, [autoswapSignature, cashuAutoswapEnabled, cashuIsBusy]);
 
   useChatNostrSyncEffect({
     appendLocalNostrMessage,
