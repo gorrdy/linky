@@ -795,6 +795,122 @@ const mintTopupProofs = async (args: {
   );
 };
 
+interface AutoswapClaimContext {
+  insert: (
+    table: "cashuToken",
+    payload: {
+      token: typeof Evolu.NonEmptyString.Type;
+      state: typeof Evolu.NonEmptyString100.Type;
+    },
+    options?: { ownerId: Evolu.OwnerId },
+  ) => { ok: boolean; error?: unknown; value?: { id: CashuTokenId } };
+  isCashuTokenKnownAny: (token: string) => boolean;
+  resolveOwnerIdForWrite: () => Promise<Evolu.OwnerId | null>;
+}
+
+type AutoswapClaimOutcome =
+  | { kind: "claimed" }
+  | { kind: "in_flight" }
+  | { kind: "not_claimable_yet" }
+  | { kind: "dropped"; reason: string }
+  | { kind: "failed"; reason: string };
+
+// Single source of truth for claiming a queued autoswap entry: load the
+// target wallet, gate on a claimable mint quote, mint+restore proofs under
+// the deterministic counter lock, encode + insert the resulting cashuToken,
+// and clear the persisted entry. Sharing one in-flight set across the
+// autoswap melt path and the 5s background tick guarantees a single
+// minted-token writer per quote so isCashuTokenKnownAny dedup works
+// correctly even when mintProofs and NUT-09 restore return proofs in
+// different orders.
+const claimAutoswapPendingEntry = async (args: {
+  claim: AutoswapPendingClaim;
+  claimsKey: string;
+  ctx: AutoswapClaimContext;
+  inFlightSet: Set<string>;
+}): Promise<AutoswapClaimOutcome> => {
+  const key = `${args.claim.mintUrl}|${args.claim.quote}`;
+  if (args.inFlightSet.has(key)) return { kind: "in_flight" };
+  args.inFlightSet.add(key);
+
+  try {
+    const { CashuMint, CashuWallet, MintQuoteState, getEncodedToken } =
+      await getCashuLib();
+    const det = getCashuDeterministicSeedFromStorage();
+    const wallet = await createLoadedCashuWallet({
+      CashuMint,
+      CashuWallet,
+      mintUrl: args.claim.mintUrl,
+      unit: args.claim.unit || "sat",
+      ...(det ? { bip39seed: det.bip39seed } : {}),
+    });
+
+    const status = await wallet.checkMintQuote(args.claim.quote);
+    const state = readMintQuoteState(status);
+    if (!isClaimableMintQuoteState(state, MintQuoteState)) {
+      return { kind: "not_claimable_yet" };
+    }
+
+    const proofs = await mintTopupProofs({
+      amount: args.claim.amount,
+      mintUrl: args.claim.mintUrl,
+      quoteId: args.claim.quote,
+      unit: wallet.unit ?? args.claim.unit ?? "sat",
+      wallet,
+    });
+    const token = String(
+      getEncodedToken({
+        mint: args.claim.mintUrl,
+        proofs,
+        unit: wallet.unit ?? args.claim.unit ?? "sat",
+      }) ?? "",
+    ).trim();
+    if (!token) return { kind: "failed", reason: "empty token" };
+
+    if (!args.ctx.isCashuTokenKnownAny(token)) {
+      const ownerId = await args.ctx.resolveOwnerIdForWrite();
+      const payload = {
+        token: token as typeof Evolu.NonEmptyString.Type,
+        state: "accepted" as typeof Evolu.NonEmptyString100.Type,
+      };
+      const result = ownerId
+        ? args.ctx.insert("cashuToken", payload, { ownerId })
+        : args.ctx.insert("cashuToken", payload);
+      if (!result.ok) {
+        return { kind: "failed", reason: String(result.error) };
+      }
+    }
+
+    removePendingAutoswapClaim(args.claimsKey, {
+      mintUrl: args.claim.mintUrl,
+      quote: args.claim.quote,
+    });
+    return { kind: "claimed" };
+  } catch (error) {
+    if (isCashuOutputsAlreadySignedError(error)) {
+      // mintTopupProofs has its own restore loop. Reaching here means
+      // recovery exhausted the deterministic counter window for this
+      // quote — keep retrying every 5s would loop forever. Drop the
+      // entry; the user's separate Restore action can still recover any
+      // stranded proofs at the mint via a wider counter scan.
+      removePendingAutoswapClaim(args.claimsKey, {
+        mintUrl: args.claim.mintUrl,
+        quote: args.claim.quote,
+      });
+      return {
+        kind: "dropped",
+        reason: getUnknownErrorMessage(error, "outputs already signed"),
+      };
+    }
+    return {
+      kind: "failed",
+      reason: getUnknownErrorMessage(error, "unknown"),
+    };
+  } finally {
+    args.inFlightSet.delete(key);
+  }
+};
+
 const logPayStep = (step: string, data?: PaymentLogData): void => {
   try {
     console.log("[linky][pay]", step, data ?? {});
@@ -4669,6 +4785,14 @@ export const useAppShellComposition = () => {
     update,
   ]);
 
+  // Shared per-quote in-flight set so the inline claim trigger in the
+  // autoswap path and the 5s background tick can never both successfully
+  // call mintTopupProofs for the same quote. Without this, the second path
+  // would land in the NUT-09 restore branch, return proofs in a different
+  // order than the first, encode a different token string, miss the
+  // isCashuTokenKnownAny dedup, and insert a duplicate cashuToken row.
+  const autoswapClaimInFlightRef = React.useRef<Set<string>>(new Set());
+
   const meltLargestForeignMintToMainMint = React.useCallback(async () => {
     if (cashuIsBusy) return;
 
@@ -4917,28 +5041,55 @@ export const useAppShellComposition = () => {
 
           const mintedUnit = targetWallet.unit ?? "sat";
 
-          // Persist the pending claim BEFORE deleting the source rows. The
-          // melt has already paid the invoice at the target mint; the proofs
-          // are owed to us. The dedicated background autoswap-claim effect
-          // ticks every 5s and handles the actual mintProofs + insert. We
-          // intentionally do NOT claim here: an inline claim would race the
-          // background tick and produce duplicate cashuToken rows whenever
-          // the mint returned proofs in a different order (mintProofs vs
-          // NUT-09 restore), since isCashuTokenKnownAny dedup compares the
-          // encoded token string and that string depends on proof order.
+          // Persist the pending claim BEFORE deleting the source rows so
+          // the background autoswap-claim effect can recover after a crash.
+          // The actual mintProofs + insert is shared with that effect via
+          // claimAutoswapPendingEntry + a per-quote in-flight set, so we
+          // can fire it inline here for instant UX without any duplicate
+          // risk: if the 5s tick happens to overlap, the second caller
+          // sees in_flight and bails.
           const pendingClaimsKey = makePendingAutoswapClaimsKey(
             String(appOwnerIdRef.current ?? "anon"),
           );
-          appendPendingAutoswapClaim(pendingClaimsKey, {
+          const pendingClaim: AutoswapPendingClaim = {
             amount: amountSat,
             createdAtMs: Date.now(),
             invoice,
             mintUrl: targetMint,
             quote: quoteId,
             unit: mintedUnit,
-          });
+          };
+          appendPendingAutoswapClaim(pendingClaimsKey, pendingClaim);
 
           await markRowsDeleted(activeSourceRows, activeSourceOwnerId);
+
+          void (async () => {
+            // Best-effort instant claim. Failures (mint quote not yet
+            // claimable, network error, 429) are picked up by the
+            // background tick on its next 5s pass.
+            const outcome = await claimAutoswapPendingEntry({
+              claim: pendingClaim,
+              claimsKey: pendingClaimsKey,
+              ctx: {
+                insert,
+                isCashuTokenKnownAny,
+                resolveOwnerIdForWrite,
+              },
+              inFlightSet: autoswapClaimInFlightRef.current,
+            });
+            if (outcome.kind === "claimed") {
+              const okAmount = formatDisplayedAmountParts(amountSat);
+              setStatus(
+                t("cashuMeltToMainMintDone")
+                  .replace(
+                    "{amount}",
+                    `${okAmount.approxPrefix}${okAmount.amountText}`,
+                  )
+                  .replace("{unit}", okAmount.unitLabel)
+                  .replace("{mint}", formatMintButtonLabel(targetMint)),
+              );
+            }
+          })();
 
           const displayAmount = formatDisplayedAmountParts(amountSat);
           setStatus(
@@ -4968,7 +5119,9 @@ export const useAppShellComposition = () => {
     cashuTokensWithMeta,
     defaultMintUrl,
     formatDisplayedAmountParts,
+    formatMintButtonLabel,
     insert,
+    isCashuTokenKnownAny,
     refreshMintInfo,
     rememberSeenMint,
     resolveOwnerIdForWrite,
@@ -5033,94 +5186,36 @@ export const useAppShellComposition = () => {
   React.useEffect(() => {
     const ownerKey = String(appOwnerIdValue ?? "anon");
     const claimsKey = makePendingAutoswapClaimsKey(ownerKey);
+    const inFlightSet = autoswapClaimInFlightRef.current;
 
     let cancelled = false;
-    let inFlight = false;
+    let tickInFlight = false;
     let lastWarnedKey = "";
 
     const tick = async () => {
-      if (cancelled || inFlight) return;
+      if (cancelled || tickInFlight) return;
       const pending = readPendingAutoswapClaims(claimsKey);
       if (pending.length === 0) return;
-      inFlight = true;
+      tickInFlight = true;
       try {
-        const { CashuMint, CashuWallet, MintQuoteState, getEncodedToken } =
-          await getCashuLib();
-
         for (const claim of pending) {
           if (cancelled) break;
-
-          try {
-            const det = getCashuDeterministicSeedFromStorage();
-            const wallet = await createLoadedCashuWallet({
-              CashuMint,
-              CashuWallet,
-              mintUrl: claim.mintUrl,
-              unit: claim.unit || "sat",
-              ...(det ? { bip39seed: det.bip39seed } : {}),
-            });
-            const status = await wallet.checkMintQuote(claim.quote);
-            const state = readMintQuoteState(status);
-            if (!isClaimableMintQuoteState(state, MintQuoteState)) {
-              continue;
-            }
-
-            const proofs = await mintTopupProofs({
-              amount: claim.amount,
-              mintUrl: claim.mintUrl,
-              quoteId: claim.quote,
-              unit: wallet.unit ?? claim.unit ?? "sat",
-              wallet,
-            });
-            const token = String(
-              getEncodedToken({
-                mint: claim.mintUrl,
-                proofs,
-                unit: wallet.unit ?? claim.unit ?? "sat",
-              }) ?? "",
-            ).trim();
-            if (!token) {
-              continue;
-            }
-
-            if (!isCashuTokenKnownAny(token)) {
-              const ownerId = await resolveOwnerIdForWrite();
-              const payload = {
-                token: token as typeof Evolu.NonEmptyString.Type,
-                state: "accepted" as typeof Evolu.NonEmptyString100.Type,
-              };
-              const result = ownerId
-                ? insert("cashuToken", payload, { ownerId })
-                : insert("cashuToken", payload);
-              if (!result.ok) {
-                continue;
-              }
-            }
-
-            removePendingAutoswapClaim(claimsKey, {
-              mintUrl: claim.mintUrl,
-              quote: claim.quote,
-            });
-          } catch (error) {
-            const message = getUnknownErrorMessage(error, "unknown");
-            if (isCashuOutputsAlreadySignedError(error)) {
-              // mintTopupProofs has its own restore loop. Reaching here means
-              // recovery exhausted the deterministic counter window for this
-              // quote — keep retrying every 5s would loop forever. Drop the
-              // entry; the user's separate Restore action can still recover
-              // any stranded proofs at the mint via a wider counter scan.
-              removePendingAutoswapClaim(claimsKey, {
-                mintUrl: claim.mintUrl,
-                quote: claim.quote,
-              });
-              continue;
-            }
-
-            const warnKey = `${claim.mintUrl}:${claim.quote}:${message}`;
+          const outcome = await claimAutoswapPendingEntry({
+            claim,
+            claimsKey,
+            ctx: {
+              insert,
+              isCashuTokenKnownAny,
+              resolveOwnerIdForWrite,
+            },
+            inFlightSet,
+          });
+          if (outcome.kind === "failed") {
+            const warnKey = `${claim.mintUrl}:${claim.quote}:${outcome.reason}`;
             if (warnKey !== lastWarnedKey) {
               lastWarnedKey = warnKey;
               console.warn("[linky][autoswap] background claim failed", {
-                error: message,
+                error: outcome.reason,
                 mintUrl: claim.mintUrl,
                 quote: claim.quote,
               });
@@ -5128,7 +5223,7 @@ export const useAppShellComposition = () => {
           }
         }
       } finally {
-        inFlight = false;
+        tickInFlight = false;
       }
     };
 
