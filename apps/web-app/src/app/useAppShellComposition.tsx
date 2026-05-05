@@ -220,6 +220,7 @@ import {
   buildPaymentAmountAttempts,
   buildPaymentFailureAmountAttempts,
   getPaymentAmountReserveCap,
+  getPaymentAmountShortage,
   isRetryablePaymentAmountFailure,
 } from "./lib/paymentAmountFallback";
 import {
@@ -5007,11 +5008,21 @@ export const useAppShellComposition = () => {
               isRetryablePaymentAmountFailure(errorMessage) &&
               queuedAmountAttempts.length < MAX_AMOUNT_ATTEMPTS
             ) {
-              const retryAmounts = buildPaymentFailureAmountAttempts(
-                amountSat,
-                errorMessage,
-              );
-              for (const retryAmount of retryAmounts) {
+              // Prefer stepping by the exact shortage the mint reported
+              // (`need X, have Y`) — that's strictly forward progress on
+              // borderline balances. Fall back to the multi-step fee
+              // schedule from buildPaymentFailureAmountAttempts only if
+              // the error didn't carry a parseable shortage hint.
+              const shortage = getPaymentAmountShortage(errorMessage);
+              const explicitNext =
+                shortage !== null && shortage > 0
+                  ? amountSat - shortage - 1
+                  : null;
+              const candidates =
+                explicitNext !== null && explicitNext > 0
+                  ? [explicitNext]
+                  : buildPaymentFailureAmountAttempts(amountSat, errorMessage);
+              for (const retryAmount of candidates) {
                 if (seenAmountAttempts.has(retryAmount)) continue;
                 seenAmountAttempts.add(retryAmount);
                 queuedAmountAttempts.push(retryAmount);
