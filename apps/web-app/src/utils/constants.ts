@@ -76,6 +76,8 @@ export const LOCAL_PENDING_PAYMENT_TELEMETRY_LOCK_STORAGE_KEY_PREFIX =
   "linky.local.pendingPaymentTelemetryLock.v1";
 export const LOCAL_PENDING_TOPUP_QUOTE_STORAGE_KEY_PREFIX =
   "linky.local.pendingTopupQuote.v1";
+export const LOCAL_PENDING_AUTOSWAP_CLAIM_STORAGE_KEY_PREFIX =
+  "linky.local.pendingAutoswapClaim.v1";
 
 export const BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY =
   "linky.blocked_nostr_pubkeys.v1";

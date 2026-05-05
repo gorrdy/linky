@@ -82,6 +82,7 @@ import {
   CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY,
   FEEDBACK_CONTACT_NPUB,
   LOCAL_MINT_INFO_STORAGE_KEY_PREFIX,
+  LOCAL_PENDING_AUTOSWAP_CLAIM_STORAGE_KEY_PREFIX,
   LOCAL_PENDING_TOPUP_QUOTE_STORAGE_KEY_PREFIX,
   MAX_CONTACTS_PER_OWNER,
   NO_GROUP_FILTER,
@@ -425,6 +426,79 @@ const readPendingTopupQuoteFromStorage = (
   } catch {
     return null;
   }
+};
+
+interface AutoswapPendingClaim {
+  amount: number;
+  createdAtMs: number;
+  invoice: string;
+  mintUrl: string;
+  quote: string;
+  unit: string;
+}
+
+const isAutoswapPendingClaim = (
+  value: unknown,
+): value is AutoswapPendingClaim =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as { amount?: unknown }).amount === "number" &&
+  typeof (value as { createdAtMs?: unknown }).createdAtMs === "number" &&
+  typeof (value as { invoice?: unknown }).invoice === "string" &&
+  typeof (value as { mintUrl?: unknown }).mintUrl === "string" &&
+  typeof (value as { quote?: unknown }).quote === "string" &&
+  typeof (value as { unit?: unknown }).unit === "string";
+
+const makePendingAutoswapClaimsKey = (ownerId: string): string =>
+  `${LOCAL_PENDING_AUTOSWAP_CLAIM_STORAGE_KEY_PREFIX}.${encodeStorageSegment(
+    ownerId,
+  )}`;
+
+const readPendingAutoswapClaims = (key: string): AutoswapPendingClaim[] => {
+  const raw = safeLocalStorageGet(key);
+  if (!raw) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isAutoswapPendingClaim);
+  } catch {
+    return [];
+  }
+};
+
+const writePendingAutoswapClaims = (
+  key: string,
+  claims: AutoswapPendingClaim[],
+): void => {
+  if (claims.length === 0) {
+    safeLocalStorageRemove(key);
+    return;
+  }
+  safeLocalStorageSetJson(key, claims);
+};
+
+const appendPendingAutoswapClaim = (
+  key: string,
+  claim: AutoswapPendingClaim,
+): void => {
+  const existing = readPendingAutoswapClaims(key);
+  const filtered = existing.filter(
+    (entry) => entry.quote !== claim.quote || entry.mintUrl !== claim.mintUrl,
+  );
+  filtered.push(claim);
+  writePendingAutoswapClaims(key, filtered);
+};
+
+const removePendingAutoswapClaim = (
+  key: string,
+  args: { mintUrl: string; quote: string },
+): void => {
+  const existing = readPendingAutoswapClaims(key);
+  const next = existing.filter(
+    (entry) => !(entry.quote === args.quote && entry.mintUrl === args.mintUrl),
+  );
+  writePendingAutoswapClaims(key, next);
 };
 
 const isLikelyCorsOrNetworkError = (message: string): boolean => {
@@ -4840,13 +4914,26 @@ export const useAppShellComposition = () => {
             }
           }
 
+          const mintedUnit = targetWallet.unit ?? "sat";
+
+          // Persist the pending claim BEFORE deleting the source rows. The
+          // melt has already paid the invoice at the target mint; the proofs
+          // are owed to us. If we crash or the immediate claim below fails,
+          // the background autoswap-claim effect picks this up and retries.
+          const pendingClaimsKey = makePendingAutoswapClaimsKey(
+            String(appOwnerIdRef.current ?? "anon"),
+          );
+          appendPendingAutoswapClaim(pendingClaimsKey, {
+            amount: amountSat,
+            createdAtMs: Date.now(),
+            invoice,
+            mintUrl: targetMint,
+            quote: quoteId,
+            unit: mintedUnit,
+          });
+
           await markRowsDeleted(activeSourceRows, activeSourceOwnerId);
 
-          // Intentionally do not call setTopupMintQuote here: the receive-quote
-          // claim effect would race this autoswap path on the same quote and
-          // both would call mintProofs against the same deterministic counter,
-          // surfacing as "outputs already signed". On crash, the foreign tokens
-          // are still in Evolu and the next boot's autoswap pass will recover.
           const claimable = await waitForClaimableQuote(quoteId);
 
           if (!claimable) {
@@ -4862,7 +4949,6 @@ export const useAppShellComposition = () => {
             return;
           }
 
-          const mintedUnit = targetWallet.unit ?? "sat";
           const mintedProofs = await mintTopupProofs({
             amount: amountSat,
             mintUrl: targetMint,
@@ -4890,6 +4976,13 @@ export const useAppShellComposition = () => {
           if (!mintedInsert.result.ok) {
             throw new Error(String(mintedInsert.result.error));
           }
+
+          // Immediate claim succeeded: clear the pending entry so the
+          // background effect doesn't try to mint the same quote again.
+          removePendingAutoswapClaim(pendingClaimsKey, {
+            mintUrl: targetMint,
+            quote: quoteId,
+          });
 
           const displayAmount = formatDisplayedAmountParts(amountSat);
           setStatus(
@@ -4973,6 +5066,120 @@ export const useAppShellComposition = () => {
       window.clearTimeout(timeoutId);
     };
   }, [autoswapSignature, cashuAutoswapEnabled, cashuIsBusy]);
+
+  const appOwnerIdValue = appOwnerId;
+  React.useEffect(() => {
+    const ownerKey = String(appOwnerIdValue ?? "anon");
+    const claimsKey = makePendingAutoswapClaimsKey(ownerKey);
+
+    let cancelled = false;
+    let inFlight = false;
+    let lastWarnedKey = "";
+
+    const tick = async () => {
+      if (cancelled || inFlight) return;
+      const pending = readPendingAutoswapClaims(claimsKey);
+      if (pending.length === 0) return;
+      inFlight = true;
+      try {
+        const { CashuMint, CashuWallet, MintQuoteState, getEncodedToken } =
+          await getCashuLib();
+
+        for (const claim of pending) {
+          if (cancelled) break;
+
+          try {
+            const det = getCashuDeterministicSeedFromStorage();
+            const wallet = await createLoadedCashuWallet({
+              CashuMint,
+              CashuWallet,
+              mintUrl: claim.mintUrl,
+              unit: claim.unit || "sat",
+              ...(det ? { bip39seed: det.bip39seed } : {}),
+            });
+            const status = await wallet.checkMintQuote(claim.quote);
+            const state = readMintQuoteState(status);
+            if (!isClaimableMintQuoteState(state, MintQuoteState)) {
+              continue;
+            }
+
+            const proofs = await mintTopupProofs({
+              amount: claim.amount,
+              mintUrl: claim.mintUrl,
+              quoteId: claim.quote,
+              unit: wallet.unit ?? claim.unit ?? "sat",
+              wallet,
+            });
+            const token = String(
+              getEncodedToken({
+                mint: claim.mintUrl,
+                proofs,
+                unit: wallet.unit ?? claim.unit ?? "sat",
+              }) ?? "",
+            ).trim();
+            if (!token) {
+              continue;
+            }
+
+            if (!isCashuTokenKnownAny(token)) {
+              const ownerId = await resolveOwnerIdForWrite();
+              const payload = {
+                token: token as typeof Evolu.NonEmptyString.Type,
+                state: "accepted" as typeof Evolu.NonEmptyString100.Type,
+              };
+              const result = ownerId
+                ? insert("cashuToken", payload, { ownerId })
+                : insert("cashuToken", payload);
+              if (!result.ok) {
+                continue;
+              }
+            }
+
+            removePendingAutoswapClaim(claimsKey, {
+              mintUrl: claim.mintUrl,
+              quote: claim.quote,
+            });
+          } catch (error) {
+            const message = getUnknownErrorMessage(error, "unknown");
+            if (isCashuOutputsAlreadySignedError(error)) {
+              // mintTopupProofs has its own restore loop. Reaching here means
+              // recovery exhausted the deterministic counter window for this
+              // quote — keep retrying every 5s would loop forever. Drop the
+              // entry; the user's separate Restore action can still recover
+              // any stranded proofs at the mint via a wider counter scan.
+              removePendingAutoswapClaim(claimsKey, {
+                mintUrl: claim.mintUrl,
+                quote: claim.quote,
+              });
+              continue;
+            }
+
+            const warnKey = `${claim.mintUrl}:${claim.quote}:${message}`;
+            if (warnKey !== lastWarnedKey) {
+              lastWarnedKey = warnKey;
+              console.warn("[linky][autoswap] background claim failed", {
+                error: message,
+                mintUrl: claim.mintUrl,
+                quote: claim.quote,
+              });
+            }
+          }
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void tick();
+    const intervalId = window.setInterval(() => {
+      void tick();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [appOwnerIdValue, insert, isCashuTokenKnownAny, resolveOwnerIdForWrite]);
 
   useChatNostrSyncEffect({
     appendLocalNostrMessage,
