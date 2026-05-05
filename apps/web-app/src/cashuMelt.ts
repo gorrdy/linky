@@ -236,8 +236,25 @@ export const meltInvoiceWithTokensAtMint = async (args: {
     const feeReserve = quote.fee_reserve ?? 0;
     const quotedTotal = paidAmount + feeReserve;
 
+    // Pre-swap proofs need to cover not just quote.amount + fee_reserve but
+    // also the cashu-ts NUT-08 swap fee (per-proof, set by the keyset). If
+    // we don't include it the inner wallet.swap throws "Not enough balance
+    // to send" and the outer retry loop just gets a generic error rather
+    // than a "need X have Y" shortage hint that would let it pick a
+    // smaller amount on the next pass.
+    const swapFee = (() => {
+      try {
+        const fee = wallet.getFeesForProofs?.(spendableProofs);
+        const n = Number(fee);
+        return Number.isFinite(n) && n > 0 ? Math.trunc(n) : 0;
+      } catch {
+        return 0;
+      }
+    })();
+
+    const requiredTotal = quotedTotal + swapFee;
     const have = getProofAmountSum(spendableProofs);
-    if (have < quotedTotal) {
+    if (have < requiredTotal) {
       return {
         ok: false,
         mint,
@@ -247,11 +264,11 @@ export const meltInvoiceWithTokensAtMint = async (args: {
         feePaid: 0,
         remainingAmount: have,
         remainingToken: null,
-        error: `Insufficient funds (need ${quotedTotal}, have ${have})`,
+        error: `Insufficient funds (need ${requiredTotal}, have ${have})`,
       };
     }
 
-    const total = getMeltSwapTargetAmount(quotedTotal, have);
+    const total = getMeltSwapTargetAmount(quotedTotal, have - swapFee);
 
     const run = async (): Promise<CashuPayResult | CashuPayErrorResult> => {
       const counter0 = det
