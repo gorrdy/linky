@@ -824,11 +824,18 @@ type AutoswapClaimOutcome =
 // minted-token writer per quote so isCashuTokenKnownAny dedup works
 // correctly even when mintProofs and NUT-09 restore return proofs in
 // different orders.
+type LoadedCashuWallet = Awaited<ReturnType<typeof createLoadedCashuWallet>>;
+
 const claimAutoswapPendingEntry = async (args: {
   claim: AutoswapPendingClaim;
   claimsKey: string;
   ctx: AutoswapClaimContext;
   inFlightSet: Set<string>;
+  // Optional cross-tick wallet cache. The background claim effect ticks
+  // every 10s; if the mint quote isn't `PAID` yet we'd otherwise re-run
+  // loadMint() (info+keysets+keys = 3 calls) on every tick until it flips.
+  // Re-using the wallet handle skips those 3 calls per pending claim.
+  walletCache?: Map<string, LoadedCashuWallet>;
 }): Promise<AutoswapClaimOutcome> => {
   const key = `${args.claim.mintUrl}|${args.claim.quote}`;
   if (args.inFlightSet.has(key)) return { kind: "in_flight" };
@@ -838,13 +845,18 @@ const claimAutoswapPendingEntry = async (args: {
     const { CashuMint, CashuWallet, MintQuoteState, getEncodedToken } =
       await getCashuLib();
     const det = getCashuDeterministicSeedFromStorage();
-    const wallet = await createLoadedCashuWallet({
-      CashuMint,
-      CashuWallet,
-      mintUrl: args.claim.mintUrl,
-      unit: args.claim.unit || "sat",
-      ...(det ? { bip39seed: det.bip39seed } : {}),
-    });
+    const walletCacheKey = `${args.claim.mintUrl}|${args.claim.unit || "sat"}`;
+    let wallet = args.walletCache?.get(walletCacheKey);
+    if (!wallet) {
+      wallet = await createLoadedCashuWallet({
+        CashuMint,
+        CashuWallet,
+        mintUrl: args.claim.mintUrl,
+        unit: args.claim.unit || "sat",
+        ...(det ? { bip39seed: det.bip39seed } : {}),
+      });
+      args.walletCache?.set(walletCacheKey, wallet);
+    }
 
     const status = await wallet.checkMintQuote(args.claim.quote);
     const state = readMintQuoteState(status);
@@ -4793,6 +4805,13 @@ export const useAppShellComposition = () => {
   // order than the first, encode a different token string, miss the
   // isCashuTokenKnownAny dedup, and insert a duplicate cashuToken row.
   const autoswapClaimInFlightRef = React.useRef<Set<string>>(new Set());
+  // Cross-tick cache so the background claim effect doesn't reload the
+  // target-mint wallet (info+keysets+keys) every tick while a quote is
+  // still PENDING at the mint. Keyed by `mintUrl|unit`; entries cleared
+  // on logout (effect cleanup).
+  const autoswapClaimWalletCacheRef = React.useRef<
+    Map<string, LoadedCashuWallet>
+  >(new Map());
 
   const meltLargestForeignMintToMainMint = React.useCallback(async () => {
     if (cashuIsBusy) return;
@@ -4918,7 +4937,11 @@ export const useAppShellComposition = () => {
 
     try {
       rememberSeenMint(targetMint);
-      await refreshMintInfo(targetMint);
+      // Skip refreshMintInfo here: the mint store already
+      // gates on a once-per-session ref (useMintInfoStore.ts) and the boot
+      // effect auto-refreshes the default mint at app startup. The wallet
+      // load below independently fetches info+keysets+keys via cashu-ts,
+      // which is what melt actually needs.
 
       const { CashuMint, CashuWallet } = await getCashuLib();
       const det = getCashuDeterministicSeedFromStorage();
@@ -5109,6 +5132,7 @@ export const useAppShellComposition = () => {
                 resolveOwnerIdForWrite,
               },
               inFlightSet: autoswapClaimInFlightRef.current,
+              walletCache: autoswapClaimWalletCacheRef.current,
             });
             if (outcome.kind === "claimed") {
               const okAmount = formatDisplayedAmountParts(amountSat);
@@ -5155,7 +5179,6 @@ export const useAppShellComposition = () => {
     formatMintButtonLabel,
     insert,
     isCashuTokenKnownAny,
-    refreshMintInfo,
     rememberSeenMint,
     resolveOwnerIdForWrite,
     setCashuIsBusy,
@@ -5220,6 +5243,7 @@ export const useAppShellComposition = () => {
     const ownerKey = String(appOwnerIdValue ?? "anon");
     const claimsKey = makePendingAutoswapClaimsKey(ownerKey);
     const inFlightSet = autoswapClaimInFlightRef.current;
+    const walletCache = autoswapClaimWalletCacheRef.current;
 
     let cancelled = false;
     let tickInFlight = false;
@@ -5242,6 +5266,7 @@ export const useAppShellComposition = () => {
               resolveOwnerIdForWrite,
             },
             inFlightSet,
+            walletCache,
           });
           if (outcome.kind === "failed") {
             const warnKey = `${claim.mintUrl}:${claim.quote}:${outcome.reason}`;
@@ -5263,11 +5288,12 @@ export const useAppShellComposition = () => {
     void tick();
     const intervalId = window.setInterval(() => {
       void tick();
-    }, 5000);
+    }, 5_000);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      walletCache.clear();
     };
   }, [appOwnerIdValue, insert, isCashuTokenKnownAny, resolveOwnerIdForWrite]);
 
