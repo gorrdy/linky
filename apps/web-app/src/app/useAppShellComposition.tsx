@@ -4928,7 +4928,26 @@ export const useAppShellComposition = () => {
         unit: "sat",
         ...(det ? { bip39seed: det.bip39seed } : {}),
       });
-      const { meltInvoiceWithTokensAtMint } = await import("../cashuMelt");
+      const { meltInvoiceWithTokensAtMint, prepareMeltMintContext } =
+        await import("../cashuMelt");
+
+      // Pre-load source-mint context (info+keysets+keys+checkstate) once.
+      // Each retry only varies the amount; reusing the wallet handle and the
+      // already-state-checked spendable proofs across attempts cuts ~4
+      // mint round-trips per iteration. The melt-quote / swap / melt steps
+      // still run per-attempt because they bind to the per-attempt invoice.
+      let sourceMeltContext: Awaited<
+        ReturnType<typeof prepareMeltMintContext>
+      > | null = null;
+      try {
+        sourceMeltContext = await prepareMeltMintContext({
+          mint: sourceMint,
+          tokens: sourceTokens,
+          unit: "sat",
+        });
+      } catch (error) {
+        finalError = getUnknownErrorMessage(error, "unknown");
+      }
 
       let activeSourceRows: Array<{ id?: CashuTokenId | string | null }> =
         sourceRows;
@@ -4957,6 +4976,7 @@ export const useAppShellComposition = () => {
             mint: sourceMint,
             tokens: activeSourceTokens,
             unit: "sat",
+            ...(sourceMeltContext ? { context: sourceMeltContext } : {}),
           });
 
           if (!meltResult.ok) {

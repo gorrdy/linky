@@ -160,20 +160,23 @@ const parseMeltProofsResponse = (
   };
 };
 
-export const meltInvoiceWithTokensAtMint = async (args: {
-  invoice: string;
+// Caller-supplied cache so the outer retry loop (autoswap) doesn't pay for
+// loadMint() + checkProofsStates on every iteration. The melt-quote step is
+// the only thing that genuinely depends on the per-attempt amount, so we let
+// callers prepareMeltMintContext once and pass it through unchanged.
+export interface MeltMintContext {
+  spendableProofs: Proof[];
+  wallet: Awaited<ReturnType<typeof createLoadedCashuWallet>>;
+}
+
+export const prepareMeltMintContext = async (args: {
   mint: string;
   tokens: string[];
   unit?: string | null;
-}): Promise<CashuPayResult | CashuPayErrorResult> => {
-  const { invoice, mint, tokens, unit } = args;
-  const {
-    CashuMint,
-    CashuWallet,
-    getDecodedToken,
-    getEncodedToken,
-    getTokenMetadata,
-  } = await getCashuLib();
+}): Promise<MeltMintContext> => {
+  const { mint, tokens, unit } = args;
+  const { CashuMint, CashuWallet, getDecodedToken, getTokenMetadata } =
+    await getCashuLib();
 
   const det = getCashuDeterministicSeedFromStorage();
   const wallet = await createLoadedCashuWallet({
@@ -183,29 +186,58 @@ export const meltInvoiceWithTokensAtMint = async (args: {
     ...(unit ? { unit } : {}),
     ...(det ? { bip39seed: det.bip39seed } : {}),
   });
-  const walletUnit = wallet.unit;
-  const keysetId = wallet.keysetId;
 
   const allProofs: Proof[] = [];
-
-  try {
-    for (const tokenText of tokens) {
-      const decoded = decodeCashuTokenForMint({
-        tokenText,
-        mintUrl: mint,
-        keysets: wallet.keysets,
-        getDecodedToken,
-        getTokenMetadata,
+  for (const tokenText of tokens) {
+    const decoded = decodeCashuTokenForMint({
+      tokenText,
+      mintUrl: mint,
+      keysets: wallet.keysets,
+      getDecodedToken,
+      getTokenMetadata,
+    });
+    for (const proof of decoded.proofs ?? []) {
+      allProofs.push({
+        amount: Number(proof.amount ?? 0),
+        secret: proof.secret,
+        C: proof.C,
+        id: proof.id,
       });
-      for (const proof of decoded.proofs ?? []) {
-        allProofs.push({
-          amount: Number(proof.amount ?? 0),
-          secret: proof.secret,
-          C: proof.C,
-          id: proof.id,
-        });
-      }
     }
+  }
+
+  let spendableProofs = dedupeCashuProofs(allProofs);
+  try {
+    const states = await wallet.checkProofsStates(spendableProofs);
+    const asArray: ProofState[] = Array.isArray(states) ? states : [];
+    spendableProofs = filterUnspentCashuProofs(spendableProofs, asArray);
+  } catch {
+    // Keep previous behavior if state checks are unavailable.
+  }
+
+  return { wallet, spendableProofs };
+};
+
+export const meltInvoiceWithTokensAtMint = async (args: {
+  context?: MeltMintContext;
+  invoice: string;
+  mint: string;
+  tokens: string[];
+  unit?: string | null;
+}): Promise<CashuPayResult | CashuPayErrorResult> => {
+  const { invoice, mint, tokens, unit } = args;
+  const { getEncodedToken } = await getCashuLib();
+
+  const det = getCashuDeterministicSeedFromStorage();
+  let context: MeltMintContext;
+  try {
+    context =
+      args.context ??
+      (await prepareMeltMintContext({
+        mint,
+        tokens,
+        ...(unit ? { unit } : {}),
+      }));
   } catch (e) {
     return {
       ok: false,
@@ -219,17 +251,12 @@ export const meltInvoiceWithTokensAtMint = async (args: {
       error: getUnknownErrorMessage(e, "decode failed"),
     };
   }
+  const { wallet, spendableProofs: contextSpendableProofs } = context;
+  const walletUnit = wallet.unit;
+  const keysetId = wallet.keysetId;
 
   try {
-    let spendableProofs = dedupeCashuProofs(allProofs);
-
-    try {
-      const states = await wallet.checkProofsStates(spendableProofs);
-      const asArray: ProofState[] = Array.isArray(states) ? states : [];
-      spendableProofs = filterUnspentCashuProofs(spendableProofs, asArray);
-    } catch {
-      // Keep previous behavior if state checks are unavailable.
-    }
+    const spendableProofs = contextSpendableProofs;
 
     const quote = await wallet.createMeltQuote(invoice);
     const paidAmount = quote.amount ?? 0;
@@ -470,7 +497,7 @@ export const meltInvoiceWithTokensAtMint = async (args: {
       paidAmount: 0,
       feeReserve: 0,
       feePaid: 0,
-      remainingAmount: getProofAmountSum(dedupeCashuProofs(allProofs)),
+      remainingAmount: getProofAmountSum(contextSpendableProofs),
       remainingToken: null,
       error: getUnknownErrorMessage(e, "melt failed"),
     };
