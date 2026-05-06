@@ -236,12 +236,15 @@ export const meltInvoiceWithTokensAtMint = async (args: {
     const feeReserve = quote.fee_reserve ?? 0;
     const quotedTotal = paidAmount + feeReserve;
 
-    // Pre-swap proofs need to cover not just quote.amount + fee_reserve but
-    // also the cashu-ts NUT-08 swap fee (per-proof, set by the keyset). If
-    // we don't include it the inner wallet.swap throws "Not enough balance
-    // to send" and the outer retry loop just gets a generic error rather
-    // than a "need X have Y" shortage hint that would let it pick a
-    // smaller amount on the next pass.
+    // The pre-melt swap is the trap here. cashu-ts (>=2.x) deducts NUT-08
+    // input fees from the SEND side, so when we ask for `target` the proofs
+    // we hand to meltProofs sum to `target - swapFee`. If we pass exactly
+    // `quotedTotal` as the swap target, the source mint sees `quotedTotal -
+    // swapFee` worth of inputs and rejects with "not enough inputs provided
+    // for melt. Provided: N-1, needed: N". Pre-pad the swap target by the
+    // estimated swap fee so the post-fee send sum lands at >= quotedTotal,
+    // and overprovision the insufficiency check by another swapFee for the
+    // conservative case where the keyset bills fee on keep too.
     const swapFee = (() => {
       try {
         const fee = wallet.getFeesForProofs?.(spendableProofs);
@@ -252,7 +255,7 @@ export const meltInvoiceWithTokensAtMint = async (args: {
       }
     })();
 
-    const requiredTotal = quotedTotal + swapFee;
+    const requiredTotal = quotedTotal + 2 * swapFee;
     const have = getProofAmountSum(spendableProofs);
     if (have < requiredTotal) {
       return {
@@ -268,7 +271,11 @@ export const meltInvoiceWithTokensAtMint = async (args: {
       };
     }
 
-    const total = getMeltSwapTargetAmount(quotedTotal, have - swapFee);
+    // Pre-pad swap target by swapFee so post-deduction send proofs reach
+    // quotedTotal. Then add the usual +1 overprovision when there's
+    // headroom for it (some mints want one extra sat of melt inputs).
+    const paddedQuotedTotal = quotedTotal + swapFee;
+    const total = getMeltSwapTargetAmount(paddedQuotedTotal, have - swapFee);
 
     const run = async (): Promise<CashuPayResult | CashuPayErrorResult> => {
       const counter0 = det
