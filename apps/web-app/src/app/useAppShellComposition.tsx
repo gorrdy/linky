@@ -4901,10 +4901,11 @@ export const useAppShellComposition = () => {
     // Cap retries hard. Each iteration creates a fresh top-up quote at the
     // target mint, and most mints rate-limit quote creation aggressively
     // (we have hit 429 on `/v1/mint/quote/bolt11` and even `/v1/info` on
-    // mint.lnpay.cz). Five attempts gives enough headroom to step past
-    // the source-mint fee_reserve plus any cashu-ts swap fees without
-    // storming the mint.
-    const MAX_AMOUNT_ATTEMPTS = 5;
+    // mint.lnpay.cz). Eight matches buildPaymentAmountAttempts's natural
+    // stepping schedule [0,1,2,3,5,8,13,21] so we can reach a 21-sat drop
+    // off the source balance — enough headroom for percentage fee_reserve
+    // schedules (e.g. 1% with min) on borderline balances.
+    const MAX_AMOUNT_ATTEMPTS = 8;
     const queuedAmountAttempts = [...initialAmountAttempts].slice(
       0,
       MAX_AMOUNT_ATTEMPTS,
