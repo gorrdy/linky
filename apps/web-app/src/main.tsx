@@ -329,6 +329,18 @@ const isBenignFetchAbortError = (value: unknown): boolean => {
   return false;
 };
 
+// Browsers report "Script error." with no `event.error` and no file/line info
+// when an error originates from a script that doesn't have CORS-permitted
+// access. PWA installs on Android Chrome and iOS Safari trigger this during
+// the install/boot handshake; the actual app boots fine on the next run.
+// Since there's literally no actionable detail in this case (browser
+// security strips the stack), skip the boot-error overlay rather than
+// rendering a useless "Script error." screen on top of a working app.
+const isOpaqueCrossOriginScriptError = (value: unknown): boolean => {
+  if (typeof value !== "string") return false;
+  return value.trim().toLowerCase() === "script error.";
+};
+
 let appHasMounted = false;
 
 const applyEvoluWebCompatPolyfills = () => {
@@ -563,6 +575,11 @@ window.addEventListener("error", (event) => {
   if (isBenignFetchAbortError(error)) {
     event.preventDefault();
     console.warn("[linky] ignored aborted fetch", error);
+    return;
+  }
+  if (isOpaqueCrossOriginScriptError(error)) {
+    event.preventDefault();
+    console.warn("[linky] ignored opaque cross-origin script error");
     return;
   }
   if (appHasMounted) {
