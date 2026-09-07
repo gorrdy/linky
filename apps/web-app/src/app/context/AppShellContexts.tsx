@@ -6,6 +6,7 @@ import type {
 } from "../../derivedProfile";
 import type { ContactId } from "../../evolu";
 import type { Lang } from "../../i18n";
+import type { LnurlAuthPreview } from "../../lnurlAuth";
 import type { LnurlWithdrawPreview } from "../../lnurlPay";
 import type { ProfileStatusCurrency } from "../../nostrStatus";
 import type { Route } from "../../types/route";
@@ -88,6 +89,7 @@ export interface AppShellCoreContextValue {
     fromMint: string;
     toMint: string;
   } | null;
+  pendingLnurlAuthConfirmation: LnurlAuthPreview | null;
   pendingLnurlWithdrawConfirmation: LnurlWithdrawPreview | null;
   pendingLightningInvoiceConfirmation: LightningInvoicePreview | null;
   postPaySaveContact: {
@@ -124,6 +126,7 @@ export interface AppShellCoreContextValue {
   topbar: TopbarButton | null;
   topbarRight: TopbarButton | null;
   topbarTitle: string | null;
+  lnurlAuthIsBusy: boolean;
   lnurlWithdrawIsBusy: boolean;
 }
 
@@ -132,10 +135,12 @@ export interface AppShellActionsContextValue {
   closePaymentMintMeltConfirmation: () => void;
   closeMenu: () => void;
   closeShareOptions: () => void;
+  closeLnurlAuthConfirmation: () => void;
   closeLnurlWithdrawConfirmation: () => void;
   closeLightningInvoiceConfirmation: () => void;
   closeScan: () => void;
   confirmPaymentMintMelt: () => Promise<void>;
+  confirmLnurlAuth: () => Promise<void>;
   confirmLnurlWithdraw: () => Promise<void>;
   confirmLightningInvoicePayment: () => Promise<void>;
   contactsGuideNav: {

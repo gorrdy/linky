@@ -96,6 +96,36 @@ const withdraw = async (
 
 `LnurlWithdrawPreview` also carries `minAmountSat`/`maxAmountSat` and `description` for an amount picker. `redeemLnurlWithdraw` resolves when the service accepted the request, not when the payment arrived; that is the topup's result.
 
+## LNURL-auth (`lnurl/lnurlAuth.ts`)
+
+LUD-04 logs the user into a third-party site. The whole request is in the scanned URL — `tag=login` plus the `k1` challenge — so `parseLnurlAuthTarget` recognizes a login without a network call, which is what lets a caller tell it apart from a pay or withdraw target before probing them.
+
+The linking key is the user's, so this package never derives or holds it: `submitLnurlAuth` asks the caller's `sign` for a signature over the challenge and appends `sig`/`key` to the LNURL's own query.
+
+```ts
+import { parseLnurlAuthTarget, submitLnurlAuth } from "@linky/linkshu";
+
+const login = async (scanned: string) => {
+  const preview = parseLnurlAuthTarget(scanned);
+  if (!preview) return null; // not a login target
+
+  // Show `preview.domain` and `preview.action` and get consent before signing.
+  await submitLnurlAuth({
+    preview,
+    sign: ({ challengeHex, domain }) => signLinkingKey(challengeHex, domain),
+  });
+  return preview.domain;
+};
+```
+
+| Export                             | Returns                    | Notes                                                                                              |
+| ---------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `parseLnurlAuthTarget(text)`       | `LnurlAuthPreview \| null` | accepts `lnurl1…`, `keyauth://`, and plain https; `{ action, domain, k1, requestUrl }`, no network |
+| `isLnurlAuthTarget(text)`          | `boolean`                  | the same check without the preview                                                                 |
+| `submitLnurlAuth(args, fallback?)` | `Promise<void>`            | resolves only on an explicit `status: "OK"`; throws the service's `reason` on `status: "ERROR"`    |
+
+`action` is the site's own word for what the login does (`login`, `register`, `link`, `auth`) and defaults to `login`; show it, because the user is consenting to it. An unconfirmed callback is an error rather than a silent success — a site that never confirmed has not logged the user in.
+
 ## Lightning address helpers (`lnurl/lightningAddress.ts`)
 
 `isLightningAddress`, `splitLightningAddress` → `{ user, domain } | null`, `stripLightningPrefix`, `getLightningAddressRequestUrl` (lowercases user and domain; LUD-16 servers reject mixed case). All four are on the main entry.

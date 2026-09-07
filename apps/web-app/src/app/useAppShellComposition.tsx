@@ -72,6 +72,7 @@ import { useAppLanguage } from "./hooks/useAppLanguage";
 import { useAppPreferences } from "./hooks/useAppPreferences";
 import { useArmedDeleteTimeouts } from "./hooks/useArmedDeleteTimeouts";
 import { useFiatRates } from "./hooks/useFiatRates";
+import { useLnurlAuth } from "./hooks/useLnurlAuth";
 import { useOwnerScopedStorage } from "./hooks/useOwnerScopedStorage";
 import { useStatusToasts } from "./hooks/useStatusToasts";
 import { useStoragePersistRequestEffect } from "./hooks/useStoragePersistRequestEffect";
@@ -952,6 +953,14 @@ export const useAppShellComposition = ({
     setPendingDeleteId(null);
   }, [setPendingDeleteId]);
 
+  const {
+    closeLnurlAuthConfirmation,
+    confirmLnurlAuth,
+    lnurlAuthIsBusy,
+    pendingLnurlAuthConfirmation,
+    requestLnurlAuthConfirmation,
+  } = useLnurlAuth({ currentNsec, setStatus, t });
+
   const { closeMenu, menuIsOpen, navigateToMainReturn, toggleMenu } =
     useMainMenuState({
       onClose: clearPendingDeleteOnMenuChange,
@@ -1028,6 +1037,7 @@ export const useAppShellComposition = ({
     payLightningInvoiceWithCashu,
     persistContactsOnboardingDismissed,
     pushToast,
+    requestLnurlAuthConfirmation,
     route,
     saveCashuFromText,
     setPendingDeleteId,
@@ -1203,6 +1213,7 @@ export const useAppShellComposition = ({
     if (pendingPaymentMintMeltConfirmation) {
       return closePaymentMintMeltConfirmation;
     }
+    if (pendingLnurlAuthConfirmation) return closeLnurlAuthConfirmation;
     if (pendingLnurlWithdrawConfirmation) {
       return closeLnurlWithdrawConfirmation;
     }
@@ -1750,6 +1761,7 @@ export const useAppShellComposition = ({
       paidOverlayIsOpen,
       paidOverlayTitle,
       pendingPaymentMintMeltConfirmation,
+      pendingLnurlAuthConfirmation,
       pendingLnurlWithdrawConfirmation,
       pendingLightningInvoiceConfirmation,
       postPaySaveContact,
@@ -1779,6 +1791,7 @@ export const useAppShellComposition = ({
       topbar,
       topbarRight,
       topbarTitle,
+      lnurlAuthIsBusy,
       lnurlWithdrawIsBusy,
     }),
     [
@@ -1810,6 +1823,7 @@ export const useAppShellComposition = ({
       formatDisplayedAmountText,
       isProfileEditing,
       lang,
+      lnurlAuthIsBusy,
       lnurlWithdrawIsBusy,
       menuIsOpen,
       myProfileQr,
@@ -1819,6 +1833,7 @@ export const useAppShellComposition = ({
       paidOverlayIsOpen,
       paidOverlayTitle,
       pendingLightningInvoiceConfirmation,
+      pendingLnurlAuthConfirmation,
       pendingLnurlWithdrawConfirmation,
       pendingPaymentMintMeltConfirmation,
       postPaySaveContact,
@@ -1854,12 +1869,14 @@ export const useAppShellComposition = ({
     () => ({
       cancelPendingNfcWrite,
       closePaymentMintMeltConfirmation,
+      closeLnurlAuthConfirmation,
       closeLnurlWithdrawConfirmation,
       closeMenu,
       closeShareOptions,
       closeLightningInvoiceConfirmation,
       closeScan,
       confirmPaymentMintMelt,
+      confirmLnurlAuth,
       confirmLnurlWithdraw,
       confirmLightningInvoicePayment,
       contactsGuideNav: stableContactsGuideNav,
@@ -1905,12 +1922,14 @@ export const useAppShellComposition = ({
     [
       cancelPendingNfcWrite,
       closeLightningInvoiceConfirmation,
+      closeLnurlAuthConfirmation,
       closeLnurlWithdrawConfirmation,
       closeMenu,
       closePaymentMintMeltConfirmation,
       closeScan,
       closeShareOptions,
       confirmLightningInvoicePayment,
+      confirmLnurlAuth,
       confirmLnurlWithdraw,
       confirmPaymentMintMelt,
       stableContactsGuideNav,

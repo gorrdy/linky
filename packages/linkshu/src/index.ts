@@ -32,6 +32,7 @@ export * from "./topup/Topup";
 export * from "./validation/domain";
 export * from "./validation/Validation";
 
+export * from "./lnurl/lnurlAuth";
 export * from "./lnurl/lnurlPay";
 export * from "./invoice/paymentAmountFallback";
 export * from "./mint/icons";

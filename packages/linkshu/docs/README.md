@@ -21,7 +21,7 @@ How to use Linky's cashu wallet library. These are guides, not an API reference:
 - [Tokens](./tokens.md) — read model, balances, lifecycle transitions, `returnToWallet`, token codec
 - [Mints](./mints.md) — mint info, fees, the known-mint set, icons
 - [Fee probe](./fee-probe.md) — Lightning fee estimation via a melt quote
-- [Lightning utilities](./lightning-utilities.md) — invoice preview, LNURL-pay, lightning addresses, fiat rates
+- [Lightning utilities](./lightning-utilities.md) — invoice preview, LNURL-pay/withdraw/auth, lightning addresses, fiat rates
 
 ## Integrating the package
 

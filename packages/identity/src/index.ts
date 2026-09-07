@@ -18,6 +18,12 @@ export type {
   Slip39Share,
 } from "./domain";
 export {
+  deriveLnurlAuthPublicKeyHex,
+  normalizeLnurlAuthDomain,
+  signLnurlAuthChallenge,
+  type LnurlAuthSignature,
+} from "./lnurlAuth";
+export {
   createSlip39Share,
   type CreateSlip39ShareOptions,
   IdentityDerivationError,

@@ -10,10 +10,17 @@ import {
   parseBolt11AmountMsat,
 } from "../invoice/preview";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { bech32 } from "@scure/base";
 import { Schema } from "effect";
+import {
+  decodeLnurlBech32Url,
+  fetchLnurlJson,
+  isLnurlErrorStatus,
+  isLnurlStatusResponse,
+  toHttpLnurlUrl,
+  type LnurlFallback,
+} from "./common";
 import { isRecord, asNonEmptyString, isHttpUrl } from "./text";
-export type LnurlFallback = (url: string) => Promise<Response>;
+export type { LnurlFallback } from "./common";
 
 // How far a fixed-amount LNURL's fresh quote may drift from the confirmed
 // amount and still be paid without re-confirmation (fiat re-quotes, rounding).
@@ -73,14 +80,6 @@ const LnurlWithdrawRequest = Schema.Struct({
 });
 const isLnurlWithdrawRequest = Schema.is(LnurlWithdrawRequest);
 
-const LnurlWithdrawCallbackResponse = Schema.Struct({
-  reason: Schema.optional(Schema.String),
-  status: Schema.optional(Schema.String),
-});
-const isLnurlWithdrawCallbackResponse = Schema.is(
-  LnurlWithdrawCallbackResponse,
-);
-
 export interface LnurlWithdrawPreview {
   amountSat: number;
   callback: string;
@@ -125,41 +124,6 @@ const isKnownLnurlTag = (
   );
 };
 
-// Some LNURL encoders ship URLs with empty path segments (e.g.
-// `https://lnbits.cz/lnurlp//AVH9zJ`). Most servers respond 404 to the empty
-// segment but answer the same content under the collapsed path. Mirror the
-// behavior of other LNURL wallets by collapsing consecutive slashes in the
-// path while leaving the `://` authority and the query/fragment untouched.
-const normalizeLnurlHttpUrl = (value: string): string => {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return value;
-    const collapsedPath = url.pathname.replace(/\/{2,}/g, "/");
-    if (collapsedPath !== url.pathname) {
-      url.pathname = collapsedPath;
-    }
-    return url.toString();
-  } catch {
-    return value;
-  }
-};
-
-const decodeLnurlBech32Url = (value: string): string | null => {
-  const normalized = stripLightningPrefix(value);
-  if (!/^lnurl1/i.test(normalized)) return null;
-
-  try {
-    const decoded = bech32.decodeUnsafe(normalized.toLowerCase(), 2048);
-    if (!decoded) return null;
-    const bytes = Uint8Array.from(bech32.fromWords(decoded.words));
-    const text = new TextDecoder().decode(bytes).trim();
-    if (!isHttpUrl(text)) return null;
-    return normalizeLnurlHttpUrl(text);
-  } catch {
-    return null;
-  }
-};
-
 const normalizeLnurlSchemeUrl = (value: string): string | null => {
   const normalized = stripLightningPrefix(value);
   if (!/^lnurlp:\/\//i.test(normalized)) return null;
@@ -180,12 +144,6 @@ const normalizeLnurlWithdrawSchemeUrl = (value: string): string | null => {
   const rawTarget = normalized.replace(/^lnurlw:\/\//i, "").trim();
   const httpUrl = `https://${rawTarget}`;
   return isHttpUrl(httpUrl) ? httpUrl : null;
-};
-
-const toHttpLnurlUrl = (value: string): string | null => {
-  const normalized = stripLightningPrefix(value);
-  if (!isHttpUrl(normalized)) return null;
-  return normalized;
 };
 
 const resolveLnurlTargetUrlOrNull = (value: string): string | null => {
@@ -318,27 +276,6 @@ const parseLnurlPaySuccessAction = (
   return null;
 };
 
-const fetchJson = async (url: string) => {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const body: unknown = await response.json();
-  return body;
-};
-
-const fetchLnurlJson = async (url: string, fallback?: LnurlFallback) => {
-  try {
-    return await fetchJson(url);
-  } catch (error) {
-    if (!fallback) throw error;
-    const response = await fallback(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const body: unknown = await response.json();
-    return body;
-  }
-};
-
 interface ParsedLnurlPayMetadata {
   description: string | null;
   lightningAddress: string | null;
@@ -392,7 +329,7 @@ export const fetchLnurlPayPreview = async (
 
   // An LNURL error response carries no tag, so report the server's reason
   // before the tag check turns it into a misleading tag-mismatch error.
-  if (String(payReq.status ?? "").toUpperCase() === "ERROR") {
+  if (isLnurlErrorStatus(payReq.status)) {
     throw new Error(asNonEmptyString(payReq.reason) ?? "LNURL error");
   }
 
@@ -527,7 +464,7 @@ export const fetchLnurlInvoiceForTarget = async (
     }
     return fallbackJson;
   })();
-  if (String(invoiceJson.status ?? "").toUpperCase() === "ERROR") {
+  if (isLnurlErrorStatus(invoiceJson.status)) {
     throw new Error(
       asNonEmptyString(invoiceJson.reason) ?? "LNURL invoice error",
     );
@@ -587,7 +524,7 @@ export const fetchLnurlWithdrawPreview = async (
 
   // An LNURL error response carries no tag, so report the server's reason
   // before the tag check turns it into a misleading tag-mismatch error.
-  if (String(withdrawJson.status ?? "").toUpperCase() === "ERROR") {
+  if (isLnurlErrorStatus(withdrawJson.status)) {
     throw new Error(asNonEmptyString(withdrawJson.reason) ?? "LNURL error");
   }
 
@@ -644,11 +581,11 @@ export const redeemLnurlWithdraw = async (
   callbackUrl.searchParams.set("pr", args.invoice);
 
   const responseJson = await fetchLnurlJson(callbackUrl.toString(), fallback);
-  if (!isLnurlWithdrawCallbackResponse(responseJson)) {
+  if (!isLnurlStatusResponse(responseJson)) {
     throw new Error("Invalid LNURL withdraw callback response");
   }
 
-  if (String(responseJson.status ?? "").toUpperCase() === "ERROR") {
+  if (isLnurlErrorStatus(responseJson.status)) {
     throw new Error(
       asNonEmptyString(responseJson.reason) ?? "LNURL withdraw failed",
     );

@@ -34,6 +34,7 @@ import {
 import { useContactsOnboardingProgress } from "../guide/useContactsOnboardingProgress";
 import { buildUnknownContactId } from "../messages/contactIdentity";
 import type { DispatchInboxEvent } from "../messages/useLinkstrInboxSync";
+import type { LnurlAuthResult } from "../useLnurlAuth";
 import { useGuideScannerDomain } from "../useGuideScannerDomain";
 import { useScannedTextHandler } from "../useScannedTextHandler";
 import { isCashuTokenAcceptedState } from "../../lib/cashuTokenState";
@@ -116,6 +117,7 @@ interface UseScanNativeCompositionParams {
   payLightningInvoiceWithCashu: CashuWalletCompositionResult["payLightningInvoiceWithCashu"];
   persistContactsOnboardingDismissed: () => void;
   pushToast: (message: string) => void;
+  requestLnurlAuthConfirmation: LnurlAuthResult["requestLnurlAuthConfirmation"];
   route: ReturnType<typeof useRouting>;
   saveCashuFromText: CashuWalletCompositionResult["saveCashuFromText"];
   setPendingDeleteId: ContactsMessagingCompositionResult["setPendingDeleteId"];
@@ -152,6 +154,7 @@ export const useScanNativeComposition = ({
   payLightningInvoiceWithCashu,
   persistContactsOnboardingDismissed,
   pushToast,
+  requestLnurlAuthConfirmation,
   route,
   saveCashuFromText,
   setPendingDeleteId,
@@ -628,6 +631,7 @@ export const useScanNativeComposition = ({
     payCashuPaymentRequest,
     payLightningInvoiceWithCashu,
     requestLightningInvoiceConfirmation: setPendingLightningInvoiceConfirmation,
+    requestLnurlAuthConfirmation,
     requestLnurlWithdrawConfirmation: setPendingLnurlWithdrawConfirmation,
     saveCashuFromText,
     scanAcceptsBankPayment:

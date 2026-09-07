@@ -14,7 +14,11 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ### en-US
 
+- Scan a website's LNURL login QR code and confirm it in Linky to sign in there. Each site gets its own key derived from your identity, so sites cannot recognize you across each other.
+
 ### cs-CZ
+
+- Naskenujte na webu přihlašovací LNURL QR kód a potvrďte ho v Linky, tím se přihlásíte. Každý web dostane vlastní klíč odvozený z vaší identity, takže vás weby podle něj nemůžou propojit.
 
 ## [26.9.8] - 2026-09-09
 
