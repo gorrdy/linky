@@ -13,6 +13,7 @@ The repo also contains a separate public website in `apps/site/` intended for `l
 ## Protocols and stack
 
 - Nostr (chat, profile, auth-related flows)
+- LNURL (pay, withdraw, and LUD-04 auth as a signer for third-party logins)
 - Evolu (local-first DB + sync)
 - Cashu + mints (Lightning wallet flow)
 - npub.cash (LN address + mint preference sync on Linky's own server; payments to `<npub>@npub.cash` are collected from upstream too)
@@ -46,6 +47,7 @@ Constants live in `apps/web-app/src/utils/constants.ts`; the mechanics are in `d
 - Messages: encrypted private chat (gift-wrap/NIP-17 flows), with image and PDF attachments. Paste an image into the message field with Cmd+V, Ctrl+V, or the phone's system Paste action to send it immediately; any text draft stays in the field.
 - Wallet: Cashu token ingest, restore, validation, spend; token list with available, pending-at-mint, and unknown amounts
 - Lightning address receive: payments to `<npub>@linky.fit` and `<npub>@npub.cash` both land in the wallet, whatever address the profile advertises
+- LNURL login: scan a site's `lnurl1…` login QR and Linky signs it (LUD-04). The linking key is derived per domain from the active Nostr key — different sites cannot recognize each other's user — so it works for both `nsec` and SLIP-39 logins. Logging **into** Linky still needs `nsec` or the SLIP-39 share
 - Payments:
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
   - contact payment via Cashu message flow

@@ -164,6 +164,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@linky/linkstr": "workspace:*",
+        "@noble/curves": "^1.9.7",
         "@noble/hashes": "^2.0.1",
         "@scure/bip32": "^2.0.1",
         "@scure/bip39": "^2.0.1",

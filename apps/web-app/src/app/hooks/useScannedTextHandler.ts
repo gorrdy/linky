@@ -5,6 +5,7 @@ import { decodeNpub } from "@linky/linkstr";
 import React from "react";
 import { ContactId } from "../../evoluIds";
 import { navigateTo } from "../../hooks/useRouting";
+import { parseLnurlAuthTarget } from "../../lnurlAuth";
 import {
   fetchLnurlWithdrawPreview,
   inferLightningAddressFromLnurlTarget,
@@ -46,6 +47,9 @@ interface UseScannedTextHandlerParams<TContact extends ContactRowLike> {
   requestLightningInvoiceConfirmation: (
     preview: LightningInvoicePreview,
   ) => void;
+  requestLnurlAuthConfirmation: (
+    preview: import("../../lnurlAuth").LnurlAuthPreview,
+  ) => void;
   requestLnurlWithdrawConfirmation: (
     preview: import("../../lnurlPay").LnurlWithdrawPreview,
   ) => void;
@@ -72,6 +76,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
   payCashuPaymentRequest,
   payLightningInvoiceWithCashu,
   requestLightningInvoiceConfirmation,
+  requestLnurlAuthConfirmation,
   requestLnurlWithdrawConfirmation,
   saveCashuFromText,
   scanAcceptsBankPayment,
@@ -250,6 +255,15 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
         return;
       }
 
+      // LUD-04 carries tag and challenge in the scanned URL itself, so a login
+      // is recognized before the withdraw probe fetches the same target.
+      const lnurlAuth = parseLnurlAuthTarget(maybeLnAddress);
+      if (lnurlAuth) {
+        closeScan();
+        requestLnurlAuthConfirmation(lnurlAuth);
+        return;
+      }
+
       if (isLnurlWithdrawTarget(maybeLnAddress)) {
         try {
           const withdrawPreview =
@@ -341,6 +355,7 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
       onContactIdentifierScanned,
       payLightningInvoiceWithCashu,
       requestLightningInvoiceConfirmation,
+      requestLnurlAuthConfirmation,
       requestLnurlWithdrawConfirmation,
       saveCashuFromText,
       scanAcceptsBankPayment,

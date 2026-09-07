@@ -7,6 +7,7 @@ import { useDesktopSplitView } from "../hooks/useDesktopSplitView";
 import { shouldRenderNativeNfcWritePrompt } from "../platform/nativeBridge";
 import { ContactsGuideOverlay } from "./ContactsGuideOverlay";
 import { LightningInvoiceConfirmModal } from "./LightningInvoiceConfirmModal";
+import { LnurlAuthConfirmModal } from "./LnurlAuthConfirmModal";
 import { LnurlWithdrawConfirmModal } from "./LnurlWithdrawConfirmModal";
 import { MenuModal } from "./MenuModal";
 import { NfcWriteModal } from "./NfcWriteModal";
@@ -86,6 +87,16 @@ export function AuthenticatedLayout({
           isBusy={state.lnurlWithdrawIsBusy}
           onClose={actions.closeLnurlWithdrawConfirmation}
           onConfirm={actions.confirmLnurlWithdraw}
+          t={state.t}
+        />
+      ) : null}
+
+      {state.pendingLnurlAuthConfirmation && !state.paidOverlayIsOpen ? (
+        <LnurlAuthConfirmModal
+          confirmation={state.pendingLnurlAuthConfirmation}
+          isBusy={state.lnurlAuthIsBusy}
+          onClose={actions.closeLnurlAuthConfirmation}
+          onConfirm={actions.confirmLnurlAuth}
           t={state.t}
         />
       ) : null}

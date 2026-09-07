@@ -54,6 +54,12 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
     "The contact dedupe the user started threw before finishing; the payload carries the error. Contacts already merged before the failure stay merged.",
   "contacts.ownerMigrated":
     "One-time move of legacy contact rows into the app owner lane after a seed login; the payload counts the rows that were rewritten and those that failed.",
+  "lnurlAuth.requested":
+    "A scanned LUD-04 login request was recognized and put in front of the user; nothing is signed and no key is derived until they approve it. The challenge link ties it to the approval or failure that follows.",
+  "lnurlAuth.approved":
+    "The user approved an LNURL-auth request and the domain confirmed the login. Linky signed the challenge with a linking key derived per domain from the active Nostr key; the session itself lives at the domain, not in the app.",
+  "lnurlAuth.failed":
+    "An approved LNURL-auth request did not end in a confirmed login — the domain rejected it (expired challenge, unknown key), answered with something other than OK, or the callback never completed. The payload carries the reason shown to the user.",
   "relayList.publishFailed":
     "Publishing the user's NIP-65 / NIP-17 relay lists after an add or remove failed; the local list was already updated, so the relays are out of sync until the next successful publish.",
   "relayList.syncFailed":
