@@ -313,6 +313,7 @@ export const de = {
   chatIncomingMessageToast: "{name}: {message}",
   chatEmpty: "Noch keine Nachrichten.",
   manualPayBankAccount: "Kontozahlung eingeben",
+  spdPaymentMoreFields: "Weitere Angaben",
   chatIdentityChangedNotice: "Meine Identität hat sich geändert.",
   chatPlaceholder: "Nachricht",
   chatMissingContactNpub: "npub des Kontakts fehlt.",

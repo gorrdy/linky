@@ -305,6 +305,7 @@ export const en = {
   chatIncomingMessageToast: "{name}: {message}",
   chatEmpty: "No messages yet.",
   manualPayBankAccount: "Enter a bank account payment",
+  spdPaymentMoreFields: "More details",
   chatIdentityChangedNotice: "My identity changed.",
   chatPlaceholder: "Message",
   chatMissingContactNpub: "Missing contact npub.",

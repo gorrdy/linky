@@ -117,6 +117,13 @@ const parseSpdAmount = (value: string): number | null => {
 };
 
 /**
+ * The account is the only field a payload cannot be built without, and the
+ * amount the only one an offer needs. Everything else stays out of the way
+ * until it is asked for — or already carries a value from a scanned QR.
+ */
+const PRIMARY_FIELD_KEYS: readonly BankPaymentFieldKey[] = ["AM", "ACC"];
+
+/**
  * A hand-entered payment has no QR to inherit its currency from, and the
  * amount cannot be priced in sats without one. SPD is the Czech format, so
  * that is where an entry with no other information starts.
@@ -232,6 +239,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const { displayCurrency, displayUnit, formatDisplayedAmountText, lang, t } =
     useAppShellCore();
   const fiatRates = useFiatRates();
+  const [showEveryField, setShowEveryField] = React.useState(false);
   const [isRequestingOffer, setIsRequestingOffer] = React.useState(false);
   const [offerStatus, setOfferStatus] = React.useState<string | null>(null);
   const [hasEditedOfferContacts, setHasEditedOfferContacts] =
@@ -417,6 +425,16 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   };
 
   if (draftFields) {
+    const allFieldKeys = ["AM" as const, ...editableKeys];
+    const shownFieldKeys = showEveryField
+      ? allFieldKeys
+      : allFieldKeys.filter(
+          (key) =>
+            PRIMARY_FIELD_KEYS.includes(key) ||
+            (draftFields[key] ?? "").trim() !== "",
+        );
+    const hiddenFieldCount = allFieldKeys.length - shownFieldKeys.length;
+
     return (
       <section className="panel panel-plain bank-payment-page">
         <div className="bank-payment-summary">
@@ -427,7 +445,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
         </div>
 
         <div className="bank-payment-fields bank-payment-edit">
-          {["AM" as const, ...editableKeys].map((key) => {
+          {shownFieldKeys.map((key) => {
             const inputId = `bank-payment-field-${key}`;
             const suffix = key === "AM" ? currencyCode : "";
             const fieldError = editError?.field === key ? editError : null;
@@ -462,6 +480,15 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
               </div>
             );
           })}
+          {hiddenFieldCount > 0 ? (
+            <button
+              type="button"
+              className="bank-payment-more-fields"
+              onClick={() => setShowEveryField(true)}
+            >
+              {t("spdPaymentMoreFields")}
+            </button>
+          ) : null}
           {editError && editError.field === null ? (
             <p className="bank-payment-error bank-payment-offer-status">
               {t(editError.key)}
