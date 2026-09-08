@@ -111,6 +111,23 @@ describe("resolveBackAction", () => {
     );
   });
 
+  it("sends a manually entered bank payment back to the manual pay screen", () => {
+    // With no payload there is no read-only view to fall back to.
+    expect(
+      backHashFor({ kind: "bankPayment", spdPayload: "", editing: true }),
+    ).toBe("#wallet/pay");
+  });
+
+  it("sends a scanned bank payment back to its read-only view", () => {
+    expect(
+      backHashFor({
+        kind: "bankPayment",
+        spdPayload: "SPD*1.0",
+        editing: true,
+      }),
+    ).toBe("#wallet/bank-payment/SPD*1.0");
+  });
+
   it("sends a bank payment offer back to its chat", () => {
     expect(
       backHashFor({

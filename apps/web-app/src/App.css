@@ -4533,6 +4533,10 @@ button.icon {
   margin-top: 4px;
 }
 
+.manual-pay-bank {
+  margin-top: 10px;
+}
+
 .manual-pay-suggestions-title {
   margin-bottom: 8px;
   font-size: 12px;

@@ -202,7 +202,9 @@ export const navigateTo = (action: NavigationAction): void => {
       break;
     case "bankPayment":
       window.location.assign(
-        `#wallet/bank-payment/${encodeURIComponent(action.spdPayload.trim())}${action.editing ? BANK_PAYMENT_EDIT_SUFFIX : ""}`,
+        action.spdPayload.trim()
+          ? `#wallet/bank-payment/${encodeURIComponent(action.spdPayload.trim())}${action.editing ? BANK_PAYMENT_EDIT_SUFFIX : ""}`
+          : "#wallet/bank-payment",
       );
       break;
     case "bankPaymentOffer":

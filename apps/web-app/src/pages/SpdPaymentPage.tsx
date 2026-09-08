@@ -237,10 +237,17 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const [offerDelaySec, setOfferDelaySec] = React.useState<number>(() =>
     clampOfferDelaySec(initialOfferDelaySec),
   );
+  // Without a payload there is nothing to parse: the manual entry starts from
+  // an empty SPD payment and the form is the whole screen.
+  const isManualEntry = spdPayload.trim() === "";
   const payment = React.useMemo(
-    () => tryParseBankPayment(spdPayload),
-    [spdPayload],
+    () =>
+      isManualEntry
+        ? { fields: {}, format: "spd" as const, payload: "" }
+        : tryParseBankPayment(spdPayload),
+    [isManualEntry, spdPayload],
   );
+  const formIsOpen = isEditing || isManualEntry;
   const [edits, setEdits] = React.useState<BankPaymentEdits | null>(null);
   // Edits belong to the payload they were started from; a new scan drops them.
   const activeEdits =
@@ -250,10 +257,10 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   // the first keystroke creates a draft.
   const draftFields = React.useMemo(
     () =>
-      isEditing && payment
+      formIsOpen && payment
         ? (activeEdits?.draft ?? confirmedFields ?? createDraftFields(payment))
         : null,
-    [activeEdits, confirmedFields, isEditing, payment],
+    [activeEdits, confirmedFields, formIsOpen, payment],
   );
   const editedPayment = React.useMemo(
     () =>
@@ -337,7 +344,12 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
     });
   const confirmEdits = () => {
     setEdits({ confirmed: draftFields, draft: null, payload: payment.payload });
-    navigateTo({ route: "bankPayment", spdPayload });
+    // A scanned payment keeps its own payload so the edits stay attached to it;
+    // a manually entered one has none until the fields compose one.
+    navigateTo({
+      route: "bankPayment",
+      spdPayload: isManualEntry ? (activePayment?.payload ?? "") : spdPayload,
+    });
   };
   const offerContactsCount = selectedOfferContacts.length;
   const hasEnoughCashuForProxy =

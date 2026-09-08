@@ -307,6 +307,7 @@ export const cs = {
   unknownContactNamePrefix: "[Neznámý]",
   chatIncomingMessageToast: "{name}: {message}",
   chatEmpty: "Zatím žádné zprávy.",
+  manualPayBankAccount: "Zadat platbu na účet",
   chatIdentityChangedNotice: "Došlo ke změně mojí identity.",
   chatPlaceholder: "Zpráva",
   chatMissingContactNpub: "Chybí npub u kontaktu.",

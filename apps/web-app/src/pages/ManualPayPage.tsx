@@ -159,6 +159,14 @@ export const ManualPayPage: FC<ManualPayPageProps> = ({
         </button>
       </form>
 
+      <button
+        type="button"
+        className="btn-wide secondary manual-pay-bank"
+        onClick={() => navigateTo({ route: "bankPayment", spdPayload: "" })}
+      >
+        {t("manualPayBankAccount")}
+      </button>
+
       {suggestions.length > 0 ? (
         <div className="manual-pay-suggestions">
           <div className="muted manual-pay-suggestions-title">

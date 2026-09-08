@@ -304,6 +304,7 @@ export const en = {
   unknownContactNamePrefix: "[Unknown]",
   chatIncomingMessageToast: "{name}: {message}",
   chatEmpty: "No messages yet.",
+  manualPayBankAccount: "Enter a bank account payment",
   chatIdentityChangedNotice: "My identity changed.",
   chatPlaceholder: "Message",
   chatMissingContactNpub: "Missing contact npub.",
