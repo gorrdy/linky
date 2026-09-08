@@ -116,6 +116,13 @@ const parseSpdAmount = (value: string): number | null => {
   return amount;
 };
 
+/**
+ * A hand-entered payment has no QR to inherit its currency from, and the
+ * amount cannot be priced in sats without one. SPD is the Czech format, so
+ * that is where an entry with no other information starts.
+ */
+const MANUAL_ENTRY_CURRENCY = "CZK";
+
 const getSpdAmountSat = (
   payment: BankPayment,
   fiatRates: FiatRates | null,
@@ -243,7 +250,11 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const payment = React.useMemo(
     () =>
       isManualEntry
-        ? { fields: {}, format: "spd" as const, payload: "" }
+        ? {
+            fields: { CC: MANUAL_ENTRY_CURRENCY },
+            format: "spd" as const,
+            payload: "",
+          }
         : tryParseBankPayment(spdPayload),
     [isManualEntry, spdPayload],
   );
@@ -354,16 +365,21 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const offerContactsCount = selectedOfferContacts.length;
   const hasEnoughCashuForProxy =
     amountSat !== null && amountSat <= cashuBalanceAfterMelt;
-  const requestReimbursementLabel = !hasEnoughCashuForProxy
-    ? t("payInsufficient")
-    : offerContactsCount === 0
-      ? t("spdPaymentNoOfferContact")
-      : offerContactsCount === 1
-        ? t("spdPaymentRequestReimbursementCountOne")
-        : t("spdPaymentRequestReimbursementCountOther").replace(
-            "{count}",
-            String(offerContactsCount),
-          );
+  const requestReimbursementLabel =
+    amountSat === null
+      ? // No amount, no currency, or no fiat rate yet: the balance says
+        // nothing about it, so it must not read as "not enough".
+        t("spdPaymentAmountUnknown")
+      : !hasEnoughCashuForProxy
+        ? t("payInsufficient")
+        : offerContactsCount === 0
+          ? t("spdPaymentNoOfferContact")
+          : offerContactsCount === 1
+            ? t("spdPaymentRequestReimbursementCountOne")
+            : t("spdPaymentRequestReimbursementCountOther").replace(
+                "{count}",
+                String(offerContactsCount),
+              );
 
   const requestReimbursement = async () => {
     if (
