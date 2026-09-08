@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CurrencyCode, encode, PaymentOptions } from "bysquare/pay";
 import {
   getBankPaymentOfferCurrency,
+  getDefaultCurrencyForAccount,
   isBankPaymentPayload,
   parseBankPayment,
   parseSpdPayment,
@@ -268,5 +269,28 @@ describe("spdPayment", () => {
     expect(updated.fields["MSG"]).toBeUndefined();
     expect(updated.fields["X-SS"]).toBe("0308");
     expect(updated.fields["X-VS"]).toBe("20260043");
+  });
+});
+
+describe("getDefaultCurrencyForAccount", () => {
+  it("reads korunas from a domestic number or a Czech IBAN", () => {
+    expect(getDefaultCurrencyForAccount("1265098001/5500")).toBe("CZK");
+    expect(getDefaultCurrencyForAccount("CZ6508000000192000145399")).toBe(
+      "CZK",
+    );
+    expect(getDefaultCurrencyForAccount("cz65 0800 0000 1920 0014 5399")).toBe(
+      "CZK",
+    );
+  });
+
+  it("assumes euros for any other IBAN", () => {
+    expect(getDefaultCurrencyForAccount("DE89370400440532013000")).toBe("EUR");
+    expect(getDefaultCurrencyForAccount("SK3112000000198742637541")).toBe(
+      "EUR",
+    );
+  });
+
+  it("falls back to korunas with nothing to go on", () => {
+    expect(getDefaultCurrencyForAccount("")).toBe("CZK");
   });
 });

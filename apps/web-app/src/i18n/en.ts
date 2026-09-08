@@ -306,6 +306,9 @@ export const en = {
   chatEmpty: "No messages yet.",
   manualPayBankAccount: "Enter a bank account payment",
   spdPaymentMoreFields: "More details",
+  spdPaymentCurrency: "Currency",
+  spdPaymentCurrencyHint:
+    "Prefilled from the account number. Check what the account expects — a bank may reject another currency or convert it at a poor rate.",
   chatIdentityChangedNotice: "My identity changed.",
   chatPlaceholder: "Message",
   chatMissingContactNpub: "Missing contact npub.",

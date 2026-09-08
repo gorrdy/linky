@@ -314,6 +314,9 @@ export const de = {
   chatEmpty: "Noch keine Nachrichten.",
   manualPayBankAccount: "Kontozahlung eingeben",
   spdPaymentMoreFields: "Weitere Angaben",
+  spdPaymentCurrency: "Währung",
+  spdPaymentCurrencyHint:
+    "Anhand der Kontonummer vorausgefüllt. Prüfe, welche Währung das Konto erwartet — eine Bank kann eine andere Währung ablehnen oder ungünstig umrechnen.",
   chatIdentityChangedNotice: "Meine Identität hat sich geändert.",
   chatPlaceholder: "Nachricht",
   chatMissingContactNpub: "npub des Kontakts fehlt.",

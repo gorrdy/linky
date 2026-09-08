@@ -454,9 +454,11 @@ describe("SpdPaymentPage edit form", () => {
       />,
     );
 
+    // Amount, account, and the currency the account implies — nothing else.
     expect(labelsIn(container)).toEqual([
       "spdPaymentAmount",
       "spdPaymentAccount",
+      "spdPaymentCurrency",
     ]);
 
     const more = container.querySelector<HTMLButtonElement>(
@@ -468,8 +470,45 @@ describe("SpdPaymentPage edit form", () => {
       more?.click();
     });
 
-    expect(labelsIn(container).length).toBeGreaterThan(2);
+    expect(labelsIn(container).length).toBeGreaterThan(3);
     expect(container.querySelector(".bank-payment-more-fields")).toBeNull();
+  });
+
+  it("prefills the currency from the account and lets the payer change it", async () => {
+    const { container } = await renderIntoDocument(
+      <SpdPaymentPage
+        cashuBalanceAfterMelt={100_000}
+        initialOfferContactCount={0}
+        initialOfferDelaySec={0}
+        isEditing
+        offerContacts={[]}
+        onRequestReimbursement={vi.fn(async () => null)}
+        spdPayload=""
+      />,
+    );
+
+    const currency = () =>
+      container.querySelector<HTMLSelectElement>("#bank-payment-field-CC");
+    const account = () =>
+      container.querySelector<HTMLInputElement>("#bank-payment-field-ACC");
+
+    expect(currency()?.value).toBe("CZK");
+
+    await act(async () => {
+      setInputValue(account()!, "DE89370400440532013000");
+    });
+    expect(currency()?.value).toBe("EUR");
+
+    // An explicit choice is not overwritten by the next account edit.
+    await act(async () => {
+      const select = currency()!;
+      select.value = "USD";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => {
+      setInputValue(account()!, "CZ6508000000192000145399");
+    });
+    expect(currency()?.value).toBe("USD");
   });
 
   it("keeps a scanned payment's filled fields visible", async () => {

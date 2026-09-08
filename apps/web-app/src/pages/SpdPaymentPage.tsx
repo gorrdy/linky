@@ -17,6 +17,7 @@ import type { FiatRates } from "../utils/displayAmounts";
 import { formatInteger, getInitials } from "../utils/formatting";
 import {
   getBankPaymentEditableFieldKeys,
+  getDefaultCurrencyForAccount,
   tryParseBankPayment,
   updateBankPaymentFields,
   type BankPayment,
@@ -123,6 +124,9 @@ const parseSpdAmount = (value: string): number | null => {
  */
 const PRIMARY_FIELD_KEYS: readonly BankPaymentFieldKey[] = ["AM", "ACC"];
 
+/** Currencies an amount can be priced in — the ones a rate exists for. */
+const SELECTABLE_CURRENCIES = ["CZK", "EUR", "USD", "CHF"] as const;
+
 /**
  * A hand-entered payment has no QR to inherit its currency from, and the
  * amount cannot be priced in sats without one. SPD is the Czech format, so
@@ -185,10 +189,9 @@ interface BankPaymentEdits {
 
 const createDraftFields = (payment: BankPayment): BankPaymentFields =>
   Object.fromEntries(
-    ["AM", ...getBankPaymentEditableFieldKeys(payment.format)].map((key) => [
-      key,
-      getDisplayedFieldValue(payment, key),
-    ]),
+    ["AM", "CC", ...getBankPaymentEditableFieldKeys(payment.format)].map(
+      (key) => [key, getDisplayedFieldValue(payment, key)],
+    ),
   );
 
 interface BankPaymentEditError {
@@ -239,6 +242,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const { displayCurrency, displayUnit, formatDisplayedAmountText, lang, t } =
     useAppShellCore();
   const fiatRates = useFiatRates();
+  const [currencyPickedByUser, setCurrencyPickedByUser] = React.useState(false);
   const [showEveryField, setShowEveryField] = React.useState(false);
   const [isRequestingOffer, setIsRequestingOffer] = React.useState(false);
   const [offerStatus, setOfferStatus] = React.useState<string | null>(null);
@@ -351,16 +355,29 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const editableKeys = getBankPaymentEditableFieldKeys(payment.format);
   const currencyCode = getSpdField(payment, "CC").toUpperCase();
   const editError = editedPayment.error;
-  const updateDraftField = (key: string, value: string) =>
+  const patchDraft = (patch: BankPaymentFields) =>
     setEdits((current) => {
       const own = current?.payload === payment.payload ? current : null;
       const base = own?.draft ?? own?.confirmed ?? createDraftFields(payment);
       return {
         confirmed: own?.confirmed ?? null,
-        draft: { ...base, [key]: value },
+        draft: { ...base, ...patch },
         payload: payment.payload,
       };
     });
+  const updateDraftField = (key: string, value: string) => {
+    // The account says which currency a payment is most likely in, until the
+    // payer says otherwise.
+    if (isManualEntry && key === "ACC" && !currencyPickedByUser) {
+      patchDraft({ ACC: value, CC: getDefaultCurrencyForAccount(value) });
+      return;
+    }
+    patchDraft({ [key]: value });
+  };
+  const pickCurrency = (currency: string) => {
+    setCurrencyPickedByUser(true);
+    patchDraft({ CC: currency });
+  };
   const confirmEdits = () => {
     setEdits({ confirmed: draftFields, draft: null, payload: payment.payload });
     // A scanned payment keeps its own payload so the edits stay attached to it;
@@ -480,6 +497,27 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
               </div>
             );
           })}
+          {isManualEntry ? (
+            <div className="bank-payment-edit-row">
+              <label htmlFor="bank-payment-field-CC">
+                {t("spdPaymentCurrency")}
+              </label>
+              <select
+                id="bank-payment-field-CC"
+                value={draftFields["CC"] ?? MANUAL_ENTRY_CURRENCY}
+                onChange={(event) => pickCurrency(event.target.value)}
+              >
+                {SELECTABLE_CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+              <p className="muted bank-payment-hint">
+                {t("spdPaymentCurrencyHint")}
+              </p>
+            </div>
+          ) : null}
           {hiddenFieldCount > 0 ? (
             <button
               type="button"
