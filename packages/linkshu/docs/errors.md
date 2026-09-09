@@ -40,6 +40,7 @@ Each vertical exports a union type and schema of the errors it can produce.
 | `Mints.info`                                                                | `MintUnreachable \| MintRejected`                                                            |
 | `Mints.removeKnownMint`                                                     | `MintInUse`                                                                                  |
 | `Tokens.reserve`, `markIssued`, `markExternalized`                          | `TokenRowNotFound \| InvalidTokenTransition`                                                 |
+| `Tokens.importRow`                                                          | `TokenAlreadyKnown`                                                                          |
 | `Validation.checkRow`                                                       | `TokenRowNotFound`                                                                           |
 | `Validation.checkAll`, `Restore.restore`                                    | never — unreachable mints are listed in the report's `unavailableMints`                      |
 | `Validation.checkIssued`, `Tokens.deleteSpent`                              | never — rows they cannot verify stay untouched; the report does not say which mints answered |
