@@ -12,6 +12,16 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.10] - 2026-09-11
+
+### en-US
+
+- Motion permission is now requested only when you enable tilt-to-show-profile in settings. Opening your profile no longer prompts for it, and the setting stays off if permission is denied.
+
+### cs-CZ
+
+- O oprávnění k pohybovým senzorům aplikace požádá jen při zapnutí zobrazení profilu nakloněním v nastavení. Otevření profilu už žádost nevyvolá a při zamítnutí zůstane funkce vypnutá.
+
 ## [26.9.9] - 2026-09-11
 
 ### en-US
