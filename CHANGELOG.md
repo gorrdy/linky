@@ -12,13 +12,25 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.9] - 2026-09-11
+
 ### en-US
 
-- Scan a website's LNURL login QR code and confirm it in Linky to sign in there. Each site gets its own key derived from your identity, so sites cannot recognize you across each other.
+- Sign in to websites by scanning LNURL login QR codes.
+- Tilt your phone toward someone to show your contact QR.
+- Preview multiple chat attachments before sending, paste images, and zoom image previews.
+- Fixed chat controls around the keyboard and system navigation.
+- Pending Lightning payments settle when you return; improved top-up status and backup imports.
+- Payment telemetry retries no longer delay chat reactions.
 
 ### cs-CZ
 
-- Naskenujte na webu přihlašovací LNURL QR kód a potvrďte ho v Linky, tím se přihlásíte. Každý web dostane vlastní klíč odvozený z vaší identity, takže vás weby podle něj nemůžou propojit.
+- Přihlášení na web naskenováním LNURL přihlašovacího QR kódu.
+- Nakloněním telefonu k druhému člověku zobrazíte svůj kontaktní QR kód.
+- Náhled více příloh před odesláním, vkládání obrázků a přibližování náhledů.
+- Opraveno umístění ovládání chatu u klávesnice a systémové navigace.
+- Čekající Lightning platby se dokončí po návratu; vylepšen stav dobíjení a import záloh.
+- Opakované odesílání platební telemetrie už nezdržuje reakce v chatu.
 
 ## [26.9.8] - 2026-09-09
 
