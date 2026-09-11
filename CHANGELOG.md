@@ -12,6 +12,16 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.12] - 2026-09-11
+
+### en-US
+
+- Existing installations now add Linky's Evolu and Nostr relays automatically, improving sync and message delivery while preserving custom relay settings.
+
+### cs-CZ
+
+- Stávající instalace nyní automaticky přidají servery Linky pro Evolu a Nostr, což zlepšuje synchronizaci a doručování zpráv a zachová vlastní nastavení relayů.
+
 ## [26.9.11] - 2026-09-11
 
 ### en-US
