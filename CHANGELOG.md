@@ -12,6 +12,16 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.11] - 2026-09-11
+
+### en-US
+
+- Wallet storage now tracks individual coin proofs and payment operations, improving cross-device sync, backups, and recovery after interrupted payments.
+
+### cs-CZ
+
+- Peněženka nyní ukládá jednotlivé doklady mincí a platební operace, což zlepšuje synchronizaci mezi zařízeními, zálohy a obnovu po přerušených platbách.
+
 ## [26.9.10] - 2026-09-11
 
 ### en-US
