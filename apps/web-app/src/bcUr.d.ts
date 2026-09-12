@@ -6,7 +6,7 @@
 declare module "@gandlaf21/bc-ur/dist/lib/es6/index.js" {
   export class UR {
     static fromBuffer(bytes: Uint8Array): UR;
-    readonly cbor: Uint8Array;
+    decodeCBOR(): Uint8Array;
     readonly type: string;
   }
 
@@ -19,10 +19,9 @@ declare module "@gandlaf21/bc-ur/dist/lib/es6/index.js" {
   export class URDecoder {
     receivePart(part: string): boolean;
     isComplete(): boolean;
-    isSuccess(): boolean;
+    isError(): boolean;
     expectedPartCount(): number;
     receivedPartIndexes(): number[];
-    estimatedPercentComplete(): number;
     resultUR(): UR;
   }
 }

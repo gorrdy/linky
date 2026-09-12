@@ -74,47 +74,9 @@ export const createAnimatedQrFrames = async (
   };
 };
 
-/** Any typed-array view, as this realm's Uint8Array over the same bytes. */
-const toBytes = (value: unknown): Uint8Array | null =>
-  ArrayBuffer.isView(value)
-    ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
-    : null;
-
-/**
- * The UR payload is a single CBOR byte string. Reading it here rather than
- * through the library's `decodeCBOR` keeps the decode independent of which
- * CBOR implementation the library carries and how it recognises bytes.
- */
-const readCborByteString = (cbor: Uint8Array): Uint8Array | null => {
-  const header = cbor[0];
-  if (header === undefined) return null;
-
-  const MAJOR_BYTE_STRING = 0x40;
-  const argument = header - MAJOR_BYTE_STRING;
-  if (argument < 0 || argument > 0x1b) return null;
-
-  let length = argument;
-  let offset = 1;
-  if (argument >= 24) {
-    const lengthBytes = 1 << (argument - 24);
-    length = 0;
-    for (let i = 0; i < lengthBytes; i += 1) {
-      const next = cbor[offset + i];
-      if (next === undefined) return null;
-      length = length * 256 + next;
-    }
-    offset += lengthBytes;
-  }
-
-  return offset + length <= cbor.length
-    ? cbor.subarray(offset, offset + length)
-    : null;
-};
-
 export type AnimatedQrProgress =
   | {
       status: "collecting";
-      percent: number;
       /** Distinct parts the decoder holds, and how many it needs in total. */
       received: number;
       expected: number | null;
@@ -129,7 +91,14 @@ export interface AnimatedQrReader {
 
 export const createAnimatedQrReader = async (): Promise<AnimatedQrReader> => {
   const { URDecoder } = await loadUr();
-  const decoder = new URDecoder();
+  let decoder = new URDecoder();
+
+  // A decoder that failed its checksum or produced something that is not a
+  // token refuses every further part, so the next frame starts a fresh one.
+  const restart = (reason: string): AnimatedQrProgress => {
+    decoder = new URDecoder();
+    return { status: "rejected", reason };
+  };
 
   return {
     receive: (frame) => {
@@ -145,25 +114,25 @@ export const createAnimatedQrReader = async (): Promise<AnimatedQrReader> => {
           reason: error instanceof Error ? error.message : "part threw",
         };
       }
+      if (decoder.isError()) return restart("decode failed");
 
       if (!decoder.isComplete()) {
         const expected = decoder.expectedPartCount();
         return {
           status: "collecting",
-          percent: Math.round(decoder.estimatedPercentComplete() * 100),
           received: decoder.receivedPartIndexes().length,
-          expected:
-            typeof expected === "number" && expected > 0 ? expected : null,
+          expected: expected > 0 ? expected : null,
         };
       }
-      if (!decoder.isSuccess()) {
-        return { status: "rejected", reason: "decode failed" };
-      }
 
-      const cbor = toBytes(decoder.resultUR().cbor);
-      const decoded = cbor === null ? null : readCborByteString(cbor);
-      if (!decoded) return { status: "rejected", reason: "not a byte string" };
-      return { status: "done", payload: new TextDecoder().decode(decoded) };
+      try {
+        const payload = new TextDecoder().decode(
+          decoder.resultUR().decodeCBOR(),
+        );
+        return { status: "done", payload };
+      } catch {
+        return restart("not a byte string");
+      }
     },
   };
 };

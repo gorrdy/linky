@@ -54,8 +54,6 @@ describe("animated QR frames", () => {
 
     const first = reader.receive(frames.next());
     if (first.status !== "collecting") throw new Error("expected progress");
-    expect(first.percent).toBeGreaterThanOrEqual(0);
-    expect(first.percent).toBeLessThan(100);
     expect(first.received).toBe(1);
     expect(first.expected).toBe(frames.total);
 
