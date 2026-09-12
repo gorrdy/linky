@@ -114,6 +114,11 @@ export const parseRouteFromHash = (): Route => {
   if (hash === "#wallet/topup/invoice") return { kind: "topupInvoice" };
   if (hash === "#wallet/pay") return { kind: "manualPay" };
 
+  // No payload to forward: the same screen, started from empty fields.
+  if (hash === "#wallet/bank-payment") {
+    return { kind: "bankPayment", spdPayload: "", editing: true };
+  }
+
   const bankPaymentPrefix = "#wallet/bank-payment/";
   if (hash.startsWith(bankPaymentPrefix)) {
     const editing = hash.endsWith(BANK_PAYMENT_EDIT_SUFFIX);

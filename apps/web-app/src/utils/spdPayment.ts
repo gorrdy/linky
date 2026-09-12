@@ -239,6 +239,19 @@ const normalizeBankPaymentAmount = (value: string): string => {
   return normalized;
 };
 
+/**
+ * What a payment to this account is most likely denominated in. Domestic
+ * numbers and Czech IBANs mean korunas; every other IBAN is assumed to be a
+ * euro account. It is only ever a starting point — the payer picks the
+ * currency and the recipient's bank has the last word.
+ */
+export const getDefaultCurrencyForAccount = (account: string): string => {
+  const compact = account.replace(/\s/g, "").toUpperCase();
+  if (!compact) return "CZK";
+  if (compact.includes("/")) return "CZK";
+  return compact.startsWith("CZ") ? "CZK" : "EUR";
+};
+
 // Accepts an IBAN or a Czech/Slovak domestic account number; the country of
 // the scanned IBAN decides which one a domestic number becomes.
 const normalizeBankPaymentAccount = (

@@ -262,6 +262,15 @@ describe("SpdPaymentPage offer recipients", () => {
     };
   };
 
+  /** Optional fields with no value start collapsed; these tests edit them. */
+  const revealEveryField = async (container: HTMLElement) => {
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>(".bank-payment-more-fields")
+        ?.click();
+    });
+  };
+
   const fieldInput = (container: HTMLElement, key: string) => {
     const input = container.querySelector<HTMLInputElement>(
       `#bank-payment-field-${key}`,
@@ -288,6 +297,7 @@ describe("SpdPaymentPage offer recipients", () => {
     expect(container.querySelector(".bank-payment-recipient")).toBeNull();
 
     await render(true);
+    await revealEveryField(container);
 
     expect(container.querySelector(".bank-payment-request")).toBeNull();
     expect(container.querySelector(".bank-payment-offer-contact")).toBeNull();
@@ -356,6 +366,7 @@ describe("SpdPaymentPage offer recipients", () => {
       onRequestReimbursement,
     );
     await render(true);
+    await revealEveryField(container);
 
     const confirmButton = () =>
       container.querySelector<HTMLButtonElement>(".bank-payment-edit-confirm");
@@ -404,6 +415,7 @@ describe("SpdPaymentPage offer recipients", () => {
     ).toBe(false);
 
     await render(true);
+    await revealEveryField(container);
     expect(fieldInput(container, "AM").value).toBe("480");
     expect(fieldInput(container, "BIC").value).toBe("");
     await render(false);
@@ -416,5 +428,103 @@ describe("SpdPaymentPage offer recipients", () => {
     expect(onRequestReimbursement).toHaveBeenCalledWith(
       expect.objectContaining({ spdPayload }),
     );
+  });
+});
+
+describe("SpdPaymentPage edit form", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  const labelsIn = (container: HTMLElement): string[] =>
+    Array.from(container.querySelectorAll("label")).map(
+      (label) => label.textContent ?? "",
+    );
+
+  it("shows only amount and account for a hand-entered payment", async () => {
+    const { container } = await renderIntoDocument(
+      <SpdPaymentPage
+        cashuBalanceAfterMelt={100_000}
+        initialOfferContactCount={0}
+        initialOfferDelaySec={0}
+        isEditing
+        offerContacts={[]}
+        onRequestReimbursement={vi.fn(async () => null)}
+        spdPayload=""
+      />,
+    );
+
+    // Amount, account, and the currency the account implies — nothing else.
+    expect(labelsIn(container)).toEqual([
+      "spdPaymentAmount",
+      "spdPaymentAccount",
+      "spdPaymentCurrency",
+    ]);
+
+    const more = container.querySelector<HTMLButtonElement>(
+      ".bank-payment-more-fields",
+    );
+    expect(more?.textContent).toBe("spdPaymentMoreFields");
+
+    await act(async () => {
+      more?.click();
+    });
+
+    expect(labelsIn(container).length).toBeGreaterThan(3);
+    expect(container.querySelector(".bank-payment-more-fields")).toBeNull();
+  });
+
+  it("prefills the currency from the account and lets the payer change it", async () => {
+    const { container } = await renderIntoDocument(
+      <SpdPaymentPage
+        cashuBalanceAfterMelt={100_000}
+        initialOfferContactCount={0}
+        initialOfferDelaySec={0}
+        isEditing
+        offerContacts={[]}
+        onRequestReimbursement={vi.fn(async () => null)}
+        spdPayload=""
+      />,
+    );
+
+    const currency = () =>
+      container.querySelector<HTMLSelectElement>("#bank-payment-field-CC");
+    const account = () =>
+      container.querySelector<HTMLInputElement>("#bank-payment-field-ACC");
+
+    expect(currency()?.value).toBe("CZK");
+
+    await act(async () => {
+      setInputValue(account()!, "DE89370400440532013000");
+    });
+    expect(currency()?.value).toBe("EUR");
+
+    // An explicit choice is not overwritten by the next account edit.
+    await act(async () => {
+      const select = currency()!;
+      select.value = "USD";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => {
+      setInputValue(account()!, "CZ6508000000192000145399");
+    });
+    expect(currency()?.value).toBe("USD");
+  });
+
+  it("keeps a scanned payment's filled fields visible", async () => {
+    const { container } = await renderIntoDocument(
+      <SpdPaymentPage
+        cashuBalanceAfterMelt={100_000}
+        initialOfferContactCount={0}
+        initialOfferDelaySec={0}
+        isEditing
+        offerContacts={[]}
+        onRequestReimbursement={vi.fn(async () => null)}
+        spdPayload="SPD*1.0*ACC:CZ5855000000001265098001*AM:480*CC:CZK*X-VS:1234"
+      />,
+    );
+
+    // The variable symbol came from the QR, so it must not be hidden away.
+    expect(labelsIn(container)).toContain("spdPaymentVariableSymbol");
   });
 });

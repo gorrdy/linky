@@ -53,7 +53,7 @@ Constants live in `apps/web-app/src/utils/constants.ts`; the mechanics are in `d
 - Payments:
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
   - contact payment via Cashu message flow
-  - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent
+  - proxy payment of a bank QR (SPD, EPC, PAY by square), scanned or typed in by hand, with editable fields before the offer is sent
 - Push: optional Bun push service in `apps/push/` for generic Web Push notifications on new outer inbox `kind: 1059` events
 - Debug pages for Evolu current/history data and owner/rotation diagnostics
 

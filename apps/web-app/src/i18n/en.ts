@@ -309,6 +309,11 @@ export const en = {
   scanAnimatedQrProgress: "Reading the token in parts… {percent} %",
   cashuTokenAnimatedQrHint:
     "The token is too large for one QR code, so it is sent in {frames} parts. Hold the camera on it until it completes.",
+  manualPayBankAccount: "Enter a bank account payment",
+  spdPaymentMoreFields: "More details",
+  spdPaymentCurrency: "Currency",
+  spdPaymentCurrencyHint:
+    "Prefilled from the account number. Check what the account expects — a bank may reject another currency or convert it at a poor rate.",
   chatIdentityChangedNotice: "My identity changed.",
   chatPlaceholder: "Message",
   chatMissingContactNpub: "Missing contact npub.",

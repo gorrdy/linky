@@ -17,6 +17,7 @@ import type { FiatRates } from "../utils/displayAmounts";
 import { formatInteger, getInitials } from "../utils/formatting";
 import {
   getBankPaymentEditableFieldKeys,
+  getDefaultCurrencyForAccount,
   tryParseBankPayment,
   updateBankPaymentFields,
   type BankPayment,
@@ -116,6 +117,23 @@ const parseSpdAmount = (value: string): number | null => {
   return amount;
 };
 
+/**
+ * The account is the only field a payload cannot be built without, and the
+ * amount the only one an offer needs. Everything else stays out of the way
+ * until it is asked for — or already carries a value from a scanned QR.
+ */
+const PRIMARY_FIELD_KEYS: readonly BankPaymentFieldKey[] = ["AM", "ACC"];
+
+/** Currencies an amount can be priced in — the ones a rate exists for. */
+const SELECTABLE_CURRENCIES = ["CZK", "EUR", "USD", "CHF"] as const;
+
+/**
+ * A hand-entered payment has no QR to inherit its currency from, and the
+ * amount cannot be priced in sats without one. SPD is the Czech format, so
+ * that is where an entry with no other information starts.
+ */
+const MANUAL_ENTRY_CURRENCY = "CZK";
+
 const getSpdAmountSat = (
   payment: BankPayment,
   fiatRates: FiatRates | null,
@@ -171,10 +189,9 @@ interface BankPaymentEdits {
 
 const createDraftFields = (payment: BankPayment): BankPaymentFields =>
   Object.fromEntries(
-    ["AM", ...getBankPaymentEditableFieldKeys(payment.format)].map((key) => [
-      key,
-      getDisplayedFieldValue(payment, key),
-    ]),
+    ["AM", "CC", ...getBankPaymentEditableFieldKeys(payment.format)].map(
+      (key) => [key, getDisplayedFieldValue(payment, key)],
+    ),
   );
 
 interface BankPaymentEditError {
@@ -225,6 +242,8 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const { displayCurrency, displayUnit, formatDisplayedAmountText, lang, t } =
     useAppShellCore();
   const fiatRates = useFiatRates();
+  const [currencyPickedByUser, setCurrencyPickedByUser] = React.useState(false);
+  const [showEveryField, setShowEveryField] = React.useState(false);
   const [isRequestingOffer, setIsRequestingOffer] = React.useState(false);
   const [offerStatus, setOfferStatus] = React.useState<string | null>(null);
   const [hasEditedOfferContacts, setHasEditedOfferContacts] =
@@ -237,10 +256,21 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const [offerDelaySec, setOfferDelaySec] = React.useState<number>(() =>
     clampOfferDelaySec(initialOfferDelaySec),
   );
+  // Without a payload there is nothing to parse: the manual entry starts from
+  // an empty SPD payment and the form is the whole screen.
+  const isManualEntry = spdPayload.trim() === "";
   const payment = React.useMemo(
-    () => tryParseBankPayment(spdPayload),
-    [spdPayload],
+    () =>
+      isManualEntry
+        ? {
+            fields: { CC: MANUAL_ENTRY_CURRENCY },
+            format: "spd" as const,
+            payload: "",
+          }
+        : tryParseBankPayment(spdPayload),
+    [isManualEntry, spdPayload],
   );
+  const formIsOpen = isEditing || isManualEntry;
   const [edits, setEdits] = React.useState<BankPaymentEdits | null>(null);
   // Edits belong to the payload they were started from; a new scan drops them.
   const activeEdits =
@@ -250,10 +280,10 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   // the first keystroke creates a draft.
   const draftFields = React.useMemo(
     () =>
-      isEditing && payment
+      formIsOpen && payment
         ? (activeEdits?.draft ?? confirmedFields ?? createDraftFields(payment))
         : null,
-    [activeEdits, confirmedFields, isEditing, payment],
+    [activeEdits, confirmedFields, formIsOpen, payment],
   );
   const editedPayment = React.useMemo(
     () =>
@@ -325,33 +355,56 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const editableKeys = getBankPaymentEditableFieldKeys(payment.format);
   const currencyCode = getSpdField(payment, "CC").toUpperCase();
   const editError = editedPayment.error;
-  const updateDraftField = (key: string, value: string) =>
+  const patchDraft = (patch: BankPaymentFields) =>
     setEdits((current) => {
       const own = current?.payload === payment.payload ? current : null;
       const base = own?.draft ?? own?.confirmed ?? createDraftFields(payment);
       return {
         confirmed: own?.confirmed ?? null,
-        draft: { ...base, [key]: value },
+        draft: { ...base, ...patch },
         payload: payment.payload,
       };
     });
+  const updateDraftField = (key: string, value: string) => {
+    // The account says which currency a payment is most likely in, until the
+    // payer says otherwise.
+    if (isManualEntry && key === "ACC" && !currencyPickedByUser) {
+      patchDraft({ ACC: value, CC: getDefaultCurrencyForAccount(value) });
+      return;
+    }
+    patchDraft({ [key]: value });
+  };
+  const pickCurrency = (currency: string) => {
+    setCurrencyPickedByUser(true);
+    patchDraft({ CC: currency });
+  };
   const confirmEdits = () => {
     setEdits({ confirmed: draftFields, draft: null, payload: payment.payload });
-    navigateTo({ route: "bankPayment", spdPayload });
+    // A scanned payment keeps its own payload so the edits stay attached to it;
+    // a manually entered one has none until the fields compose one.
+    navigateTo({
+      route: "bankPayment",
+      spdPayload: isManualEntry ? (activePayment?.payload ?? "") : spdPayload,
+    });
   };
   const offerContactsCount = selectedOfferContacts.length;
   const hasEnoughCashuForProxy =
     amountSat !== null && amountSat <= cashuBalanceAfterMelt;
-  const requestReimbursementLabel = !hasEnoughCashuForProxy
-    ? t("payInsufficient")
-    : offerContactsCount === 0
-      ? t("spdPaymentNoOfferContact")
-      : offerContactsCount === 1
-        ? t("spdPaymentRequestReimbursementCountOne")
-        : t("spdPaymentRequestReimbursementCountOther").replace(
-            "{count}",
-            String(offerContactsCount),
-          );
+  const requestReimbursementLabel =
+    amountSat === null
+      ? // No amount, no currency, or no fiat rate yet: the balance says
+        // nothing about it, so it must not read as "not enough".
+        t("spdPaymentAmountUnknown")
+      : !hasEnoughCashuForProxy
+        ? t("payInsufficient")
+        : offerContactsCount === 0
+          ? t("spdPaymentNoOfferContact")
+          : offerContactsCount === 1
+            ? t("spdPaymentRequestReimbursementCountOne")
+            : t("spdPaymentRequestReimbursementCountOther").replace(
+                "{count}",
+                String(offerContactsCount),
+              );
 
   const requestReimbursement = async () => {
     if (
@@ -389,6 +442,16 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   };
 
   if (draftFields) {
+    const allFieldKeys = ["AM" as const, ...editableKeys];
+    const shownFieldKeys = showEveryField
+      ? allFieldKeys
+      : allFieldKeys.filter(
+          (key) =>
+            PRIMARY_FIELD_KEYS.includes(key) ||
+            (draftFields[key] ?? "").trim() !== "",
+        );
+    const hiddenFieldCount = allFieldKeys.length - shownFieldKeys.length;
+
     return (
       <section className="panel panel-plain bank-payment-page">
         <div className="bank-payment-summary">
@@ -399,7 +462,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
         </div>
 
         <div className="bank-payment-fields bank-payment-edit">
-          {["AM" as const, ...editableKeys].map((key) => {
+          {shownFieldKeys.map((key) => {
             const inputId = `bank-payment-field-${key}`;
             const suffix = key === "AM" ? currencyCode : "";
             const fieldError = editError?.field === key ? editError : null;
@@ -434,6 +497,36 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
               </div>
             );
           })}
+          {isManualEntry ? (
+            <div className="bank-payment-edit-row">
+              <label htmlFor="bank-payment-field-CC">
+                {t("spdPaymentCurrency")}
+              </label>
+              <select
+                id="bank-payment-field-CC"
+                value={draftFields["CC"] ?? MANUAL_ENTRY_CURRENCY}
+                onChange={(event) => pickCurrency(event.target.value)}
+              >
+                {SELECTABLE_CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+              <p className="muted bank-payment-hint">
+                {t("spdPaymentCurrencyHint")}
+              </p>
+            </div>
+          ) : null}
+          {hiddenFieldCount > 0 ? (
+            <button
+              type="button"
+              className="bank-payment-more-fields"
+              onClick={() => setShowEveryField(true)}
+            >
+              {t("spdPaymentMoreFields")}
+            </button>
+          ) : null}
           {editError && editError.field === null ? (
             <p className="bank-payment-error bank-payment-offer-status">
               {t(editError.key)}

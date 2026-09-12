@@ -4566,6 +4566,20 @@ button.icon {
   margin-top: 4px;
 }
 
+.bank-payment-more-fields {
+  align-self: flex-start;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--accent, #14b8a6);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.manual-pay-bank {
+  margin-top: 10px;
+}
+
 .manual-pay-suggestions-title {
   margin-bottom: 8px;
   font-size: 12px;

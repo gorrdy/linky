@@ -317,6 +317,11 @@ export const de = {
   scanAnimatedQrProgress: "Token wird in Teilen gelesen… {percent} %",
   cashuTokenAnimatedQrHint:
     "Das Token passt nicht in einen QR-Code und wird in {frames} Teilen gesendet. Halte die Kamera darauf, bis es vollständig ist.",
+  manualPayBankAccount: "Kontozahlung eingeben",
+  spdPaymentMoreFields: "Weitere Angaben",
+  spdPaymentCurrency: "Währung",
+  spdPaymentCurrencyHint:
+    "Anhand der Kontonummer vorausgefüllt. Prüfe, welche Währung das Konto erwartet — eine Bank kann eine andere Währung ablehnen oder ungünstig umrechnen.",
   chatIdentityChangedNotice: "Meine Identität hat sich geändert.",
   chatPlaceholder: "Nachricht",
   chatMissingContactNpub: "npub des Kontakts fehlt.",

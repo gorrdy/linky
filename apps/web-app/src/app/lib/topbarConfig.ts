@@ -70,11 +70,15 @@ export const resolveBackAction = (
 
     case "bankPayment":
       // Leaving the edit form discards the draft; the page itself has no
-      // cancel button.
-      return route.editing
-        ? () =>
-            navigateTo({ route: "bankPayment", spdPayload: route.spdPayload })
-        : () => navigateTo({ route: "wallet" });
+      // cancel button. A manually entered payment has no payload to fall back
+      // to, so back leaves the form for the screen it was opened from.
+      if (route.editing) {
+        return route.spdPayload
+          ? () =>
+              navigateTo({ route: "bankPayment", spdPayload: route.spdPayload })
+          : () => navigateTo({ route: "manualPay" });
+      }
+      return () => navigateTo({ route: "wallet" });
 
     case "transactions":
     case "manualPay":

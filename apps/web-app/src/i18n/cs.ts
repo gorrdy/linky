@@ -312,6 +312,11 @@ export const cs = {
   scanAnimatedQrProgress: "Načítám token po částech… {percent} %",
   cashuTokenAnimatedQrHint:
     "Token je na jeden QR kód moc velký, posílá se po částech ({frames}). Podrž na něm kameru, dokud se nenačte celý.",
+  manualPayBankAccount: "Zadat platbu na účet",
+  spdPaymentMoreFields: "Další údaje",
+  spdPaymentCurrency: "Měna",
+  spdPaymentCurrencyHint:
+    "Předvyplněno podle čísla účtu. Ověř si, v jaké měně účet platbu očekává — banka může jinou měnu odmítnout nebo převést nevýhodným kurzem.",
   chatIdentityChangedNotice: "Došlo ke změně mojí identity.",
   chatPlaceholder: "Zpráva",
   chatMissingContactNpub: "Chybí npub u kontaktu.",

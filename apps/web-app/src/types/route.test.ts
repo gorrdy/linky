@@ -31,6 +31,15 @@ describe("parseRouteFromHash", () => {
     });
   });
 
+  it("opens the payload-less bank payment form for a manual entry", () => {
+    replaceHash("#wallet/bank-payment");
+    expect(parseRouteFromHash()).toEqual({
+      kind: "bankPayment",
+      spdPayload: "",
+      editing: true,
+    });
+  });
+
   it("defaults to wallet when the url has no hash", () => {
     replaceHash("");
 
