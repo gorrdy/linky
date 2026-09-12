@@ -116,6 +116,7 @@ export interface AppShellCoreContextValue {
   profileShareOverlayIsOpen: boolean;
   route: Route;
   scanAllowsManualContact: boolean;
+  animatedQrPercent: number | null;
   scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;

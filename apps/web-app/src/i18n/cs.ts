@@ -307,6 +307,11 @@ export const cs = {
   unknownContactNamePrefix: "[Neznámý]",
   chatIncomingMessageToast: "{name}: {message}",
   chatEmpty: "Zatím žádné zprávy.",
+  scanAnimatedQrNeedsCamera:
+    "Tohle je jen část animovaného QR kódu. Naskenuj ho kamerou a chvíli na něm podrž.",
+  scanAnimatedQrProgress: "Načítám token po částech… {percent} %",
+  cashuTokenAnimatedQrHint:
+    "Token je na jeden QR kód moc velký, posílá se po částech ({frames}). Podrž na něm kameru, dokud se nenačte celý.",
   chatIdentityChangedNotice: "Došlo ke změně mojí identity.",
   chatPlaceholder: "Zpráva",
   chatMissingContactNpub: "Chybí npub u kontaktu.",

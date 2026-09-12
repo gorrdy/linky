@@ -35,6 +35,7 @@ import { useContactsOnboardingProgress } from "../guide/useContactsOnboardingPro
 import { buildUnknownContactId } from "../messages/contactIdentity";
 import type { DispatchInboxEvent } from "../messages/useLinkstrInboxSync";
 import type { LnurlAuthResult } from "../useLnurlAuth";
+import { isAnimatedQrFrame } from "../../../utils/animatedQr";
 import { useGuideScannerDomain } from "../useGuideScannerDomain";
 import { useScannedTextHandler } from "../useScannedTextHandler";
 import {
@@ -211,6 +212,7 @@ export const useScanNativeComposition = ({
     openReceiveScan,
     openWalletScan,
     scanAllowsManualContact,
+    animatedQrPercent,
     scanCameraLabel,
     scanCanSwitchCamera,
     scanEntryPoint,
@@ -875,6 +877,10 @@ export const useScanNativeComposition = ({
           ).trim();
 
           if (detectorValue) {
+            if (isAnimatedQrFrame(detectorValue)) {
+              pushToast(t("scanAnimatedQrNeedsCamera"));
+              return;
+            }
             await handleScannedText(detectorValue);
             return;
           }
@@ -906,6 +912,13 @@ export const useScanNativeComposition = ({
 
         if (!qrValue) {
           pushToast(t("scanImageUnsupported"));
+          return;
+        }
+
+        // A still frame carries only a slice of an animation; no photo can
+        // hold the whole token.
+        if (isAnimatedQrFrame(qrValue)) {
+          pushToast(t("scanAnimatedQrNeedsCamera"));
           return;
         }
 
@@ -953,6 +966,7 @@ export const useScanNativeComposition = ({
     openWalletScan,
     pasteScanValue,
     scanAllowsManualContact,
+    animatedQrPercent,
     scanCameraLabel,
     scanCanSwitchCamera,
     scanEntryPoint,

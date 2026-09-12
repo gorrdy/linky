@@ -1,4 +1,9 @@
 import { useLatest } from "../../hooks/useLatest";
+import {
+  createAnimatedQrReader,
+  isAnimatedQrFrame,
+  type AnimatedQrReader,
+} from "../../utils/animatedQr";
 import React from "react";
 import {
   startNativeQrScan,
@@ -35,6 +40,7 @@ type ScanEntryPoint = "contacts" | "receive" | "send";
 type UseGuideScannerDomainResult = ReturnType<typeof useContactsGuide> & {
   closeScan: () => void;
   cycleScanCamera: () => void;
+  animatedQrPercent: number | null;
   openScan: () => void;
   openReceiveScan: () => void;
   openWalletScan: () => void;
@@ -170,6 +176,8 @@ export const useGuideScannerDomain = ({
   }, []);
 
   const closeScan = React.useCallback(() => {
+    animatedQrReaderRef.current = null;
+    setAnimatedQrPercent(null);
     scanIsOpenRef.current = false;
     setScanIsOpen(false);
     setScanEntryPoint(null);
@@ -182,12 +190,44 @@ export const useGuideScannerDomain = ({
 
   const handleScannedTextRef = useLatest(onScannedText);
 
+  const animatedQrReaderRef = React.useRef<AnimatedQrReader | null>(null);
+  const [animatedQrPercent, setAnimatedQrPercent] = React.useState<
+    number | null
+  >(null);
+
+  const resetAnimatedQr = React.useCallback(() => {
+    animatedQrReaderRef.current = null;
+    setAnimatedQrPercent(null);
+  }, []);
+
+  /**
+   * One frame of a NUT-16 animation is not a payload: it is collected until
+   * the animation completes, and only the assembled payload is handed on.
+   * Returning false keeps the camera running for the frames still missing.
+   */
   const handleDetectedScanValue = React.useCallback(
     async (value: string) => {
+      if (isAnimatedQrFrame(value)) {
+        const reader =
+          animatedQrReaderRef.current ?? (await createAnimatedQrReader());
+        animatedQrReaderRef.current = reader;
+
+        const progress = reader.receive(value);
+        if (progress.status === "collecting") {
+          setAnimatedQrPercent(progress.percent);
+          return false;
+        }
+        if (progress.status === "rejected") return false;
+
+        resetAnimatedQr();
+        await handleScannedTextRef.current(progress.payload);
+        return true;
+      }
+
       await handleScannedTextRef.current(value);
       return true;
     },
-    [handleScannedTextRef],
+    [handleScannedTextRef, resetAnimatedQr],
   );
 
   const handleNativeScanResult = React.useCallback(
@@ -214,6 +254,14 @@ export const useGuideScannerDomain = ({
           nativeScanHandle?.stop();
         } catch {
           // ignore
+        }
+
+        // The native scanner stops at the first code it reads, so it can never
+        // collect the rest of an animation.
+        if (isAnimatedQrFrame(value)) {
+          pushToast(t("scanAnimatedQrNeedsCamera"));
+          closeScan();
+          return;
         }
 
         await handleDetectedScanValue(value);
@@ -658,6 +706,7 @@ export const useGuideScannerDomain = ({
   }, [handleDetectedScanValue, scanIsOpen, scanStream]);
 
   return {
+    animatedQrPercent,
     closeScan,
     cycleScanCamera,
     ...contactsGuideDomain,

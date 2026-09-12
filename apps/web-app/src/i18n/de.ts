@@ -312,6 +312,11 @@ export const de = {
   unknownContactNamePrefix: "[Unbekannt]",
   chatIncomingMessageToast: "{name}: {message}",
   chatEmpty: "Noch keine Nachrichten.",
+  scanAnimatedQrNeedsCamera:
+    "Das ist nur ein Teil eines animierten QR-Codes. Scanne ihn mit der Kamera und halte kurz still.",
+  scanAnimatedQrProgress: "Token wird in Teilen gelesen… {percent} %",
+  cashuTokenAnimatedQrHint:
+    "Das Token passt nicht in einen QR-Code und wird in {frames} Teilen gesendet. Halte die Kamera darauf, bis es vollständig ist.",
   chatIdentityChangedNotice: "Meine Identität hat sich geändert.",
   chatPlaceholder: "Nachricht",
   chatMissingContactNpub: "npub des Kontakts fehlt.",
