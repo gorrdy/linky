@@ -317,6 +317,7 @@ export const cs = {
   spdPaymentCurrency: "Měna",
   spdPaymentCurrencyHint:
     "Předvyplněno podle čísla účtu. Ověř si, v jaké měně účet platbu očekává — banka může jinou měnu odmítnout nebo převést nevýhodným kurzem.",
+  chatShowOlder: "Zobrazit starší zprávy",
   chatIdentityChangedNotice: "Došlo ke změně mojí identity.",
   chatPlaceholder: "Zpráva",
   chatMissingContactNpub: "Chybí npub u kontaktu.",

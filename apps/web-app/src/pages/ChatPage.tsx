@@ -9,6 +9,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -27,8 +28,11 @@ import {
 } from "../app/lib/bankPaymentOffer";
 import { formatChatMessagePreviewText } from "../app/lib/chatMessageDisplay";
 import {
+  captureChatPrependAnchor,
   captureChatViewportAnchor,
+  restoreChatPrependAnchor,
   restoreChatViewportAnchor,
+  type ChatPrependAnchor,
   type ChatViewportAnchor,
 } from "../app/lib/chatViewport";
 import {
@@ -174,6 +178,12 @@ interface ChatMessageViewModel extends ParsedChatMessage {
   replyQuoteText: string | null;
 }
 
+/**
+ * Messages mounted at once, and the step each "show older" click adds. Same
+ * page size the transactions list uses.
+ */
+const CHAT_MESSAGE_WINDOW_SIZE = 50;
+
 const buildBankPaymentOfferIndex = (
   messages: LocalNostrMessage[],
 ): Map<string, IndexedBankPaymentOffer[]> => {
@@ -314,6 +324,37 @@ const ChatMessageList = memo(function ChatMessageList({
   setMintIconUrlByMint,
   t,
 }: ChatMessageListProps) {
+  // Only the tail of a conversation is mounted: an unbounded list pays for
+  // every message it ever held on open, in DOM nodes and in scroll cost. The
+  // window is stored with the conversation it was opened for, so switching
+  // contacts starts over without an effect that would cascade a render.
+  const [messageWindow, setMessageWindow] = useState({
+    contactId: selectedContactId,
+    count: CHAT_MESSAGE_WINDOW_SIZE,
+  });
+  const visibleCount =
+    messageWindow.contactId === selectedContactId
+      ? messageWindow.count
+      : CHAT_MESSAGE_WINDOW_SIZE;
+  const prependAnchorRef = useRef<ChatPrependAnchor | null>(null);
+
+  const showOlderMessages = useCallback(() => {
+    prependAnchorRef.current = captureChatPrependAnchor(
+      chatMessagesRef.current,
+    );
+    setMessageWindow({
+      contactId: selectedContactId,
+      count: visibleCount + CHAT_MESSAGE_WINDOW_SIZE,
+    });
+  }, [chatMessagesRef, selectedContactId, visibleCount]);
+
+  useLayoutEffect(() => {
+    const anchor = prependAnchorRef.current;
+    if (anchor === null) return;
+    prependAnchorRef.current = null;
+    restoreChatPrependAnchor(chatMessagesRef.current, anchor);
+  }, [chatMessagesRef, visibleCount]);
+
   const actionLabels = useMemo(
     () => ({
       copy: t("copy"),
@@ -505,6 +546,14 @@ const ChatMessageList = memo(function ChatMessageList({
     t,
   ]);
 
+  const visibleWindow = useMemo(
+    () =>
+      viewModels.length <= visibleCount
+        ? viewModels
+        : viewModels.slice(viewModels.length - visibleCount),
+    [viewModels, visibleCount],
+  );
+
   return (
     <div
       className="chat-messages"
@@ -512,10 +561,19 @@ const ChatMessageList = memo(function ChatMessageList({
       aria-live="polite"
       ref={chatMessagesRef}
     >
+      {viewModels.length > visibleWindow.length ? (
+        <button
+          type="button"
+          className="chat-older-button"
+          onClick={showOlderMessages}
+        >
+          {t("chatShowOlder")}
+        </button>
+      ) : null}
       {viewModels.length === 0 ? (
         <p className="muted">{t("chatEmpty")}</p>
       ) : (
-        viewModels.map((viewModel) => (
+        visibleWindow.map((viewModel) => (
           <ChatMessage
             key={viewModel.message.id}
             message={viewModel.message}

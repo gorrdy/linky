@@ -2077,6 +2077,22 @@ button.settings-sensitive-action.is-armed {
   font-weight: 800;
 }
 
+.chat-older-button {
+  align-self: center;
+  margin-bottom: 4px;
+  padding: 6px 14px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chat-older-button:hover {
+  background: rgba(20, 184, 166, 0.08);
+}
+
 .chat-messages {
   margin-top: 14px;
   padding: 18px var(--page-gutter)
