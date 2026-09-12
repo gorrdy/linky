@@ -39,6 +39,11 @@ export function ScanModal(): React.ReactElement {
   // What the camera decodes is developer information; the progress of an
   // animation is not, so only the detail line waits for the inspector.
   const showScanDiagnostics = useInspectorEmissionEnabled();
+  const animation = scanDiagnostics.animation;
+  const animationPercent =
+    animation === null || animation.expected === null
+      ? 0
+      : Math.round((animation.received / animation.expected) * 100);
   const isReceiveScan = scanEntryPoint === "receive";
   const isSendScan = scanEntryPoint === "send";
   const handleClose = React.useCallback(() => {
@@ -90,7 +95,7 @@ export function ScanModal(): React.ReactElement {
               {scanDiagnostics.animation === null ? null : (
                 <div
                   className="scan-status-bar"
-                  style={{ width: `${scanDiagnostics.animation.percent}%` }}
+                  style={{ width: `${animationPercent}%` }}
                 />
               )}
               <div className="scan-status-lines">
@@ -107,10 +112,7 @@ export function ScanModal(): React.ReactElement {
                             "{expected}",
                             String(scanDiagnostics.animation.expected),
                           )
-                          .replace(
-                            "{percent}",
-                            String(scanDiagnostics.animation.percent),
-                          )}
+                          .replace("{percent}", String(animationPercent))}
                   </div>
                 )}
                 {showScanDiagnostics ? (

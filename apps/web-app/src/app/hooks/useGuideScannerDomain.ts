@@ -4,10 +4,26 @@ import {
   isAnimatedQrFrame,
   type AnimatedQrReader,
 } from "../../utils/animatedQr";
+import React from "react";
+import {
+  startNativeQrScan,
+  startNativeQrScanStream,
+  type NativeScanViewport,
+  type NativeScanStreamHandle,
+  supportsNativeQrScan,
+} from "../../platform/nativeBridge";
+import type { Route } from "../../types/route";
+import { appendPushDebugLog } from "../../utils/pushDebugLog";
+import type { ContactRowLike } from "../types/appTypes";
+import {
+  buildQrCameraConstraintCandidates,
+  configureQrCameraTrack,
+} from "../lib/qrCamera";
+import { useContactsGuide } from "./guide/useContactsGuide";
+import type { Translate } from "../../i18n";
 
 /** What the scanner has collected of the animation it is reading. */
 export interface AnimatedQrScanState {
-  percent: number;
   received: number;
   expected: number | null;
 }
@@ -36,23 +52,6 @@ const SCAN_DIAGNOSTICS_START: ScanDiagnostics = {
 
 /** Enough of a value to recognise the format, short enough for one line. */
 const SCAN_VALUE_PREVIEW_CHARS = 28;
-import React from "react";
-import {
-  startNativeQrScan,
-  startNativeQrScanStream,
-  type NativeScanViewport,
-  type NativeScanStreamHandle,
-  supportsNativeQrScan,
-} from "../../platform/nativeBridge";
-import type { Route } from "../../types/route";
-import { appendPushDebugLog } from "../../utils/pushDebugLog";
-import type { ContactRowLike } from "../types/appTypes";
-import {
-  buildQrCameraConstraintCandidates,
-  configureQrCameraTrack,
-} from "../lib/qrCamera";
-import { useContactsGuide } from "./guide/useContactsGuide";
-import type { Translate } from "../../i18n";
 
 interface UseGuideScannerDomainParams {
   cashuBalance: number;
@@ -157,6 +156,10 @@ export const useGuideScannerDomain = ({
   const scanIsOpenRef = React.useRef(false);
   const nativeScanHandleRef = React.useRef<NativeScanStreamHandle | null>(null);
   const preferredCameraDeviceIdRef = React.useRef<string | null>(null);
+  const animatedQrReaderRef = React.useRef<AnimatedQrReader | null>(null);
+  const [scanDiagnostics, setScanDiagnostics] = React.useState<ScanDiagnostics>(
+    SCAN_DIAGNOSTICS_START,
+  );
 
   React.useEffect(() => {
     scanIsOpenRef.current = scanIsOpen;
@@ -222,11 +225,6 @@ export const useGuideScannerDomain = ({
 
   const handleScannedTextRef = useLatest(onScannedText);
 
-  const animatedQrReaderRef = React.useRef<AnimatedQrReader | null>(null);
-  const [scanDiagnostics, setScanDiagnostics] = React.useState<ScanDiagnostics>(
-    SCAN_DIAGNOSTICS_START,
-  );
-
   const resetAnimatedQr = React.useCallback(() => {
     animatedQrReaderRef.current = null;
     setScanDiagnostics((current) => ({ ...current, animation: null }));
@@ -244,7 +242,7 @@ export const useGuideScannerDomain = ({
         ...current,
         animation:
           isFrame && current.animation === null
-            ? { expected: null, percent: 0, received: 0 }
+            ? { expected: null, received: 0 }
             : current.animation,
         lastValue: value.slice(0, SCAN_VALUE_PREVIEW_CHARS),
         reads: current.reads + 1,
@@ -261,13 +259,12 @@ export const useGuideScannerDomain = ({
             ...current,
             animation: {
               expected: progress.expected,
-              percent: progress.percent,
               received: progress.received,
             },
           }));
           return false;
         }
-        // A rejected frame is a duplicate or belongs to another animation;
+        // A rejected frame belongs to another animation or broke this one;
         // the indicator stays on what has been collected so far.
         if (progress.status === "rejected") {
           setScanDiagnostics((current) => ({
