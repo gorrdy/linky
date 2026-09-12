@@ -1,6 +1,7 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Translate } from "../i18n";
+import type { ScanDiagnostics } from "../app/hooks/useGuideScannerDomain";
 import { renderIntoDocument } from "../testUtils/renderIntoDocument";
 
 const { mockNavigate, mockScanCore, mockScanActions } = vi.hoisted(() => ({
@@ -29,6 +30,7 @@ interface ScanModalProps {
   onTypePayment: () => void;
   onTypeManually: () => void;
   pasteScanValue: () => Promise<void>;
+  scanDiagnostics: ScanDiagnostics;
   scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;
@@ -87,6 +89,12 @@ describe("ScanModal", () => {
     onTypePayment: () => {},
     onTypeManually: () => {},
     pasteScanValue: async () => {},
+    scanDiagnostics: {
+      animation: null,
+      lastRejection: "",
+      lastValue: "",
+      reads: 0,
+    },
     scanCameraLabel: null,
     scanCanSwitchCamera: false,
     scanEntryPoint: null,

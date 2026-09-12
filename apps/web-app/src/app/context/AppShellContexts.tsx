@@ -5,6 +5,7 @@ import type {
   DerivedProfileDefaults,
 } from "../../derivedProfile";
 import type { ContactId } from "../../evolu";
+import type { ScanDiagnostics } from "../hooks/useGuideScannerDomain";
 import type { Lang } from "../../i18n";
 import type { LnurlAuthPreview } from "../../lnurlAuth";
 import type { LnurlWithdrawPreview } from "../../lnurlPay";
@@ -116,6 +117,7 @@ export interface AppShellCoreContextValue {
   profileShareOverlayIsOpen: boolean;
   route: Route;
   scanAllowsManualContact: boolean;
+  scanDiagnostics: ScanDiagnostics;
   scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;
