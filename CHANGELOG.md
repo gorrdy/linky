@@ -12,6 +12,16 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.13] - 2026-09-12
+
+### en-US
+
+- Large Cashu tokens that do not fit a single QR code are now shown as an animated QR, and the scanner reads animated codes from other wallets, including the Android native scanner.
+
+### cs-CZ
+
+- Velké Cashu tokeny, které se nevejdou do jednoho QR kódu, se nyní zobrazují jako animovaný QR kód a čtečka umí animované kódy z jiných peněženek načíst, včetně nativní čtečky na Androidu.
+
 ## [26.9.12] - 2026-09-11
 
 ### en-US
