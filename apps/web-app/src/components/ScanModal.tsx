@@ -11,6 +11,7 @@ import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
+import { useInspectorEmissionEnabled } from "../devtools/inspector/inspectorEnabled";
 import { navigateTo } from "../hooks/useRouting";
 
 export function ScanModal(): React.ReactElement {
@@ -25,6 +26,7 @@ export function ScanModal(): React.ReactElement {
     pasteScanValue,
   } = useAppShellActions();
   const {
+    scanDiagnostics,
     scanCameraLabel,
     scanCanSwitchCamera,
     scanEntryPoint,
@@ -34,6 +36,9 @@ export function ScanModal(): React.ReactElement {
     t,
   } = useAppShellCore();
   const showWalletActions = !showTypeAction;
+  // What the camera decodes is developer information; the progress of an
+  // animation is not, so only the detail line waits for the inspector.
+  const showScanDiagnostics = useInspectorEmissionEnabled();
   const isReceiveScan = scanEntryPoint === "receive";
   const isSendScan = scanEntryPoint === "send";
   const handleClose = React.useCallback(() => {
@@ -80,6 +85,51 @@ export function ScanModal(): React.ReactElement {
               <span>{t("scanSwitchCamera")}</span>
             </button>
           ) : null}
+          {scanDiagnostics.animation === null && !showScanDiagnostics ? null : (
+            <div className="scan-status" role="status">
+              {scanDiagnostics.animation === null ? null : (
+                <div
+                  className="scan-status-bar"
+                  style={{ width: `${scanDiagnostics.animation.percent}%` }}
+                />
+              )}
+              <div className="scan-status-lines">
+                {scanDiagnostics.animation === null ? null : (
+                  <div className="scan-status-headline">
+                    {scanDiagnostics.animation.expected === null
+                      ? t("scanAnimatedQrDetected")
+                      : t("scanAnimatedQrProgress")
+                          .replace(
+                            "{received}",
+                            String(scanDiagnostics.animation.received),
+                          )
+                          .replace(
+                            "{expected}",
+                            String(scanDiagnostics.animation.expected),
+                          )
+                          .replace(
+                            "{percent}",
+                            String(scanDiagnostics.animation.percent),
+                          )}
+                  </div>
+                )}
+                {showScanDiagnostics ? (
+                  <div className="scan-status-detail">
+                    {t("scanDiagnosticsReads").replace(
+                      "{reads}",
+                      String(scanDiagnostics.reads),
+                    )}
+                    {scanDiagnostics.lastValue
+                      ? ` · ${scanDiagnostics.lastValue}…`
+                      : ""}
+                    {scanDiagnostics.lastRejection
+                      ? ` · ${scanDiagnostics.lastRejection}`
+                      : ""}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
         </div>
         <input
           ref={scanImageInputRef}

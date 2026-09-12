@@ -4,6 +4,7 @@ import { Radio as NfcIcon } from "lucide-react";
 import type { FC } from "react";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
+import { useTokenQr } from "../app/hooks/cashu/useTokenQr";
 import { formatStoredCashuError } from "../app/lib/cashuStoredError";
 import { canReturnTransfer } from "../app/lib/cashuTransfers";
 
@@ -89,11 +90,11 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
 }) => {
   const { formatDisplayedAmountText, t } = useAppShellCore();
 
-  const [tokenQr, setTokenQr] = React.useState<string | null>(null);
   const transfer = cashuTransfers.find(
     (candidate) => String(candidate.id) === routeId,
   );
   const tokenText = transfer?.tokenText ?? "";
+  const { frameCount: tokenQrFrameCount, src: tokenQr } = useTokenQr(tokenText);
   const tokenAmount = transfer?.amount ?? 0;
   const mintDisplay = getMintDisplay(transfer?.mint);
   const transferProofs = React.useMemo(
@@ -124,49 +125,6 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
     }
     return t("cashuShareMessage").replace("{url}", shareUrl);
   })();
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const generate = async () => {
-      if (!tokenText.trim()) {
-        setTokenQr(null);
-        return;
-      }
-
-      try {
-        const QRCode = await import("qrcode");
-        let qr: string;
-        try {
-          qr = await QRCode.toDataURL(tokenText, {
-            errorCorrectionLevel: "M",
-            margin: 2,
-          });
-        } catch {
-          // Large multi-proof Cashu tokens can exceed QR capacity at M while
-          // still fitting at L. Copy/share remain available if even L cannot
-          // represent the token.
-          qr = await QRCode.toDataURL(tokenText, {
-            errorCorrectionLevel: "L",
-            margin: 2,
-          });
-        }
-        if (!cancelled) {
-          setTokenQr(qr);
-        }
-      } catch {
-        if (!cancelled) {
-          setTokenQr(null);
-        }
-      }
-    };
-
-    void generate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [tokenText]);
 
   // Poll the source mint while the user is staring at the QR of an issued
   // token (issue #86): checkProofsStates is the passive NUT-07 query, so it
@@ -296,6 +254,14 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
               alt={t("cashuToken")}
             />
           </button>
+          {tokenQrFrameCount === null ? null : (
+            <p className="muted cashu-token-qr-hint">
+              {t("cashuTokenAnimatedQrHint").replace(
+                "{frames}",
+                String(tokenQrFrameCount),
+              )}
+            </p>
+          )}
         </div>
       ) : null}
 

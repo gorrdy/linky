@@ -310,6 +310,44 @@
   color: #e2e8f0;
 }
 
+.scan-status {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.68);
+  color: #fff;
+  overflow: hidden;
+}
+
+.scan-status-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(20, 184, 166, 0.4);
+  transition: width 120ms linear;
+}
+
+.scan-status-lines {
+  position: relative;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.scan-status-headline {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.scan-status-detail {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
 .scan-video-wrap {
   width: 100%;
   height: 100%;
