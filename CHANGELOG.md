@@ -12,6 +12,16 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.14] - 2026-09-12
+
+### en-US
+
+- The animated QR for a large Cashu token can now be switched off on the token page, and its scan progress stays visible on Android.
+
+### cs-CZ
+
+- Animovaný QR kód velkého Cashu tokenu lze nyní na stránce tokenu vypnout a průběh načítání zůstává na Androidu viditelný.
+
 ## [26.9.13] - 2026-09-12
 
 ### en-US
