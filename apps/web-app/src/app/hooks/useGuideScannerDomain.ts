@@ -207,12 +207,21 @@ export const useGuideScannerDomain = ({
    */
   const handleDetectedScanValue = React.useCallback(
     async (value: string) => {
+      // What the camera read, so a scan that goes nowhere can be told apart
+      // from a camera that read nothing at all.
+      logScanDebug("detected", {
+        animatedFrame: isAnimatedQrFrame(value),
+        length: value.length,
+        prefix: value.slice(0, 24),
+      });
+
       if (isAnimatedQrFrame(value)) {
         const reader =
           animatedQrReaderRef.current ?? (await createAnimatedQrReader());
         animatedQrReaderRef.current = reader;
 
         const progress = reader.receive(value);
+        logScanDebug("animated frame", { status: progress.status });
         if (progress.status === "collecting") {
           setAnimatedQrPercent(progress.percent);
           return false;
@@ -227,7 +236,7 @@ export const useGuideScannerDomain = ({
       await handleScannedTextRef.current(value);
       return true;
     },
-    [handleScannedTextRef, resetAnimatedQr],
+    [handleScannedTextRef, logScanDebug, resetAnimatedQr],
   );
 
   const handleNativeScanResult = React.useCallback(
