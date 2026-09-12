@@ -48,15 +48,20 @@ describe("animated QR frames", () => {
     expect(done).toBe(token);
   });
 
-  it("reports progress while it is still collecting", async () => {
+  it("reports how much of the animation it holds", async () => {
     const frames = await createAnimatedQrFrames(token);
     const reader = await createAnimatedQrReader();
 
-    const progress = reader.receive(frames.next());
-    expect(progress.status).toBe("collecting");
-    if (progress.status !== "collecting") throw new Error("expected progress");
-    expect(progress.percent).toBeGreaterThanOrEqual(0);
-    expect(progress.percent).toBeLessThan(100);
+    const first = reader.receive(frames.next());
+    if (first.status !== "collecting") throw new Error("expected progress");
+    expect(first.percent).toBeGreaterThanOrEqual(0);
+    expect(first.percent).toBeLessThan(100);
+    expect(first.received).toBe(1);
+    expect(first.expected).toBe(frames.total);
+
+    const second = reader.receive(frames.next());
+    if (second.status !== "collecting") throw new Error("expected progress");
+    expect(second.received).toBe(2);
   });
 
   it("refuses to mix two animations together", async () => {

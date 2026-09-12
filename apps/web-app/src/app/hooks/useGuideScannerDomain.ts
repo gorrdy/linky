@@ -4,6 +4,13 @@ import {
   isAnimatedQrFrame,
   type AnimatedQrReader,
 } from "../../utils/animatedQr";
+
+/** What the scanner has collected of the animation it is reading. */
+export interface AnimatedQrScanState {
+  percent: number;
+  received: number;
+  expected: number | null;
+}
 import React from "react";
 import {
   startNativeQrScan,
@@ -40,7 +47,7 @@ type ScanEntryPoint = "contacts" | "receive" | "send";
 type UseGuideScannerDomainResult = ReturnType<typeof useContactsGuide> & {
   closeScan: () => void;
   cycleScanCamera: () => void;
-  animatedQrPercent: number | null;
+  animatedQrScan: AnimatedQrScanState | null;
   openScan: () => void;
   openReceiveScan: () => void;
   openWalletScan: () => void;
@@ -177,7 +184,7 @@ export const useGuideScannerDomain = ({
 
   const closeScan = React.useCallback(() => {
     animatedQrReaderRef.current = null;
-    setAnimatedQrPercent(null);
+    setAnimatedQrScan(null);
     scanIsOpenRef.current = false;
     setScanIsOpen(false);
     setScanEntryPoint(null);
@@ -191,13 +198,12 @@ export const useGuideScannerDomain = ({
   const handleScannedTextRef = useLatest(onScannedText);
 
   const animatedQrReaderRef = React.useRef<AnimatedQrReader | null>(null);
-  const [animatedQrPercent, setAnimatedQrPercent] = React.useState<
-    number | null
-  >(null);
+  const [animatedQrScan, setAnimatedQrScan] =
+    React.useState<AnimatedQrScanState | null>(null);
 
   const resetAnimatedQr = React.useCallback(() => {
     animatedQrReaderRef.current = null;
-    setAnimatedQrPercent(null);
+    setAnimatedQrScan(null);
   }, []);
 
   /**
@@ -216,6 +222,12 @@ export const useGuideScannerDomain = ({
       });
 
       if (isAnimatedQrFrame(value)) {
+        // Say so on the first frame: collecting one part can take a moment,
+        // and silence is indistinguishable from a camera reading nothing.
+        setAnimatedQrScan(
+          (current) => current ?? { percent: 0, received: 0, expected: null },
+        );
+
         const reader =
           animatedQrReaderRef.current ?? (await createAnimatedQrReader());
         animatedQrReaderRef.current = reader;
@@ -223,9 +235,15 @@ export const useGuideScannerDomain = ({
         const progress = reader.receive(value);
         logScanDebug("animated frame", { status: progress.status });
         if (progress.status === "collecting") {
-          setAnimatedQrPercent(progress.percent);
+          setAnimatedQrScan({
+            expected: progress.expected,
+            percent: progress.percent,
+            received: progress.received,
+          });
           return false;
         }
+        // A rejected frame is a duplicate or belongs to another animation;
+        // the indicator stays on what has been collected so far.
         if (progress.status === "rejected") return false;
 
         resetAnimatedQr();
@@ -715,7 +733,7 @@ export const useGuideScannerDomain = ({
   }, [handleDetectedScanValue, scanIsOpen, scanStream]);
 
   return {
-    animatedQrPercent,
+    animatedQrScan,
     closeScan,
     cycleScanCamera,
     ...contactsGuideDomain,

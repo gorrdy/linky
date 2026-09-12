@@ -25,7 +25,7 @@ export function ScanModal(): React.ReactElement {
     pasteScanValue,
   } = useAppShellActions();
   const {
-    animatedQrPercent,
+    animatedQrScan,
     scanCameraLabel,
     scanCanSwitchCamera,
     scanEntryPoint,
@@ -81,17 +81,19 @@ export function ScanModal(): React.ReactElement {
               <span>{t("scanSwitchCamera")}</span>
             </button>
           ) : null}
-          {animatedQrPercent === null ? null : (
+          {animatedQrScan === null ? null : (
             <div className="scan-animated-progress" role="status">
               <div
                 className="scan-animated-progress-bar"
-                style={{ width: `${animatedQrPercent}%` }}
+                style={{ width: `${animatedQrScan.percent}%` }}
               />
               <span>
-                {t("scanAnimatedQrProgress").replace(
-                  "{percent}",
-                  String(animatedQrPercent),
-                )}
+                {animatedQrScan.expected === null
+                  ? t("scanAnimatedQrDetected")
+                  : t("scanAnimatedQrProgress")
+                      .replace("{received}", String(animatedQrScan.received))
+                      .replace("{expected}", String(animatedQrScan.expected))
+                      .replace("{percent}", String(animatedQrScan.percent))}
               </span>
             </div>
           )}

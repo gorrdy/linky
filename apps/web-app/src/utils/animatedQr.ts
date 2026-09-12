@@ -90,7 +90,13 @@ const toBytes = (value: unknown): Uint8Array | null =>
     : null;
 
 export type AnimatedQrProgress =
-  | { status: "collecting"; percent: number }
+  | {
+      status: "collecting";
+      percent: number;
+      /** Distinct parts the decoder holds, and how many it needs in total. */
+      received: number;
+      expected: number | null;
+    }
   | { status: "done"; payload: string }
   | { status: "rejected" };
 
@@ -115,9 +121,13 @@ export const createAnimatedQrReader = async (): Promise<AnimatedQrReader> => {
       }
 
       if (!decoder.isComplete()) {
+        const expected = decoder.expectedPartCount();
         return {
           status: "collecting",
           percent: Math.round(decoder.estimatedPercentComplete() * 100),
+          received: decoder.receivedPartIndexes().length,
+          expected:
+            typeof expected === "number" && expected > 0 ? expected : null,
         };
       }
       if (!decoder.isSuccess()) return { status: "rejected" };
