@@ -37,8 +37,13 @@ const toGlobalBuffer = (payload: string): Buffer => {
  */
 const UR_FRAGMENT_BYTES = 150;
 
-/** How long one frame stays on screen. */
-export const ANIMATED_QR_FRAME_MS = 200;
+/**
+ * How long one frame stays on screen. The scan loop decodes at most every
+ * 200 ms, so a frame has to outlast two of its samples — matching its rate
+ * would leave the camera sampling in step with the changes and reading the
+ * transitions.
+ */
+export const ANIMATED_QR_FRAME_MS = 420;
 
 const UR_BYTES_FRAME = /^ur:bytes\/[0-9]+-[0-9]+\//i;
 
