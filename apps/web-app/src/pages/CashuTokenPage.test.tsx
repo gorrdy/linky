@@ -166,3 +166,48 @@ describe("token QR animation toggle", () => {
     }
   });
 });
+
+const transferProps = (
+  overrides: Partial<ConstructorParameters<typeof TokenTransfer>[0]>,
+) => {
+  const base = props(tokenOf(200));
+  const transfer = base.cashuTransfers[0];
+  assert(transfer !== undefined);
+  return {
+    ...base,
+    cashuTransfers: [new TokenTransfer({ ...transfer, ...overrides })],
+  };
+};
+
+const buttonLabels = (container: HTMLElement) =>
+  [...container.querySelectorAll("button")].map((button) =>
+    button.textContent?.trim(),
+  );
+
+describe("closing a transfer", () => {
+  it("offers a sent token only return to wallet, never a delete without refund", async () => {
+    const rendered = await renderIntoDocument(
+      <CashuTokenPage {...transferProps({ kind: "send", status: "issued" })} />,
+    );
+    try {
+      const labels = buttonLabels(rendered.container);
+      expect(labels).toContain("cashuReturnToWallet");
+      expect(labels).not.toContain("delete");
+    } finally {
+      rendered.unmount();
+    }
+  });
+
+  it("still lets a failed receive be deleted", async () => {
+    const rendered = await renderIntoDocument(
+      <CashuTokenPage
+        {...transferProps({ kind: "receive", status: "failed" })}
+      />,
+    );
+    try {
+      expect(buttonLabels(rendered.container)).toContain("delete");
+    } finally {
+      rendered.unmount();
+    }
+  });
+});

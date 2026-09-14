@@ -687,6 +687,14 @@ export const cs = {
   cashuCheckToken: "Zkontrolovat token",
   cashuCheckAllTokens: "Zkontrolovat vše",
   cashuCheckIssuedTokens: "Zkontrolovat využité",
+  cashuReturnUnclaimed: "Vrátit nevyzvednuté do peněženky ({count})",
+  cashuReturnUnclaimedWarning:
+    "Vrátí všechny odeslané tokeny, které si zatím nikdo nevyzvedl, včetně tokenů poslaných v chatu. Příjemci je už nepůjde vyzvednout. Klepnutím znovu potvrdíte.",
+  cashuReturningUnclaimed: "Vracím nevyzvednuté tokeny…",
+  cashuReturnUnclaimedDone:
+    "Vráceno {returned}, vyzvednuto příjemcem {claimed}, selhalo {failed}.",
+  cashuReturnUnclaimedInterrupted:
+    "Mint neodpovídá. Vráceno {returned}, vyzvednuto příjemcem {claimed}; zbytek zkuste později.",
   cashuChecking: "Kontroluji token…",
   cashuCheckOk: "Token je v pořádku.",
   pwaUpdateAvailable: "Nová verze Linky je k dispozici",

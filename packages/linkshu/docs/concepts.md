@@ -71,12 +71,12 @@ The wallet is an inventory. The `ProofStore` holds one row per proof (`StoredPro
 
 ### Operation kinds and statuses
 
-| Kind                | Statuses                                                         | What it records                                                                                                |
-| ------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `melt`              | `pending` → `paid` \| `unpaid` \| `failed`                       | Quote, invoice, `feeReserve`, `inputsTotal`, blank-output `counter`; its inputs are the proofs `held` under it |
-| `topup`, `autoswap` | `pending` → `done` \| `failed`                                   | Quote, invoice, reserved `counter` (`locked` for NUT-20 topups, `sourceMint` for autoswaps)                    |
-| `send`              | `issued` \| `pending` \| `externalized` → `done` \| `returned`   | `tokenText` of the handed-out token; its proofs are `handedOut`/`externalized` under it                        |
-| `receive`           | `pending` → `done` \| `failed` (a retry reopens it as `pending`) | `tokenText` of the accepted text, for dedup; a failure's serialized error                                      |
+| Kind                | Statuses                                                                                                    | What it records                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `melt`              | `pending` → `paid` \| `unpaid` \| `failed`                                                                  | Quote, invoice, `feeReserve`, `inputsTotal`, blank-output `counter`; its inputs are the proofs `held` under it |
+| `topup`, `autoswap` | `pending` → `done` \| `failed`                                                                              | Quote, invoice, reserved `counter` (`locked` for NUT-20 topups, `sourceMint` for autoswaps)                    |
+| `send`              | `issued` \| `pending` \| `externalized` → `done` \| `returned`; a `done` send still handed out → `returned` | `tokenText` of the handed-out token; its proofs are `handedOut`/`externalized` under it                        |
+| `receive`           | `pending` → `done` \| `failed` (a retry reopens it as `pending`)                                            | `tokenText` of the accepted text, for dedup; a failure's serialized error                                      |
 
 `Tokens.transfers` is the `send`/`receive` view (`TokenTransfer`); the quote kinds are what the resumers (`Melt.resumePending`, `Topup.resumePending`, `Autoswap.resumePendingClaims`) finish after a crash.
 

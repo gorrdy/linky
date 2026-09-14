@@ -525,6 +525,8 @@ interface Seed {
   readonly kind: "send" | "receive";
   readonly status: OperationStatus;
   readonly error?: string;
+  /** State of a send's proofs; defaults to the state its status implies. */
+  readonly proofState?: ProofState;
 }
 
 /** Seeds one transfer over tokenA (its proofs out for a send) and returns it. */
@@ -542,7 +544,8 @@ const returnSeeded = (seed: Seed) =>
       yield* seedProofs(
         mint,
         proofsA,
-        seed.status === "externalized" ? "externalized" : "handedOut",
+        seed.proofState ??
+          (seed.status === "externalized" ? "externalized" : "handedOut"),
         transfer.id,
       );
     }
@@ -559,7 +562,7 @@ const returnSeeded = (seed: Seed) =>
   });
 
 describe("Tokens.returnToWallet", () => {
-  it.each(["issued", "pending", "externalized"] as const)(
+  it.each(["issued", "pending", "externalized", "done"] as const)(
     "re-receives a %s send: fresh proofs in, handed-out proofs dead, send returned",
     async (status) => {
       const { run, events } = makeHarness({
@@ -649,11 +652,13 @@ describe("Tokens.returnToWallet", () => {
     ["send", "returned", "returned"],
     ["receive", "done", "done"],
   ] as const)(
-    "rejects a %s in status %s: there is nothing to bring back",
+    "rejects a %s in status %s once its proofs are spent: there is nothing to bring back",
     async (kind, status, to) => {
       const { run, receiveCalls } = makeHarness();
 
-      const exit = await run(returnSeeded({ kind, status }));
+      const exit = await run(
+        returnSeeded({ kind, status, proofState: "spent" }),
+      );
 
       assert(Exit.isSuccess(exit));
       assert(exit.value.result._tag === "Left");

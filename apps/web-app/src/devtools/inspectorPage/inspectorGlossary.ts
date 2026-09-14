@@ -116,6 +116,8 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
     "The app updated a pending Lightning payment in the transaction history after melt.resume settled it — to paid (amount and fee) or failed. The quote link connects it to the melt rows.",
   "send.rowForgotten":
     "The app dropped a pending send row because its token verifiably reached the recipient (chat message published, or payment request POSTed). Follow the row link back to the send.send operation that produced it.",
+  "send.returnUnclaimed":
+    'One "return unclaimed tokens" pass from the Tokens page: every issued, NFC-written, or closed-but-unclaimed send was re-received so its handed-out copy died at the mint. The payload tallies returned / claimed meanwhile / failed; interrupted means an unreachable mint stopped the pass. Operation links lead to the tokens.returnToWallet rows.',
 };
 
 const describeTag = (row: CollectedInspectorRow): string => {

@@ -8,7 +8,7 @@ import type {
 } from "@linky/linkshu";
 import { CirclePlus as TokenAddIcon } from "lucide-react";
 import type { Dispatch, FC, SetStateAction } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { TransferPill } from "../components/CashuTokenPill";
 import type { MintIcon } from "../utils/mint";
@@ -38,6 +38,9 @@ interface CashuTokensPageProps {
   getMintIconUrl: (mint: string | null | undefined) => MintIcon;
   meltLargestForeignMintToMainMint: () => Promise<void>;
   restoreMissingTokens: () => Promise<void>;
+  /** Re-receives every unclaimed send; see `useReturnUnclaimedCashuTokens`. */
+  returnUnclaimedCashuTokens: () => Promise<void>;
+  unclaimedCashuTokenCount: number;
   setMintIconUrlByMint: Dispatch<SetStateAction<Record<string, string | null>>>;
   tokensRestoreIsBusy: boolean;
 }
@@ -70,10 +73,24 @@ export const CashuTokensPage: FC<CashuTokensPageProps> = ({
   getMintIconUrl,
   meltLargestForeignMintToMainMint,
   restoreMissingTokens,
+  returnUnclaimedCashuTokens,
+  unclaimedCashuTokenCount,
   setMintIconUrlByMint,
   tokensRestoreIsBusy,
 }) => {
   const { formatDisplayedAmountText, t } = useAppShellCore();
+
+  // Returning kills tokens somebody may still intend to claim, so the button
+  // arms on the first tap and runs on the second, like delete does.
+  const [returnUnclaimedArmed, setReturnUnclaimedArmed] = useState(false);
+  useEffect(() => {
+    if (!returnUnclaimedArmed) return;
+    const timeoutId = window.setTimeout(
+      () => setReturnUnclaimedArmed(false),
+      8_000,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [returnUnclaimedArmed]);
 
   const unspentProofs = useMemo(
     () => cashuProofs.filter((proof) => proof.state !== "spent"),
@@ -307,6 +324,33 @@ export const CashuTokensPage: FC<CashuTokensPageProps> = ({
               ))}
             </div>
           )}
+          <div className="settings-row section-actions">
+            <button
+              type="button"
+              className={
+                returnUnclaimedArmed
+                  ? "btn-wide secondary danger-armed"
+                  : "btn-wide secondary"
+              }
+              onClick={() => {
+                if (!returnUnclaimedArmed) {
+                  setReturnUnclaimedArmed(true);
+                  return;
+                }
+                setReturnUnclaimedArmed(false);
+                void returnUnclaimedCashuTokens().then(refresh);
+              }}
+              disabled={cashuIsBusy || unclaimedCashuTokenCount === 0}
+            >
+              {t("cashuReturnUnclaimed").replace(
+                "{count}",
+                String(unclaimedCashuTokenCount),
+              )}
+            </button>
+          </div>
+          {returnUnclaimedArmed ? (
+            <p className="muted">{t("cashuReturnUnclaimedWarning")}</p>
+          ) : null}
           <div className="settings-row section-actions">
             <button
               type="button"

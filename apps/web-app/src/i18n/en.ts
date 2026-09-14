@@ -681,6 +681,14 @@ export const en = {
   cashuCheckToken: "Check token",
   cashuCheckAllTokens: "Check all",
   cashuCheckIssuedTokens: "Check claimed",
+  cashuReturnUnclaimed: "Return unclaimed to wallet ({count})",
+  cashuReturnUnclaimedWarning:
+    "Returns every sent token nobody has claimed yet, including tokens sent in chat. Recipients will no longer be able to claim them. Tap again to confirm.",
+  cashuReturningUnclaimed: "Returning unclaimed tokens…",
+  cashuReturnUnclaimedDone:
+    "Returned {returned}, claimed by recipient {claimed}, failed {failed}.",
+  cashuReturnUnclaimedInterrupted:
+    "The mint is not responding. Returned {returned}, claimed by recipient {claimed}; try the rest later.",
   cashuChecking: "Checking token…",
   cashuCheckOk: "Token is OK.",
   pwaUpdateAvailable: "A new version of Linky is available",

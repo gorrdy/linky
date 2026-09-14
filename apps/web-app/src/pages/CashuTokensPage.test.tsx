@@ -67,6 +67,8 @@ const props = (
   }),
   meltLargestForeignMintToMainMint: async () => {},
   restoreMissingTokens: async () => {},
+  returnUnclaimedCashuTokens: async () => {},
+  unclaimedCashuTokenCount: 0,
   setMintIconUrlByMint: () => {},
   tokensRestoreIsBusy: false,
 });

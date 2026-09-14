@@ -688,6 +688,14 @@ export const de = {
   cashuCheckToken: "Token prüfen",
   cashuCheckAllTokens: "Alle prüfen",
   cashuCheckIssuedTokens: "Eingelöste prüfen",
+  cashuReturnUnclaimed: "Nicht eingelöste in die Wallet zurückholen ({count})",
+  cashuReturnUnclaimedWarning:
+    "Holt alle gesendeten Token zurück, die noch niemand eingelöst hat, auch im Chat gesendete. Empfänger können sie dann nicht mehr einlösen. Zum Bestätigen erneut tippen.",
+  cashuReturningUnclaimed: "Nicht eingelöste Token werden zurückgeholt…",
+  cashuReturnUnclaimedDone:
+    "Zurückgeholt {returned}, vom Empfänger eingelöst {claimed}, fehlgeschlagen {failed}.",
+  cashuReturnUnclaimedInterrupted:
+    "Der Mint antwortet nicht. Zurückgeholt {returned}, eingelöst {claimed}; den Rest später erneut versuchen.",
   cashuChecking: "Token wird geprüft…",
   cashuCheckOk: "Token ist in Ordnung.",
   pwaUpdateAvailable: "Eine neue Version von Linky ist verfügbar",

@@ -32,7 +32,8 @@ export type OperationKind = typeof OperationKind.Type;
  * - quote kinds: `pending` → `paid` | `unpaid` | `failed` (melt), `done` |
  *   `failed` (topup, autoswap)
  * - `send`: `issued` | `pending` | `externalized` → `done` (claimed or
- *   delivered) | `returned` (taken back into the wallet)
+ *   delivered) | `returned` (taken back into the wallet); a `done` send
+ *   whose proofs are still handed out can still become `returned`
  * - `receive`: `pending` → `done` | `failed`
  */
 export const OperationStatus = Schema.Literal(

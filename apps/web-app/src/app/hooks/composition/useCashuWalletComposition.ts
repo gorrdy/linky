@@ -92,6 +92,7 @@ import { getLinkyBankPaymentOfferInfo } from "../../lib/bankPaymentOffer";
 import { dedupeVisibleLaneRows } from "../../lib/cashuLaneRows";
 import { isCashuRowCandidateBetter } from "../../lib/cashuRowPreference";
 import { reportCashuSendForgotten } from "../../lib/cashuSendInspector";
+import { useReturnUnclaimedCashuTokens } from "../cashu/useReturnUnclaimedCashuTokens";
 import { describeTaggedCashuError } from "../../lib/cashuStoredError";
 import { readCashuTokenAliases as readCashuRowAliases } from "../../lib/cashuTokenIdentity";
 import { isIssuedTransfer, isOpenTransfer } from "../../lib/cashuTransfers";
@@ -1675,6 +1676,18 @@ export const useCashuWalletComposition = ({
     t,
   });
 
+  const { returnUnclaimedCashuTokens, unclaimedCashuTokenCount } =
+    useReturnUnclaimedCashuTokens({
+      cashuIsBusy,
+      cashuProofs: walletProofs,
+      cashuTransfers: walletTransfers,
+      pushToast,
+      returnCashuTransfer: cashuTransferLifecycle?.returnToWallet ?? null,
+      setCashuIsBusy,
+      setStatus,
+      t,
+    });
+
   // Issued-token claim detection over linkshu Validation.checkIssued: one
   // passive NUT-07 batch per mint of handed-out proofs, claimed transfers
   // closed by the package. A shared in-flight promise keeps the callers
@@ -2534,6 +2547,8 @@ export const useCashuWalletComposition = ({
     cashuTotalBalance,
     cashuTransfers: walletTransfers,
     checkAllCashuTokensAndDeleteInvalid,
+    returnUnclaimedCashuTokens,
+    unclaimedCashuTokenCount,
     inspectCashuProofStates,
     checkAndRefreshCashuToken,
     checkIssuedCashuTokensAndDeleteClaimed,

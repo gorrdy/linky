@@ -218,7 +218,8 @@ export class Tokens extends Effect.Service<Tokens>()("linkshu/Tokens", {
      * Closes a transfer the caller has nothing left to do about: a `send`
      * whose token verifiably reached its recipient, or a `receive` that
      * failed for good. Not a refund — handed-out proofs stay handed out and
-     * are still reported spent once the recipient claims them.
+     * are still reported spent once the recipient claims them; until then
+     * `returnToWallet` can still take the send back.
      */
     const forget = (
       operationId: OperationId,
@@ -239,10 +240,25 @@ export class Tokens extends Effect.Service<Tokens>()("linkshu/Tokens", {
         yield* patchOperation(ctx, transfer, { status: "done" }, "forget");
       }).pipe(inspectOperation(inspector, "tokens.forget", { operationId }));
 
+    /** A closed send nobody has claimed: its proofs are still out there. */
+    const isUnclaimedClosedSend = (
+      transfer: StoredOperation,
+    ): Effect.Effect<boolean> =>
+      transfer.kind === "send" && transfer.status === "done"
+        ? Effect.map(proofsOf(transfer), (proofs) =>
+            proofs.some(
+              (proof) =>
+                proof.state === "handedOut" || proof.state === "externalized",
+            ),
+          )
+        : Effect.succeed(false);
+
     /**
      * Bring a transfer's funds back: a handed-out `send` is re-received so
      * the encoding somebody else may hold dies at the mint; a failed or
-     * interrupted `receive` is retried. See `receiveTokenText`.
+     * interrupted `receive` is retried. A send closed by `forget` stays
+     * returnable while the mint has not reported its proofs spent. See
+     * `receiveTokenText`.
      */
     const returnToWallet = (
       operationId: OperationId,
@@ -256,10 +272,10 @@ export class Tokens extends Effect.Service<Tokens>()("linkshu/Tokens", {
           transfer.kind === "send"
             ? ["issued", "pending", "externalized"]
             : ["pending", "failed"];
-        if (
-          !returnable.includes(transfer.status) ||
-          transfer.tokenText === null
-        ) {
+        const canReturn =
+          returnable.includes(transfer.status) ||
+          (yield* isUnclaimedClosedSend(transfer));
+        if (!canReturn || transfer.tokenText === null) {
           return yield* new InvalidTransferTransition({
             operationId,
             from: transfer.status,

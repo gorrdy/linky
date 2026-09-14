@@ -12,6 +12,16 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+### en-US
+
+- A sent Cashu token can no longer be deleted without a refund; return it to the wallet instead, so unclaimed sats are never stranded at the mint.
+- The Tokens page can return every unclaimed sent token to the wallet at once, including tokens deleted earlier.
+
+### cs-CZ
+
+- Odeslaný Cashu token už nelze smazat bez vrácení; místo toho ho vraťte do peněženky, aby nevyzvednuté sats nezůstaly viset u mintu.
+- Stránka Tokeny umí vrátit všechny nevyzvednuté odeslané tokeny do peněženky najednou, včetně dříve smazaných.
+
 ## [26.9.14] - 2026-09-12
 
 ### en-US

@@ -372,7 +372,7 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
         </div>
       ) : null}
 
-      {!isClosed ? (
+      {!isSend && !isClosed ? (
         <div className="settings-row">
           <button
             className={

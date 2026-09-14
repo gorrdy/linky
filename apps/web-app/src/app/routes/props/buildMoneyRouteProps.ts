@@ -28,6 +28,8 @@ interface BuildMoneyRoutePropsParams {
   >["cashuTransfers"];
   inspectCashuProofStates: MoneyRoutesProps["cashuTokensProps"]["inspectCashuProofStates"];
   checkAllCashuTokensAndDeleteInvalid: MoneyRoutesProps["cashuTokensProps"]["checkAllCashuTokensAndDeleteInvalid"];
+  returnUnclaimedCashuTokens: MoneyRoutesProps["cashuTokensProps"]["returnUnclaimedCashuTokens"];
+  unclaimedCashuTokenCount: MoneyRoutesProps["cashuTokensProps"]["unclaimedCashuTokenCount"];
   checkAndRefreshCashuToken: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
   >["checkAndRefreshCashuToken"];
@@ -116,6 +118,8 @@ export const buildMoneyRouteProps = ({
   cashuTransfers,
   inspectCashuProofStates,
   checkAllCashuTokensAndDeleteInvalid,
+  returnUnclaimedCashuTokens,
+  unclaimedCashuTokenCount,
   checkAndRefreshCashuToken,
   checkIssuedCashuTokensAndDeleteClaimed,
   checkSingleIssuedCashuTokenIsClaimed,
@@ -188,6 +192,8 @@ export const buildMoneyRouteProps = ({
       cashuOpenTransfers,
       cashuProofs,
       checkAllCashuTokensAndDeleteInvalid,
+      returnUnclaimedCashuTokens,
+      unclaimedCashuTokenCount,
       inspectCashuProofStates,
       checkIssuedCashuTokensAndDeleteClaimed,
       getMintIconUrl,
