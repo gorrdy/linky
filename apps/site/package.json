@@ -36,6 +36,6 @@
     "vite": "^7.2.4",
     "vitest": "^4.0.18",
     "@playwright/test": "^1.58.1",
-    "@cashu/cashu-ts": "^4.0.0"
+    "@cashu/cashu-ts": "^4.10.1"
   }
 }
