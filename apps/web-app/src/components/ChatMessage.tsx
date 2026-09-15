@@ -365,11 +365,7 @@ function ChatMessageComponent({
         />
       );
     },
-    [
-      formatDisplayedAmountText,
-      getMintIconUrl,
-      onMintIconError,
-    ],
+    [formatDisplayedAmountText, getMintIconUrl, onMintIconError],
   );
 
   const inlineMessageContent = React.useMemo(() => {
