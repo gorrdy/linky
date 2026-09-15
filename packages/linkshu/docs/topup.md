@@ -40,11 +40,11 @@ const topupOnce = (bip39Seed: Bip39Seed) =>
 3. **Mint under the counter lock.** The reserved counter slot is written to the operation's `counter` (synced) and the deterministic counter advanced before the outputs are derived, so a resumed attempt — on this device or another — re-derives the same outputs instead of burning a second block. If the mint says the quote was already issued (a lost response), the proofs are reclaimed via NUT-09 from that slot instead of minted twice; proofs already stored are not imported again.
 4. **Persist.** The proofs are stored `available` (`topup`), then the operation closes `done`. A crash in between costs one reclaim scan on resume, never funds.
 
-Expiry is decided only by the mint: a quote the mint still reports `UNPAID` after `expiresAt` (or 24 h after creation when the mint sets none) fails with `QuoteExpired`. The operation closes `failed` unless minting had already reserved a slot. Poll errors reach `result` and cancel any active subscription; a silent or retrying subscription cannot delay them.
+Expiry is decided only by the mint: a quote the mint still reports `UNPAID` after `expiresAt` fails with `QuoteExpired`. `expiresAt` is the mint-stated expiry; when the mint states none it is the invoice's own expiry (bolt11 timestamp plus its `x` tag, one hour by default), because nobody can pay the invoice past that; only when neither can be read does the deadline fall back to 24 h after creation. The operation closes `failed` unless minting had already reserved a slot. Poll errors reach `result` and cancel any active subscription; a silent or retrying subscription cannot delay them.
 
 ### `resumePending` — run it at startup
 
-Pending topups outlive the process. Nothing polls them until you call `resumePending()`, which returns a handle for every `pending` topup, even those past their deadline. Call it once when your runtime comes up and again whenever connectivity returns; duplicate handles for the same quote are safe.
+Pending topups outlive the process. Nothing polls them until you call `resumePending()`, which returns a handle for every `pending` topup, even those past their deadline. Call it once when your runtime comes up and again whenever connectivity returns. The runtime keeps one watcher per quote: a quote that is already being watched (by `start` or an earlier resume) is not polled a second time — the new handle joins the running watcher, and the `topup.resumePending` inspector row lists such quotes under `joined`. Once a watcher ends (settled, failed, or its scope closed), the next resume starts a fresh one.
 
 ```ts
 import { Effect, Either } from "effect";

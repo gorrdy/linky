@@ -3,6 +3,7 @@ import { Effect, Option, Schema } from "effect";
 import { MintRejected } from "../domain/errors";
 import { Bolt11Invoice, QuoteId, UnixSeconds } from "../domain/primitives";
 import type { MintUrl } from "../domain/primitives";
+import { getLightningInvoicePreview } from "../invoice/preview";
 import { QuoteStateChanged } from "../inspector/events";
 import type { InspectorService } from "../inspector/Inspector";
 
@@ -13,10 +14,19 @@ const decodeExpiry = Schema.decodeUnknownOption(UnixSeconds);
 export interface DecodedMintQuote {
   readonly quoteId: QuoteId;
   readonly invoice: Bolt11Invoice;
-  /** Mint-stated quote expiry; null when the mint sets none. */
+  /**
+   * When the quote stops being payable: the mint-stated expiry, else the
+   * invoice's own (bolt11 timestamp plus `x`, one hour by default). Null
+   * only when neither can be read.
+   */
   readonly expiresAt: UnixSeconds | null;
   readonly state: string;
 }
+
+const invoiceExpiry = (invoice: string): UnixSeconds | null =>
+  Option.getOrNull(
+    decodeExpiry(getLightningInvoicePreview(invoice)?.expiresAtSec ?? null),
+  );
 
 /** A mint quote the flows can act on: it must carry an id and an invoice. */
 export const decodeMintQuote = (
@@ -37,7 +47,9 @@ export const decodeMintQuote = (
   return Effect.succeed({
     quoteId: quoteId.value,
     invoice: invoice.value,
-    expiresAt: Option.getOrNull(decodeExpiry(raw.expiry)),
+    expiresAt: Option.getOrElse(decodeExpiry(raw.expiry), () =>
+      invoiceExpiry(invoice.value),
+    ),
     state: raw.state,
   });
 };

@@ -8,6 +8,7 @@ import {
 } from "../domain/errors";
 import type { MintUnreachable } from "../domain/errors";
 import { UnixSeconds } from "../domain/primitives";
+import type { QuoteId } from "../domain/primitives";
 import { Inspector } from "../inspector/Inspector";
 import { inspectOperationWith, redactReceipt } from "../internal/operations";
 import {
@@ -250,17 +251,51 @@ export class Topup extends Effect.Service<Topup>()("linkshu/Topup", {
       );
 
     /**
+     * One watcher per quote per runtime. `resumePending` runs at every
+     * launch and reconnect; a quote already being watched joins the running
+     * fiber instead of adding another poll loop against the mint.
+     */
+    const watchers = new Map<
+      string,
+      Fiber.RuntimeFiber<TopupReceipt, TopupError>
+    >();
+    const watcherKey = (pending: PendingTopup): string =>
+      `${pending.mint} ${pending.quoteId}`;
+
+    interface Watcher {
+      readonly fiber: Fiber.RuntimeFiber<TopupReceipt, TopupError>;
+      /** False when an earlier call is already watching this quote. */
+      readonly started: boolean;
+    }
+
+    /**
      * Polling runs in the scope, not in `result`: the topup completes itself
      * even when nobody awaits the handle, and closing the scope stops it
      * while the persisted record keeps the quote claimable.
      */
+    const watch = (
+      pending: PendingTopup,
+      options: TopupLockingOptions,
+    ): Effect.Effect<Watcher, never, Scope.Scope> =>
+      Effect.gen(function* () {
+        const key = watcherKey(pending);
+        const running = watchers.get(key);
+        if (running !== undefined) return { fiber: running, started: false };
+        const fiber = yield* Effect.forkScoped(complete(pending, options));
+        watchers.set(key, fiber);
+        fiber.addObserver(() => {
+          if (watchers.get(key) === fiber) watchers.delete(key);
+        });
+        return { fiber, started: true };
+      });
+
     const handleFor = (
       pending: PendingTopup,
       options: TopupLockingOptions,
     ): Effect.Effect<TopupHandle, never, Scope.Scope> =>
-      Effect.map(Effect.forkScoped(complete(pending, options)), (fiber) => ({
+      Effect.map(watch(pending, options), (watcher) => ({
         quote: quoteOf(pending),
-        result: Fiber.join(fiber),
+        result: Fiber.join(watcher.fiber),
       }));
 
     /**
@@ -384,26 +419,35 @@ export class Topup extends Effect.Service<Topup>()("linkshu/Topup", {
      * Every record gets a handle — even one past its deadline. Only the
      * mint's own answer may retire a record (confirmed UNPAID → expired,
      * PAID/ISSUED → minted or reclaimed); a local clock check could prune a
-     * quote that was paid right before the crash.
+     * quote that was paid right before the crash. A record already being
+     * watched is joined, not watched twice.
      */
     const resumePending = (
       options: TopupLockingOptions = {},
     ): Effect.Effect<ReadonlyArray<TopupHandle>, never, Scope.Scope> =>
       Effect.gen(function* () {
         const handles: TopupHandle[] = [];
+        const joined: QuoteId[] = [];
         for (const pending of yield* records.readAll) {
-          handles.push(yield* handleFor(pending, options));
+          const watcher = yield* watch(pending, options);
+          if (!watcher.started) joined.push(pending.quoteId);
+          handles.push({
+            quote: quoteOf(pending),
+            result: Fiber.join(watcher.fiber),
+          });
         }
-        return handles;
+        return { handles, joined };
       }).pipe(
         inspectOperationWith(
           inspector,
           "topup.resumePending",
           {},
-          (handles) => ({
+          ({ handles, joined }) => ({
             resumed: handles.map((handle) => handle.quote.quoteId),
+            joined,
           }),
         ),
+        Effect.map(({ handles }) => handles),
       );
 
     return { start, adopt, resumePending } as const;

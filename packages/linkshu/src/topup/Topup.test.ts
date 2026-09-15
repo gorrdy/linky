@@ -55,6 +55,11 @@ const quoteId = "quote-1";
 
 const LEGACY_PENDING_TOPUP_KEY_PREFIX = "linkshu.pendingTopup.";
 
+/** A real bolt11 invoice: created 1789321029, expiry tag 86400 seconds. */
+const DATED_INVOICE =
+  "lnbc550n1p42dh69pp5u23m72sjpssg4j22a842stks5tudjafgh4ay9k0zz7tqe2und0qsdqqcqzzsxqyz5vqrzjqf86h0rufstp4ann2caue00psdldycl4rcl58pulcytu7qjcawfpjrj6msqq93sqqyqqqfcsqqqp8zqq2qsp5txdzmrhznw74fgag4ujhq6d2lw8erfujcj026hlhs3arg347al6s9qxpqysgq3vvcw9dpl46v4qhns0xsqhvq0fagt2a6tz47945a82z7vnxz6dsnrqyn9lkwu9hqsevhpzxxwekqar2h99tw55qe55ldrv8qgafvltqqf88x83";
+const DATED_INVOICE_EXPIRES_AT = 1789321029 + 86400;
+
 const mintedProofs = [proof(8, "topup-a"), proof(8, "topup-b")];
 
 const quoteResponse = (
@@ -889,6 +894,106 @@ describe("Topup", () => {
 
     assert(Exit.isSuccess(exit));
     expect(exit.value.receipt.amount).toBe(16);
+  });
+
+  it("keeps one watcher per quote however often the record is resumed", async () => {
+    const storage = freshStorage();
+    await writePendingTopup(storage, { counter: null });
+    let checks = 0;
+    const { wallet } = makeWallet({
+      states: [],
+      check: () => {
+        checks += 1;
+        return Promise.resolve(quoteResponse("UNPAID"));
+      },
+    });
+    const { run, events } = makeHarness(wallet, storage);
+
+    const exit = await run(
+      Effect.gen(function* () {
+        yield* TestClock.adjust("1000 seconds");
+        return yield* runOnTestClock(
+          Effect.scoped(
+            Effect.gen(function* () {
+              const topup = yield* Topup;
+              const first = yield* topup.resumePending();
+              yield* Effect.sleep("1 second");
+              const second = yield* topup.resumePending();
+              const third = yield* topup.resumePending();
+              yield* Effect.sleep("60 seconds");
+              return [first.length, second.length, third.length];
+            }),
+          ),
+          "1 second",
+        );
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+
+    assert(Exit.isSuccess(exit));
+    expect(exit.value).toEqual([1, 1, 1]);
+    // One poll loop: the first check at once, then every five seconds.
+    expect(checks).toBe(13);
+    const resumes = events.flatMap((event) =>
+      event._tag === "OperationSucceeded" &&
+      event.name === "topup.resumePending"
+        ? [event.result]
+        : [],
+    );
+    expect(resumes).toEqual([
+      { resumed: [quoteId], joined: [] },
+      { resumed: [quoteId], joined: [quoteId] },
+      { resumed: [quoteId], joined: [quoteId] },
+    ]);
+  });
+
+  it("watches a quote again once its earlier watcher is gone", async () => {
+    const storage = freshStorage();
+    await writePendingTopup(storage, { counter: null });
+    let checks = 0;
+    const { wallet } = makeWallet({
+      states: [],
+      check: () => {
+        checks += 1;
+        return Promise.resolve(quoteResponse("UNPAID"));
+      },
+    });
+    const { run } = makeHarness(wallet, storage);
+
+    const resumeBriefly = Effect.scoped(
+      Effect.gen(function* () {
+        yield* (yield* Topup).resumePending();
+        yield* Effect.sleep("1 second");
+      }),
+    );
+    const exit = await run(
+      Effect.gen(function* () {
+        yield* TestClock.adjust("1000 seconds");
+        yield* runOnTestClock(resumeBriefly, "1 second");
+        yield* runOnTestClock(resumeBriefly, "1 second");
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+
+    assert(Exit.isSuccess(exit));
+    expect(checks).toBe(2);
+    expect(await pendingTopups(storage)).toHaveLength(1);
+  });
+
+  it("takes the deadline from the invoice when the mint states no expiry", async () => {
+    const storage = freshStorage();
+    const { wallet } = makeWallet({
+      created: { ...quoteResponse("UNPAID"), request: DATED_INVOICE },
+      states: [quoteResponse("UNPAID")],
+    });
+    const { run } = makeHarness(wallet, storage);
+
+    const exit = await run(
+      Effect.flatMap(Topup, (topup) =>
+        Effect.map(topup.start(draft), (handle) => handle.quote),
+      ),
+    );
+    assert(Exit.isSuccess(exit));
+    expect(exit.value.expiresAt).toBe(DATED_INVOICE_EXPIRES_AT);
+    expect((await onlyTopup(storage)).expiresAt).toBe(DATED_INVOICE_EXPIRES_AT);
   });
 });
 
