@@ -103,8 +103,7 @@ interface ChatMessageProps {
   onSettleBankPaymentOffer: () => Promise<void>;
   onDeclinePaymentRequest: () => void;
   onEdit: (message: LocalNostrMessage) => void;
-  onMintIconError: (origin: string, nextUrl: string | null) => void;
-  onMintIconLoad: (origin: string, url: string | null) => void;
+  onMintIconError: (url: string) => void;
   onAddNpubContacts: (npubs: readonly string[], messageId: string) => void;
   contactsGroupAssignment: MessageContactsGroupAssignment | null;
   onOpenNpubContact: (npub: string) => void;
@@ -199,7 +198,6 @@ function ChatMessageComponent({
   onDeclinePaymentRequest,
   onEdit,
   onMintIconError,
-  onMintIconLoad,
   onAddNpubContacts,
   contactsGroupAssignment,
   onOpenBankPaymentOfferDetails,
@@ -363,7 +361,6 @@ function ChatMessageComponent({
           }
           className="chat-token-pill"
           isMuted={!info.isValid}
-          onMintIconLoad={onMintIconLoad}
           onMintIconError={onMintIconError}
         />
       );
@@ -372,7 +369,6 @@ function ChatMessageComponent({
       formatDisplayedAmountText,
       getMintIconUrl,
       onMintIconError,
-      onMintIconLoad,
     ],
   );
 

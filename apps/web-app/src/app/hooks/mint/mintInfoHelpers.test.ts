@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { GENERIC_MINT_ICON_DATA_URL } from "../../../utils/mint";
 import {
   getEncounteredMintUrls,
   getMintInfoIconUrl,
   parseMintInfoPayload,
   repairStoredMintInfoRow,
+  resolveMintIcon,
 } from "./mintInfoHelpers";
 
 const bolt11Method = {
@@ -131,6 +133,67 @@ describe("repairStoredMintInfoRow", () => {
       ...truncated,
       infoJson: null,
       lastCheckedAtSec: null,
+    });
+  });
+});
+
+describe("resolveMintIcon", () => {
+  const mint = "https://cashu.example";
+  const infoIcon = "https://cdn.example/mint.png";
+  const infoJson = JSON.stringify({ icon_url: infoIcon });
+  const favicon = "https://cashu.example/favicon.ico";
+
+  it("prefers the icon from mint info over the favicon", () => {
+    expect(resolveMintIcon(mint, infoJson, new Set())).toEqual({
+      origin: "https://cashu.example",
+      url: infoIcon,
+      host: "cashu.example",
+      failed: false,
+    });
+    expect(resolveMintIcon(mint, null, new Set()).url).toBe(favicon);
+  });
+
+  it("tries an icon arriving with mint info even after every fallback failed", () => {
+    const failed = new Set([favicon, GENERIC_MINT_ICON_DATA_URL]);
+
+    expect(resolveMintIcon(mint, null, failed)).toMatchObject({
+      url: null,
+      failed: true,
+    });
+    expect(resolveMintIcon(mint, infoJson, failed)).toMatchObject({
+      url: infoIcon,
+      failed: false,
+    });
+  });
+
+  it("skips failed candidates in order and reports when none is left", () => {
+    expect(resolveMintIcon(mint, infoJson, new Set([infoIcon])).url).toBe(
+      favicon,
+    );
+    expect(
+      resolveMintIcon(mint, infoJson, new Set([infoIcon, favicon])).url,
+    ).toBe(GENERIC_MINT_ICON_DATA_URL);
+    expect(
+      resolveMintIcon(
+        mint,
+        infoJson,
+        new Set([infoIcon, favicon, GENERIC_MINT_ICON_DATA_URL]),
+      ),
+    ).toMatchObject({ url: null, failed: true });
+  });
+
+  it("uses the host override before the favicon", () => {
+    expect(resolveMintIcon("https://cashu.cz", null, new Set()).url).toBe(
+      "https://cashu.cz/icon.webp",
+    );
+  });
+
+  it("shows the generic icon when there is no origin", () => {
+    expect(resolveMintIcon("", null, new Set())).toEqual({
+      origin: null,
+      url: GENERIC_MINT_ICON_DATA_URL,
+      host: null,
+      failed: false,
     });
   });
 });

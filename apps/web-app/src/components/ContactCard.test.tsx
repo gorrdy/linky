@@ -29,7 +29,6 @@ describe("contact identity labels", () => {
         getNpubMessageContactInfo={() => null}
         hasAttention={false}
         onMintIconError={vi.fn()}
-        onMintIconLoad={vi.fn()}
         onSelect={vi.fn()}
         tokenInfo={null}
       />,

@@ -747,8 +747,6 @@ export const useAppShellComposition = ({
     getCashuTokenMessageInfo,
     getMintIconUrl,
     getMintRuntime,
-    handleMintIconError,
-    handleMintIconLoad,
     isCashuTokenKnownAny,
     isCashuTokenStored,
     knownLnAddressPayContact,
@@ -759,6 +757,7 @@ export const useAppShellComposition = ({
     makeNip98AuthHeader,
     markCashuTokenExternalized,
     markCashuTokenIssued,
+    markMintIconFailed,
     meltLargestForeignMintToMainMint,
     mintInfoByUrl,
     onPayChatPaymentRequest,
@@ -795,7 +794,6 @@ export const useAppShellComposition = ({
     setDefaultMintUrlDraft,
     setLightningInvoiceAutoPayLimit,
     setLnAddressPayAmount,
-    setMintIconUrlByMint,
     setMintInfoAll,
     setPayWithCashuEnabled,
     setPendingCashuDeleteId,
@@ -1058,8 +1056,7 @@ export const useAppShellComposition = ({
           getMintIconUrl={getMintIconUrl}
           getNpubMessageContactInfo={getNpubMessageContactInfo}
           onSelect={handleSelectContact}
-          onMintIconLoad={handleMintIconLoad}
-          onMintIconError={handleMintIconError}
+          onMintIconError={markMintIconFailed}
         />
       );
     },
@@ -1068,8 +1065,7 @@ export const useAppShellComposition = ({
       getCashuTokenMessageInfo,
       getMintIconUrl,
       getNpubMessageContactInfo,
-      handleMintIconError,
-      handleMintIconLoad,
+      markMintIconFailed,
       handleSelectContact,
       lastMessageByContactId,
       nostrPictureByNpub,
@@ -1343,7 +1339,6 @@ export const useAppShellComposition = ({
       setCashuEmitAmount,
       setCashuDraft,
       setLnAddressPayAmount,
-      setMintIconUrlByMint,
       shareCashuTokenText,
       setTopupAmount,
       t,
@@ -1539,7 +1534,7 @@ export const useAppShellComposition = ({
       setChatDraft,
       setContactPayMethod,
       setForm,
-      setMintIconUrlByMint,
+      markMintIconFailed,
       setPayAmount,
       setProfileEditLnAddress,
       setProfileEditName,
