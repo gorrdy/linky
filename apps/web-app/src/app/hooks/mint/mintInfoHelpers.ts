@@ -149,10 +149,33 @@ const toJson = (value: unknown): string | null => {
       return null;
     }
 
-    return trimmed.slice(0, 1000);
+    return trimmed;
   } catch {
     return null;
   }
+};
+
+const parseJsonText = Schema.decodeUnknownOption(Schema.parseJson(JsonValue));
+
+const isBrokenJsonText = (value: string | null | undefined): boolean =>
+  hasJsonText(value) && Option.isNone(parseJsonText(value));
+
+// Rows saved while infoJson/feesJson were cut at 1000 characters hold JSON
+// that no longer parses; drop such blobs and the check time so the refresh
+// gate fetches the complete mint info again.
+export const repairStoredMintInfoRow = (
+  row: LocalMintInfoRow,
+): LocalMintInfoRow => {
+  const infoBroken = isBrokenJsonText(row.infoJson);
+  const feesBroken = isBrokenJsonText(row.feesJson);
+  if (!infoBroken && !feesBroken) return row;
+
+  return {
+    ...row,
+    feesJson: feesBroken ? null : row.feesJson,
+    infoJson: infoBroken ? null : row.infoJson,
+    lastCheckedAtSec: null,
+  };
 };
 
 export const getMintInfoIconUrl = (
