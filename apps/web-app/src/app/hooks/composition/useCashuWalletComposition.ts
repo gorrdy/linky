@@ -755,6 +755,58 @@ export const useCashuWalletComposition = ({
     }
   }, [cashuTransferLifecycle, nostrMessagesLocal, walletTransfers]);
 
+  // A cashu token paid to our own key lands back in our own inbox as an
+  // incoming message the auto-claim skips (its proofs are already ours). A
+  // token sent to anyone else never returns to us, so an incoming message
+  // carrying one of our own still-open sends is unambiguously a self-payment;
+  // reclaim that transfer back into the balance instead of leaving it stuck.
+  const selfSendReclaimAttemptedRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    const lifecycle = cashuTransferLifecycle;
+    if (lifecycle === null) return;
+    const ownPubkeyHex = normalizePubkeyHex(decodeNpub(currentNpub ?? ""));
+    if (!ownPubkeyHex) return;
+    // A self-payment resolves the request to a contact whose key is our own;
+    // that contact's display name may be wrong, but its npub is ours.
+    const selfContactIds = new Set(
+      contacts
+        .filter(
+          (contact) =>
+            normalizePubkeyHex(decodeNpub(contact.npub ?? "")) === ownPubkeyHex,
+        )
+        .map((contact) => String(contact.id).trim())
+        .filter((id) => id.length > 0),
+    );
+    // A token that reached our own inbox (direction "in") or that we sent into
+    // a self-chat is a self-payment; a token sent to anyone else never matches
+    // one of our own open transfers here, so this cannot reclaim a real send.
+    const selfDirectedTokenTexts = new Set(
+      [...chatMessages, ...nostrMessagesRecent, ...nostrMessagesLocal]
+        .filter((message) => {
+          if (message.direction === "in") return true;
+          const contactId = (message.contactId ?? "").toString().trim();
+          return contactId.length > 0 && selfContactIds.has(contactId);
+        })
+        .map((message) => message.content.trim()),
+    );
+    for (const transfer of walletTransfers) {
+      if (transfer.kind !== "send" || !isOpenTransfer(transfer)) continue;
+      const id = String(transfer.id);
+      if (selfSendReclaimAttemptedRef.current.has(id)) continue;
+      if (!selfDirectedTokenTexts.has(transfer.tokenText.trim())) continue;
+      selfSendReclaimAttemptedRef.current.add(id);
+      void lifecycle.returnToWallet(transfer.id);
+    }
+  }, [
+    cashuTransferLifecycle,
+    contacts,
+    currentNpub,
+    chatMessages,
+    nostrMessagesRecent,
+    nostrMessagesLocal,
+    walletTransfers,
+  ]);
+
   const cashuTotalBalance: number = walletBalances.total;
   const cashuBalance: number = walletBalances.spendable;
 
@@ -1453,6 +1505,29 @@ export const useCashuWalletComposition = ({
   const payCashuPaymentRequest = React.useCallback(
     async (requestInfo: CashuPaymentRequestMessageInfo) => {
       if (cashuIsBusy) return;
+
+      // A request addressed to our own key is already satisfied by the funds in
+      // this wallet. Complete it locally as a success instead of gift-wrapping a
+      // cashu token to ourselves over nostr, which the inbox treats as an
+      // own-echo and never auto-claims — that is what stranded the token as an
+      // unclaimable "awaiting claim" transfer.
+      const ownPubkeyHex = normalizePubkeyHex(decodeNpub(currentNpub ?? ""));
+      const targetPubkeyHex = normalizePubkeyHex(
+        requestInfo.transportPubkeyHex,
+      );
+      if (ownPubkeyHex && targetPubkeyHex && ownPubkeyHex === targetPubkeyHex) {
+        const displayAmount = formatDisplayedAmountParts(requestInfo.amount);
+        showPaidOverlay(
+          t("paymentRequestSelfPayment")
+            .replace(
+              "{amount}",
+              `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+            )
+            .replace("{unit}", displayAmount.unitLabel),
+        );
+        return;
+      }
+
       if (requestInfo.amount > cashuBalance) {
         const requestedMints = requestInfo.mintUrls.flatMap((mintUrl) => {
           const normalizedMint = normalizeMintUrl(mintUrl);
@@ -1512,14 +1587,17 @@ export const useCashuWalletComposition = ({
     [
       cashuIsBusy,
       cashuBalance,
+      currentNpub,
       ensureContactForCashuPaymentRequest,
       findPreviousCashuPaymentRequestMessage,
+      formatDisplayedAmountParts,
       payCashuPaymentRequestViaPost,
       payContactWithCashuMessage,
       paymentMintMeltPlan?.toMint,
       requestPaymentMintMelt,
       setCashuIsBusy,
       setStatus,
+      showPaidOverlay,
       t,
     ],
   );

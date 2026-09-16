@@ -870,6 +870,8 @@ export const de = {
   paymentRequestDeclinedMessage: "Zahlungsanforderung abgelehnt.",
   paymentRequestUnknownContact:
     "Diese Zahlungsanforderung gehört zu einem nicht gespeicherten Nostr-Kontakt.",
+  paymentRequestSelfPayment:
+    "{amount} {unit} an dein eigenes Konto — das Guthaben bleibt in deiner Wallet.",
   availablePrefix: "verfügbar:",
   payAmount: "Betrag",
   paySend: "Bezahlen",

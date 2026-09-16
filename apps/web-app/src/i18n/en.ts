@@ -860,6 +860,8 @@ export const en = {
   paymentRequestDeclinedMessage: "Payment request declined.",
   paymentRequestUnknownContact:
     "This payment request belongs to a Nostr contact you have not saved yet.",
+  paymentRequestSelfPayment:
+    "{amount} {unit} to your own account — the funds stay in your wallet.",
   availablePrefix: "available:",
   payAmount: "Amount",
   paySend: "Pay",
