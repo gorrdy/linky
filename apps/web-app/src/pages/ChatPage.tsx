@@ -26,6 +26,7 @@ import {
   type LinkyBankPaymentOfferInfo,
 } from "../app/lib/bankPaymentOffer";
 import {
+  getAuthoredBankPaymentOfferAmount,
   getAuthoredBankPaymentOfferIds,
   getSettledBankPaymentOfferIds,
 } from "../app/lib/bankPaymentOfferAuthored";
@@ -436,10 +437,18 @@ const ChatMessageList = memo(function ChatMessageList({
         parsed.bankPaymentOfferInfo,
         offersById,
       );
+      const bankOfferAuthoredAmountSat = parsed.bankPaymentOfferInfo
+        ? getAuthoredBankPaymentOfferAmount(parsed.bankPaymentOfferInfo.offerId)
+        : null;
+      const bankOfferAmountMismatch =
+        bankOfferAuthoredAmountSat !== null &&
+        parsed.bankPaymentOfferInfo?.amountSat != null &&
+        parsed.bankPaymentOfferInfo.amountSat !== bankOfferAuthoredAmountSat;
       const canSettleBankPaymentOffer =
         parsed.bankPaymentOfferInfo?.status === "bank_paid" &&
         authoredBankOfferIds.has(parsed.bankPaymentOfferInfo.offerId) &&
-        !settledBankOfferIds.has(parsed.bankPaymentOfferInfo.offerId);
+        !settledBankOfferIds.has(parsed.bankPaymentOfferInfo.offerId) &&
+        !bankOfferAmountMismatch;
 
       return {
         ...parsed,
