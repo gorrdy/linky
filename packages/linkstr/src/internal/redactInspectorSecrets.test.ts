@@ -1,5 +1,5 @@
 import { PrivateImage } from "../chat/domain";
-import { redactAttachmentKeys } from "./redactAttachmentKeys";
+import { redactInspectorSecrets } from "./redactInspectorSecrets";
 
 const image = new PrivateImage({
   url: "https://blossom.test/image",
@@ -15,9 +15,12 @@ const image = new PrivateImage({
   storageEncoding: "base64",
 });
 
-describe("redactAttachmentKeys", () => {
+const cashuToken =
+  "cashuBo2Ftdgtftftftftftftftftftftftftftftftftftftftftftftftftftftftft";
+
+describe("redactInspectorSecrets", () => {
   it("strips key and nonce from an attachment nested anywhere in the value", () => {
-    const redacted = redactAttachmentKeys({
+    const redacted = redactInspectorSecrets({
       ref: "row-1",
       operation: { _tag: "chat.image", draft: { to: "peer", image } },
       list: [image],
@@ -48,6 +51,27 @@ describe("redactAttachmentKeys", () => {
     expect(JSON.stringify(redacted)).not.toContain("02".repeat(12));
   });
 
+  it("redacts a cashu token from a send draft and a received body", () => {
+    const redacted = redactInspectorSecrets({
+      params: { to: "peer", token: cashuToken },
+      event: {
+        _tag: "ChatMessageReceived",
+        body: { _tag: "TokenBody", token: cashuToken },
+      },
+    });
+
+    expect(JSON.stringify(redacted)).not.toContain(cashuToken);
+    expect(redacted).toMatchObject({
+      params: { token: "[redacted cashu token]" },
+      event: { body: { token: "[redacted cashu token]" } },
+    });
+  });
+
+  it("leaves a non-cashu token field untouched", () => {
+    const value = { auth: { token: "bearer-abc123" } };
+    expect(redactInspectorSecrets(value)).toBe(value);
+  });
+
   it("returns the same reference when nothing needs redacting", () => {
     const value = {
       draft: { to: "peer", content: "hello", key: "a storage key" },
@@ -55,8 +79,8 @@ describe("redactAttachmentKeys", () => {
       count: 3,
     };
 
-    expect(redactAttachmentKeys(value)).toBe(value);
-    expect(redactAttachmentKeys("text")).toBe("text");
-    expect(redactAttachmentKeys(null)).toBe(null);
+    expect(redactInspectorSecrets(value)).toBe(value);
+    expect(redactInspectorSecrets("text")).toBe("text");
+    expect(redactInspectorSecrets(null)).toBe(null);
   });
 });

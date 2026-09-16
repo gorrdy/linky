@@ -19,7 +19,7 @@ import type { RelayUrl } from "../domain/primitives";
 import { Inspector } from "../inspector/Inspector";
 import { InboxRouted, InboxWrapDeduped } from "../inspector/events";
 import { inspectPlainOperation } from "../internal/inspectPlainOperation";
-import { redactAttachmentKeys } from "../internal/redactAttachmentKeys";
+import { redactInspectorSecrets } from "../internal/redactInspectorSecrets";
 import type { InspectedPlainResult } from "../internal/inspectPlainOperation";
 import { fetchRawEvents } from "../internal/plainFetch";
 import { resubscribeForever } from "../internal/resubscribe";
@@ -276,7 +276,7 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
                           wrapId: decoded.event.wrapId,
                           rumorKind: null,
                           delivery,
-                          event: redactAttachmentKeys(decoded.event),
+                          event: redactInspectorSecrets(decoded.event),
                         },
                         { disableValidation: true },
                       ),
@@ -298,7 +298,7 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
                           wrapId: wrap.id,
                           rumorKind: decoded.rumorKind,
                           delivery,
-                          event: redactAttachmentKeys(decoded.event),
+                          event: redactInspectorSecrets(decoded.event),
                         },
                         { disableValidation: true },
                       ),
