@@ -867,6 +867,8 @@ export const de = {
     "Diese Zahlungsanforderung gehört zu einem nicht gespeicherten Nostr-Kontakt.",
   bankPaymentOfferSettleConfirm:
     "{amount} {unit} an {name} freigeben? Nur freigeben, wenn du die Zahlung wirklich auf deinem Konto erhalten hast.",
+  bankPaymentOfferAmountMismatch:
+    "Der Zahler hat einen anderen Betrag ({amount}) als dein Angebot angegeben — nicht freigeben, es stimmt nicht überein.",
   availablePrefix: "verfügbar:",
   payAmount: "Betrag",
   paySend: "Bezahlen",

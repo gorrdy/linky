@@ -216,6 +216,7 @@ export function ExpiredOfferView({ t, closeOffer }: ExpiredOfferViewProps) {
 interface OwnerOfferViewProps {
   activeEntry: BankPaymentOfferEntry;
   activeAmountText: string;
+  amountMismatchText?: string | null;
   t: Translate;
   remainingSec: number | null;
   timerWithExtension: (
@@ -239,6 +240,7 @@ interface OwnerOfferViewProps {
 export function OwnerOfferView({
   activeEntry,
   activeAmountText,
+  amountMismatchText,
   t,
   remainingSec,
   timerWithExtension,
@@ -262,6 +264,11 @@ export function OwnerOfferView({
           canCycle={Boolean(activeEntry.info.amountSat)}
           text={activeAmountText}
         />
+        {amountMismatchText ? (
+          <p className="bank-payment-offer-amount-mismatch" role="alert">
+            {amountMismatchText}
+          </p>
+        ) : null}
         <RecipientProgress status={activeEntry.info.status} t={t} />
         {remainingSec !== null
           ? timerWithExtension(activeEntry, remainingSec)

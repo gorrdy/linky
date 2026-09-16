@@ -858,6 +858,8 @@ export const en = {
     "This payment request belongs to a Nostr contact you have not saved yet.",
   bankPaymentOfferSettleConfirm:
     "Release {amount} {unit} to {name}? Only release if you actually received the payment in your bank account.",
+  bankPaymentOfferAmountMismatch:
+    "The payer reported a different amount ({amount}) than your offer — do not settle, it does not match.",
   availablePrefix: "available:",
   payAmount: "Amount",
   paySend: "Pay",

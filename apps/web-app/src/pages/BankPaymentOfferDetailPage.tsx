@@ -12,7 +12,10 @@ import {
   setLinkyBankPaymentOfferMinimized,
   type LinkyBankPaymentOfferStatus,
 } from "../app/lib/bankPaymentOffer";
-import { isAuthoredBankPaymentOffer } from "../app/lib/bankPaymentOfferAuthored";
+import {
+  getAuthoredBankPaymentOfferAmount,
+  isAuthoredBankPaymentOffer,
+} from "../app/lib/bankPaymentOfferAuthored";
 import {
   getChatAttachmentRejection,
   parsePrivateImageMessage,
@@ -463,9 +466,25 @@ export const BankPaymentOfferDetailPage: React.FC<
         .at(-1) ??
       [...offerEntries].sort(compareEntries).at(-1) ??
       entry;
-    const activeAmountText = activeEntry.info.amountSat
-      ? formatDisplayedAmountText(activeEntry.info.amountSat)
+    // Show the amount we ourselves offered (authoritative), not the amount the
+    // counterparty put in their snapshot; flag any mismatch instead of silently
+    // displaying a tampered figure.
+    const authoredAmountSat = getAuthoredBankPaymentOfferAmount(offerId);
+    const displayAmountSat = authoredAmountSat ?? activeEntry.info.amountSat;
+    const activeAmountText = displayAmountSat
+      ? formatDisplayedAmountText(displayAmountSat)
       : activeEntry.info.amountText;
+    const amountMismatch =
+      authoredAmountSat !== null &&
+      activeEntry.info.amountSat !== null &&
+      activeEntry.info.amountSat !== authoredAmountSat;
+    const amountMismatchText =
+      amountMismatch && activeEntry.info.amountSat !== null
+        ? t("bankPaymentOfferAmountMismatch").replace(
+            "{amount}",
+            formatDisplayedAmountText(activeEntry.info.amountSat),
+          )
+        : null;
     const activeExpiresAtSec = getLinkyBankPaymentOfferExpiresAtSec(
       activeEntry.info,
       activeEntry.message.createdAtSec,
@@ -473,7 +492,8 @@ export const BankPaymentOfferDetailPage: React.FC<
     const remainingSec = activeExpiresAtSec
       ? activeExpiresAtSec - Math.floor(nowMs / 1_000)
       : null;
-    const canSettle = activeEntry.info.status === "bank_paid";
+    const canSettle =
+      activeEntry.info.status === "bank_paid" && !amountMismatch;
     const canCancel =
       activeEntry.info.status !== "settled" &&
       activeEntry.info.status !== "canceled";
@@ -525,6 +545,7 @@ export const BankPaymentOfferDetailPage: React.FC<
       <OwnerOfferView
         activeEntry={activeEntry}
         activeAmountText={activeAmountText}
+        amountMismatchText={amountMismatchText}
         t={t}
         remainingSec={remainingSec}
         timerWithExtension={timerWithExtension}

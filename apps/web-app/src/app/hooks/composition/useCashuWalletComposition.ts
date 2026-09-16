@@ -1048,11 +1048,17 @@ export const useCashuWalletComposition = ({
       const authoredAmountSat = getAuthoredBankPaymentOfferAmount(
         offerInfo.offerId,
       );
-      if (
-        authoredAmountSat === null ||
-        authoredAmountSat !== offerInfo.amountSat
-      ) {
+      if (authoredAmountSat === null) {
         setStatus(t("spdPaymentOfferFailed"));
+        return;
+      }
+      if (authoredAmountSat !== offerInfo.amountSat) {
+        setStatus(
+          t("bankPaymentOfferAmountMismatch").replace(
+            "{amount}",
+            formatDisplayedAmountText(offerInfo.amountSat),
+          ),
+        );
         return;
       }
 
@@ -1100,6 +1106,7 @@ export const useCashuWalletComposition = ({
       cashuIsBusy,
       contacts,
       formatDisplayedAmountParts,
+      formatDisplayedAmountText,
       isBankPaymentOfferCanceled,
       payContactWithCashuMessage,
       respondToBankPaymentOfferWithGroupState,

@@ -866,6 +866,8 @@ export const cs = {
     "Tato žádost o platbu patří Nostr kontaktu, který ještě nemáte uložený.",
   bankPaymentOfferSettleConfirm:
     "Uvolnit {amount} {unit} pro {name}? Uvolni jen pokud jsi platbu opravdu dostal na účet.",
+  bankPaymentOfferAmountMismatch:
+    "Plátce uvedl jinou částku ({amount}) než tvá nabídka — nevyrovnávej, neodpovídá.",
   availablePrefix: "dostupné:",
   payAmount: "Kolik poslat",
   paySend: "Zaplatit",
