@@ -18,6 +18,7 @@ import {
   type LinkyBankPaymentOfferInfo,
   type LinkyBankPaymentOfferStatus,
 } from "../app/lib/bankPaymentOffer";
+import { getAuthoredBankPaymentOfferAmount } from "../app/lib/bankPaymentOfferAuthored";
 import { parseIdentityChangeMessageContent } from "../app/lib/identityChangeMessage";
 import {
   extractMessageLinks,
@@ -61,8 +62,7 @@ export interface NpubMessageContactInfo {
 }
 
 export type BankPaymentOfferPeerNotice =
-  | "accepted_by_other"
-  | "backup_recipient";
+  "accepted_by_other" | "backup_recipient";
 
 const MESSAGE_NPUB_PATTERN =
   /^(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]+(?:@npub\.cash)?$/i;
@@ -266,8 +266,15 @@ function ChatMessageComponent({
 
   const tokenInfo = privateImageInfo ? null : getCashuTokenMessageInfo(content);
   const isDeclineMessage = Boolean(declineInfo);
-  const bankOfferDisplayAmount = bankPaymentOfferInfo?.amountSat
-    ? formatDisplayedAmountText(bankPaymentOfferInfo.amountSat)
+  // Show the amount we authored, not the counterparty's snapshot: a tampered
+  // "bank_paid" must not display an inflated/lowered figure on the card either.
+  const bankOfferAuthoredAmountSat = bankPaymentOfferInfo
+    ? getAuthoredBankPaymentOfferAmount(bankPaymentOfferInfo.offerId)
+    : null;
+  const bankOfferDisplaySat =
+    bankOfferAuthoredAmountSat ?? bankPaymentOfferInfo?.amountSat ?? null;
+  const bankOfferDisplayAmount = bankOfferDisplaySat
+    ? formatDisplayedAmountText(bankOfferDisplaySat)
     : (bankPaymentOfferInfo?.amountText ?? "");
   const bankOfferDescription = bankPaymentOfferInfo
     ? getBankPaymentOfferDescription(
