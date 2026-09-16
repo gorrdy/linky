@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import type { EventId, WrapId } from "../domain/primitives";
 import type { InspectorService } from "../inspector/Inspector";
 import { OperationFailed, PlainOperationSucceeded } from "../inspector/events";
-import { redactAttachmentKeys } from "./redactAttachmentKeys";
+import { redactInspectorSecrets } from "./redactInspectorSecrets";
 
 export interface InspectedPlainResult<A> {
   readonly result: A;
@@ -24,9 +24,9 @@ export const inspectPlainOperation =
               new PlainOperationSucceeded(
                 {
                   name,
-                  params: redactAttachmentKeys(params),
+                  params: redactInspectorSecrets(params),
                   eventIds,
-                  result: redactAttachmentKeys(result),
+                  result: redactInspectorSecrets(result),
                 },
                 { disableValidation: true },
               ),
@@ -39,7 +39,7 @@ export const inspectPlainOperation =
           inspector.emit(
             () =>
               new OperationFailed(
-                { name, params: redactAttachmentKeys(params), error },
+                { name, params: redactInspectorSecrets(params), error },
                 { disableValidation: true },
               ),
           ),

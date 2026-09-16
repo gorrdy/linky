@@ -54,8 +54,12 @@ For an `app.log` row call `reportAppLog` (`devtools/inspector/appLog.ts`); it st
 ## Hard rules
 
 - **NEVER put key material in any field** — nsec, seed words, derived private keys,
-  mint secrets, VAPID keys. Decrypted message *content* is acceptable by design (the
-  settings copy discloses it); keys are not, in any form, including inside payloads.
+  mint secrets, VAPID keys. An encoded cashu **token** (`cashuA`/`cashuB`) counts:
+  its proofs carry the mint secrets that let any holder spend it, so log the token
+  *id*, amount, and mint, never the token text. Decrypted message *content* is
+  acceptable by design (the settings copy discloses it); keys are not, in any form,
+  including inside payloads. `redactInspectorSecrets` enforces both at the emit
+  chokepoint.
 - **Emission cost when disabled**: check `getInspectorEmissionEnabled()` before
   constructing the row — a disabled inspector must cost one boolean per event site.
   For stream-like producers, follow the linkstr-bridge pattern

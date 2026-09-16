@@ -4,7 +4,7 @@ import { ClientId } from "../domain/primitives";
 import type { RumorId, UnixSeconds } from "../domain/primitives";
 import type { InspectorService } from "../inspector/Inspector";
 import { OperationFailed, OperationSucceeded } from "../inspector/events";
-import { redactAttachmentKeys } from "./redactAttachmentKeys";
+import { redactInspectorSecrets } from "./redactInspectorSecrets";
 
 export const freshClientId = Effect.sync(() =>
   ClientId.make(crypto.randomUUID()),
@@ -34,7 +34,7 @@ export const inspectOperation =
               new OperationSucceeded(
                 {
                   name,
-                  params: redactAttachmentKeys(params),
+                  params: redactInspectorSecrets(params),
                   ...summarize(receipt),
                 },
                 { disableValidation: true },
@@ -47,7 +47,7 @@ export const inspectOperation =
           inspector.emit(
             () =>
               new OperationFailed(
-                { name, params: redactAttachmentKeys(params), error },
+                { name, params: redactInspectorSecrets(params), error },
                 { disableValidation: true },
               ),
           ),
