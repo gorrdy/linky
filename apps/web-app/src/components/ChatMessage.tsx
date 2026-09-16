@@ -276,6 +276,15 @@ function ChatMessageComponent({
   const bankOfferDisplayAmount = bankOfferDisplaySat
     ? formatDisplayedAmountText(bankOfferDisplaySat)
     : (bankPaymentOfferInfo?.amountText ?? "");
+  const bankOfferAmountMismatchText =
+    bankOfferAuthoredAmountSat !== null &&
+    bankPaymentOfferInfo?.amountSat != null &&
+    bankPaymentOfferInfo.amountSat !== bankOfferAuthoredAmountSat
+      ? t("bankPaymentOfferAmountMismatch").replace(
+          "{amount}",
+          formatDisplayedAmountText(bankPaymentOfferInfo.amountSat),
+        )
+      : null;
   const bankOfferDescription = bankPaymentOfferInfo
     ? getBankPaymentOfferDescription(
         bankPaymentOfferInfo.status,
@@ -788,6 +797,14 @@ function ChatMessageComponent({
                       {bankOfferDisplayAmount}
                     </div>
                   </div>
+                  {bankOfferAmountMismatchText ? (
+                    <div
+                      className="chat-payment-request-description bank-payment-offer-amount-mismatch"
+                      role="alert"
+                    >
+                      {bankOfferAmountMismatchText}
+                    </div>
+                  ) : null}
                   {bankOfferDescription ? (
                     <div className="chat-payment-request-description">
                       {bankOfferDescription}
