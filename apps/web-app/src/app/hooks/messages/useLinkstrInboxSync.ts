@@ -293,7 +293,10 @@ export const useLinkstrInboxSync = (params: UseLinkstrInboxSyncParams) => {
             {
               contactId,
               delivery,
-              isOutgoing: event.offerer === myPubkey,
+              // Ownership must come from who authored the wrap, not the
+              // forgeable `offerer` field: a received snapshot claiming
+              // offerer === us is an incoming message, never our own offer.
+              isOutgoing: isSelfAuthored,
               isSelfAuthored,
               peerPubkey,
             },

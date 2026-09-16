@@ -1,7 +1,11 @@
 import { getPublicKey } from "nostr-tools";
 import { act, type ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { LinkyBankPaymentOfferStatus } from "../app/lib/bankPaymentOffer";
+import {
+  getLinkyBankPaymentOfferInfo,
+  type LinkyBankPaymentOfferStatus,
+} from "../app/lib/bankPaymentOffer";
+import { recordAuthoredBankPaymentOffer } from "../app/lib/bankPaymentOfferAuthored";
 import type { LocalNostrMessage } from "../app/types/appTypes";
 import { createLinkyBankPaymentOfferEvent } from "../testUtils/bankPaymentOfferEvent";
 import { createSecretKey } from "../testUtils/nostrKeys";
@@ -80,9 +84,25 @@ const renderOffer = async ({
   status = "offered",
   ...overrides
 }: RenderOfferOptions = {}) => {
+  const offerMessages = overrides.bankPaymentOfferMessages ?? [
+    createOfferMessage(status),
+  ];
+  // Mirror real authorship: the offerer's device recorded creating any offer
+  // it authored, which is what now gates the owner view and settlement.
+  const effectiveOwnPubkey = overrides.chatOwnPubkeyHex ?? RECIPIENT_PUBKEY;
+  for (const message of offerMessages) {
+    const info = getLinkyBankPaymentOfferInfo(message.content);
+    if (
+      info &&
+      info.amountSat &&
+      (info.offererPublicKey ?? "") === effectiveOwnPubkey
+    ) {
+      recordAuthoredBankPaymentOffer(info.offerId, info.amountSat);
+    }
+  }
   const { container } = await renderIntoDocument(
     <BankPaymentOfferDetailPage
-      bankPaymentOfferMessages={[createOfferMessage(status)]}
+      bankPaymentOfferMessages={offerMessages}
       chatId="contact-1"
       chatMessages={[]}
       chatOwnPubkeyHex={RECIPIENT_PUBKEY}

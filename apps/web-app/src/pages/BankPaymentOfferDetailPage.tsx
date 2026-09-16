@@ -12,6 +12,7 @@ import {
   setLinkyBankPaymentOfferMinimized,
   type LinkyBankPaymentOfferStatus,
 } from "../app/lib/bankPaymentOffer";
+import { isAuthoredBankPaymentOffer } from "../app/lib/bankPaymentOfferAuthored";
 import {
   getChatAttachmentRejection,
   parsePrivateImageMessage,
@@ -359,11 +360,11 @@ export const BankPaymentOfferDetailPage: React.FC<
     return () => window.clearInterval(intervalId);
   }, [offerHasEnded]);
 
-  const isCreatedByMe =
-    entry !== null &&
-    ((entry.info.offererPublicKey ?? "").trim() ===
-      (chatOwnPubkeyHex ?? "").trim() ||
-      entry.message.direction === "out");
+  // We own the offer only if we recorded creating it (persistent, unforgeable).
+  // The `offererPublicKey` field is attacker-controlled and the message store
+  // keeps only the latest snapshot, so a forged "bank_paid" claiming offerer
+  // === us must not render as our own offer to settle.
+  const isCreatedByMe = entry !== null && isAuthoredBankPaymentOffer(offerId);
 
   React.useEffect(() => {
     if (!entry || entry.info.status !== "settled" || isCreatedByMe) return;

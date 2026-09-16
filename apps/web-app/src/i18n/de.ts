@@ -865,6 +865,8 @@ export const de = {
   paymentRequestDeclinedMessage: "Zahlungsanforderung abgelehnt.",
   paymentRequestUnknownContact:
     "Diese Zahlungsanforderung gehört zu einem nicht gespeicherten Nostr-Kontakt.",
+  bankPaymentOfferSettleConfirm:
+    "{amount} {unit} an {name} freigeben? Nur freigeben, wenn du die Zahlung wirklich auf deinem Konto erhalten hast.",
   availablePrefix: "verfügbar:",
   payAmount: "Betrag",
   paySend: "Bezahlen",

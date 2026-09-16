@@ -91,6 +91,11 @@ import { usePaidOverlayState } from "../usePaidOverlayState";
 import { usePaymentsDomain } from "../usePaymentsDomain";
 import { useProfileNpubCashEffects } from "../useProfileNpubCashEffects";
 import { getLinkyBankPaymentOfferInfo } from "../../lib/bankPaymentOffer";
+import {
+  getAuthoredBankPaymentOfferAmount,
+  isBankPaymentOfferSettled,
+  markBankPaymentOfferSettled,
+} from "../../lib/bankPaymentOfferAuthored";
 import { dedupeVisibleLaneRows } from "../../lib/cashuLaneRows";
 import { isCashuRowCandidateBetter } from "../../lib/cashuRowPreference";
 import { reportCashuSendForgotten } from "../../lib/cashuSendInspector";
@@ -1028,6 +1033,29 @@ export const useCashuWalletComposition = ({
         return;
       }
 
+      // Never settle the same offer twice: a replayed "bank_paid" after we
+      // already released the funds must not pay again.
+      if (isBankPaymentOfferSettled(offerInfo.offerId)) {
+        setStatus(t("spdPaymentOfferFailed"));
+        return;
+      }
+
+      // Settle only an offer we ourselves recorded creating, and release
+      // exactly the amount we offered — never the amount the counterparty put
+      // in their "bank_paid" snapshot, which they control. A forged offer we
+      // never created yields no authored amount and is refused here even if a
+      // stale button reached this path.
+      const authoredAmountSat = getAuthoredBankPaymentOfferAmount(
+        offerInfo.offerId,
+      );
+      if (
+        authoredAmountSat === null ||
+        authoredAmountSat !== offerInfo.amountSat
+      ) {
+        setStatus(t("spdPaymentOfferFailed"));
+        return;
+      }
+
       const contactId = message.contactId.trim();
       const contact =
         contacts.find((candidate) => candidate.id.trim() === contactId) ?? null;
@@ -1036,17 +1064,33 @@ export const useCashuWalletComposition = ({
         return;
       }
 
+      const settleAmount = formatDisplayedAmountParts(authoredAmountSat);
+      const settleConfirmed = window.confirm(
+        t("bankPaymentOfferSettleConfirm")
+          .replace(
+            "{amount}",
+            `${settleAmount.approxPrefix}${settleAmount.amountText}`,
+          )
+          .replace("{unit}", settleAmount.unitLabel)
+          .replace(
+            "{name}",
+            (contact.name ?? "").trim() || t("unknownContactTitle"),
+          ),
+      );
+      if (!settleConfirmed) return;
+
       setCashuIsBusy(true);
       try {
         const result = await payContactWithCashuMessage({
           contact,
-          amountSat: offerInfo.amountSat,
+          amountSat: authoredAmountSat,
           logCompletedOnly: true,
           paymentNoticeContext: "bank_payment_offer",
           paymentNoticeOfferId: offerInfo.offerId,
         });
         if (!result.ok) return;
 
+        markBankPaymentOfferSettled(offerInfo.offerId);
         await respondToBankPaymentOfferWithGroupState(message, "settled");
       } finally {
         setCashuIsBusy(false);
@@ -1055,6 +1099,7 @@ export const useCashuWalletComposition = ({
     [
       cashuIsBusy,
       contacts,
+      formatDisplayedAmountParts,
       isBankPaymentOfferCanceled,
       payContactWithCashuMessage,
       respondToBankPaymentOfferWithGroupState,

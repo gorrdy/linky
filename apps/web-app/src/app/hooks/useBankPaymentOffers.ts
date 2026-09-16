@@ -53,6 +53,7 @@ import {
   removeLinkyBankPaymentOfferStaggerRecipients,
   type LinkyBankPaymentOfferStatus,
 } from "../lib/bankPaymentOffer";
+import { recordAuthoredBankPaymentOffer } from "../lib/bankPaymentOfferAuthored";
 
 const isPubkey = Schema.is(Pubkey);
 const isBankOfferId = Schema.is(BankOfferId);
@@ -341,6 +342,13 @@ export const useBankPaymentOffers = ({
 
       const text = getLinkyBankPaymentOfferMessageText(amountText, "offered");
       if (!isNonEmptyTrimmedString(text)) return null;
+
+      // Persist that we authored this offer and for how much, so a later
+      // forged/tampered "bank_paid" snapshot cannot make us settle an offer we
+      // never created or release a different amount.
+      if (amountSat !== null && isPositiveInt(amountSat)) {
+        recordAuthoredBankPaymentOffer(offerId, amountSat);
+      }
 
       const clientId = ClientId.make(makeLocalId());
       const expiresAtSec = positiveUnixSeconds(args.expiresAtSec);

@@ -864,6 +864,8 @@ export const cs = {
   paymentRequestDeclinedMessage: "Žádost o platbu byla odmítnuta.",
   paymentRequestUnknownContact:
     "Tato žádost o platbu patří Nostr kontaktu, který ještě nemáte uložený.",
+  bankPaymentOfferSettleConfirm:
+    "Uvolnit {amount} {unit} pro {name}? Uvolni jen pokud jsi platbu opravdu dostal na účet.",
   availablePrefix: "dostupné:",
   payAmount: "Kolik poslat",
   paySend: "Zaplatit",

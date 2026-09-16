@@ -856,6 +856,8 @@ export const en = {
   paymentRequestDeclinedMessage: "Payment request declined.",
   paymentRequestUnknownContact:
     "This payment request belongs to a Nostr contact you have not saved yet.",
+  bankPaymentOfferSettleConfirm:
+    "Release {amount} {unit} to {name}? Only release if you actually received the payment in your bank account.",
   availablePrefix: "available:",
   payAmount: "Amount",
   paySend: "Pay",

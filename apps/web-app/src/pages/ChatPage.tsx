@@ -25,6 +25,10 @@ import {
   setLinkyBankPaymentOfferMinimized,
   type LinkyBankPaymentOfferInfo,
 } from "../app/lib/bankPaymentOffer";
+import {
+  getAuthoredBankPaymentOfferIds,
+  getSettledBankPaymentOfferIds,
+} from "../app/lib/bankPaymentOfferAuthored";
 import { formatChatMessagePreviewText } from "../app/lib/chatMessageDisplay";
 import {
   captureChatViewportAnchor,
@@ -352,6 +356,11 @@ const ChatMessageList = memo(function ChatMessageList({
   const viewModels = useMemo<ChatMessageViewModel[]>(() => {
     const byRumorId = new Map<string, LocalNostrMessage>();
     const parsedByMessage = new Map<LocalNostrMessage, ParsedChatMessage>();
+    // Offers we genuinely authored — the only ones we may settle — and those
+    // already settled. A forged "bank_paid" claiming offerer === us is in
+    // neither set, and a replayed "bank_paid" after settlement is filtered out.
+    const authoredBankOfferIds = getAuthoredBankPaymentOfferIds();
+    const settledBankOfferIds = getSettledBankPaymentOfferIds();
 
     for (const message of chatMessages) {
       const content = message.content;
@@ -427,13 +436,10 @@ const ChatMessageList = memo(function ChatMessageList({
         parsed.bankPaymentOfferInfo,
         offersById,
       );
-      const offererPublicKey = (
-        parsed.bankPaymentOfferInfo?.offererPublicKey ?? ""
-      ).trim();
       const canSettleBankPaymentOffer =
         parsed.bankPaymentOfferInfo?.status === "bank_paid" &&
-        ((Boolean(offererPublicKey) && offererPublicKey === chatOwnPubkeyHex) ||
-          message.direction === "out");
+        authoredBankOfferIds.has(parsed.bankPaymentOfferInfo.offerId) &&
+        !settledBankOfferIds.has(parsed.bankPaymentOfferInfo.offerId);
 
       return {
         ...parsed,
