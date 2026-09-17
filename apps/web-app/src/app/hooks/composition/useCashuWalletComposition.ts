@@ -1508,6 +1508,7 @@ export const useCashuWalletComposition = ({
           contact,
           amountSat: requestInfo.amount,
           paymentRequestId: requestInfo.requestId,
+          paymentRequestRelayHints: requestInfo.transportRelays,
           ...(previousRequestRumorId
             ? {
                 replyContext: {
@@ -2548,6 +2549,7 @@ export const useCashuWalletComposition = ({
           contact: reviewedRecipient,
           amountSat: reviewedRequest.amount,
           paymentRequestId: reviewedRequest.requestId,
+          paymentRequestRelayHints: reviewedRequest.transportRelays,
           isPaymentAuthorized,
           replyContext: {
             replyToId: requestRumorId,

@@ -38,6 +38,7 @@ describe("paymentRequestMessage", () => {
     expect(parsed?.requestId).toBe("request-1");
     expect(parsed?.transportNprofile).toBe(recipientNprofile);
     expect(parsed?.transportPubkeyHex).toBe(recipientPubkey);
+    expect(parsed?.transportRelays).toEqual(["wss://relay.damus.io"]);
     expect(parsed?.unit).toBe("sat");
   });
 
@@ -92,6 +93,7 @@ describe("paymentRequestMessage", () => {
     expect(parsed?.transportPubkeyHex).toBe(
       "ba59fd473444c8bc2ec621dc2e47357bb53499e01226dc4480c71fd3ecc6abac",
     );
+    expect(parsed?.transportRelays).toContain("wss://nos.lol");
   });
 
   it("still rejects a request that states a non-positive amount", () => {

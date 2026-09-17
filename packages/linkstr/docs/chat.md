@@ -89,16 +89,18 @@ Three separate facts, in this order:
 
 ## Sending
 
-| Draft               | Fields                                                                                                                     | Service     | Outbox op    |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------ |
-| `TextMessageDraft`  | `to: Pubkey`, `content: MessageText`, `replyTo?: RumorId`, `root?: RumorId`, `clientId?: ClientId`, `sentAt?: UnixSeconds` | `sendText`  | `chat.text`  |
-| `TokenMessageDraft` | `to`, `token: CashuTokenText`, `replyTo?`, `root?`, `clientId?`, `sentAt?`                                                 | `sendToken` | `chat.token` |
-| `ImageMessageDraft` | `to`, `image: PrivateImage`, `replyTo?`, `root?`, `clientId?`, `sentAt?`                                                   | `sendImage` | `chat.image` |
-| `EditMessageDraft`  | `to`, `editOf: RumorId`, `content: MessageText`, `clientId?`, `sentAt?`                                                    | `edit`      | `chat.edit`  |
+| Draft               | Fields                                                                                                                                          | Service     | Outbox op    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------ |
+| `TextMessageDraft`  | `to: Pubkey`, `content: MessageText`, `replyTo?: RumorId`, `root?: RumorId`, `clientId?: ClientId`, `sentAt?: UnixSeconds`                      | `sendText`  | `chat.text`  |
+| `TokenMessageDraft` | `to`, `token: CashuTokenText`, `replyTo?`, `root?`, `clientId?`, `sentAt?`, `paymentRequest?: PaymentRequestPayload`, `relayHints?: RelayUrl[]` | `sendToken` | `chat.token` |
+| `ImageMessageDraft` | `to`, `image: PrivateImage`, `replyTo?`, `root?`, `clientId?`, `sentAt?`                                                                        | `sendImage` | `chat.image` |
+| `EditMessageDraft`  | `to`, `editOf: RumorId`, `content: MessageText`, `clientId?`, `sentAt?`                                                                         | `edit`      | `chat.edit`  |
 
 - `clientId` is generated when omitted. Pass your own when an optimistic local row already exists; the echo (`OwnChatMessageConfirmed.clientId`) and the outbox result carry it back.
 - `replyTo` alone marks a reply to a top-level message; add `root` when replying inside a thread. Edits carry no reply context.
 - `MessageText` is a non-empty trimmed string; `CashuTokenText` must parse with `parseCashuToken`. Both throw from `.make` on bad input, so decode user input with `Schema.decodeUnknownEither` instead.
+- `paymentRequest` marks a token that pays a [NUT-18](https://github.com/cashubtc/nuts/blob/main/18.md) payment request: `{ id?, memo?, mint, unit, proofs }`, where `id` is the request's `i` and `proofs` are the token's proofs **with full keyset ids** (a v4 token shortens v2 ids, so take them from linkshu's `SendReceipt.proofs`, not from decoding the token). It changes the wire content from the bare token to that `PaymentRequestPayload` JSON, which is what other wallets expect over the nostr transport; see "Cashu tokens" below.
+- `relayHints` adds relays for the recipient copy only — pass the hints from the payee's `nprofile` (`decodeNprofileRelays`) so a wallet listening elsewhere than your write relays still sees the payment. The self copy stays on your write relays.
 
 `ChatMessageReceipt` carries `rumorId`, `clientId`, `sentAt`, `selfCopy`, and `recipientCopy`; `MessageEditReceipt` adds `editOf`. Each `WrapDelivery` lists `acceptedBy` / `rejectedBy` relays, and `.accepted` is true when at least one relay took the wrap. A receipt only exists when the recipient copy was accepted.
 
@@ -112,6 +114,8 @@ Linkstr neither encrypts nor uploads. Before building an `ImageMessageDraft`, en
 
 `parseCashuToken(raw)` returns `{ amount, mint, unit }` for a standard `cashuA`/`cashuB` token, else `null`; `extractWholeCashuToken(text)` strips a `cashu:` / `web+cashu://` prefix and returns the token when the whole input is one token, else `null`. On the wire a token message is a plain kind 14 whose content is the token; the decoder classifies it as `TokenBody`.
 
+A token sent with `paymentRequest` travels as NUT-18's `PaymentRequestPayload` instead: `{ id?, memo?, mint, unit, proofs }` as JSON (DLEQ and string witnesses kept). `encodePaymentRequestPayload(payload)` builds that JSON from caller-supplied proofs and `parsePaymentRequestPayload(text)` reads it back as `{ token, id, memo, mint, unit }` with the proofs re-encoded as a v4 token, or null for anything that is not a payload. The decoder accepts such content too and classifies it as `TokenBody` with `paymentRequestId` set from the payload `id`, so a payment from another wallet lands as an ordinary token message.
+
 ## Receiving
 
 Chat facts arrive on the wrap inbox ([inbox.md](./inbox.md)). Edits are not a separate event: both facts carry `editOf`.
@@ -121,7 +125,7 @@ Chat facts arrive on the wrap inbox ([inbox.md](./inbox.md)). Edits are not a se
 | `ChatMessageReceived`     | `messageId: RumorId`, `from: Pubkey`, `body: MessageBody`, `replyTo: RumorId \| null`, `root: RumorId \| null`, `editOf: RumorId \| null`, `sentAt` | a peer's message; `editOf` set = a new version of that id |
 | `OwnChatMessageConfirmed` | `messageId`, `to: Pubkey`, `body`, `replyTo`, `root`, `editOf`, `clientId: ClientId \| null`, `sentAt`                                              | your own message seen on a relay (echo or another device) |
 
-`MessageBody` is `TextBody { text }`, `ImageBody { image: PrivateImage }`, or `TokenBody { token: CashuTokenText }`.
+`MessageBody` is `TextBody { text }`, `ImageBody { image: PrivateImage }`, or `TokenBody { token: CashuTokenText, paymentRequestId? }` (`paymentRequestId` only when the message arrived as a NUT-18 payment payload carrying an `id`).
 
 ```ts
 import type {

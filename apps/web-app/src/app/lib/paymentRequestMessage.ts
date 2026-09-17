@@ -1,4 +1,4 @@
-import { decodeNprofilePubkey } from "@linky/linkstr";
+import { decodeNprofilePubkey, decodeNprofileRelays } from "@linky/linkstr";
 import { decode, encode } from "cbor-x";
 import { Schema } from "effect";
 import { decodeBase64Url, encodeBase64Url } from "../../utils/base64";
@@ -33,6 +33,8 @@ export interface CashuPaymentRequestMessageInfo {
   transportNprofile: string | null;
   transportPostUrl: string | null;
   transportPubkeyHex: string | null;
+  /** Relay hints from the nostr transport's nprofile; the payee listens there. */
+  transportRelays: readonly string[];
   unit: string;
 }
 
@@ -132,6 +134,9 @@ export const parseCashuPaymentRequestMessage = (
     transportNprofile,
     transportPostUrl,
     transportPubkeyHex,
+    transportRelays: transportNprofile
+      ? decodeNprofileRelays(transportNprofile)
+      : [],
     unit,
   };
 };

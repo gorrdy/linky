@@ -62,6 +62,42 @@ const deliver = (
     ),
   );
 
+describe("deliverRumorToPeer with relay hints", () => {
+  it("publishes only the recipient copy to the hinted relays", async () => {
+    const publishedTo: Array<[string | null, string]> = [];
+    const published: Array<SignedWrapEvent> = [];
+    const transport = stubWrapTransportService(published, (wrap, relayUrl) => {
+      publishedTo.push([recipientOf(wrap), relayUrl]);
+      return true;
+    });
+    const hint = RelayUrl.make("wss://hint.example");
+
+    const exit = await Effect.runPromiseExit(
+      deliverRumorToPeer(
+        {
+          identity: alice,
+          transport,
+          relayPolicy: { readRelays: [relay], writeRelays: [relay] },
+        },
+        {
+          rumor,
+          peer: bob.pubkey,
+          clientId,
+          sentAt,
+          recipientRelayHints: [hint, relay],
+        },
+      ),
+    );
+
+    assert(Exit.isSuccess(exit));
+    const relaysFor = (to: string) =>
+      publishedTo.filter(([recipient]) => recipient === to).map(([, r]) => r);
+    expect(relaysFor(alice.pubkey)).toEqual([relay]);
+    expect(relaysFor(bob.pubkey)).toEqual([relay, hint]);
+    expect(exit.value.recipientCopy.acceptedBy).toEqual([relay, hint]);
+  });
+});
+
 describe("deliverRumorToPeer with order recipientFirst", () => {
   it("publishes the recipient copy before the self copy", async () => {
     const publishedRecipients: Array<string | null> = [];

@@ -1,3 +1,4 @@
+import { parseCashuToken } from "./cashuToken";
 import { Either } from "effect";
 import { getEventHash } from "nostr-tools";
 import { encrypt, getConversationKey } from "nostr-tools/nip44";
@@ -19,6 +20,7 @@ import {
   PrivateImage,
   TextMessageDraft,
   TokenMessageDraft,
+  PaymentRequestPayload,
 } from "./domain";
 import { makeIdentity } from "../testing";
 
@@ -354,6 +356,99 @@ describe("chat rumor decoding", () => {
             _tag: "TokenBody",
             token: cashuToken,
           }),
+        }),
+      ),
+    );
+  });
+
+  it("sends a NUT-18 payment payload when the token pays a request", () => {
+    const rumor = encodeTokenMessageRumor(
+      new TokenMessageDraft({
+        to: bob.pubkey,
+        token: CashuTokenText.make(cashuToken),
+        paymentRequest: new PaymentRequestPayload({
+          id: "2b9035ee",
+          mint: "https://mint.test",
+          unit: "sat",
+          proofs: [
+            {
+              id: "009a1f293253e41e",
+              amount: 8,
+              secret: "secret-1",
+              C: `02${"ab".repeat(32)}`,
+            },
+          ],
+        }),
+      }),
+      alice.pubkey,
+      sentAt,
+      clientId,
+    );
+
+    const payload: unknown = JSON.parse(rumor.content);
+    expect(payload).toEqual({
+      id: "2b9035ee",
+      mint: "https://mint.test",
+      unit: "sat",
+      proofs: [expect.objectContaining({ amount: 8 })],
+    });
+    expect(rumor.tags).toEqual([
+      ["p", bob.pubkey],
+      ["p", alice.pubkey],
+      ["client", clientId],
+    ]);
+  });
+
+  it("classifies a NUT-18 payment payload as TokenBody with the request id", () => {
+    const content = JSON.stringify({
+      id: "2b9035ee",
+      mint: "https://mint.test",
+      unit: "sat",
+      proofs: [
+        {
+          id: "009a1f293253e41e",
+          amount: 8,
+          secret: "secret-1",
+          C: `02${"ab".repeat(32)}`,
+        },
+      ],
+    });
+    const rumor = withHash({
+      pubkey: bob.pubkey,
+      created_at: sentAt,
+      kind: 14,
+      tags: [["p", alice.pubkey]],
+      content,
+    });
+
+    const decoded = decodeChatRumor(rumor, alice, wrapAuthor.pubkey);
+
+    assert(Either.isRight(decoded));
+    const body = decoded.right.body;
+    assert(body._tag === "TokenBody");
+    expect(body.paymentRequestId).toBe("2b9035ee");
+    expect(body.token.startsWith("cashuB")).toBe(true);
+    expect(parseCashuToken(body.token)).toEqual({
+      amount: 8,
+      mint: "https://mint.test",
+      unit: "sat",
+    });
+  });
+
+  it("keeps JSON that is not a payment payload as TextBody", () => {
+    const content = JSON.stringify({ mint: "https://mint.test", proofs: [] });
+    const rumor = withHash({
+      pubkey: bob.pubkey,
+      created_at: sentAt,
+      kind: 14,
+      tags: [["p", alice.pubkey]],
+      content,
+    });
+
+    expect(decodeChatRumor(rumor, alice, wrapAuthor.pubkey)).toEqual(
+      Either.right(
+        expect.objectContaining({
+          body: expect.objectContaining({ _tag: "TextBody", text: content }),
         }),
       ),
     );

@@ -12,6 +12,8 @@ export class ImageBody extends Schema.TaggedClass<ImageBody>()("ImageBody", {
 
 export class TokenBody extends Schema.TaggedClass<TokenBody>()("TokenBody", {
   token: CashuTokenText,
+  /** Set when the message arrived as a NUT-18 payment payload with an `id`. */
+  paymentRequestId: Schema.optional(Schema.String),
 }) {}
 
 export const MessageBody = Schema.Union(TextBody, ImageBody, TokenBody);

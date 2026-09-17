@@ -57,6 +57,17 @@ export const decodeNprofilePubkey = (value: string): Pubkey | null => {
   }
 };
 
+/** Relay hints carried by an `nprofile1…`; empty for anything else. */
+export const decodeNprofileRelays = (value: string): ReadonlyArray<string> => {
+  try {
+    const decoded = nip19.decode(value);
+    if (decoded.type !== "nprofile") return [];
+    return (decoded.data.relays ?? []).map((relay) => relay.trim());
+  } catch {
+    return [];
+  }
+};
+
 export const encodeNprofile = (
   pubkey: Pubkey,
   relays: readonly string[],

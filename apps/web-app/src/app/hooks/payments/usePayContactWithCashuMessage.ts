@@ -127,6 +127,8 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
       paymentNoticeContext?: PaymentNoticeContext;
       paymentNoticeOfferId?: string;
       paymentRequestId?: string | null;
+      /** Relays from the request's nprofile; the payment is published there too. */
+      paymentRequestRelayHints?: readonly string[];
       isPaymentAuthorized?: () => boolean;
       pendingMessageId?: string;
       replyContext?: ReplyContext | null;
@@ -139,6 +141,7 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
         paymentNoticeContext,
         paymentNoticeOfferId,
         paymentRequestId,
+        paymentRequestRelayHints,
         isPaymentAuthorized,
         pendingMessageId,
         replyContext,
@@ -348,6 +351,7 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
             {
               amount: receipt.amount,
               mint: receipt.mint,
+              proofs: receipt.proofs,
               token: receipt.tokenText,
               unit: receipt.unit,
             },
@@ -360,6 +364,14 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
           nostrMessagesLocal,
           ...(paymentNoticeContext ? { paymentNoticeContext } : {}),
           ...(paymentNoticeOfferId ? { paymentNoticeOfferId } : {}),
+          ...(paymentRequestId === undefined
+            ? {}
+            : {
+                paymentRequest: {
+                  id: paymentRequestId,
+                  relayHints: paymentRequestRelayHints ?? [],
+                },
+              }),
           pendingMessageId: normalizedPendingMessageId,
           ...(replyContext ? { replyContext } : {}),
           sendPaymentNotice,

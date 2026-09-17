@@ -1,6 +1,15 @@
+export interface CashuMessagePaymentProof {
+  id: string;
+  amount: number;
+  secret: string;
+  C: string;
+}
+
 export interface CashuMessagePaymentSendBatch {
   amount: number;
   mint: string;
+  /** The token's proofs with full keyset ids, for a NUT-18 payment payload. */
+  proofs: readonly CashuMessagePaymentProof[];
   token: string;
   unit: string | null;
 }
