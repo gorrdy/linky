@@ -474,7 +474,7 @@ const ChatMessageList = memo(function ChatMessageList({
         payPaymentRequestDisabled:
           !parsed.paymentRequestInfo ||
           cashuIsBusy ||
-          parsed.paymentRequestInfo.amount > cashuBalanceAfterMelt,
+          (parsed.paymentRequestInfo.amount ?? 0) > cashuBalanceAfterMelt,
         paymentRequestStatus: parsed.paymentRequestInfo
           ? paymentRequestStatus
           : null,

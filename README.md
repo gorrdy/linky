@@ -53,7 +53,7 @@ Constants live in `apps/web-app/src/utils/constants.ts`; the mechanics are in `d
 - LNURL login: scan a site's `lnurl1…` login QR and Linky signs it (LUD-04). The linking key is derived per domain from the active Nostr key — different sites cannot recognize each other's user — so it works for both `nsec` and SLIP-39 logins. Logging **into** Linky still needs `nsec` or the SLIP-39 share
 - Payments:
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
-  - contact payment via Cashu message flow
+  - contact payment via Cashu message flow, including NUT-18 payment requests scanned or pasted from other wallets (amount-less requests ask for the amount first)
   - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent
 - Push: optional Bun push service in `apps/push/` for generic Web Push notifications on new outer inbox `kind: 1059` events
 - Debug pages for Evolu current/history data and owner/rotation diagnostics

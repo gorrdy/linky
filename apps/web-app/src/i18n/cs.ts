@@ -859,6 +859,11 @@ export const cs = {
   requestPaymentLabel: "Žádost o platbu",
   paymentRequestPreviewIncoming: "Žádost o {amount}",
   paymentRequestPreviewOutgoing: "Žádáte o {amount}",
+  paymentRequestAnyAmount: "libovolnou částku",
+  paymentRequestPayTitle: "Zaplatit žádost o platbu",
+  paymentRequestPayChooseAmount:
+    "Žádost neuvádí částku, zvolte, kolik chcete poslat.",
+  paymentRequestPayInvalid: "Žádost o platbu se nepodařilo načíst.",
   paymentRequestDeclinedPreviewIncoming: "Žádost o platbu odmítnuta",
   paymentRequestDeclinedPreviewOutgoing: "Odmítli jste žádost o platbu",
   paymentRequestChanged:

@@ -24,7 +24,8 @@ type PaymentRequestPayload = typeof PaymentRequestPayload.Type;
 const isPaymentRequestPayload = Schema.is(PaymentRequestPayload);
 
 export interface CashuPaymentRequestMessageInfo {
-  amount: number;
+  /** Requested sats; null when the request leaves the amount to the payer. */
+  amount: number | null;
   description: string | null;
   encodedRequest: string;
   mintUrls: string[];
@@ -36,6 +37,16 @@ export interface CashuPaymentRequestMessageInfo {
 }
 
 const CASHU_PAYMENT_REQUEST_PREFIX = "creqA";
+
+/** A request the wallet can pay right away: the amount is settled. */
+export type PayableCashuPaymentRequest = CashuPaymentRequestMessageInfo & {
+  amount: number;
+};
+
+export const withPaymentRequestAmount = (
+  request: CashuPaymentRequestMessageInfo,
+  amount: number,
+): PayableCashuPaymentRequest => ({ ...request, amount });
 const LINKY_PAYMENT_REQUEST_DECLINE_PREFIX = "linky:req-decline:v1";
 
 export const buildCashuPaymentRequestMessage = (args: {
@@ -86,9 +97,8 @@ export const parseCashuPaymentRequestMessage = (
 
   if (!isPaymentRequestPayload(decoded)) return null;
   if (
-    !Number.isFinite(decoded.a) ||
-    decoded.a === undefined ||
-    decoded.a <= 0
+    decoded.a !== undefined &&
+    (!Number.isFinite(decoded.a) || decoded.a <= 0)
   ) {
     return null;
   }
@@ -112,7 +122,7 @@ export const parseCashuPaymentRequestMessage = (
   const transportPostUrl = postTransport ? trimString(postTransport.a) : null;
 
   return {
-    amount: Math.trunc(decoded.a),
+    amount: decoded.a === undefined ? null : Math.trunc(decoded.a),
     description: trimString(decoded.d) || null,
     encodedRequest: normalized,
     mintUrls: Array.isArray(decoded.m)

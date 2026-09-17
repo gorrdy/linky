@@ -108,6 +108,7 @@ import {
   buildCashuPaymentRequestMessage,
   parseCashuPaymentRequestMessage,
   type CashuPaymentRequestMessageInfo,
+  type PayableCashuPaymentRequest,
 } from "../../lib/paymentRequestMessage";
 import { getCashuTokenMessageInfo as getCashuTokenMessageInfoBase } from "../../lib/tokenMessageInfo";
 import type {
@@ -404,6 +405,8 @@ export const useCashuWalletComposition = ({
   const [defaultMintUrlDraft, setDefaultMintUrlDraft] = useState<string>("");
 
   const [lnAddressPayAmount, setLnAddressPayAmount] = useState<string>("");
+  const [paymentRequestPayAmount, setPaymentRequestPayAmount] =
+    useState<string>("");
 
   const [pendingCashuTokenContactPickId, setPendingCashuTokenContactPickId] =
     useState<CashuOperationId | null>(null);
@@ -558,6 +561,7 @@ export const useCashuWalletComposition = ({
     routeKind: route.kind,
     setContactPaymentIntent,
     setLnAddressPayAmount,
+    setPaymentRequestPayAmount,
     setPayAmount,
   });
 
@@ -1247,7 +1251,7 @@ export const useCashuWalletComposition = ({
   );
 
   const payCashuPaymentRequestViaPost = React.useCallback(
-    async (requestInfo: CashuPaymentRequestMessageInfo): Promise<boolean> => {
+    async (requestInfo: PayableCashuPaymentRequest): Promise<boolean> => {
       const postUrlRaw = (requestInfo.transportPostUrl ?? "").trim();
       if (!postUrlRaw) return false;
 
@@ -1451,8 +1455,20 @@ export const useCashuWalletComposition = ({
   );
 
   const payCashuPaymentRequest = React.useCallback(
-    async (requestInfo: CashuPaymentRequestMessageInfo) => {
+    async (scannedRequest: CashuPaymentRequestMessageInfo) => {
       if (cashuIsBusy) return;
+      // NUT-18 leaves the amount optional; the payer picks it on its own page.
+      if (scannedRequest.amount === null) {
+        navigateTo({
+          route: "paymentRequestPay",
+          encodedRequest: scannedRequest.encodedRequest,
+        });
+        return;
+      }
+      const requestInfo: PayableCashuPaymentRequest = {
+        ...scannedRequest,
+        amount: scannedRequest.amount,
+      };
       if (requestInfo.amount > cashuBalance) {
         const requestedMints = requestInfo.mintUrls.flatMap((mintUrl) => {
           const normalizedMint = normalizeMintUrl(mintUrl);
@@ -2497,8 +2513,18 @@ export const useCashuWalletComposition = ({
       if (!selectedChatContact || selectedChatContact.isUnknownContact) return;
       if (!selectedContact) return;
 
+      if (requestInfo.amount === null) {
+        navigateTo({
+          route: "paymentRequestPay",
+          encodedRequest: requestInfo.encodedRequest,
+        });
+        return;
+      }
       const reviewedMessage = { ...message };
-      const reviewedRequest = { ...requestInfo };
+      const reviewedRequest: PayableCashuPaymentRequest = {
+        ...requestInfo,
+        amount: requestInfo.amount,
+      };
       const reviewedRecipient = { ...selectedContact };
       const isPaymentAuthorized = () =>
         isCurrentChatPaymentRequest(
@@ -2582,6 +2608,18 @@ export const useCashuWalletComposition = ({
     return npub ? (nostrPictureByNpub[npub] ?? null) : null;
   }, [knownLnAddressPayContact, nostrPictureByNpub]);
 
+  const knownPaymentRequestPayContact = React.useMemo(() => {
+    if (route.kind !== "paymentRequestPay") return null;
+    const request = parseCashuPaymentRequestMessage(route.encodedRequest);
+    return request ? findContactForCashuPaymentRequest(request) : null;
+  }, [findContactForCashuPaymentRequest, route]);
+  const knownPaymentRequestPayContactPictureUrl = React.useMemo(() => {
+    const npub = normalizeNpubIdentifier(
+      knownPaymentRequestPayContact?.npub ?? "",
+    );
+    return npub ? (nostrPictureByNpub[npub] ?? null) : null;
+  }, [knownPaymentRequestPayContact, nostrPictureByNpub]);
+
   return {
     reclaimCashuTransfer,
     cashuTransferLifecycle,
@@ -2630,8 +2668,12 @@ export const useCashuWalletComposition = ({
     isCashuTokenStored,
     knownLnAddressPayContact,
     knownLnAddressPayContactPictureUrl,
+    knownPaymentRequestPayContact,
+    knownPaymentRequestPayContactPictureUrl,
     lightningInvoiceAutoPayLimit,
     lnAddressPayAmount,
+    paymentRequestPayAmount,
+    setPaymentRequestPayAmount,
     lnurlWithdrawIsBusy,
     makeNip98AuthHeader,
     markCashuTokenExternalized,

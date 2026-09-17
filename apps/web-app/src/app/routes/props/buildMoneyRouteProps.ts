@@ -44,6 +44,11 @@ interface BuildMoneyRoutePropsParams {
   emitCashuToken: MoneyRoutesProps["cashuTokenEmitProps"]["emitCashuToken"];
   knownLnAddressPayContact: MoneyRoutesProps["lnAddressPayProps"]["knownContact"];
   knownLnAddressPayContactPictureUrl: MoneyRoutesProps["lnAddressPayProps"]["knownContactPictureUrl"];
+  knownPaymentRequestPayContact: MoneyRoutesProps["paymentRequestPayProps"]["knownContact"];
+  knownPaymentRequestPayContactPictureUrl: MoneyRoutesProps["paymentRequestPayProps"]["knownContactPictureUrl"];
+  payCashuPaymentRequest: MoneyRoutesProps["paymentRequestPayProps"]["payCashuPaymentRequest"];
+  paymentRequestPayAmount: MoneyRoutesProps["paymentRequestPayProps"]["paymentRequestPayAmount"];
+  setPaymentRequestPayAmount: MoneyRoutesProps["paymentRequestPayProps"]["setPaymentRequestPayAmount"];
   lnAddressPayAmount: MoneyRoutesProps["lnAddressPayProps"]["lnAddressPayAmount"];
   manualPayContacts: MoneyRoutesProps["manualPayProps"]["contacts"];
   manualPayNostrPictureByNpub: MoneyRoutesProps["manualPayProps"]["nostrPictureByNpub"];
@@ -130,6 +135,8 @@ export const buildMoneyRouteProps = ({
   emitCashuToken,
   knownLnAddressPayContact,
   knownLnAddressPayContactPictureUrl,
+  knownPaymentRequestPayContact,
+  knownPaymentRequestPayContactPictureUrl,
   lnAddressPayAmount,
   manualPayContacts,
   manualPayNostrPictureByNpub,
@@ -137,6 +144,9 @@ export const buildMoneyRouteProps = ({
   onSubmitManualPayText,
   meltLargestForeignMintToMainMint,
   payLightningAddressWithCashu,
+  payCashuPaymentRequest,
+  paymentRequestPayAmount,
+  setPaymentRequestPayAmount,
   pendingCashuDeleteId,
   reclaimCashuTransfer,
   restoreMissingTokens,
@@ -253,6 +263,20 @@ export const buildMoneyRouteProps = ({
       setLnAddressPayAmount,
       displayUnit,
       payLightningAddressWithCashu,
+    },
+    paymentRequestPayProps: {
+      encodedRequest:
+        route.kind === "paymentRequestPay" ? route.encodedRequest : "",
+      cashuBalance,
+      cashuBalanceAfterMelt,
+      canPayWithCashu,
+      cashuIsBusy,
+      displayUnit,
+      knownContact: knownPaymentRequestPayContact,
+      knownContactPictureUrl: knownPaymentRequestPayContactPictureUrl,
+      payCashuPaymentRequest,
+      paymentRequestPayAmount,
+      setPaymentRequestPayAmount,
     },
     manualPayProps: {
       contacts: manualPayContacts,

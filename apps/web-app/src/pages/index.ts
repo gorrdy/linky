@@ -22,6 +22,7 @@ export { InspectorSettingsPage } from "./InspectorSettingsPage";
 export { LnAddressPayPage } from "./LnAddressPayPage";
 export { LanguagePage } from "./LanguagePage";
 export { ManualPayPage } from "./ManualPayPage";
+export { PaymentRequestPayPage } from "./PaymentRequestPayPage";
 export { MasterKeysPage } from "./MasterKeysPage";
 export { MintDetailPage } from "./MintDetailPage";
 export { MintsPage } from "./MintsPage";
