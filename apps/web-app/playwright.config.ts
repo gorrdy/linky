@@ -12,6 +12,7 @@ const LOCAL_STACK_SPECS = [
   "**/cashu-sync.spec.ts",
   "**/proxy-payment.spec.ts",
   "**/recurring-payments.spec.ts",
+  "**/issued-token-to-contact.spec.ts",
   "**/linkshu-migration.spec.ts",
   "**/password-manager-save.spec.ts",
   "**/profile-tilt-permission.spec.ts",

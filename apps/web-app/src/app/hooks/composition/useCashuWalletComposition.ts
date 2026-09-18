@@ -2103,6 +2103,7 @@ export const useCashuWalletComposition = ({
       setStatus,
       t,
       updateLocalNostrMessage,
+      walletTransfers,
     ],
   );
 
