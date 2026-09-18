@@ -27,6 +27,7 @@ import {
   LanguagePage,
   LnAddressPayPage,
   ManualPayPage,
+  PaymentRequestPayPage,
   MasterKeysPage,
   MintDetailPage,
   MintsPage,
@@ -83,6 +84,7 @@ export interface MoneyRoutesProps {
   cashuTokensProps: React.ComponentProps<typeof CashuTokensPage>;
   lnAddressPayProps: React.ComponentProps<typeof LnAddressPayPage>;
   manualPayProps: React.ComponentProps<typeof ManualPayPage>;
+  paymentRequestPayProps: React.ComponentProps<typeof PaymentRequestPayPage>;
   spdPaymentProps: React.ComponentProps<typeof SpdPaymentPage>;
   topupInvoiceProps: React.ComponentProps<typeof TopupInvoicePage>;
   topupProps: React.ComponentProps<typeof TopupPage>;
@@ -180,6 +182,8 @@ const RoutePage = (): React.ReactElement => {
       return <LnAddressPayPage {...moneyRoutes.lnAddressPayProps} />;
     case "manualPay":
       return <ManualPayPage {...moneyRoutes.manualPayProps} />;
+    case "paymentRequestPay":
+      return <PaymentRequestPayPage {...moneyRoutes.paymentRequestPayProps} />;
     case "bankPayment":
       return <SpdPaymentPage {...moneyRoutes.spdPaymentProps} />;
     case "bankPaymentOffer":

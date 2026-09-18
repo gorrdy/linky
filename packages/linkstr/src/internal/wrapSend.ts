@@ -7,6 +7,7 @@ import type {
   ClientId,
   NostrSecretKey,
   Pubkey,
+  RelayUrl,
   UnixSeconds,
 } from "../domain/primitives";
 import { Inspector } from "../inspector/Inspector";
@@ -39,6 +40,8 @@ export const makeWrapSendContext: Effect.Effect<
 
 export interface PeerDraft {
   readonly to: Pubkey;
+  /** Relays the recipient copy is published to on top of the write relays. */
+  readonly relayHints?: ReadonlyArray<RelayUrl> | undefined;
   /** Generated when omitted. */
   readonly clientId?: ClientId | undefined;
   /** Now when omitted. */
@@ -95,6 +98,9 @@ export const sendToPeer = <Draft extends PeerDraft, Receipt>(
       sentAt,
       pushMarkRecipientCopy: spec.pushMarkRecipientCopy ?? false,
       order: spec.order ?? "parallel",
+      ...(draft.relayHints === undefined
+        ? {}
+        : { recipientRelayHints: draft.relayHints }),
     });
     const sent: PeerSent = {
       outcome: { rumorId: RumorId.make(rumor.id), clientId, sentAt, ...copies },

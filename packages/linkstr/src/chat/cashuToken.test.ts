@@ -1,5 +1,10 @@
 import { Amount, getEncodedToken } from "@cashu/cashu-ts";
-import { extractWholeCashuToken, parseCashuToken } from "./cashuToken";
+import {
+  encodePaymentRequestPayload,
+  extractWholeCashuToken,
+  parseCashuToken,
+  parsePaymentRequestPayload,
+} from "./cashuToken";
 
 const toBase64Url = (value: string): string =>
   Buffer.from(value)
@@ -106,5 +111,72 @@ describe("extractWholeCashuToken", () => {
 
   it("does not search inside longer text", () => {
     expect(extractWholeCashuToken(`here is ${token} thanks`)).toBeNull();
+  });
+});
+
+describe("NUT-18 payment payload", () => {
+  it("round-trips proofs through the payload JSON, keeping DLEQ and id", () => {
+    const encoded = encodePaymentRequestPayload({
+      id: "req-1",
+      mint: "https://mint.test",
+      unit: "sat",
+      proofs: [
+        {
+          id: "009a1f293253e41e",
+          amount: 4,
+          secret: "secret-1",
+          C: `02${"ab".repeat(32)}`,
+          dleq: { e: "ee".repeat(32), s: "55".repeat(32), r: "aa".repeat(32) },
+        },
+        {
+          id: "009a1f293253e41e",
+          amount: 16,
+          secret: "secret-2",
+          C: `02${"ab".repeat(32)}`,
+        },
+      ],
+    });
+    expect(JSON.parse(encoded)).toEqual({
+      id: "req-1",
+      mint: "https://mint.test",
+      unit: "sat",
+      proofs: [
+        expect.objectContaining({
+          amount: 4,
+          dleq: {
+            e: "ee".repeat(32),
+            s: "55".repeat(32),
+            r: "aa".repeat(32),
+          },
+        }),
+        expect.objectContaining({ amount: 16 }),
+      ],
+    });
+
+    const parsed = parsePaymentRequestPayload(encoded);
+    expect(parsed).toMatchObject({
+      id: "req-1",
+      memo: null,
+      mint: "https://mint.test",
+      unit: "sat",
+    });
+    expect(parseCashuToken(parsed?.token ?? "")).toEqual({
+      amount: 20,
+      mint: "https://mint.test",
+      unit: "sat",
+    });
+  });
+
+  it("rejects text that is not a payload", () => {
+    expect(parsePaymentRequestPayload("hello")).toBeNull();
+    expect(parsePaymentRequestPayload("{not json")).toBeNull();
+    expect(
+      parsePaymentRequestPayload(JSON.stringify({ mint: "x", unit: "sat" })),
+    ).toBeNull();
+    expect(
+      parsePaymentRequestPayload(
+        JSON.stringify({ mint: "https://mint.test", unit: "sat", proofs: [] }),
+      ),
+    ).toBeNull();
   });
 });

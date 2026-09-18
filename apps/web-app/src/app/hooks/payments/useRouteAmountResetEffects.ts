@@ -9,6 +9,7 @@ interface UseRouteAmountResetEffectsParams {
     React.SetStateAction<"pay" | "request">
   >;
   setLnAddressPayAmount: React.Dispatch<React.SetStateAction<string>>;
+  setPaymentRequestPayAmount: React.Dispatch<React.SetStateAction<string>>;
   setPayAmount: React.Dispatch<React.SetStateAction<string>>;
 }
 
@@ -17,6 +18,7 @@ export const useRouteAmountResetEffects = ({
   routeKind,
   setContactPaymentIntent,
   setLnAddressPayAmount,
+  setPaymentRequestPayAmount,
   setPayAmount,
 }: UseRouteAmountResetEffectsParams): void => {
   React.useEffect(() => {
@@ -38,4 +40,10 @@ export const useRouteAmountResetEffects = ({
       setLnAddressPayAmount("");
     }
   }, [routeKind, setLnAddressPayAmount]);
+
+  React.useEffect(() => {
+    if (routeKind !== "paymentRequestPay") {
+      setPaymentRequestPayAmount("");
+    }
+  }, [routeKind, setPaymentRequestPayAmount]);
 };

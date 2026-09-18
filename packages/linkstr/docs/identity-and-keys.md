@@ -16,6 +16,7 @@ All in `identity/codec.ts`, exported from `@linky/linkstr`. Decoders return `nul
 | `encodeNpub(pubkey)`             | `Pubkey` → `npub1…`                              |                                  |
 | `parsePubkey(str)`               | `npub1…` or 64-hex (any case) → `Pubkey \| null` | use for user input               |
 | `decodeNprofilePubkey(str)`      | `nprofile1…` → `Pubkey \| null`                  | relay hints are dropped          |
+| `decodeNprofileRelays(str)`      | `nprofile1…` → `ReadonlyArray<string>`           | the relay hints; `[]` otherwise  |
 | `encodeNprofile(pubkey, relays)` | → `nprofile1…`                                   | `relays` are plain strings       |
 
 ```ts

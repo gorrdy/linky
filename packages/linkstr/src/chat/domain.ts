@@ -1,7 +1,13 @@
 import { Schema } from "effect";
 import { WrapDelivery } from "../domain/delivery";
-import { ClientId, Pubkey, RumorId, UnixSeconds } from "../domain/primitives";
-import { parseCashuToken } from "./cashuToken";
+import {
+  ClientId,
+  Pubkey,
+  RelayUrl,
+  RumorId,
+  UnixSeconds,
+} from "../domain/primitives";
+import { parseCashuToken, PaymentRequestPayloadFields } from "./cashuToken";
 
 const LOWERCASE_HEX_64 = /^[0-9a-f]{64}$/;
 const LOWERCASE_HEX_24 = /^[0-9a-f]{24}$/;
@@ -55,6 +61,15 @@ export class TextMessageDraft extends Schema.Class<TextMessageDraft>(
   sentAt: Schema.optional(UnixSeconds),
 }) {}
 
+/**
+ * The NUT-18 payment payload for the token being sent. Its presence switches
+ * the wire content from the bare token to this JSON; `proofs` are the
+ * token's proofs with full keyset ids (linkshu's `SendReceipt.proofs`).
+ */
+export class PaymentRequestPayload extends Schema.Class<PaymentRequestPayload>(
+  "PaymentRequestPayload",
+)(PaymentRequestPayloadFields) {}
+
 export class TokenMessageDraft extends Schema.Class<TokenMessageDraft>(
   "TokenMessageDraft",
 )({
@@ -64,6 +79,9 @@ export class TokenMessageDraft extends Schema.Class<TokenMessageDraft>(
   root: Schema.optional(RumorId),
   clientId: Schema.optional(ClientId),
   sentAt: Schema.optional(UnixSeconds),
+  paymentRequest: Schema.optional(PaymentRequestPayload),
+  /** Extra relays for the recipient copy, e.g. the hints in the payee's nprofile. */
+  relayHints: Schema.optional(Schema.Array(RelayUrl)),
 }) {}
 
 export class ImageMessageDraft extends Schema.Class<ImageMessageDraft>(

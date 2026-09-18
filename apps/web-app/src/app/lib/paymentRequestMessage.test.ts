@@ -6,6 +6,7 @@ import {
   buildLinkyPaymentRequestDeclineMessage,
   parseCashuPaymentRequestMessage,
   parseLinkyPaymentRequestDeclineMessage,
+  withPaymentRequestAmount,
 } from "./paymentRequestMessage";
 import { encodeBase64Url } from "../../utils/base64";
 
@@ -37,6 +38,7 @@ describe("paymentRequestMessage", () => {
     expect(parsed?.requestId).toBe("request-1");
     expect(parsed?.transportNprofile).toBe(recipientNprofile);
     expect(parsed?.transportPubkeyHex).toBe(recipientPubkey);
+    expect(parsed?.transportRelays).toEqual(["wss://relay.damus.io"]);
     expect(parsed?.unit).toBe("sat");
   });
 
@@ -61,6 +63,43 @@ describe("paymentRequestMessage", () => {
     expect(parsed?.transportNprofile).toBeNull();
     expect(parsed?.transportPostUrl).toBe("https://pay.example/request-1");
     expect(parsed?.transportPubkeyHex).toBeNull();
+  });
+
+  it("keeps the amount open when the request leaves it to the payer", () => {
+    const message = `creqA${encodeBase64Url(
+      encode({
+        i: "2b9035ee",
+        u: "sat",
+        t: [{ t: "nostr", a: "nprofile1invalid", g: [["n", "17"]] }],
+      }),
+    )}`;
+
+    const parsed = parseCashuPaymentRequestMessage(message);
+
+    expect(parsed?.amount).toBeNull();
+    expect(parsed?.requestId).toBe("2b9035ee");
+    expect(withPaymentRequestAmount(parsed!, 21).amount).toBe(21);
+  });
+
+  it("parses a real amount-less request from another wallet", () => {
+    // Created by cashu.me: nostr transport, reusable, no amount.
+    const parsed = parseCashuPaymentRequestMessage(
+      "creqAo2F0gaNhdGVub3N0cmFhePducHJvZmlsZTFxeTI4d3VtbjhnaGo3dW45ZDNzaGp0bnl2OWtoMnVld2Q5aHN6OW1od2RlbjV0ZTB3ZmprY2N0ZTljdXJ4dmVuOWVlaHFjdHJ2NWhzenJ0aHdkZW41dGUwZGVoaHh0bnZkYWtxejluaHdkZW41dGUwd2Zqa2NjdGU5ZWM4eTZ0ZHY5a3p1bW45d3NxM3dhbW53dmF6N3RtanY0a3h6N2Z3d3BleGptdHBkc2h4dWV0NXlxcXpwd2plbDRybmczeGdoc2h2dmd3dTllcm4yN2E0eGp2N3F5M3htM3pncDNjbDYwa3ZkMmF2ejcycnkyYWeBgmFuYjE3YWloMmI5MDM1ZWVhdWNzYXQ=",
+    );
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.amount).toBeNull();
+    expect(parsed?.unit).toBe("sat");
+    expect(parsed?.transportPubkeyHex).toBe(
+      "ba59fd473444c8bc2ec621dc2e47357bb53499e01226dc4480c71fd3ecc6abac",
+    );
+    expect(parsed?.transportRelays).toContain("wss://nos.lol");
+  });
+
+  it("still rejects a request that states a non-positive amount", () => {
+    const message = `creqA${encodeBase64Url(encode({ a: 0, u: "sat" }))}`;
+
+    expect(parseCashuPaymentRequestMessage(message)).toBeNull();
   });
 
   it("parses a payment request decline marker", () => {

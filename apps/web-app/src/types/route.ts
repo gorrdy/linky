@@ -56,6 +56,7 @@ export type Route =
   | { kind: "manualPay" }
   | { kind: "bankPayment"; spdPayload: string; editing?: true }
   | { kind: "lnAddressPay"; lnAddress: string }
+  | { kind: "paymentRequestPay"; encodedRequest: string }
   | { kind: "cashuTokens" }
   | { kind: "cashuProofs" }
   | { kind: "cashuTokenNew" }
@@ -148,6 +149,9 @@ export const parseRouteFromHash = (): Route => {
   const payLnPrefix = "#payln/";
   const lnAddress = decodeHashSegment(hash, payLnPrefix);
   if (lnAddress) return { kind: "lnAddressPay", lnAddress };
+  const payRequestPrefix = "#payreq/";
+  const encodedRequest = decodeHashSegment(hash, payRequestPrefix);
+  if (encodedRequest) return { kind: "paymentRequestPay", encodedRequest };
   if (hash === "#wallet/token/new") return { kind: "cashuTokenNew" };
   if (hash === "#wallet/token/emit") return { kind: "cashuTokenEmit" };
 

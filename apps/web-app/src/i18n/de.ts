@@ -910,6 +910,12 @@ export const de = {
   requestPaymentLabel: "Zahlungsanforderung",
   paymentRequestPreviewIncoming: "Fordert {amount} an",
   paymentRequestPreviewOutgoing: "Du forderst {amount} an",
+  paymentRequestAnyAmount: "einen beliebigen Betrag",
+  paymentRequestPayTitle: "Zahlungsanforderung bezahlen",
+  paymentRequestPayChooseAmount:
+    "Die Anforderung nennt keinen Betrag; wähle, wie viel du senden möchtest.",
+  paymentRequestPayInvalid:
+    "Die Zahlungsanforderung konnte nicht gelesen werden.",
   paymentRequestDeclinedPreviewIncoming: "Zahlungsanforderung abgelehnt",
   paymentRequestDeclinedPreviewOutgoing:
     "Du hast die Zahlungsanforderung abgelehnt",

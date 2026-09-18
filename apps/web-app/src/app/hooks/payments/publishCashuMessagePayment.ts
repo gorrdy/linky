@@ -4,7 +4,9 @@ import {
   decodeNpub,
   OutboxRef,
   PaymentNoticeDraft,
+  PaymentRequestPayload,
   Pubkey,
+  RelayUrl,
   RumorId,
   TokenMessageDraft,
 } from "@linky/linkstr";
@@ -58,14 +60,45 @@ interface PublishCashuMessagePaymentArgs {
   nostrMessagesLocal: readonly LocalNostrMessage[];
   paymentNoticeContext?: PaymentNoticeContext;
   paymentNoticeOfferId?: string;
+  /**
+   * Set when the tokens pay a NUT-18 request: the message travels as the
+   * request's payment payload and also reaches the payee's own relays.
+   */
+  paymentRequest?: CashuMessagePaymentRequestTarget | null;
   pendingMessageId: string | null;
   replyContext?: ReplyContext | null;
   sendPaymentNotice: SendPaymentNotice;
   updateLocalNostrMessage: UpdateLocalNostrMessage;
 }
 
+export interface CashuMessagePaymentRequestTarget {
+  id: string | null;
+  relayHints: readonly string[];
+}
+
 const isRumorId = Schema.is(RumorId);
+const isRelayUrl = Schema.is(RelayUrl);
 const decodeCashuTokenText = Schema.decodeUnknownEither(CashuTokenText);
+
+const paymentRequestDraftFields = (
+  target: CashuMessagePaymentRequestTarget | null | undefined,
+  batch: CashuMessagePaymentSendBatch,
+): Pick<TokenMessageDraft, "paymentRequest" | "relayHints"> => {
+  if (!target) return {};
+  const [firstProof, ...otherProofs] = batch.proofs;
+  if (firstProof === undefined) return {};
+  const id = (target.id ?? "").trim();
+  const relayHints = target.relayHints.filter(isRelayUrl);
+  return {
+    paymentRequest: new PaymentRequestPayload({
+      ...(id ? { id } : {}),
+      mint: batch.mint,
+      unit: batch.unit ?? "sat",
+      proofs: [firstProof, ...otherProofs],
+    }),
+    ...(relayHints.length === 0 ? {} : { relayHints }),
+  };
+};
 
 const decodeRequiredNpub = (npub: string): Pubkey => {
   const pubkey = decodeNpub(npub);
@@ -93,6 +126,7 @@ export const publishCashuMessagePayment = async ({
   nostrMessagesLocal,
   paymentNoticeContext,
   paymentNoticeOfferId,
+  paymentRequest,
   pendingMessageId,
   replyContext,
   sendPaymentNotice,
@@ -185,6 +219,7 @@ export const publishCashuMessagePayment = async ({
           clientId,
           ...(replyTo === undefined ? {} : { replyTo }),
           ...(root === undefined ? {} : { root }),
+          ...paymentRequestDraftFields(paymentRequest, batch),
         });
         const exit = await enqueueOutbox({
           op: { _tag: "chat.token", draft },

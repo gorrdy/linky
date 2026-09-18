@@ -79,6 +79,7 @@ export const resolveBackAction = (
     case "transactions":
     case "recurringPayments":
     case "manualPay":
+    case "paymentRequestPay":
     case "cashuTokens":
     case "cashuTokenEmit":
     case "topup":
@@ -209,6 +210,7 @@ const SHOWS_MENU_BUTTON: Record<
   evoluServer: true,
   evoluServerNew: true,
   lnAddressPay: true,
+  paymentRequestPay: true,
   manualPay: false,
   mint: true,
   mints: false,
@@ -343,6 +345,7 @@ const TOPBAR_TITLE_KEY: Record<
   evoluServerNew: "evoluAddServerLabel",
   evoluServers: "evoluServer",
   lnAddressPay: "pay",
+  paymentRequestPay: "paymentRequestPayTitle",
   manualPay: "manualPayTitle",
   mint: "mints",
   mints: "mints",

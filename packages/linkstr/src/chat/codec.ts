@@ -19,7 +19,11 @@ import {
 } from "../internal/nostrEvent";
 import type { NostrTags } from "../internal/nostrEvent";
 import type { LinkstrIdentityService } from "../services/LinkstrIdentity";
-import { extractWholeCashuToken } from "./cashuToken";
+import {
+  encodePaymentRequestPayload,
+  extractWholeCashuToken,
+  parsePaymentRequestPayload,
+} from "./cashuToken";
 import {
   CashuTokenText,
   EditMessageDraft,
@@ -94,7 +98,10 @@ export const encodeTokenMessageRumor = (
   encodeTextKindRumor(
     {
       to: draft.to,
-      content: draft.token,
+      content:
+        draft.paymentRequest === undefined
+          ? draft.token
+          : encodePaymentRequestPayload(draft.paymentRequest),
       ...(draft.replyTo === undefined ? {} : { replyTo: draft.replyTo }),
       ...(draft.root === undefined ? {} : { root: draft.root }),
     },
@@ -247,6 +254,15 @@ const decodeTextBody = (
   const candidate = extractWholeCashuToken(rumor.content);
   if (candidate !== null && isCashuTokenText(candidate)) {
     return Either.right(new TokenBody({ token: candidate }));
+  }
+  const payload = parsePaymentRequestPayload(rumor.content);
+  if (payload !== null && isCashuTokenText(payload.token)) {
+    return Either.right(
+      new TokenBody({
+        token: payload.token,
+        ...(payload.id === null ? {} : { paymentRequestId: payload.id }),
+      }),
+    );
   }
   return Either.right(new TextBody({ text: rumor.content }));
 };

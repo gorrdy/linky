@@ -74,6 +74,14 @@ const createArgs = () => {
       {
         amount: 100,
         mint: "https://mint.example",
+        proofs: [
+          {
+            id: "009a1f293253e41e",
+            amount: 100,
+            secret: "secret-1",
+            C: `02${"ab".repeat(32)}`,
+          },
+        ],
         token: tokenText,
         unit: "sat",
       },
@@ -114,6 +122,41 @@ const createArgs = () => {
 };
 
 describe("publishCashuMessagePayment", () => {
+  it("sends a request payment as a NUT-18 payload draft with the payee's relays", async () => {
+    const args = createArgs();
+
+    await publishCashuMessagePayment({
+      ...args,
+      paymentRequest: {
+        id: "2b9035ee",
+        relayHints: ["wss://relay.damus.io", "not a relay"],
+      },
+      pendingMessageId: null,
+    });
+
+    const input = args.enqueueOutbox.mock.calls[0]?.[0];
+    const draft = input?.op._tag === "chat.token" ? input.op.draft : undefined;
+    expect(draft).toBeInstanceOf(TokenMessageDraft);
+    expect(draft?.paymentRequest).toMatchObject({
+      id: "2b9035ee",
+      mint: "https://mint.example",
+      unit: "sat",
+      proofs: [expect.objectContaining({ amount: 100, secret: "secret-1" })],
+    });
+    expect(draft?.relayHints).toEqual(["wss://relay.damus.io"]);
+  });
+
+  it("sends an ordinary contact payment as a bare token", async () => {
+    const args = createArgs();
+
+    await publishCashuMessagePayment({ ...args, pendingMessageId: null });
+
+    const input = args.enqueueOutbox.mock.calls[0]?.[0];
+    const draft = input?.op._tag === "chat.token" ? input.op.draft : undefined;
+    expect(draft?.paymentRequest).toBeUndefined();
+    expect(draft?.relayHints).toBeUndefined();
+  });
+
   it("enqueues the token draft with reply context and reuses one pending message", async () => {
     const args = createArgs();
     const pendingMessage: LocalNostrMessage = {

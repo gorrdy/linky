@@ -901,6 +901,11 @@ export const en = {
   requestPaymentLabel: "Payment request",
   paymentRequestPreviewIncoming: "Requesting {amount}",
   paymentRequestPreviewOutgoing: "You are requesting {amount}",
+  paymentRequestAnyAmount: "any amount",
+  paymentRequestPayTitle: "Pay a payment request",
+  paymentRequestPayChooseAmount:
+    "The request does not state an amount; choose how much to send.",
+  paymentRequestPayInvalid: "The payment request could not be read.",
   paymentRequestDeclinedPreviewIncoming: "Payment request declined",
   paymentRequestDeclinedPreviewOutgoing: "You declined the payment request",
   paymentRequestChanged:
