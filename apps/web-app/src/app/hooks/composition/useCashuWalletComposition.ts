@@ -124,6 +124,7 @@ import { drainLegacyAcceptedCashuToken } from "../../migrations/legacyAcceptedTo
 import { seedLinkshuSeenMintsFromTokenRows } from "../../migrations/linkshuStorageMigration";
 import { useLinkshuComposition } from "./useLinkshuComposition";
 import { useMeltRecovery } from "../payments/useMeltRecovery";
+import { useRecurringPaymentsActions } from "../payments/useRecurringPaymentsActions";
 import { useRecurringPaymentsScheduler } from "../payments/useRecurringPaymentsScheduler";
 import { useResumeOnLaunchAndOnline } from "../useResumeOnLaunchAndOnline";
 import { useProfileComposition } from "./useProfileComposition";
@@ -237,6 +238,7 @@ interface UseCashuWalletCompositionParams {
   setPayAmount: React.Dispatch<React.SetStateAction<string>>;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
   t: Translate;
+  insert: EvoluMutations["insert"];
   update: EvoluMutations["update"];
   upsert: EvoluMutations["upsert"];
 }
@@ -260,6 +262,7 @@ export const useCashuWalletComposition = ({
   setPayAmount,
   setStatus,
   t,
+  insert,
   update,
   upsert,
 }: UseCashuWalletCompositionParams) => {
@@ -2413,7 +2416,7 @@ export const useCashuWalletComposition = ({
     update,
   });
 
-  useRecurringPaymentsScheduler({
+  const recurringScheduler = useRecurringPaymentsScheduler({
     appendLocalNostrMessage,
     cashuBalance,
     cashuIsBusy,
@@ -2427,6 +2430,12 @@ export const useCashuWalletComposition = ({
     t,
     update,
     updateLocalNostrMessage,
+  });
+  const recurringPaymentsActions = useRecurringPaymentsActions({
+    insert,
+    runSchedulerNow: recurringScheduler.runNow,
+    transactionsOwnerId,
+    update,
   });
 
   const requestSelectedContact = React.useCallback(async () => {
@@ -2662,6 +2671,7 @@ export const useCashuWalletComposition = ({
     payLightningAddressWithCashu,
     payLightningInvoiceWithCashu,
     paySelectedContact,
+    recurringPaymentsActions,
     payWithCashuEnabled,
     pendingCashuContactSend,
     pendingCashuDeleteId,

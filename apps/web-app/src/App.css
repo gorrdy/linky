@@ -7512,3 +7512,70 @@ button.cashu-token-pill {
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+
+/* Standing orders */
+.wallet-subtle-links {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+
+.wallet-subtle-links .wallet-subtle-link {
+  margin-top: 12px;
+}
+
+.recurring-order-card {
+  width: 100%;
+  padding: 0;
+  border: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.recurring-order-card:hover {
+  background: rgba(148, 163, 184, 0.1);
+  box-shadow: none;
+  transform: none;
+}
+
+.recurring-form .recurring-select-wide {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.recurring-interval-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recurring-interval-row .recurring-interval-count {
+  width: 88px;
+  flex: 0 0 88px;
+}
+
+.recurring-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recurring-repeat-link {
+  display: block;
+  margin: 12px auto 0;
+}
+
+.transaction-recurring-pill {
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.error-text {
+  color: #fecaca;
+  font-size: 13px;
+}

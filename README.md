@@ -55,6 +55,7 @@ Constants live in `apps/web-app/src/utils/constants.ts`; the mechanics are in `d
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
   - contact payment via Cashu message flow
   - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent
+  - standing orders (`#wallet/recurring`): a contact or Lightning address is paid every N hours, days, weeks, or months (minimum one hour) from the device that created the order, while Linky is open on it; a missed period is paid once and the rest skipped, a contact receives the chat note "Trvalý příkaz: <title>" before the token, and each run appears in the transaction history with a link back to the order
 - Push: optional Bun push service in `apps/push/` for generic Web Push notifications on new outer inbox `kind: 1059` events
 - Debug pages for Evolu current/history data and owner/rotation diagnostics
 
