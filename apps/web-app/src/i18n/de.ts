@@ -26,6 +26,7 @@ export const de = {
   menu: "Menü",
   advanced: "Erweitert",
   transactionsTitle: "Transaktionen",
+  recurringPaymentsTitle: "Daueraufträge",
   showTransactions: "Transaktionen anzeigen",
   feedback: "Feedback",
   donate: "Spenden",
