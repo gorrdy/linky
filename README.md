@@ -191,8 +191,10 @@ they are part of `bun run test`.
 End-to-end tests (Playwright) live in `apps/web-app/tests/*.spec.ts`.
 The `local-stack` runs the proxy-payment flow — three accounts on one machine, talking over the local
 Nostr relay and paying each other with the local Cashu mint — plus the linkshu storage-migration
-scenario, chat/edit/offline-reaction and top-up recovery, and signup/manual password saving
-with checks that recovery seeds stay out of HTTP requests. Attachment tests send encrypted images and PDFs between browsers and verify
+scenario, chat/edit/offline-reaction and top-up recovery, handing an issued token to a contact
+from its page, and signup/manual password saving
+with checks that recovery seeds stay out of HTTP requests. Attachment tests send encrypted
+images and PDFs between browsers and verify
 decryption, seen receipts, downloads, and bytes handed to the browser sharing API. The shards
 test rotates every scope, verifies old and new contacts, messages, transactions, and tokens across
 devices and reloads, checks that an edited row is copied into the active shard, and boots a fresh
