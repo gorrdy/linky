@@ -2449,8 +2449,12 @@ export const useCashuWalletComposition = ({
     updateLocalNostrMessage,
   });
   const recurringPaymentsActions = useRecurringPaymentsActions({
+    formatDisplayedAmountParts,
     insert,
-    runSchedulerNow: recurringScheduler.runNow,
+    pushToast,
+    runOrderNow: recurringScheduler.runOrderNow,
+    showPaidOverlay,
+    t,
     transactionsOwnerId,
     update,
   });
