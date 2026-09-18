@@ -90,6 +90,10 @@ Both events are signed with the configured identity and published to every write
 
 `RelayUrl` accepts `wss://` URLs without credentials or fragments. It also represents `ws://localhost`, `ws://127.0.0.1` and `ws://[::1]` for local development. The default transport refuses these insecure loopback URLs unless configured with `allowInsecureLocalhost: true`. Other `ws://` hosts are always rejected. Validate user input with `Schema.is(RelayUrl)` or `Schema.decodeUnknownEither(RelayUrl)`. `DEFAULT_NOSTR_RELAYS` (`defaultRelays.ts`) is a plain string array; filter it through the brand as above before handing it to the config.
 
+## Wire format
+
+`relayLists/RelayLists.ts`. Two plain replaceable events with empty content: kind 10002 (NIP-65) with one `["r", url]` per relay, or `["r", url, "read" | "write"]` for a one-directional entry, and kind 10050 (NIP-17) with one `["relay", url]` per inbox relay. Decoding drops entries that are not relay urls and turns an unknown marker into `null`.
+
 ## Fetching
 
 `fetchOwnRelayLists()` queries every read relay for your kinds 10002 and 10050 (8 s per relay) and returns `FetchedRelayLists`:
