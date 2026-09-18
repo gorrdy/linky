@@ -12,6 +12,20 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.18] - 2026-09-19
+
+### en-US
+
+- Updated data sync and storage, with automatic migration of existing data and a new chat storage screen.
+- Fixed sending issued Cashu tokens to contacts and repeated attempts to accept spent tokens.
+- Improved payment handling and security; Cashu tokens are now hidden in inspector logs.
+
+### cs-CZ
+
+- Aktualizovaná synchronizace a ukládání dat s automatickým převodem stávajících dat a novou obrazovkou úložiště chatu.
+- Opravené odesílání vydaných Cashu tokenů kontaktům a opakované pokusy o přijetí utracených tokenů.
+- Vylepšené zpracování plateb a zabezpečení; Cashu tokeny jsou nyní skryté v záznamech inspektoru.
+
 ## [26.9.17] - 2026-09-16
 
 ### en-US
