@@ -27,6 +27,7 @@ export const en = {
   advanced: "Advanced",
   transactionsTitle: "Transactions",
   recurringPaymentsTitle: "Recurring payments",
+  recurringPaymentChatNote: "Standing order: {title}",
   showTransactions: "Show transactions",
   feedback: "Feedback",
   donate: "Donate",

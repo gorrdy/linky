@@ -124,6 +124,7 @@ import { drainLegacyAcceptedCashuToken } from "../../migrations/legacyAcceptedTo
 import { seedLinkshuSeenMintsFromTokenRows } from "../../migrations/linkshuStorageMigration";
 import { useLinkshuComposition } from "./useLinkshuComposition";
 import { useMeltRecovery } from "../payments/useMeltRecovery";
+import { useRecurringPaymentsScheduler } from "../payments/useRecurringPaymentsScheduler";
 import { useResumeOnLaunchAndOnline } from "../useResumeOnLaunchAndOnline";
 import { useProfileComposition } from "./useProfileComposition";
 import type { Translate } from "../../../i18n";
@@ -2410,6 +2411,22 @@ export const useCashuWalletComposition = ({
     t,
     transactionsOwnerId,
     update,
+  });
+
+  useRecurringPaymentsScheduler({
+    appendLocalNostrMessage,
+    cashuBalance,
+    cashuIsBusy,
+    contacts,
+    currentNsec,
+    enabled: sendCashuToken !== null && meltCashuInvoice !== null,
+    enqueueOutbox,
+    payContactWithCashuMessage,
+    payLightningAddressWithCashu: payLightningAddressWithCashuBase,
+    setCashuIsBusy,
+    t,
+    update,
+    updateLocalNostrMessage,
   });
 
   const requestSelectedContact = React.useCallback(async () => {

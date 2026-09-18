@@ -27,6 +27,7 @@ export const de = {
   advanced: "Erweitert",
   transactionsTitle: "Transaktionen",
   recurringPaymentsTitle: "Daueraufträge",
+  recurringPaymentChatNote: "Dauerauftrag: {title}",
   showTransactions: "Transaktionen anzeigen",
   feedback: "Feedback",
   donate: "Spenden",
