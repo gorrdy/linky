@@ -80,10 +80,16 @@ export interface WrapInboxFeed {
   readonly events: Stream.Stream<DeliveredInboxEvent>;
 }
 
-interface RawArrival {
-  readonly delivery: InboxDelivery;
-  readonly raw: unknown;
-}
+type InboxQueueItem =
+  | {
+      readonly kind: "arrival";
+      readonly delivery: InboxDelivery;
+      readonly raw: unknown;
+    }
+  // Offered when a relay finishes replaying its stored window (EOSE): it
+  // persists the backfill high-water mark once the backlog ahead of it in the
+  // queue has been delivered.
+  | { readonly kind: "checkpoint" };
 
 const GIFT_WRAP_KIND = 1059;
 
@@ -107,10 +113,18 @@ const wrapIdOf = (raw: unknown): WrapId | null =>
  * wraps deduped across relays, authenticated and routed by rumor kind into
  * typed inbox facts. Each relay runs its own resubscribe loop, so one dead
  * relay never stalls the others; every (re)subscription backfills from the
- * cursor minus the NIP-59 backdate margin. The cursor is loaded from and
- * checkpointed to `InboxCursorStore` — the backdate margin makes eager
- * checkpointing safe, since the next session refetches everything the
- * current one could still deliver.
+ * cursor minus the NIP-59 backdate margin. The cursor is loaded from
+ * `InboxCursorStore`; backfill events only move the in-memory filter cursor,
+ * and the persisted checkpoint is written on a relay's EOSE and on live
+ * events. An interrupted or unfinished backfill therefore never advances the
+ * stored cursor past wraps it has not delivered, so the next session
+ * refetches them instead of skipping them.
+ *
+ * Known limitation: the checkpoint is a single shared cursor and the backfill
+ * is not paginated, so a relay that caps its stored-event response (and a
+ * flood of cheap wraps can force that cap) can still leave wraps below the cap
+ * undelivered until they age past the window. A per-relay cursor with a
+ * paginated backfill is the follow-up.
  */
 export class WrapInbox extends Effect.Service<WrapInbox>()(
   "linkstr/WrapInbox",
@@ -188,7 +202,7 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
             (yield* cursorStore.load) ?? options?.since ?? null,
           );
           const rawWraps = yield* Effect.acquireRelease(
-            Queue.unbounded<RawArrival>(),
+            Queue.unbounded<InboxQueueItem>(),
             Queue.shutdown,
           );
           const seenWrapIds = makeSeenWrapIds(DEFAULT_SEEN_WRAP_IDS_CAPACITY);
@@ -215,6 +229,7 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
                 filter,
                 (event) => {
                   Queue.unsafeOffer(rawWraps, {
+                    kind: "arrival",
                     delivery: eoseSeen ? "live" : "backfill",
                     raw: event,
                   });
@@ -222,6 +237,9 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
                 {
                   onEose: () => {
                     eoseSeen = true;
+                    // Persist the backfill high-water mark, but only after
+                    // every wrap offered before this EOSE has been processed.
+                    Queue.unsafeOffer(rawWraps, { kind: "checkpoint" });
                   },
                 },
               );
@@ -234,7 +252,10 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
             Effect.forkScoped(keepSubscribed(relay)),
           );
 
-          const advanceCursor = (wrapCreatedAt: number): Effect.Effect<void> =>
+          const advanceCursor = (
+            wrapCreatedAt: number,
+            delivery: InboxDelivery,
+          ): Effect.Effect<void> =>
             Effect.gen(function* () {
               // Clamped: a sender-controlled future timestamp must not push
               // the cursor past real time, or restarts would skip everything
@@ -245,14 +266,31 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
                   ? [UnixSeconds.make(next), UnixSeconds.make(next)]
                   : [null, current],
               );
-              if (advanced !== null) yield* cursorStore.save(advanced);
+              // A backfill event only moves the in-memory filter cursor; the
+              // stored checkpoint waits for the relay's EOSE, so an unfinished
+              // backfill cannot skip the wraps it has not delivered yet.
+              if (advanced !== null && delivery === "live")
+                yield* cursorStore.save(advanced);
             });
 
-          const processRaw = ({
-            delivery,
-            raw,
-          }: RawArrival): Effect.Effect<Option.Option<DeliveredInboxEvent>> =>
+          const persistCheckpoint: Effect.Effect<void> = Effect.gen(
+            function* () {
+              const value = yield* Ref.get(cursor);
+              if (value !== null) yield* cursorStore.save(value);
+            },
+          );
+
+          const processRaw = (
+            item: InboxQueueItem,
+          ): Effect.Effect<Option.Option<DeliveredInboxEvent>> =>
             Effect.suspend(() => {
+              if (item.kind === "checkpoint") {
+                return Effect.as(
+                  persistCheckpoint,
+                  Option.none<DeliveredInboxEvent>(),
+                );
+              }
+              const { delivery, raw } = item;
               const wrapId = wrapIdOf(raw);
               if (wrapId !== null && seenWrapIds.has(wrapId)) {
                 return Effect.sync(() => {
@@ -289,7 +327,7 @@ export class WrapInbox extends Effect.Service<WrapInbox>()(
               }
               const { wrap } = decoded;
               return Effect.sync(() => seenWrapIds.add(wrap.id)).pipe(
-                Effect.andThen(advanceCursor(wrap.created_at)),
+                Effect.andThen(advanceCursor(wrap.created_at, delivery)),
                 Effect.map(() => {
                   inspector.emit(
                     () =>

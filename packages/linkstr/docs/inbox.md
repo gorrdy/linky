@@ -94,7 +94,7 @@ Drops are facts too: log them, count them, but never treat one as an error.
 
 ## The cursor and `InboxCursorStore`
 
-The inbox tracks the newest authenticated wrap `created_at` (clamped to now) and checkpoints it to `InboxCursorStore` on every advance. Each subscription asks relays for `since = cursor - NIP59_BACKDATE_MARGIN_SECONDS` (two days), because gift-wrap timestamps are randomized into the past. So:
+The inbox tracks the newest authenticated wrap `created_at` (clamped to now) in memory and checkpoints it to `InboxCursorStore` on a relay's EOSE and on live events — **not** during backfill, so an interrupted or unfinished backfill never advances the stored cursor past wraps it has not delivered. Each subscription asks relays for `since = cursor - NIP59_BACKDATE_MARGIN_SECONDS` (two days), because gift-wrap timestamps are randomized into the past. (Known limitation: the checkpoint is a single shared cursor and the backfill is not paginated, so a relay that caps its stored-event response can still leave older wraps undelivered until they age out; a per-relay paginated backfill is the follow-up.) So:
 
 - Restarts replay a bounded window. Dedupe and idempotency absorb it; your handlers must be idempotent by rumor id.
 - `open({ since })` only seeds a session whose store is empty. Once a cursor is saved, `since` is ignored.

@@ -403,7 +403,40 @@ describe("WrapInbox", () => {
               sentAt,
             }),
           );
+          // A backfill wrap does not checkpoint until the relay's EOSE.
+          expect(store.saved).toEqual([]);
+          fakeA.eose();
+          yield* eventually(() => store.saved.length === 1);
           expect(store.saved).toEqual([wrap.created_at]);
+        }),
+    );
+  });
+
+  it("checkpoints the cursor at EOSE, not mid-backfill", async () => {
+    const fakeA = new FakeRelay();
+    const older = reactionWrap("👍");
+    const newer = reactionWrap("🔥");
+    const store = recordingCursorStore();
+
+    await runOpen(
+      [[relayA, fakeA]],
+      { cursorStore: store.layer },
+      ({ collected }) =>
+        Effect.gen(function* () {
+          yield* eventually(() => fakeA.subscriptions.length === 1);
+          // Two stored wraps arrive before EOSE. An interrupted backfill here
+          // must leave the persisted cursor untouched so the next session
+          // refetches these instead of skipping them.
+          fakeA.emit(newer);
+          fakeA.emit(older);
+          yield* eventually(() => collected.length === 2);
+          expect(store.saved).toEqual([]);
+
+          fakeA.eose();
+          yield* eventually(() => store.saved.length === 1);
+          // The persisted high-water mark is the newest delivered wrap.
+          const highWater = Math.max(older.created_at, newer.created_at);
+          expect(store.saved).toEqual([UnixSeconds.make(highWater)]);
         }),
     );
   });

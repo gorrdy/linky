@@ -134,20 +134,33 @@ describe("runLinkstr", () => {
       ),
     };
 
-    const received = await runLinkstr(
+    const tags: string[] = [];
+    await runLinkstr(
       config,
       Effect.scoped(
         Effect.gen(function* () {
           const inbox = yield* WrapInbox;
           const feed = yield* inbox.open({ since });
+          yield* Effect.forkScoped(
+            Stream.runForEach(feed.events, (delivered) =>
+              Effect.sync(() => {
+                tags.push(delivered.event._tag);
+              }),
+            ),
+          );
           yield* eventually(() => fake.subscriptions.length === 1);
           fake.emit(wrap);
-          return yield* Stream.runCollect(Stream.take(feed.events, 1));
+          // The cursor is checkpointed on EOSE, not mid-backfill.
+          fake.eose();
+          yield* eventually(() => tags.length === 1);
+          yield* eventually(
+            () => storage.getItem("cursor") === String(wrap.created_at),
+          );
         }),
       ),
     );
 
-    expect(Array.from(received)[0]?.event._tag).toBe("ChatMessageReceived");
+    expect(tags[0]).toBe("ChatMessageReceived");
     expect(storage.getItem("cursor")).toBe(String(wrap.created_at));
     expect(fake.subscriptions[0]?.filters[0]?.since).toBe(
       since - NIP59_BACKDATE_MARGIN_SECONDS,
