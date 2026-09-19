@@ -55,7 +55,7 @@ Constants live in `apps/web-app/src/utils/constants.ts`; the mechanics are in `d
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
   - contact payment via Cashu message flow, including NUT-18 payment requests scanned or pasted from other wallets (amount-less requests ask for the amount first)
   - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent
-  - recurring payments to a contact every N hours, days, weeks, or months (minimum one hour), listed at the top of the transaction history and created there or from a completed payment; any of the user's devices with Linky open sends a due payment after a five-minute notice with cancel, a missed period is paid once and the rest skipped, and each run appears in the history
+  - recurring payments to a contact every N hours, days, weeks, or months (minimum one hour), reached from a card at the top of the transaction history, from a contact's page, or from a completed payment; any of the user's devices with Linky open sends a due payment after a five-minute notice with cancel, a missed period is paid once and the rest skipped, and each run appears in the history
 - Push: optional Bun push service in `apps/push/` for generic Web Push notifications on new outer inbox `kind: 1059` events
 - Debug pages for Evolu current/history data and owner/rotation diagnostics
 

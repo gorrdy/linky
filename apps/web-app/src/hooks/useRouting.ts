@@ -118,6 +118,7 @@ type NavigationAction =
   | { route: "settingsMasterKeys" }
   | { route: "settingsUnits" }
   | { route: "transactions" }
+  | { route: "recurringPayments" }
   | {
       route: "recurringPaymentNew";
       prefill?: { amountSat?: number; contactId?: string };
@@ -188,6 +189,9 @@ export const navigateTo = (action: NavigationAction): void => {
       break;
     case "transactions":
       window.location.assign("#wallet/transactions");
+      break;
+    case "recurringPayments":
+      window.location.assign("#wallet/recurring");
       break;
     case "recurringPaymentNew": {
       const query = new URLSearchParams();
