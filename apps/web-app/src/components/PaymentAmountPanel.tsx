@@ -10,8 +10,6 @@ interface PaymentAmountPanelProps {
   amount: string;
   cashuIsBusy: boolean;
   displayUnit: string;
-  /** Rendered under the submit button (secondary links). */
-  footer?: ReactNode | undefined;
   header: ReactNode;
   notices?: ReactNode | undefined;
   onAmountChange: React.Dispatch<React.SetStateAction<string>>;
@@ -30,7 +28,6 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
   amount,
   cashuIsBusy,
   displayUnit,
-  footer,
   header,
   notices,
   onAmountChange,
@@ -99,7 +96,6 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
             </span>
           </button>
         </div>
-        {footer}
       </div>
     </section>
   );

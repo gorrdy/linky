@@ -11,7 +11,6 @@ import {
   useLnurlPayPreview,
 } from "../hooks/useLnurlPayPreview";
 import { getInitials } from "../utils/formatting";
-import { navigateTo } from "../hooks/useRouting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 
 interface Contact {
@@ -210,25 +209,6 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
             />
           )}
         </>
-      }
-      footer={
-        !isRequestFlow && canUseCashu ? (
-          <button
-            type="button"
-            className="wallet-subtle-link recurring-repeat-link"
-            onClick={() =>
-              navigateTo({
-                route: "recurringPaymentNew",
-                prefill: {
-                  contactId: selectedContact.id,
-                  ...(validAmount > 0 ? { amountSat: validAmount } : {}),
-                },
-              })
-            }
-          >
-            {t("recurringRepeatPayment")}
-          </button>
-        ) : undefined
       }
       onAmountChange={setPayAmount}
       onSubmit={() => {
