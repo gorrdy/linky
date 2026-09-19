@@ -609,6 +609,7 @@ export const en = {
   bankPaymentOfferStatusBankPaid: "Paid by bank",
   bankPaymentOfferStatusDeclined: "Declined",
   bankPaymentOfferStatusCanceled: "Canceled",
+  bankPaymentOfferAlreadyPaid: "This offer has already been paid.",
   bankPaymentOfferStatusSettled: "Done",
   bankPaymentOfferAccept: "Accept",
   bankPaymentOfferCancel: "Cancel offer",

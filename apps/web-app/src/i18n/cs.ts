@@ -617,6 +617,7 @@ export const cs = {
   bankPaymentOfferStatusBankPaid: "Zaplaceno bankou",
   bankPaymentOfferStatusDeclined: "Odmítnuto",
   bankPaymentOfferStatusCanceled: "Zrušeno",
+  bankPaymentOfferAlreadyPaid: "Tato nabídka už byla zaplacena.",
   bankPaymentOfferStatusSettled: "Dokončeno",
   bankPaymentOfferAccept: "Přijmout",
   bankPaymentOfferCancel: "Zrušit nabídku",

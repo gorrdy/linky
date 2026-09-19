@@ -1,5 +1,10 @@
 import { isCurrentChatPaymentRequest } from "../../lib/chatPaymentRequestAuthorization";
-import { getBankOfferForSettlement } from "../../lib/bankOfferSettlement";
+import {
+  clearBankPaymentOfferPaid,
+  getBankOfferForSettlement,
+  markBankPaymentOfferPaid,
+  wasBankPaymentOfferPaid,
+} from "../../lib/bankOfferSettlement";
 import type { RestoreProgress } from "@linky/linkshu";
 import { useReclaimCashuTransfer } from "../cashu/useReclaimCashuTransfer";
 import { useLatest } from "../../../hooks/useLatest";
@@ -892,6 +897,13 @@ export const useCashuWalletComposition = ({
         setStatus(t("bankPaymentOfferStatusCanceled"));
         return;
       }
+      // A settlement payment for this offer was already started (possibly only
+      // queued offline, or its settled-snapshot publish failed); never pay a
+      // second time on another tap or after a reload.
+      if (wasBankPaymentOfferPaid(offerInfo.offerId)) {
+        setStatus(t("bankPaymentOfferAlreadyPaid"));
+        return;
+      }
       if (!offerInfo.amountSat) {
         setStatus(t("payInvalidAmount"));
         return;
@@ -906,6 +918,9 @@ export const useCashuWalletComposition = ({
       }
 
       setCashuIsBusy(true);
+      // Claim the offer before any funds move; a queued (offline) payment keeps
+      // the claim, an outright failure releases it for a retry.
+      markBankPaymentOfferPaid(offerInfo.offerId);
       try {
         const result = await payContactWithCashuMessage({
           contact,
@@ -914,12 +929,18 @@ export const useCashuWalletComposition = ({
           paymentNoticeContext: "bank_payment_offer",
           paymentNoticeOfferId: offerInfo.offerId,
         });
-        if (!result.ok) return;
+        if (!result.ok) {
+          clearBankPaymentOfferPaid(offerInfo.offerId);
+          return;
+        }
 
         await respondToBankPaymentOfferWithGroupState(
           authorizedMessage,
           "settled",
         );
+      } catch (error) {
+        clearBankPaymentOfferPaid(offerInfo.offerId);
+        throw error;
       } finally {
         setCashuIsBusy(false);
       }
