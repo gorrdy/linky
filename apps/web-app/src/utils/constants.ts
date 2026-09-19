@@ -46,7 +46,7 @@ export const CASHU_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 170;
 export const MESSAGES_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 160;
 export const TRANSACTIONS_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 220;
 export const OWNER_ROTATION_COOLDOWN_MS = 60_000;
-// Random per-install id; a standing order runs only on the device it names.
+// Random per-install id; names the device that claims a recurring payment.
 export const DEVICE_ID_STORAGE_KEY = "linky.device_id.v1";
 export const MAX_CONTACTS_PER_OWNER = 100;
 export const INSTALL_PWA_DISMISSED_AT_MS_STORAGE_KEY =

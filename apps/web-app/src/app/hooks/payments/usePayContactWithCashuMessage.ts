@@ -135,7 +135,7 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
       paymentRequestRelayHints?: readonly string[];
       isPaymentAuthorized?: () => boolean;
       pendingMessageId?: string;
-      /** Set when a standing order pays; recorded on the transaction. */
+      /** Set when a recurring payment pays; recorded on the transaction. */
       recurringRun?: RecurringRunRef | null;
       replyContext?: ReplyContext | null;
     }): Promise<CashuMessagePaymentHookResult> => {

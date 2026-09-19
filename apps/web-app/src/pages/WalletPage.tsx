@@ -58,22 +58,13 @@ export const WalletPage: React.FC<WalletPageProps> = React.memo(
                 disabled={scanIsOpen}
               />
             </div>
-            <div className="wallet-subtle-links">
-              <button
-                type="button"
-                className="wallet-subtle-link"
-                onClick={() => navigateTo({ route: "transactions" })}
-              >
-                {t("showTransactions")}
-              </button>
-              <button
-                type="button"
-                className="wallet-subtle-link"
-                onClick={() => navigateTo({ route: "recurringPayments" })}
-              >
-                {t("showRecurringPayments")}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="wallet-subtle-link"
+              onClick={() => navigateTo({ route: "transactions" })}
+            >
+              {t("showTransactions")}
+            </button>
           </div>
         </div>
         {showBottomTabBar ? (
