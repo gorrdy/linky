@@ -2,6 +2,7 @@ import React from "react";
 import { isNativePlatform } from "../platform/runtime";
 import { isRecord } from "../utils/unknown";
 import { asNonEmptyString } from "../utils/validation";
+import { linkPreviewUrl } from "../app/lib/linkPreviewUrl";
 
 interface LinkPreview {
   description: string | null;
@@ -98,16 +99,21 @@ const loadLinkPreview = (url: string): Promise<LinkPreview | null> => {
 };
 
 export function LinkPreviewCard({ url }: LinkPreviewCardProps) {
+  // A cashu share link keeps its token in the fragment so it never reaches a
+  // server; sanitize it away (and skip cashu links entirely) before fetching.
+  const previewUrl = React.useMemo(() => linkPreviewUrl(url), [url]);
   const cardRef = React.useRef<HTMLAnchorElement | null>(null);
   const [shouldLoad, setShouldLoad] = React.useState(
-    getCachedPreview(url) !== undefined ||
-      typeof IntersectionObserver === "undefined",
+    previewUrl !== null &&
+      (getCachedPreview(previewUrl) !== undefined ||
+        typeof IntersectionObserver === "undefined"),
   );
   const [preview, setPreview] = React.useState<LinkPreview | null>(
-    getCachedPreview(url) ?? null,
+    previewUrl !== null ? (getCachedPreview(previewUrl) ?? null) : null,
   );
 
   React.useEffect(() => {
+    if (previewUrl === null) return;
     if (shouldLoad || typeof IntersectionObserver === "undefined") return;
     const element = cardRef.current;
     if (!element) return;
@@ -121,25 +127,27 @@ export function LinkPreviewCard({ url }: LinkPreviewCardProps) {
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [shouldLoad]);
+  }, [previewUrl, shouldLoad]);
 
   React.useEffect(() => {
-    if (!shouldLoad) return;
+    if (previewUrl === null || !shouldLoad) return;
     let active = true;
-    void loadLinkPreview(url).then((nextPreview) => {
+    void loadLinkPreview(previewUrl).then((nextPreview) => {
       if (active) setPreview(nextPreview);
     });
     return () => {
       active = false;
     };
-  }, [shouldLoad, url]);
+  }, [previewUrl, shouldLoad]);
+
+  if (previewUrl === null) return null;
 
   if (!preview) {
     return shouldLoad ? null : (
       <a
         ref={cardRef}
         className="chat-link-preview chat-link-preview-placeholder"
-        href={url}
+        href={previewUrl}
         target="_blank"
         rel="noopener noreferrer"
         aria-hidden="true"
