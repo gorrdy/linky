@@ -16,7 +16,7 @@ import {
   useAppShellCore,
 } from "../app/context/AppShellContexts";
 import { Avatar } from "../components/Avatar";
-import { RecurringPaymentsSection } from "../components/RecurringPaymentsSection";
+import { RecurringPaymentsSummaryRow } from "../components/RecurringPaymentsSummaryRow";
 
 import { createCashuTokenId } from "../app/lib/cashuTokenIdentity";
 import { calculateTransactionHistoryFee } from "../app/lib/transactionHistoryFee";
@@ -755,7 +755,7 @@ export function TransactionsPage(): React.ReactElement {
 
   return (
     <section className="panel panel-plain transactions-page">
-      <RecurringPaymentsSection />
+      <RecurringPaymentsSummaryRow />
       {transactions.length === 0 ? (
         <p className="muted">{t("paymentsHistoryEmpty")}</p>
       ) : (
