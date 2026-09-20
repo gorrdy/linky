@@ -85,7 +85,7 @@ test("adding a relay with capacity syncs quota-rejected token history and spent 
       for (let index = 0; index < 12; index += 1) {
         await source.page.goto("/#wallet/token/emit");
         await source.page
-          .getByRole("button", { name: "1", exact: true })
+          .getByRole("button", { name: "2", exact: true })
           .click();
         await source.page
           .getByRole("button", { name: "Issue", exact: true })
@@ -106,7 +106,7 @@ test("adding a relay with capacity syncs quota-rejected token history and spent 
       ).toBeDisabled();
       expect(await readBalanceSat(second.page)).toBe(512);
       await source.page.goto("/#wallet");
-      await expect.poll(() => readBalanceSat(source.page)).toBe(488);
+      await expect.poll(() => readBalanceSat(source.page)).toBe(476);
     });
 
     await test.step("existing local history uploads to a new relay without a database reset", async () => {
@@ -115,17 +115,17 @@ test("adding a relay with capacity syncs quota-rejected token history and spent 
       await second.context.setOffline(false);
       await addRecoveryRelay(second.page);
       for (const device of devices) {
-        await expect.poll(() => readBalanceSat(device.page)).toBe(488);
+        await expect.poll(() => readBalanceSat(device.page)).toBe(476);
         await device.page.reload();
         await waitForNetworkReady(device.page);
-        await expect.poll(() => readBalanceSat(device.page)).toBe(488);
+        await expect.poll(() => readBalanceSat(device.page)).toBe(476);
       }
     });
 
     await test.step("the stale device receives the spent proofs through Evolu", async () => {
       await second.page.goto("/#wallet/tokens/proofs");
       const available = second.page.getByLabel("Available", { exact: true });
-      await expect(available).toContainText("Available · 488 sat");
+      await expect(available).toContainText("Available · 476 sat");
       await expect(available).toContainText(
         /Spent proofs kept for bookkeeping: \d+/,
       );

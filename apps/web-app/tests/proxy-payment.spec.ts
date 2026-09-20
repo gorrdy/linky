@@ -392,7 +392,7 @@ test("proxy payment: bank details reach exactly one acceptor, who is paid in sat
       await settle.click();
       await expect
         .poll(() => readBalanceSat(winner.page), { timeout: 240_000 })
-        .toBeGreaterThan(0);
+        .toBeGreaterThanOrEqual(FIXTURE_AMOUNT_SAT - MAX_REDEEM_FEE_SAT);
 
       const received = await readBalanceSat(winner.page);
       expect(received).toBeLessThanOrEqual(FIXTURE_AMOUNT_SAT);

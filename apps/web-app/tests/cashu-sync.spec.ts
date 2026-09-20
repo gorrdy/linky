@@ -214,7 +214,7 @@ test("token consumption rotates shard zero from its mutation history while few l
       for (let index = 0; index < 60; index += 1) {
         await source.page.goto("/#wallet/token/emit");
         await source.page
-          .getByRole("button", { name: "1", exact: true })
+          .getByRole("button", { name: "2", exact: true })
           .click();
         await source.page
           .getByRole("button", { name: "Issue", exact: true })
@@ -257,7 +257,7 @@ test("token consumption rotates shard zero from its mutation history while few l
     await source.page.goto("/#wallet");
     const remaining = await readBalanceSat(source.page);
     expect(remaining).toBeGreaterThan(300);
-    expect(remaining).toBeLessThanOrEqual(452);
+    expect(remaining).toBeLessThanOrEqual(392);
     await expect.poll(() => readBalanceSat(second.page)).toBe(remaining);
 
     await test.step("new-lane funds and old-lane change remain synced after reload", async () => {
