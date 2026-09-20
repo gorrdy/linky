@@ -1,11 +1,20 @@
+import { encodeNprofile, encodeNpub } from "@linky/linkstr";
+import { makeIdentity } from "@linky/linkstr/testing";
+import { encode } from "cbor-x";
 import { bech32 } from "@scure/base";
 import { Effect } from "effect";
-import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import React, { act } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderIntoDocument } from "../../testUtils/renderIntoDocument";
 import type { LnurlAuthPreview } from "../../lnurlAuth";
 import type { Translate } from "../../i18n";
 import { useScannedTextHandler } from "./useScannedTextHandler";
+import { useCashuPaymentRequestConfirmation } from "./payments/useCashuPaymentRequestConfirmation";
+import {
+  buildCashuPaymentRequestMessage,
+  type CashuPaymentRequestMessageInfo,
+} from "../lib/paymentRequestMessage";
+import { encodeBase64Url } from "../../utils/base64";
 
 const K1 = "b".repeat(64);
 const LOGIN_URL = `https://example.com/lnurl-auth?tag=login&k1=${K1}&action=login`;
@@ -18,32 +27,56 @@ const encodeLnurl = (url: string): string => {
 
 type ScannedTextHandler = ReturnType<typeof useScannedTextHandler>;
 
-interface Scan {
-  handle: (text: string) => Promise<void>;
-  requestLnurlAuthConfirmation: ReturnType<typeof vi.fn>;
-  requestLnurlWithdrawConfirmation: ReturnType<typeof vi.fn>;
-}
+const unmounts: Array<() => Promise<void>> = [];
+afterEach(async () => {
+  for (const unmount of unmounts.splice(0)) await unmount();
+  vi.restoreAllMocks();
+});
 
 const translateToKey: Translate = (key) => key;
 
-const setup = async (): Promise<Scan> => {
+const setup = async ({
+  autoPayLimit = 0,
+  currentNpub = null,
+  cashuIsBusy = false,
+}: {
+  autoPayLimit?: number;
+  currentNpub?: string | null;
+  cashuIsBusy?: boolean;
+} = {}) => {
   const requestLnurlAuthConfirmation = vi.fn<(p: LnurlAuthPreview) => void>();
   const requestLnurlWithdrawConfirmation = vi.fn();
+  const runCashuPaymentRequest = vi
+    .fn<(request: CashuPaymentRequestMessageInfo) => Promise<void>>()
+    .mockResolvedValue(undefined);
+  const payLightningInvoiceWithCashu = vi
+    .fn<(invoice: string) => Promise<boolean>>()
+    .mockResolvedValue(true);
+  const requestLightningInvoiceConfirmation = vi.fn();
   const handlerRef: { current: ScannedTextHandler | null } = { current: null };
+  const confirmationRef: {
+    current: ReturnType<typeof useCashuPaymentRequestConfirmation> | null;
+  } = { current: null };
 
   const Probe = (): null => {
+    const confirmation = useCashuPaymentRequestConfirmation({
+      autoPayLimit,
+      currentNpub,
+      cashuIsBusy,
+      runCashuPaymentRequest,
+    });
     const handle = useScannedTextHandler({
       closeScan: () => undefined,
       contacts: [],
       contactsRepository: { insert: () => Effect.void },
-      currentNpub: null,
+      currentNpub,
       extractCashuTokenFromText: () => null,
-      lightningInvoiceAutoPayLimit: 0,
+      lightningInvoiceAutoPayLimit: autoPayLimit,
       onContactIdentifierScanned: null,
       openScannedContactPendingNpubRef: { current: null },
-      payCashuPaymentRequest: async () => undefined,
-      payLightningInvoiceWithCashu: async () => false,
-      requestLightningInvoiceConfirmation: () => undefined,
+      payCashuPaymentRequest: confirmation.payCashuPaymentRequest,
+      payLightningInvoiceWithCashu,
+      requestLightningInvoiceConfirmation,
       requestLnurlAuthConfirmation,
       requestLnurlWithdrawConfirmation,
       saveCashuFromText: async () => undefined,
@@ -55,20 +88,48 @@ const setup = async (): Promise<Scan> => {
 
     React.useEffect(() => {
       handlerRef.current = handle;
-    }, [handle]);
+      confirmationRef.current = confirmation;
+    });
     return null;
   };
 
-  await renderIntoDocument(<Probe />);
-  const handle = handlerRef.current;
-  if (!handle) throw new Error("scan handler did not mount");
+  const rendered = await renderIntoDocument(<Probe />);
+  unmounts.push(rendered.unmount);
 
   return {
-    handle,
+    handle: async (text: string) => {
+      const handle = handlerRef.current;
+      if (!handle) throw new Error("scan handler did not mount");
+      await act(async () => handle(text));
+    },
+    get confirmation() {
+      const confirmation = confirmationRef.current;
+      if (!confirmation) throw new Error("confirmation hook did not mount");
+      return confirmation;
+    },
+    runCashuPaymentRequest,
+    payLightningInvoiceWithCashu,
+    requestLightningInvoiceConfirmation,
     requestLnurlAuthConfirmation,
     requestLnurlWithdrawConfirmation,
   };
 };
+
+const lightningInvoice = (amount: number | null) =>
+  bech32.encode(
+    amount === null ? "lnbc" : `lnbc${amount * 10}n`,
+    new Array<number>(111).fill(0),
+    5000,
+  );
+
+const cashuRequest = (amount: number) =>
+  `creqA${encodeBase64Url(
+    encode({
+      a: amount,
+      u: "sat",
+      t: [{ t: "post", a: "https://pay.example/request" }],
+    }),
+  )}`;
 
 describe("scanned LNURL-auth targets", () => {
   it("confirms a login without probing it as a withdraw target", async () => {
@@ -103,4 +164,141 @@ describe("scanned LNURL-auth targets", () => {
     expect(fetchSpy).toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
+});
+
+describe("scanned Cashu auto-pay", () => {
+  it.each([999, 1000])(
+    "auto-pays %i sats with a 1000-sat limit",
+    async (amount) => {
+      const scan = await setup({ autoPayLimit: 1000 });
+      await scan.handle(cashuRequest(amount));
+
+      expect(scan.runCashuPaymentRequest).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ amount }),
+      );
+      expect(
+        scan.confirmation.pendingCashuPaymentRequestConfirmation,
+      ).toBeNull();
+    },
+  );
+
+  it("requires confirmation above the limit and cancel never pays", async () => {
+    const scan = await setup({ autoPayLimit: 1000 });
+    await scan.handle(cashuRequest(1001));
+
+    expect(
+      scan.confirmation.pendingCashuPaymentRequestConfirmation?.amount,
+    ).toBe(1001);
+    expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
+    await act(async () =>
+      scan.confirmation.closeCashuPaymentRequestConfirmation(),
+    );
+    expect(scan.confirmation.pendingCashuPaymentRequestConfirmation).toBeNull();
+    await act(async () => scan.confirmation.confirmCashuPaymentRequest());
+    expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
+  });
+
+  it("pays the approved request once and clears the confirmation", async () => {
+    const scan = await setup({ autoPayLimit: 1000 });
+    await scan.handle(cashuRequest(1001));
+    const pending = scan.confirmation.pendingCashuPaymentRequestConfirmation;
+
+    await act(async () => scan.confirmation.confirmCashuPaymentRequest());
+    expect(scan.runCashuPaymentRequest).toHaveBeenCalledExactlyOnceWith(
+      pending,
+    );
+    expect(scan.confirmation.pendingCashuPaymentRequestConfirmation).toBeNull();
+    await act(async () => scan.confirmation.confirmCashuPaymentRequest());
+    expect(scan.runCashuPaymentRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires confirmation for positive amounts when the limit is zero", async () => {
+    const scan = await setup();
+    await scan.handle(cashuRequest(1));
+
+    expect(
+      scan.confirmation.pendingCashuPaymentRequestConfirmation?.amount,
+    ).toBe(1);
+    expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
+  });
+
+  it.each([500, 1500])(
+    "uses the %i-sat Cashu amount in a combined QR",
+    async (amount) => {
+      const scan = await setup({ autoPayLimit: 1000 });
+      await scan.handle(
+        `bitcoin:?amount=0.000001&lightning=${lightningInvoice(100)}&creq=${cashuRequest(amount)}`,
+      );
+
+      if (amount <= 1000) {
+        expect(scan.runCashuPaymentRequest).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({ amount }),
+        );
+        expect(
+          scan.confirmation.pendingCashuPaymentRequestConfirmation,
+        ).toBeNull();
+      } else {
+        expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
+        expect(
+          scan.confirmation.pendingCashuPaymentRequestConfirmation?.amount,
+        ).toBe(amount);
+      }
+      expect(scan.payLightningInvoiceWithCashu).not.toHaveBeenCalled();
+      expect(scan.requestLightningInvoiceConfirmation).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps self-payments outside the limit because no funds leave", async () => {
+    const identity = makeIdentity();
+    const scan = await setup({ currentNpub: encodeNpub(identity.pubkey) });
+    await scan.handle(
+      buildCashuPaymentRequestMessage({
+        amount: 2000,
+        mintUrls: [],
+        recipientNprofile: encodeNprofile(identity.pubkey, []),
+      }),
+    );
+
+    expect(scan.runCashuPaymentRequest).toHaveBeenCalledOnce();
+    expect(scan.confirmation.pendingCashuPaymentRequestConfirmation).toBeNull();
+  });
+
+  it.each([500, 1500])(
+    "ignores a %i-sat scan while the wallet is busy",
+    async (amount) => {
+      const scan = await setup({ autoPayLimit: 1000, cashuIsBusy: true });
+      await scan.handle(cashuRequest(amount));
+
+      expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
+      expect(
+        scan.confirmation.pendingCashuPaymentRequestConfirmation,
+      ).toBeNull();
+    },
+  );
+});
+
+describe("scanned Lightning auto-pay", () => {
+  it.each([999, 1000, 1001, null])(
+    "keeps the existing policy for %s sats",
+    async (amount) => {
+      const scan = await setup({ autoPayLimit: 1000 });
+      const invoice = lightningInvoice(amount);
+      await scan.handle(invoice);
+
+      if (amount !== null && amount <= 1000) {
+        expect(
+          scan.payLightningInvoiceWithCashu,
+        ).toHaveBeenCalledExactlyOnceWith(invoice);
+        expect(scan.requestLightningInvoiceConfirmation).not.toHaveBeenCalled();
+      } else {
+        expect(scan.payLightningInvoiceWithCashu).not.toHaveBeenCalled();
+        expect(
+          scan.requestLightningInvoiceConfirmation,
+        ).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({ invoice, amountSat: amount }),
+        );
+      }
+      expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
+    },
+  );
 });

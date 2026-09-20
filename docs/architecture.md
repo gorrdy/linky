@@ -255,6 +255,8 @@ Every synced row lives in a `@linky/linksync` shard (see "Linksync synced storag
 
 ### Wallet and payments
 
+- Scanned, pasted and typed Lightning invoices and Cashu payment requests share the Auto-pay limit: amounts at or below the limit pay automatically; larger amounts require confirmation before contact creation or spending. Unknown Lightning amounts require confirmation. Combined `bitcoin:` QR codes prefer Cashu and compare the Cashu request amount, never the alternative Lightning or on-chain amount. Cashu self-payments move no funds and skip confirmation; chat requests keep their explicit in-thread Pay action. The existing `lightningInvoiceAutoPayLimit` setting and storage key are retained for compatibility.
+
 - Wallet receive (`#wallet/topup`) keeps the amount-entry invoice flow, now also exposes secondary `No amount`, `Paste`, and `Scan` actions at the bottom, and `#wallet/topup/no-amount` renders a reusable QR from the user's lightning address for amount-less LNURL-pay receipts
 - Display-unit preferences now live on the dedicated `#settings` page reached from the menu `Jednotky` row; users toggle which currencies are allowed there, defaulting to language currency plus `sat`, can also enable a hidden `*****` unit that masks amounts across the app, and wallet balance / amount-entry displays cycle through the allowed currencies on tap
 - Outgoing Cashu payments select a single mint that can cover the payment amount; Linky does not split one payment across token balances from multiple mints
