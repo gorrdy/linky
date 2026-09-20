@@ -25,7 +25,7 @@ Run it with `runLinkshu` or on your `ManagedRuntime`.
 
 ## How it works
 
-1. **Check the amount.** Whoever redeems the token pays the mint's input fee on its proofs (NUT-02). `amount` has to exceed the fee of the split the swap produces from the bound keyset's published denominations; otherwise `AmountConsumedByFee`, before any mint call.
+1. **Check the amount.** Whoever redeems the token pays the mint's input fee on its proofs (NUT-02). `amount` has to exceed the fee of the split the swap produces from the bound keyset's published denominations; otherwise `AmountConsumedByFee`, before the swap or any inventory changes. Loading the wallet may fetch mint metadata before this check.
 2. **Select sources.** Every `available` proof at `mint` (unit `sat`) goes into one batched NUT-07 check. Proofs the mint reports `SPENT` are marked `spent` right away — that knowledge sticks even if the send fails afterwards. Only proofs explicitly reported `UNSPENT` are offered; `PENDING`, missing, and unrecognized states stay `available` but are not offered and do not count.
 3. **Check funds.** Offered total below `amount` fails with `InsufficientFunds` before any mint write.
 4. **Swap.** Under the counter lock, `amount` is swapped out into fresh send proofs plus change. Counter collisions are retried by the package, as in [receive.md](./receive.md).
@@ -84,7 +84,7 @@ On every failure, unspent sources remain `available`; proofs the NUT-07 pre-chec
 | Tag                   | When                                                                                                | What to do                                                      |
 | --------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `InsufficientFunds`   | confirmed-unspent balance at `mint` is below `amount`, or the swap could not cover amount plus fees | pick another mint (`Tokens.balances.perMint`) or a lower amount |
-| `AmountConsumedByFee` | `amount` does not exceed the input fee the recipient pays to redeem the token (`fee`)               | ask for more than `fee`; nothing was sent to the mint           |
+| `AmountConsumedByFee` | `amount` does not exceed the input fee the recipient pays to redeem the token (`fee`)               | ask for more than `fee`; no swap was attempted                  |
 | `MintUnreachable`     | network/timeout/5xx while loading the mint, checking states, or swapping                            | you may retry later                                             |
 | `MintRejected`        | definitive rejection, malformed swap proofs, or collision retries exhausted                         | surface `detail`                                                |
 | `CounterLockTimeout`  | the counter lease was held elsewhere                                                                | you may retry                                                   |

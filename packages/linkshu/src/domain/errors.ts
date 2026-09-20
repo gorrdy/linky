@@ -86,9 +86,9 @@ export class InsufficientFunds extends Schema.TaggedError<InsufficientFunds>()(
 
 /**
  * The cashu input fee (NUT-02) the mint charges to swap the proofs is at
- * least their value, so a swap would leave nothing to sign. A receive fails
- * before contacting the mint; a send fails before the swap, since whoever
- * redeems the produced token pays that fee. Nothing was stored.
+ * least their value, so a swap would leave nothing to sign. Receive and send
+ * fail before the swap or any inventory changes; whoever redeems a sent
+ * token pays that fee. Loading the wallet may fetch mint metadata first.
  */
 export class AmountConsumedByFee extends Schema.TaggedError<AmountConsumedByFee>()(
   "AmountConsumedByFee",

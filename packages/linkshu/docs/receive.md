@@ -30,8 +30,8 @@ The receipt carries `amount`, `unit`, `mint`, and the `operationId` of the `rece
 
 1. **Extract.** `extractTokenText` finds a token inside arbitrary text: bare `cashuA…`/`cashuB…`, `cashu:`/`web+cashu:`/`lightning:`/`nostr:` schemes, URLs carrying the token in a query parameter, hash, or path, and legacy cashu.me JSON bundles. Whitespace inside a token is compacted.
 2. **Dedup.** The text is known when a `send` or `receive` transfer carries it (a `failed` receive does not count — its text is free to be tried again), or when any proof secret it encodes is already in the inventory, in any state. A match fails with `TokenAlreadyKnown` and touches nothing: swapping a token whose proofs the wallet holds would kill the stored copies.
-3. **Check the fee.** The input fee the mint charges to swap the token's proofs (NUT-02, from each proof's keyset) must leave something to sign. A token worth no more than that fee fails with `AmountConsumedByFee` before anything is stored: no wallet can redeem it on its own.
-4. **Persist `pending`.** A `receive` operation with the text is inserted before the mint is contacted.
+3. **Check the fee.** The input fee the mint charges to swap the token's proofs (NUT-02, from each proof's keyset) must leave something to sign. A token worth no more than that fee fails with `AmountConsumedByFee` before the swap or any inventory changes: no wallet can redeem it on its own. Loading the wallet may fetch mint metadata before this check.
+4. **Persist `pending`.** A `receive` operation with the text is inserted before the swap is attempted.
 5. **Swap.** Under the counter lock, the proofs are swapped for fresh deterministic outputs.
 6. **Persist the proofs.** The fresh proofs are stored `available`, then the receive moves to `done`. Only now does the receipt resolve.
 
