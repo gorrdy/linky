@@ -73,6 +73,7 @@ import { useRestoreMissingTokens } from "../cashu/useRestoreMissingTokens";
 import { useSaveCashuFromText } from "../cashu/useSaveCashuFromText";
 import { normalizePubkeyHex } from "../messages/contactIdentity";
 import { useNpubCashMintSelection } from "../mint/useNpubCashMintSelection";
+import { useCashuPaymentRequestConfirmation } from "../payments/useCashuPaymentRequestConfirmation";
 import { useContactPayMethod } from "../payments/useContactPayMethod";
 import { usePayContactWithCashuMessage } from "../payments/usePayContactWithCashuMessage";
 import { useRouteAmountResetEffects } from "../payments/useRouteAmountResetEffects";
@@ -380,10 +381,6 @@ export const useCashuWalletComposition = ({
     pendingLightningInvoiceConfirmation,
     setPendingLightningInvoiceConfirmation,
   ] = useState<LightningInvoicePreview | null>(null);
-  const [
-    pendingCashuPaymentRequestConfirmation,
-    setPendingCashuPaymentRequestConfirmation,
-  ] = useState<CashuPaymentRequestMessageInfo | null>(null);
   const [
     pendingLnurlWithdrawConfirmation,
     setPendingLnurlWithdrawConfirmation,
@@ -1487,43 +1484,17 @@ export const useCashuWalletComposition = ({
     setPendingLightningInvoiceConfirmation(null);
   }, []);
 
-  // A scanned, pasted or typed NUT-18 request has an attacker-controlled
-  // amount, recipient and mint, so it must be confirmed before any funds move
-  // instead of paying on sight (chat requests keep their own in-thread flow).
-  const payCashuPaymentRequest = React.useCallback(
-    async (requestInfo: CashuPaymentRequestMessageInfo) => {
-      if (cashuIsBusy) return;
-
-      const ownPubkeyHex = normalizePubkeyHex(decodeNpub(currentNpub ?? ""));
-      const targetPubkeyHex = normalizePubkeyHex(
-        requestInfo.transportPubkeyHex,
-      );
-      // Self-payment moves no funds out; complete it without a confirmation.
-      if (ownPubkeyHex && targetPubkeyHex && ownPubkeyHex === targetPubkeyHex) {
-        await runCashuPaymentRequest(requestInfo);
-        return;
-      }
-
-      setPendingCashuPaymentRequestConfirmation(requestInfo);
-    },
-    [cashuIsBusy, currentNpub, runCashuPaymentRequest],
-  );
-
-  const closeCashuPaymentRequestConfirmation = React.useCallback(() => {
-    if (cashuIsBusy) return;
-    setPendingCashuPaymentRequestConfirmation(null);
-  }, [cashuIsBusy]);
-
-  const confirmCashuPaymentRequest = React.useCallback(async () => {
-    const pending = pendingCashuPaymentRequestConfirmation;
-    if (!pending || cashuIsBusy) return;
-    setPendingCashuPaymentRequestConfirmation(null);
-    await runCashuPaymentRequest(pending);
-  }, [
-    cashuIsBusy,
+  const {
+    closeCashuPaymentRequestConfirmation,
+    confirmCashuPaymentRequest,
+    payCashuPaymentRequest,
     pendingCashuPaymentRequestConfirmation,
+  } = useCashuPaymentRequestConfirmation({
+    cashuIsBusy,
+    currentNpub,
+    autoPayLimit: lightningInvoiceAutoPayLimit,
     runCashuPaymentRequest,
-  ]);
+  });
 
   const confirmLightningInvoicePayment = React.useCallback(async () => {
     const pending = pendingLightningInvoiceConfirmation;

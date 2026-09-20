@@ -24,12 +24,6 @@ const hostOf = (rawUrl: string): string | null => {
   }
 };
 
-/**
- * Confirmation for a scanned, pasted or typed NUT-18 payment request. The
- * amount, recipient and mint are attacker-controlled, so they are shown in
- * full before any funds move. An `http:` POST transport, which exposes the
- * bearer proofs on the network, is called out.
- */
 export function CashuPaymentRequestConfirmModal({
   cashuBalance,
   cashuIsBusy,
