@@ -16,7 +16,8 @@ import {
   useAppShellCore,
 } from "../app/context/AppShellContexts";
 import { Avatar } from "../components/Avatar";
-import { RecurringPaymentsSummaryRow } from "../components/RecurringPaymentsSummaryRow";
+import { RecurringPaymentsList } from "../components/RecurringPaymentsList";
+import { useRecurringPaymentOrders } from "../app/hooks/payments/useRecurringPaymentOrders";
 
 import { createCashuTokenId } from "../app/lib/cashuTokenIdentity";
 import { calculateTransactionHistoryFee } from "../app/lib/transactionHistoryFee";
@@ -419,6 +420,8 @@ export function TransactionsPage(): React.ReactElement {
   const cashuOperationRows = useQuery(cashuOperationsQuery);
   const nostrMessageRows = useQuery(nostrMessagesQuery);
   const transactionRows = useQuery(transactionsQuery);
+  const recurringOrders = useRecurringPaymentOrders();
+  const hasScheduled = recurringOrders.length > 0;
 
   const tokenByReferenceId = React.useMemo(() => {
     const tokens = new Map<string, string>();
@@ -755,47 +758,70 @@ export function TransactionsPage(): React.ReactElement {
 
   return (
     <section className="panel panel-plain transactions-page">
-      <RecurringPaymentsSummaryRow />
-      {transactions.length === 0 ? (
-        <p className="muted">{t("paymentsHistoryEmpty")}</p>
-      ) : (
-        <>
-          <div className="transactions-list">
-            {visibleTransactions.map((item) => (
-              <TransactionCard
-                buildDetailEntries={buildDetailEntries}
-                buildProblemStatusPill={buildProblemStatusPill}
-                buildTitle={buildTitle}
-                contactsById={contactsById}
-                copyText={copyText}
-                formatAmountText={formatAmountText}
-                formatDateText={formatDateText}
-                getRequestStatus={getRequestStatus}
-                isExpanded={expandedById[item.id] === true}
-                item={item}
-                key={item.id}
-                nostrPictureByNpub={nostrPictureByNpub}
-                onToggle={toggleExpanded}
-                t={t}
-                tokenByReferenceId={tokenByReferenceId}
-              />
-            ))}
-          </div>
-          {visibleCount < transactions.length ? (
-            <div className="settings-row">
-              <button
-                type="button"
-                className="btn-wide secondary"
-                onClick={() =>
-                  setVisibleCount((count) => count + TRANSACTION_PAGE_SIZE)
-                }
-              >
-                {t("loadMore")}
-              </button>
+      {hasScheduled ? (
+        <div className="transactions-section">
+          <h2 className="transactions-section-title">
+            {t("recurringScheduledSection")}
+          </h2>
+          <RecurringPaymentsList />
+        </div>
+      ) : null}
+      <div className="transactions-section">
+        {hasScheduled ? (
+          <h2 className="transactions-section-title">
+            {t("recurringHistorySection")}
+          </h2>
+        ) : null}
+        {transactions.length === 0 ? (
+          <p className="muted">{t("paymentsHistoryEmpty")}</p>
+        ) : (
+          <>
+            <div className="transactions-list">
+              {visibleTransactions.map((item) => (
+                <TransactionCard
+                  buildDetailEntries={buildDetailEntries}
+                  buildProblemStatusPill={buildProblemStatusPill}
+                  buildTitle={buildTitle}
+                  contactsById={contactsById}
+                  copyText={copyText}
+                  formatAmountText={formatAmountText}
+                  formatDateText={formatDateText}
+                  getRequestStatus={getRequestStatus}
+                  isExpanded={expandedById[item.id] === true}
+                  item={item}
+                  key={item.id}
+                  nostrPictureByNpub={nostrPictureByNpub}
+                  onToggle={toggleExpanded}
+                  t={t}
+                  tokenByReferenceId={tokenByReferenceId}
+                />
+              ))}
             </div>
-          ) : null}
-        </>
-      )}
+            {visibleCount < transactions.length ? (
+              <div className="settings-row">
+                <button
+                  type="button"
+                  className="btn-wide secondary"
+                  onClick={() =>
+                    setVisibleCount((count) => count + TRANSACTION_PAGE_SIZE)
+                  }
+                >
+                  {t("loadMore")}
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        className="contacts-fab"
+        onClick={() => navigateTo({ route: "recurringPaymentNew" })}
+        aria-label={t("recurringSave")}
+        title={t("recurringSave")}
+      >
+        <Repeat className="contacts-fab-svgIcon" />
+      </button>
     </section>
   );
 }

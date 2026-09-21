@@ -7514,67 +7514,22 @@ button.cashu-token-pill {
 }
 
 /* Recurring payments */
-.recurring-summary-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  border: none;
-  border-radius: 14px;
-  background: #0b1222;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: none;
-  transform: none;
+.transactions-section + .transactions-section {
+  margin-top: 20px;
 }
 
-.recurring-summary-row:hover {
-  background: #111a2e;
-  box-shadow: none;
-  transform: none;
-}
-
-.recurring-summary-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  border-radius: 999px;
-  background: rgba(20, 184, 166, 0.15);
-  color: #99f6e4;
-}
-
-.recurring-summary-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.recurring-summary-title {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.recurring-summary-subtitle {
+.transactions-section-title {
+  margin: 0 0 10px;
   font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
 
-.recurring-summary-chevron {
-  flex: 0 0 auto;
-  color: #94a3b8;
-}
-
-.recurring-list-actions {
-  margin: 0 0 16px;
+.recurring-underfunded-hint {
+  font-size: 12px;
+  color: var(--color-warning, #d49b32);
 }
 
 .recurring-empty {
