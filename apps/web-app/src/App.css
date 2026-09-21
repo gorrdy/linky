@@ -7555,31 +7555,6 @@ button.cashu-token-pill {
   transform: none;
 }
 
-.recurring-upcoming-banner {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.recurring-upcoming-text {
-  flex: 1 1 100%;
-  min-width: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  border: none;
-  background: transparent;
-  color: inherit;
-  padding: 0;
-  text-align: left;
-  font: inherit;
-  font-weight: 600;
-  box-shadow: none;
-  transform: none;
-}
-
 .recurring-hint {
   margin-top: 14px;
   font-size: 13px;
