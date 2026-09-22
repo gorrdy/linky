@@ -89,7 +89,19 @@ describe("mint quote socket lifetime", () => {
       expect(server.connections).toBe(1);
       server.states.set("first", "PAID");
       server.states.set("second", "ISSUED");
+      // Keep both retries subscribed before either replay settles its quote.
+      server.pauseReplays();
       server.disconnect();
+      await vi.waitFor(
+        () => {
+          expect(server.subscribedQuotes).toHaveLength(5);
+          expect(
+            wallet.mint.webSocketConnection?.activeSubscriptions,
+          ).toHaveLength(2);
+        },
+        { timeout: 2500 },
+      );
+      server.resumeReplays();
       const results = await Effect.runPromise(
         Effect.all(active.map(Fiber.join), { concurrency: "unbounded" }).pipe(
           Effect.timeout("2500 millis"),
@@ -103,6 +115,7 @@ describe("mint quote socket lifetime", () => {
       expect(server.connections).toBe(2);
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(wallet.mint.webSocketConnection?.activeSubscriptions).toEqual([]);
+      await vi.waitFor(() => expect(server.openConnections).toBe(0));
     } finally {
       await Effect.runPromise(Effect.forEach(fibers, Fiber.interrupt));
       await server.close();

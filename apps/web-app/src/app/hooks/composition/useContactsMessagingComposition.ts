@@ -1,10 +1,15 @@
-import {
-  contactsLimitMessage,
-  useSaveNpubContact,
-} from "../contacts/useSaveNpubContact";
-import { writeContact } from "../../lib/writeContact";
-import * as Evolu from "@evolu/common";
+import { useRetainShardHistory } from "../useLinksync";
+import { useSaveNpubContact } from "../contacts/useSaveNpubContact";
 import type { ProfileMetadata } from "@linky/linkstr";
+import {
+  ContactId,
+  directConversationIdFor,
+  NonEmptyString1000,
+  PositiveInt,
+  type ContactsRepository,
+  type ConversationsRepository,
+  type TransactionsRepository,
+} from "@linky/linksync";
 import {
   decodeNpub,
   encodeNpub,
@@ -17,7 +22,7 @@ import {
   useAtomSet,
   useOutboxResults,
 } from "@linky/linkstr-react";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import React, { useMemo, useState } from "react";
 import {
   deriveDefaultProfile,
@@ -25,7 +30,6 @@ import {
 } from "../../../derivedProfile";
 import { reportAppLog } from "../../../devtools/inspector/appLog";
 import { useLinkstrInspectorBridge } from "../../../devtools/inspector/useLinkstrInspectorBridge";
-import { useEvolu, type ContactId } from "../../../evolu";
 import { useDeferredOnlineReady } from "../../../hooks/useDeferredOnlineReady";
 import { useDocumentVisible } from "../../../hooks/useDocumentVisible";
 import { useLatest } from "../../../hooks/useLatest";
@@ -47,7 +51,6 @@ import {
   BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_BACKUPED_KEYS_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY,
-  MAX_CONTACTS_PER_OWNER,
   NO_GROUP_FILTER,
 } from "../../../utils/constants";
 import {
@@ -66,7 +69,6 @@ import {
 import { useBankPaymentOffers } from "../useBankPaymentOffers";
 import { collectUnreadNewestIncomingByContactId } from "../../lib/chatUnread";
 import { findUniqueContactByLightningAddress } from "../../lib/contactIdentity";
-import { resolveContactRowOwnerLane } from "../../lib/contactOwnerLane";
 import { buildLinkyPaymentRequestDeclineMessage } from "../../lib/paymentRequestMessage";
 import { getChatAttachmentRejection } from "../../lib/privateImageMessage";
 import {
@@ -87,6 +89,7 @@ import {
   readUnknownContactIdPubkey,
 } from "../messages/contactIdentity";
 import type { PeerSeenWindow } from "../messages/seenReceiptInbox";
+import { runWrite } from "../../lib/storeWrite";
 import { useChatReadCursorSync } from "../messages/useChatReadCursorSync";
 import { applyOutboxResult } from "../messages/outboxResults";
 import { useChatSeenReceiptSync } from "../messages/useChatSeenReceiptSync";
@@ -178,23 +181,17 @@ const encodeUnknownNpub = (pubkeyHex: string | null): string | null => {
 type IdentityOwnersCompositionResult = ReturnType<
   typeof useIdentityOwnersComposition
 >;
-type EvoluMutations = ReturnType<typeof useEvolu>;
-
-interface SavedContactRef {
-  id: ContactId;
-  ownerId: IdentityOwnersCompositionResult["contactsOwnerId"] | null;
-}
 
 interface PendingContactsGroupAssignment {
   messageId: string;
-  savedContacts: SavedContactRef[];
+  savedContactIds: ContactId[];
 }
 
 const reportContactsAddedToGroup = (
   pending: PendingContactsGroupAssignment,
   group: string,
 ): void => {
-  const contactIds = pending.savedContacts.map(({ id }) => id);
+  const contactIds = pending.savedContactIds;
   reportAppLog({
     tag: "contacts.addToGroup",
     summary: `${contactIds.length} contacts from a chat message added to group "${group}"`,
@@ -208,34 +205,22 @@ interface UseContactsMessagingCompositionParams {
   activeSyncedNostrIdentity: IdentityOwnersCompositionResult["activeSyncedNostrIdentity"];
   appOwnerId: IdentityOwnersCompositionResult["appOwnerId"];
   appOwnerIdRef: IdentityOwnersCompositionResult["appOwnerIdRef"];
-  cashuOwnerId: IdentityOwnersCompositionResult["cashuOwnerId"];
-  cashuTokensAll: NostrBootstrapParams["tokensSnapshot"];
+  cashuProofs: NostrBootstrapParams["tokensSnapshot"];
   contactPayBackToChatRef: React.MutableRefObject<ContactId | null>;
-  contactsOwnerId: IdentityOwnersCompositionResult["contactsOwnerId"];
-  contactsOwnerNewContactsCount: number;
-  contactsVisibleOwnerIds: IdentityOwnersCompositionResult["contactsVisibleOwnerIds"];
+  contactsRepository: ContactsRepository;
+  conversationsRepository: ConversationsRepository;
   copyText: (value: string) => Promise<void>;
   currentNpub: string | null;
   currentNsec: string | null;
   formatDisplayedAmountText: (amountSat: number) => string;
-  historicalOwnerSetsReady: boolean;
-  identityOwnerId: IdentityOwnersCompositionResult["identityOwnerId"];
-  insert: EvoluMutations["insert"];
   isSeedLogin: boolean;
   lang: Lang;
-  legacyIdentitiesOwnerId: IdentityOwnersCompositionResult["legacyIdentitiesOwnerId"];
-  legacyMessagesIdentityOwnerId: IdentityOwnersCompositionResult["legacyMessagesIdentityOwnerId"];
   logPayStep: (step: string, data?: PaymentLogData) => void;
   maybeShowPwaNotification: (
     title: string,
     body: string,
     tag?: string,
   ) => Promise<void>;
-  messagesOwnerId: IdentityOwnersCompositionResult["messagesOwnerId"];
-  messagesOwnerIdRef: IdentityOwnersCompositionResult["messagesOwnerIdRef"];
-  messagesVisibleOwnerIds: IdentityOwnersCompositionResult["messagesVisibleOwnerIds"];
-  metaOwnerId: IdentityOwnersCompositionResult["metaOwnerId"];
-  nostrIdentityRows: NostrBootstrapParams["identitiesSnapshot"];
   pushToast: (message: string) => void;
   route: ReturnType<typeof useRouting>;
   /** Receipts-enabled baseline; null means "send read receipts" is off. */
@@ -246,42 +231,28 @@ interface UseContactsMessagingCompositionParams {
   setPayAmount: React.Dispatch<React.SetStateAction<string>>;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
   syncedNostrIdentityMatchesLocal: boolean;
-  syncedNostrIdentityResolution: IdentityOwnersCompositionResult["syncedNostrIdentityResolution"];
+  syncedNostrIdentityRow: IdentityOwnersCompositionResult["syncedNostrIdentityRow"];
   t: Translate;
+  transactions: Pick<TransactionsRepository, "all" | "update">;
   transactionsBootstrapSnapshot: NostrBootstrapParams["transactionsSnapshot"];
-  transactionsOwnerId: IdentityOwnersCompositionResult["transactionsOwnerId"];
-  update: EvoluMutations["update"];
-  upsert: EvoluMutations["upsert"];
 }
 
 export const useContactsMessagingComposition = ({
   activeSyncedNostrIdentity,
   appOwnerId,
   appOwnerIdRef,
-  cashuOwnerId,
-  cashuTokensAll,
+  cashuProofs,
   contactPayBackToChatRef,
-  contactsOwnerId,
-  contactsOwnerNewContactsCount,
-  contactsVisibleOwnerIds,
+  contactsRepository,
+  conversationsRepository,
   copyText,
   currentNpub,
   currentNsec,
   formatDisplayedAmountText,
-  historicalOwnerSetsReady,
-  identityOwnerId,
-  insert,
   isSeedLogin,
   lang,
-  legacyIdentitiesOwnerId,
-  legacyMessagesIdentityOwnerId,
   logPayStep,
   maybeShowPwaNotification,
-  messagesOwnerId,
-  messagesOwnerIdRef,
-  messagesVisibleOwnerIds,
-  metaOwnerId,
-  nostrIdentityRows,
   pushToast,
   route,
   seenReceiptsEnabledAtSec,
@@ -289,12 +260,10 @@ export const useContactsMessagingComposition = ({
   setPayAmount,
   setStatus,
   syncedNostrIdentityMatchesLocal,
-  syncedNostrIdentityResolution,
+  syncedNostrIdentityRow,
   t,
+  transactions,
   transactionsBootstrapSnapshot,
-  transactionsOwnerId,
-  update,
-  upsert,
 }: UseContactsMessagingCompositionParams) => {
   const [pendingDeleteId, setPendingDeleteId] = useState<ContactId | null>(
     null,
@@ -444,14 +413,6 @@ export const useContactsMessagingComposition = ({
     targetNpub: string;
   } | null>(null);
 
-  const visibleMessageOwnerIds = React.useMemo(() => {
-    const ids = [
-      (appOwnerId ?? "").trim(),
-      ...messagesVisibleOwnerIds.map((ownerId) => ownerId.trim()),
-    ].filter(Boolean);
-    return Array.from(new Set(ids));
-  }, [appOwnerId, messagesVisibleOwnerIds]);
-
   const contactNameCollator = useMemo(
     () =>
       new Intl.Collator(lang, {
@@ -487,17 +448,13 @@ export const useContactsMessagingComposition = ({
     setContactsSearch,
     ungroupedCount,
   } = useContactsDomain({
-    appOwnerId: contactsOwnerId,
-    currentNsec,
-    isSeedLogin,
+    contacts: contactsRepository,
+    conversations: conversationsRepository,
     noGroupFilterValue: NO_GROUP_FILTER,
     pushToast,
     reassignContactMessages,
     route,
     t,
-    update,
-    upsert,
-    visibleOwnerIds: contactsVisibleOwnerIds,
   });
 
   const contactsLatestRef = useLatest(contacts);
@@ -522,8 +479,6 @@ export const useContactsMessagingComposition = ({
 
     void setStoredPushContactNames(records);
   }, [contacts]);
-
-  const activeContactsOwnerContactCount = contactsOwnerNewContactsCount;
 
   const {
     appendLocalNostrMessage,
@@ -550,61 +505,18 @@ export const useContactsMessagingComposition = ({
     appOwnerIdRef,
     chatForceScrollToBottomRef,
     chatMessagesRef,
-    messagesOwnerId,
-    messagesOwnerIdRef,
+    contacts,
+    conversations: conversationsRepository,
     route,
-    visibleMessageOwnerIds,
   });
 
-  const evoluOwnersReadyForNostr = isSeedLogin
-    ? Boolean(
-        cashuOwnerId &&
-        contactsOwnerId &&
-        identityOwnerId &&
-        legacyIdentitiesOwnerId &&
-        legacyMessagesIdentityOwnerId &&
-        messagesOwnerId &&
-        metaOwnerId &&
-        transactionsOwnerId,
-      ) && historicalOwnerSetsReady
-    : Boolean(appOwnerId);
-
-  const evoluNostrOwnerKey = React.useMemo(() => {
-    if (!currentNpub || !evoluOwnersReadyForNostr) return "";
-
-    return [
-      currentNpub,
-      appOwnerId,
-      cashuOwnerId,
-      contactsOwnerId,
-      identityOwnerId,
-      legacyIdentitiesOwnerId,
-      legacyMessagesIdentityOwnerId,
-      messagesOwnerId,
-      metaOwnerId,
-      transactionsOwnerId,
-    ]
-      .map((value) => (value ?? "").trim())
-      .filter(Boolean)
-      .join("|");
-  }, [
-    appOwnerId,
-    cashuOwnerId,
-    contactsOwnerId,
-    currentNpub,
-    evoluOwnersReadyForNostr,
-    identityOwnerId,
-    legacyIdentitiesOwnerId,
-    legacyMessagesIdentityOwnerId,
-    messagesOwnerId,
-    metaOwnerId,
-    transactionsOwnerId,
-  ]);
+  // The store resolved before the shell mounted and subscribes every shard
+  // itself, so the app owner is the whole readiness signal for Nostr work.
+  const evoluNostrOwnerKey =
+    currentNpub && appOwnerId ? `${currentNpub}|${appOwnerId}` : "";
 
   const nostrIdentityBootstrapReady =
-    Boolean(activeSyncedNostrIdentity) &&
-    !syncedNostrIdentityResolution.shouldMigrateLegacyIdentity &&
-    syncedNostrIdentityMatchesLocal;
+    Boolean(activeSyncedNostrIdentity) && syncedNostrIdentityMatchesLocal;
 
   const [
     missingSyncedIdentityFallbackKey,
@@ -630,17 +542,22 @@ export const useContactsMessagingComposition = ({
       missingSyncedIdentityFallbackKey === evoluNostrOwnerKey
     : true;
 
+  const identitiesSnapshot = React.useMemo(
+    () => (syncedNostrIdentityRow ? [syncedNostrIdentityRow] : []),
+    [syncedNostrIdentityRow],
+  );
   const nostrBootstrapReady = useEvoluNostrBootstrapReady({
     contactsSnapshot: contacts,
     enabled: Boolean(currentNsec),
-    identitiesSnapshot: nostrIdentityRows,
+    identitiesSnapshot: identitiesSnapshot,
     identityReady: identityBootstrapReady,
     messagesSnapshot: nostrMessagesLocal,
     ownerKey: evoluNostrOwnerKey,
     reactionsSnapshot: nostrReactionsLocal,
-    tokensSnapshot: cashuTokensAll,
+    tokensSnapshot: cashuProofs,
     transactionsSnapshot: transactionsBootstrapSnapshot,
   });
+  useRetainShardHistory(nostrBootstrapReady);
   const deferredOnlineReady = useDeferredOnlineReady();
   const canRunNostrNetworkWork = deferredOnlineReady && nostrBootstrapReady;
 
@@ -673,15 +590,13 @@ export const useContactsMessagingComposition = ({
 
   useLinkstrProfileSync({
     contacts,
-    contactsOwnerId,
-    contactsVisibleOwnerIds,
+    contactsRepository,
     currentNpub,
     enabled: nostrBootstrapReady,
     routeKind: route.kind,
     setNostrMetadataByNpub,
     setNostrPictureByNpub,
     setNostrStatusByNpub,
-    update,
   });
 
   const {
@@ -766,11 +681,9 @@ export const useContactsMessagingComposition = ({
 
   const saveNpubContact = useSaveNpubContact({
     contacts,
-    contactsOwnerId,
-    activeContactsOwnerContactCount,
+    contactsRepository,
     buildSavedContactName,
     unknownNameByNpub,
-    insert,
     lang,
     setStatus,
     t,
@@ -894,34 +807,36 @@ export const useContactsMessagingComposition = ({
         const bestName = matchedMetadata
           ? getBestNostrName(matchedMetadata)
           : null;
-        const parsedNpub = Evolu.NonEmptyString1000.fromUnknown(unknownNpub);
+        const parsedNpub = NonEmptyString1000.fromUnknown(unknownNpub);
         if (!parsedNpub.ok) continue;
         const parsedName = bestName
-          ? Evolu.NonEmptyString1000.fromUnknown(bestName)
+          ? NonEmptyString1000.fromUnknown(bestName)
           : null;
-        const ownerId =
-          resolveContactRowOwnerLane(knownContact, contactsVisibleOwnerIds) ??
-          contactsOwnerId;
-        const payload = {
-          id: knownContact.id,
+        const patch = {
           npub: parsedNpub.value,
           ...(!(knownContact.name ?? "").trim() && parsedName?.ok
             ? { name: parsedName.value }
             : {}),
         };
-        const result = writeContact(update, payload, ownerId);
-        if (!result.ok) continue;
+        void runWrite(contactsRepository.update(knownContact.id, patch)).then(
+          (outcome) => {
+            if (outcome.ok)
+              reassignNostrConversationContactId(
+                unknownContactId,
+                knownContactId,
+              );
+          },
+        );
+        continue;
       }
 
       reassignNostrConversationContactId(unknownContactId, knownContactId);
     }
   }, [
     contacts,
-    contactsOwnerId,
-    contactsVisibleOwnerIds,
+    contactsRepository,
     reassignNostrConversationContactId,
     unknownContacts,
-    update,
   ]);
 
   const unknownContactNpubs = React.useMemo(() => {
@@ -1346,12 +1261,10 @@ export const useContactsMessagingComposition = ({
     searchNewContact,
     setForm,
   } = useContactEditor({
-    activeOwnerContactsCount: activeContactsOwnerContactCount,
-    appOwnerId: contactsOwnerId,
     contactNewPrefill,
     contacts,
+    contactsRepository,
     currentNpub,
-    insert,
     route,
     selectedContactMetadata,
     selectedContact,
@@ -1360,9 +1273,7 @@ export const useContactsMessagingComposition = ({
     setRecentlyAddedContactId,
     setStatus,
     t,
-    transactionsOwnerId,
-    update,
-    upsert,
+    transactions,
   });
 
   const closeContactDetail = React.useCallback(() => {
@@ -1372,12 +1283,6 @@ export const useContactsMessagingComposition = ({
   }, [clearContactForm]);
 
   const openNewContactPage = React.useCallback(() => {
-    if (activeContactsOwnerContactCount >= MAX_CONTACTS_PER_OWNER) {
-      const message = contactsLimitMessage(t);
-      pushToast(message);
-      return;
-    }
-
     setPendingDeleteId(null);
     setPayAmount("");
     clearContactForm();
@@ -1393,18 +1298,12 @@ export const useContactsMessagingComposition = ({
     }
     navigateTo({ route: "contactNew" });
   }, [
-    activeContactsOwnerContactCount,
     clearContactForm,
     contactNewPrefill,
-    pushToast,
     setContactNewPrefill,
     setForm,
     setPayAmount,
-    t,
   ]);
-
-  const canAddContact =
-    activeContactsOwnerContactCount < MAX_CONTACTS_PER_OWNER;
 
   useOutboxResults(async (result) => {
     applyOutboxResult(result, {
@@ -1417,53 +1316,51 @@ export const useContactsMessagingComposition = ({
     return nostrMessagesRecent.some((m) => m.direction === "out");
   }, [nostrMessagesRecent]);
 
-  const handleDelete = (id: ContactId) => {
-    const normalizedContactId = id.trim();
-    const contactToArchive =
-      contacts.find((contact) => contact.id.trim() === normalizedContactId) ??
-      null;
-
-    const archivedAtSec = Math.ceil(Date.now() / 1e3);
-    const storedContactOwnerId = contactToArchive
-      ? resolveContactRowOwnerLane(contactToArchive, contactsVisibleOwnerIds)
-      : null;
-    const archiveOwnerId = storedContactOwnerId ?? contactsOwnerId;
-    // Archiving marks the conversation read; the messages stay on this contact
-    // and a newer incoming message restores it from the archive.
-    const payload = {
-      id,
-      archivedAtSec,
-      chatLastSeenAtSec: Math.max(
-        archivedAtSec,
-        (contactToArchive?.chatLastSeenAtSec ?? 0) || 0,
+  // Archiving is a conversation action and marks the chat read; the messages
+  // stay on this contact and a newer incoming message restores it.
+  const handleDelete = async (id: ContactId) => {
+    const archivedAtSec = PositiveInt.orThrow(Math.ceil(Date.now() / 1e3));
+    const result = await runWrite(
+      Effect.flatMap(conversationsRepository.ensureDirect(id), (chat) =>
+        Effect.zipRight(
+          conversationsRepository.archive(chat.id, archivedAtSec),
+          conversationsRepository.markSeen(chat.id, archivedAtSec),
+        ),
       ),
-    };
-    const result = writeContact(update, payload, archiveOwnerId);
+    );
     if (result.ok) {
+      reportAppLog({
+        tag: "conversations.archived",
+        summary: "Archived a contact's conversation",
+        links: { contact: id, conversation: directConversationIdFor(id) },
+        payload: { archivedAtSec },
+      });
       setStatus(t("contactArchived"));
       closeContactDetail();
       return;
     }
-    setStatus(`${t("errorPrefix")}: ${String(result.error)}`);
+    setStatus(`${t("errorPrefix")}: ${result.error}`);
   };
 
   const unarchiveContact = React.useCallback(
-    (id: ContactId) => {
-      const contactToRestore =
-        contacts.find((contact) => contact.id === id) ?? null;
-      const storedContactOwnerId = contactToRestore
-        ? resolveContactRowOwnerLane(contactToRestore, contactsVisibleOwnerIds)
-        : null;
-      const restoreOwnerId = storedContactOwnerId ?? contactsOwnerId;
-      const result = writeContact(
-        update,
-        { id, archivedAtSec: null },
-        restoreOwnerId,
+    async (id: ContactId) => {
+      const result = await runWrite(
+        Effect.flatMap(conversationsRepository.forContact(id), (chat) =>
+          chat === null
+            ? Effect.void
+            : conversationsRepository.unarchive(chat.id),
+        ),
       );
 
       if (result.ok) {
+        reportAppLog({
+          tag: "conversations.unarchived",
+          summary: "Restored a contact's conversation from the archive",
+          links: { contact: id, conversation: directConversationIdFor(id) },
+          payload: { contactId: id },
+        });
         const restoredNpub = normalizeNpubIdentifier(
-          contactToRestore?.npub ?? "",
+          contacts.find((contact) => contact.id === id)?.npub ?? "",
         );
         if (restoredNpub) {
           const unknownContactId = buildUnknownContactId(
@@ -1476,24 +1373,18 @@ export const useContactsMessagingComposition = ({
       }
       return result;
     },
-    [
-      contacts,
-      contactsOwnerId,
-      contactsVisibleOwnerIds,
-      reassignNostrConversationContactId,
-      update,
-    ],
+    [contacts, conversationsRepository, reassignNostrConversationContactId],
   );
 
   const restoreArchivedContact = React.useCallback(
-    (id: ContactId) => {
-      const result = unarchiveContact(id);
+    async (id: ContactId) => {
+      const result = await unarchiveContact(id);
       if (result.ok) {
         setStatus(t("contactRestored"));
         closeContactDetail();
         return;
       }
-      setStatus(`${t("errorPrefix")}: ${String(result.error)}`);
+      setStatus(`${t("errorPrefix")}: ${result.error}`);
     },
     [closeContactDetail, setStatus, t, unarchiveContact],
   );
@@ -1539,33 +1430,32 @@ export const useContactsMessagingComposition = ({
     if (!editingId) return;
     if (pendingDeleteId === editingId) {
       setPendingDeleteId(null);
-      handleDelete(editingId);
+      void handleDelete(editingId);
       return;
     }
     setPendingDeleteId(editingId);
   };
 
   const { openFeedbackContact } = useFeedbackContact<(typeof contacts)[number]>(
-    {
-      appOwnerId: contactsOwnerId,
-      contacts,
-      insert,
-      pushToast,
-      t,
-      update,
-    },
+    { contacts, contactsRepository, pushToast, t },
   );
 
-  // An incoming message newer than the archive brings the contact back.
+  // An incoming message newer than the archive brings the contact back. The
+  // in-flight set keeps the effect from repeating the write before the
+  // restored row is read back.
+  const unarchivingRef = React.useRef(new Set<string>());
   React.useEffect(() => {
     for (const contact of contacts) {
       const archivedAtSec = contact.archivedAtSec ?? 0;
       if (!Number.isFinite(archivedAtSec) || archivedAtSec <= 0) continue;
       const contactId = contact.id.trim();
-      if (!contactId) continue;
+      if (!contactId || unarchivingRef.current.has(contactId)) continue;
       const newestIncomingAtSec = unreadByContactId.get(contactId) ?? 0;
       if (newestIncomingAtSec <= archivedAtSec) continue;
-      unarchiveContact(contact.id);
+      unarchivingRef.current.add(contactId);
+      void unarchiveContact(contact.id).finally(() => {
+        unarchivingRef.current.delete(contactId);
+      });
     }
   }, [contacts, unarchiveContact, unreadByContactId]);
 
@@ -1596,13 +1486,8 @@ export const useContactsMessagingComposition = ({
       removeLocalNostrMessagesByContactId(contactId);
     }
 
-    const ownerId =
-      resolveContactRowOwnerLane(selectedContact, contactsVisibleOwnerIds) ??
-      contactsOwnerId;
-    const result = writeContact(
-      update,
-      { id: selectedContact.id, isDeleted: Evolu.sqliteTrue },
-      ownerId,
+    const result = await runWrite(
+      contactsRepository.remove(selectedContact.id),
     );
 
     if (result.ok) {
@@ -1611,18 +1496,16 @@ export const useContactsMessagingComposition = ({
       return;
     }
 
-    setStatus(`${t("errorPrefix")}: ${String(result.error)}`);
+    setStatus(`${t("errorPrefix")}: ${result.error}`);
   }, [
-    contactsVisibleOwnerIds,
     blockPubkeyAndPublishMuteList,
     closeContactDetail,
-    contactsOwnerId,
+    contactsRepository,
     removeLocalNostrMessagesByContactId,
     route.kind,
     selectedContact,
     setStatus,
     t,
-    update,
   ]);
 
   const openContactPay = React.useCallback(
@@ -1864,34 +1747,19 @@ export const useContactsMessagingComposition = ({
       }
       if (newNpubs.length === 0) return;
 
-      if (
-        activeContactsOwnerContactCount + newNpubs.length >
-        MAX_CONTACTS_PER_OWNER
-      ) {
-        setStatus(contactsLimitMessage(t));
-        return;
-      }
-
-      const savedContacts: SavedContactRef[] = [];
+      const savedContactIds: ContactId[] = [];
       for (const npub of newNpubs) {
         const saved = saveNpubContact(npub);
         if (!saved) return;
-        savedContacts.push({ id: saved.contact.id, ownerId: saved.ownerId });
+        savedContactIds.push(saved.contact.id);
       }
 
-      setPendingContactsGroupAssignment({ messageId, savedContacts });
+      setPendingContactsGroupAssignment({ messageId, savedContactIds });
       setStatus(
-        t("contactsSaved").replace("{count}", String(savedContacts.length)),
+        t("contactsSaved").replace("{count}", String(savedContactIds.length)),
       );
     },
-    [
-      activeContactsOwnerContactCount,
-      contacts,
-      currentNpub,
-      saveNpubContact,
-      setStatus,
-      t,
-    ],
+    [contacts, currentNpub, saveNpubContact, setStatus, t],
   );
 
   const closeContactsGroupAssignment = React.useCallback(() => {
@@ -1899,15 +1767,15 @@ export const useContactsMessagingComposition = ({
   }, []);
 
   const assignPendingContactsToGroup = React.useCallback(
-    (rawGroup: string) => {
+    async (rawGroup: string) => {
       const pending = pendingContactsGroupAssignment;
       if (!pending) return;
 
       const groups = normalizeContactGroups([rawGroup]);
       if (groups.length === 0) return;
 
-      const groupName = Evolu.NonEmptyString1000.fromUnknown(groups[0]);
-      const groupNamesJson = Evolu.NonEmptyString1000.fromUnknown(
+      const groupName = NonEmptyString1000.fromUnknown(groups[0]);
+      const groupNamesJson = NonEmptyString1000.fromUnknown(
         serializeContactGroups(groups),
       );
       if (!groupName.ok || !groupNamesJson.ok) {
@@ -1915,15 +1783,15 @@ export const useContactsMessagingComposition = ({
         return;
       }
 
-      for (const { id, ownerId } of pending.savedContacts) {
-        const payload = {
-          id,
-          groupName: groupName.value,
-          groupNamesJson: groupNamesJson.value,
-        };
-        const result = writeContact(update, payload, ownerId);
+      for (const id of pending.savedContactIds) {
+        const result = await runWrite(
+          contactsRepository.update(id, {
+            groupName: groupName.value,
+            groupNamesJson: groupNamesJson.value,
+          }),
+        );
         if (!result.ok) {
-          setStatus(`${t("errorPrefix")}: ${String(result.error ?? "")}`);
+          setStatus(`${t("errorPrefix")}: ${result.error}`);
           return;
         }
       }
@@ -1932,11 +1800,11 @@ export const useContactsMessagingComposition = ({
       reportContactsAddedToGroup(pending, groups[0] ?? rawGroup);
       setStatus(
         t("contactsAddedToGroup")
-          .replace("{count}", String(pending.savedContacts.length))
+          .replace("{count}", String(pending.savedContactIds.length))
           .replace("{group}", groups.join(", ")),
       );
     },
-    [pendingContactsGroupAssignment, setStatus, t, update],
+    [contactsRepository, pendingContactsGroupAssignment, setStatus, t],
   );
 
   React.useEffect(() => {
@@ -2174,24 +2042,25 @@ export const useContactsMessagingComposition = ({
 
   const advanceContactPeerSeen = React.useCallback(
     (contactId: string, seenWindow: PeerSeenWindow) => {
-      const row = contactsLatestRef.current.find(
-        (contact) => contact.id.trim() === contactId,
-      );
-      if (!row) return;
-      const ownerId =
-        resolveContactRowOwnerLane(row, contactsVisibleOwnerIds) ??
-        contactsOwnerId;
-      const payload = {
-        id: row.id,
-        chatPeerSeenSinceSec: seenWindow.sinceSec,
-        chatPeerSeenAtSec: seenWindow.seenUpToSec,
-      };
-      const result = writeContact(update, payload, ownerId);
-      if (result.ok) {
-        peerSeenWrittenByContactIdRef.current.set(contactId, seenWindow);
-      }
+      const id = ContactId.from(contactId);
+      const atSec = PositiveInt.from(seenWindow.seenUpToSec);
+      if (!id.ok || !atSec.ok) return;
+      const sinceSec = PositiveInt.from(seenWindow.sinceSec);
+      peerSeenWrittenByContactIdRef.current.set(contactId, seenWindow);
+      void runWrite(
+        Effect.flatMap(conversationsRepository.ensureDirect(id.value), (chat) =>
+          conversationsRepository.setPeerSeen(chat.id, {
+            sinceSec: sinceSec.ok ? sinceSec.value : null,
+            atSec: atSec.value,
+          }),
+        ),
+      ).then((outcome) => {
+        if (outcome.ok) return;
+        peerSeenWrittenByContactIdRef.current.delete(contactId);
+        console.warn("[linky][conversations] peer seen write failed", outcome);
+      });
     },
-    [contactsLatestRef, contactsOwnerId, contactsVisibleOwnerIds, update],
+    [conversationsRepository],
   );
 
   const dispatchInboxEvent = useLinkstrInboxSync({
@@ -2225,12 +2094,10 @@ export const useContactsMessagingComposition = ({
 
   useChatReadCursorSync({
     chatMessages: chatMessagesWithBankPaymentOffers,
-    contactsOwnerId,
-    contactsVisibleOwnerIds,
+    conversations: conversationsRepository,
     documentVisible,
     route,
     selectedContact,
-    update,
   });
 
   useChatSeenReceiptSync({
@@ -2260,7 +2127,6 @@ export const useContactsMessagingComposition = ({
     bankPaymentOfferStaggerDelaySec,
     blockArchivedContact,
     blockUnknownContactFromChat,
-    canAddContact,
     addChatAttachments,
     canSaveNewRelay,
     chatAttachments,

@@ -3,8 +3,6 @@ import { getBankOfferForSettlement } from "../../lib/bankOfferSettlement";
 import type { RestoreProgress } from "@linky/linkshu";
 import { useReclaimCashuTransfer } from "../cashu/useReclaimCashuTransfer";
 import { useLatest } from "../../../hooks/useLatest";
-import * as Evolu from "@evolu/common";
-import { useQuery } from "@evolu/react";
 import {
   CashuTokenText,
   ClientId,
@@ -25,15 +23,7 @@ import {
 } from "@linky/linkstr-react";
 import { Cause, Either, Exit, Option, Schema } from "effect";
 import React, { useMemo, useState } from "react";
-import {
-  evolu,
-  useEvolu,
-  type CashuOperationId,
-  type CashuOperationRow,
-  type CashuProofRow,
-  type CashuTokenRow,
-  type ContactId,
-} from "../../../evolu";
+import type { CashuOperationId, ContactId } from "../../../evolu";
 import { navigateTo, useRouting } from "../../../hooks/useRouting";
 import {
   inferLightningAddressFromLnurlTarget,
@@ -54,9 +44,12 @@ import {
 } from "../../../utils/npubCashServer";
 import {
   getLightningInvoicePreview,
-  parseTokenText,
   type LightningInvoicePreview,
 } from "@linky/linkshu";
+import {
+  CashuOperationId as CashuOperationIdType,
+  type TransactionsRepository,
+} from "@linky/linksync";
 import {
   CASHU_DEFAULT_MINT_OVERRIDE_STORAGE_KEY,
   formatMintHost,
@@ -80,6 +73,7 @@ import { useRestoreMissingTokens } from "../cashu/useRestoreMissingTokens";
 import { useSaveCashuFromText } from "../cashu/useSaveCashuFromText";
 import { normalizePubkeyHex } from "../messages/contactIdentity";
 import { useNpubCashMintSelection } from "../mint/useNpubCashMintSelection";
+import { useCashuPaymentRequestConfirmation } from "../payments/useCashuPaymentRequestConfirmation";
 import { useContactPayMethod } from "../payments/useContactPayMethod";
 import { usePayContactWithCashuMessage } from "../payments/usePayContactWithCashuMessage";
 import { useRouteAmountResetEffects } from "../payments/useRouteAmountResetEffects";
@@ -93,11 +87,8 @@ import { usePaidOverlayState } from "../usePaidOverlayState";
 import { usePaymentsDomain } from "../usePaymentsDomain";
 import { useProfileNpubCashEffects } from "../useProfileNpubCashEffects";
 import { getLinkyBankPaymentOfferInfo } from "../../lib/bankPaymentOffer";
-import { dedupeVisibleLaneRows } from "../../lib/cashuLaneRows";
-import { isCashuRowCandidateBetter } from "../../lib/cashuRowPreference";
 import { reportCashuSendForgotten } from "../../lib/cashuSendInspector";
 import { describeTaggedCashuError } from "../../lib/cashuStoredError";
-import { readCashuTokenAliases as readCashuRowAliases } from "../../lib/cashuTokenIdentity";
 import { isIssuedTransfer, isOpenTransfer } from "../../lib/cashuTransfers";
 import {
   canOfferPaymentMintMelt,
@@ -108,6 +99,7 @@ import {
   buildCashuPaymentRequestMessage,
   parseCashuPaymentRequestMessage,
   type CashuPaymentRequestMessageInfo,
+  paymentRequestPostUrlIsAllowed,
 } from "../../lib/paymentRequestMessage";
 import { getCashuTokenMessageInfo as getCashuTokenMessageInfoBase } from "../../lib/tokenMessageInfo";
 import type {
@@ -121,18 +113,21 @@ import {
 } from "./useContactsMessagingComposition";
 import { useIdentityOwnersComposition } from "./useIdentityOwnersComposition";
 import { drainLegacyAcceptedCashuToken } from "../../migrations/legacyAcceptedTokenDrain";
-import { seedLinkshuSeenMintsFromTokenRows } from "../../migrations/linkshuStorageMigration";
 import { useLinkshuComposition } from "./useLinkshuComposition";
+import {
+  useSetting,
+  useSettingsRepository,
+  useWalletRepository,
+} from "../useLinksync";
+import { runWrite } from "../../lib/storeWrite";
+import { DEFAULT_MINT_SETTING_KEY } from "../../migrations/laneToShardMigration";
 import { useMeltRecovery } from "../payments/useMeltRecovery";
-import { useRecurringPaymentsActions } from "../payments/useRecurringPaymentsActions";
-import { useRecurringPaymentsScheduler } from "../payments/useRecurringPaymentsScheduler";
 import { useResumeOnLaunchAndOnline } from "../useResumeOnLaunchAndOnline";
 import { useProfileComposition } from "./useProfileComposition";
 import type { Translate } from "../../../i18n";
 
 import { reportAppLog } from "../../../devtools/inspector/appLog";
 const isPubkey = Schema.is(Pubkey);
-const CashuOperationIdFromUnknown = Evolu.id("CashuOperation");
 const decodeCashuTokenText = Schema.decodeUnknownEither(CashuTokenText);
 
 export const logPayStep = (step: string, data?: PaymentLogData): void => {
@@ -157,13 +152,8 @@ type ContactsMessagingCompositionResult = ReturnType<
 >;
 type ProfileCompositionResult = ReturnType<typeof useProfileComposition>;
 type OwnerScopedStorageResult = ReturnType<typeof useOwnerScopedStorage>;
-type EvoluMutations = ReturnType<typeof useEvolu>;
 
 interface UseCashuWalletCompositionParams {
-  /** Read-only legacy `cashuToken` rows; ingested into the inventory on load. */
-  cashuTokensAll: readonly CashuTokenRow[];
-  cashuProofsAll: readonly CashuProofRow[];
-  cashuOperationsAll: readonly CashuOperationRow[];
   contactPayBackToChatRef: React.MutableRefObject<ContactId | null>;
   contactsMessaging: Pick<
     ContactsMessagingCompositionResult,
@@ -195,16 +185,7 @@ interface UseCashuWalletCompositionParams {
   formatDisplayedAmountText: (amountSat: number) => string;
   identity: Pick<
     IdentityOwnersCompositionResult,
-    | "appOwnerId"
-    | "appOwnerIdRef"
-    | "cashuOwnerId"
-    | "cashuOwnerIdRef"
-    | "cashuVisibleOwnerIds"
-    | "currentNpub"
-    | "currentNsec"
-    | "isSeedLogin"
-    | "metaOwnerId"
-    | "transactionsOwnerId"
+    "appOwnerId" | "appOwnerIdRef" | "currentNpub" | "currentNsec"
   >;
   maybeShowPwaNotification: (
     title: string,
@@ -238,15 +219,10 @@ interface UseCashuWalletCompositionParams {
   setPayAmount: React.Dispatch<React.SetStateAction<string>>;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
   t: Translate;
-  insert: EvoluMutations["insert"];
-  update: EvoluMutations["update"];
-  upsert: EvoluMutations["upsert"];
+  transactions: Pick<TransactionsRepository, "all" | "update">;
 }
 
 export const useCashuWalletComposition = ({
-  cashuTokensAll,
-  cashuProofsAll,
-  cashuOperationsAll,
   contactPayBackToChatRef,
   contactsMessaging,
   formatDisplayedAmountParts,
@@ -262,28 +238,17 @@ export const useCashuWalletComposition = ({
   setPayAmount,
   setStatus,
   t,
-  insert,
-  update,
-  upsert,
+  transactions,
 }: UseCashuWalletCompositionParams) => {
+  const wallet = useWalletRepository();
+  const settingsRepository = useSettingsRepository();
   const enqueueOutbox = useAtomSet(enqueueOutboxAtom, {
     mode: "promiseExit",
   });
   const sendPaymentNotice = useAtomSet(sendPaymentNoticeAtom, {
     mode: "promiseExit",
   });
-  const {
-    appOwnerId,
-    appOwnerIdRef,
-    cashuOwnerId,
-    cashuOwnerIdRef,
-    cashuVisibleOwnerIds,
-    currentNpub,
-    currentNsec,
-    isSeedLogin,
-    metaOwnerId,
-    transactionsOwnerId,
-  } = identity;
+  const { appOwnerId, appOwnerIdRef, currentNpub, currentNsec } = identity;
   const {
     saveNpubContact,
     appendLocalNostrMessage,
@@ -444,52 +409,22 @@ export const useCashuWalletComposition = ({
     t,
   });
 
-  // Default mint cross-tab + cross-device sync via Evolu `ownerMeta`.
-  //
-  // Background: the per-owner localStorage override
-  // (`linky.cashu.defaultMintOverride.v1.<owner>`) is tab-local, so other
-  // tabs (and other devices) don't see the change until reload. ownerMeta is
-  // an Evolu lane that already propagates via BroadcastChannel (same-origin
-  // tabs, instant) and via the Evolu sync server (other devices), so we
-  // mirror the default-mint value into it.
-  const ownerMetaDefaultMintRowId = React.useMemo(
-    () => Evolu.createIdFromString<"OwnerMeta">("owner-pointer-defaultMint"),
-    [],
+  // Default mint cross-tab + cross-device sync through the synced
+  // `defaultMint` setting (the per-owner localStorage override is tab-local).
+  const syncedDefaultMintValue = useSetting(DEFAULT_MINT_SETTING_KEY);
+  const ownerMetaDefaultMintValue = React.useMemo(
+    () => normalizeMintUrl(syncedDefaultMintValue ?? "") || null,
+    [syncedDefaultMintValue],
   );
 
-  const ownerMetaDefaultMintQuery = useMemo(
-    () =>
-      evolu.createQuery((db) =>
-        db
-          .selectFrom("ownerMeta")
-          .selectAll()
-          .where("isDeleted", "is not", Evolu.sqliteTrue)
-          .where("scope", "=", Evolu.NonEmptyString100.orThrow("defaultMint")),
-      ),
-    [],
-  );
-  const ownerMetaDefaultMintRows = useQuery(ownerMetaDefaultMintQuery);
-
-  const ownerMetaDefaultMintValue = React.useMemo(() => {
-    for (const row of ownerMetaDefaultMintRows) {
-      if (typeof row !== "object" || row === null) continue;
-      if (!("value" in row)) continue;
-      const raw = (row.value ?? "").trim();
-      if (!raw) continue;
-      const cleaned = normalizeMintUrl(raw);
-      if (cleaned) return cleaned;
-    }
-    return null;
-  }, [ownerMetaDefaultMintRows]);
-
-  // ownerMeta -> local state: when another tab/device wrote a different
+  // setting -> local state: when another tab/device wrote a different
   // default mint, pick it up here. This is the ONLY direction watched as an
-  // effect. A symmetric `defaultMintUrl -> ownerMeta` watcher would
+  // effect. A symmetric `defaultMintUrl -> setting` watcher would
   // ping-pong with the remote: in the same render where this effect queues
   // setDefaultMintUrl(remoteValue), the symmetric effect would read the
-  // STALE local `defaultMintUrl` and upsert it back, racing with the remote
-  // value. Two devices in this state oscillate every few ms (visible in
-  // ownerMeta CRDT history). Explicit pushes happen instead from
+  // STALE local `defaultMintUrl` and write it back, racing with the remote
+  // value. Two devices in this state oscillate every few ms (visible in the
+  // setting's CRDT history). Explicit pushes happen instead from
   // `upsertDefaultMintToOwnerMeta` called by user actions and the seed
   // effect.
   React.useEffect(() => {
@@ -517,21 +452,12 @@ export const useCashuWalletComposition = ({
 
   const upsertDefaultMintToOwnerMeta = React.useCallback(
     (mintUrl: string | null | undefined) => {
-      if (!metaOwnerId) return;
       const cleaned = normalizeMintUrl(mintUrl ?? "");
       if (!cleaned) return;
       if (cleaned === ownerMetaDefaultMintValue) return;
-      upsert(
-        "ownerMeta",
-        {
-          id: ownerMetaDefaultMintRowId,
-          scope: Evolu.NonEmptyString100.orThrow("defaultMint"),
-          value: Evolu.NonEmptyString1000.orThrow(cleaned),
-        },
-        { ownerId: metaOwnerId },
-      );
+      void runWrite(settingsRepository.set(DEFAULT_MINT_SETTING_KEY, cleaned));
     },
-    [metaOwnerId, ownerMetaDefaultMintRowId, ownerMetaDefaultMintValue, upsert],
+    [ownerMetaDefaultMintValue, settingsRepository],
   );
 
   const upsertDefaultMintToOwnerMetaRef = React.useRef(
@@ -541,21 +467,10 @@ export const useCashuWalletComposition = ({
     upsertDefaultMintToOwnerMetaRef.current = upsertDefaultMintToOwnerMeta;
   }, [upsertDefaultMintToOwnerMeta]);
 
-  const resolveOwnerIdForWrite = React.useCallback(async () => {
-    if (cashuOwnerIdRef.current) return cashuOwnerIdRef.current;
-    if (isSeedLogin) return null;
-    try {
-      const owner = await evolu.appOwner;
-      return owner?.id ?? null;
-    } catch {
-      return null;
-    }
-  }, [cashuOwnerIdRef, isSeedLogin]);
-
   React.useEffect(() => {
     if (!appOwnerId) return;
-    migrateLegacyPaymentEventsToEvolu(appOwnerId, transactionsOwnerId);
-  }, [appOwnerId, migrateLegacyPaymentEventsToEvolu, transactionsOwnerId]);
+    migrateLegacyPaymentEventsToEvolu(appOwnerId);
+  }, [appOwnerId, migrateLegacyPaymentEventsToEvolu]);
 
   useRouteAmountResetEffects({
     contactPayBackToChatRef,
@@ -569,102 +484,6 @@ export const useCashuWalletComposition = ({
     const pubkey = decodeNpub(currentNpub ?? "");
     return pubkey ? encodeNprofile(pubkey, NOSTR_RELAYS) : null;
   }, [currentNpub]);
-
-  const activeCashuOwnerId = (cashuOwnerId ?? "").trim();
-  const visibleCashuOwnerIds = React.useMemo(
-    () =>
-      new Set(
-        cashuVisibleOwnerIds.map((ownerId) => ownerId.trim()).filter(Boolean),
-      ),
-    [cashuVisibleOwnerIds],
-  );
-  const dedupeVisibleCashuRows = React.useCallback(
-    function dedupeVisibleCashuRows(
-      rows: readonly CashuTokenRow[],
-    ): CashuTokenRow[] {
-      if (visibleCashuOwnerIds.size === 0) return [];
-
-      const ownerRank = new Map<string, number>();
-      let rank = 0;
-      for (const normalizedOwnerId of visibleCashuOwnerIds) {
-        if (!normalizedOwnerId || ownerRank.has(normalizedOwnerId)) continue;
-        ownerRank.set(normalizedOwnerId, rank);
-        rank += 1;
-      }
-
-      const canonicalByAlias = new Map<string, string>();
-      const bestByCanonical = new Map<string, CashuTokenRow>();
-      const readRowCandidates = (row: CashuTokenRow): string[] => [
-        row.id,
-        ...readCashuRowAliases(row),
-      ];
-
-      const isCandidateBetter = (
-        candidate: CashuTokenRow,
-        existing: CashuTokenRow,
-      ): boolean => {
-        return isCashuRowCandidateBetter({
-          activeOwnerId: activeCashuOwnerId,
-          candidate,
-          existing,
-          ownerRank,
-        });
-      };
-
-      for (const row of rows) {
-        const ownerId = row.ownerId;
-        if (!visibleCashuOwnerIds.has(ownerId)) continue;
-
-        const rowCandidates = readRowCandidates(row);
-        if (rowCandidates.length === 0) continue;
-
-        const canonicalKey =
-          rowCandidates.find((candidate) => canonicalByAlias.has(candidate)) ??
-          rowCandidates[0];
-        const existing = bestByCanonical.get(canonicalKey);
-
-        if (!existing || isCandidateBetter(row, existing)) {
-          bestByCanonical.set(canonicalKey, row);
-        }
-
-        for (const candidate of rowCandidates) {
-          canonicalByAlias.set(candidate, canonicalKey);
-        }
-      }
-
-      return rows.filter((row) => {
-        const rowCandidates = readRowCandidates(row);
-        if (rowCandidates.length === 0) return false;
-
-        const canonicalKey =
-          rowCandidates.find((candidate) => canonicalByAlias.has(candidate)) ??
-          rowCandidates[0];
-        return bestByCanonical.get(canonicalKey) === row;
-      });
-    },
-    [activeCashuOwnerId, visibleCashuOwnerIds],
-  );
-
-  const cashuTokensAllFiltered = React.useMemo(() => {
-    return dedupeVisibleCashuRows(cashuTokensAll);
-  }, [cashuTokensAll, dedupeVisibleCashuRows]);
-
-  const cashuTokensFiltered = React.useMemo(
-    () => cashuTokensAllFiltered.filter((row) => !row.isDeleted),
-    [cashuTokensAllFiltered],
-  );
-
-  const visibleCashuProofs = React.useMemo(
-    () =>
-      dedupeVisibleLaneRows(cashuProofsAll, visibleCashuOwnerIds, (a, b) =>
-        a.state === "spent" ? true : b.state === "spent" ? false : null,
-      ),
-    [cashuProofsAll, visibleCashuOwnerIds],
-  );
-  const visibleCashuOperations = React.useMemo(
-    () => dedupeVisibleLaneRows(cashuOperationsAll, visibleCashuOwnerIds),
-    [cashuOperationsAll, visibleCashuOwnerIds],
-  );
 
   const {
     adoptPaidCashuQuote,
@@ -684,28 +503,16 @@ export const useCashuWalletComposition = ({
     sendCashuToken,
     startCashuTopup,
     walletBalances,
+    walletLoaded,
     walletOperations,
     walletProofs,
     walletTransfers,
-  } = useLinkshuComposition({
-    cashuProofRows: visibleCashuProofs,
-    cashuOperationRows: visibleCashuOperations,
-    legacyTokenRows: cashuTokensAllFiltered,
-    currentNsec,
-    update,
-    upsert,
-    writeOwnerId: cashuOwnerId,
-  });
+  } = useLinkshuComposition({ currentNsec, wallet });
 
   const cashuOpenTransfers = React.useMemo(
     () => walletTransfers.filter(isOpenTransfer),
     [walletTransfers],
   );
-
-  // Legacy migration; removal gate in docs/architecture.md
-  React.useEffect(() => {
-    seedLinkshuSeenMintsFromTokenRows(cashuTokensAll);
-  }, [cashuTokensAll]);
 
   // Legacy migration; removal gate in docs/architecture.md
   React.useEffect(() => {
@@ -718,20 +525,16 @@ export const useCashuWalletComposition = ({
     isCashuTokenKnownAny,
     isCashuTokenStored,
     rememberCashuTokenKnown,
-  } = useCashuDomain({
-    appOwnerId: cashuOwnerId,
-    cashuTokensAll,
-    cashuTransfers: walletTransfers,
-  });
+  } = useCashuDomain({ cashuTransfers: walletTransfers, walletLoaded });
 
   const {
     getMintIconUrl,
     getMintRuntime,
     isMintDeleted,
+    markMintIconFailed,
     mintInfoByUrl,
     mintInfoDeduped,
     refreshMintInfo,
-    setMintIconUrlByMint,
     setMintInfoAll,
     touchMintInfo,
   } = useMintDomain({
@@ -758,6 +561,58 @@ export const useCashuWalletComposition = ({
       void cashuTransferLifecycle.forget(transfer.id);
     }
   }, [cashuTransferLifecycle, nostrMessagesLocal, walletTransfers]);
+
+  // A cashu token paid to our own key lands back in our own inbox as an
+  // incoming message the auto-claim skips (its proofs are already ours). A
+  // token sent to anyone else never returns to us, so an incoming message
+  // carrying one of our own still-open sends is unambiguously a self-payment;
+  // reclaim that transfer back into the balance instead of leaving it stuck.
+  const selfSendReclaimAttemptedRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    const lifecycle = cashuTransferLifecycle;
+    if (lifecycle === null) return;
+    const ownPubkeyHex = normalizePubkeyHex(decodeNpub(currentNpub ?? ""));
+    if (!ownPubkeyHex) return;
+    // A self-payment resolves the request to a contact whose key is our own;
+    // that contact's display name may be wrong, but its npub is ours.
+    const selfContactIds = new Set(
+      contacts
+        .filter(
+          (contact) =>
+            normalizePubkeyHex(decodeNpub(contact.npub ?? "")) === ownPubkeyHex,
+        )
+        .map((contact) => String(contact.id).trim())
+        .filter((id) => id.length > 0),
+    );
+    // A token that reached our own inbox (direction "in") or that we sent into
+    // a self-chat is a self-payment; a token sent to anyone else never matches
+    // one of our own open transfers here, so this cannot reclaim a real send.
+    const selfDirectedTokenTexts = new Set(
+      [...chatMessages, ...nostrMessagesRecent, ...nostrMessagesLocal]
+        .filter((message) => {
+          if (message.direction === "in") return true;
+          const contactId = (message.contactId ?? "").toString().trim();
+          return contactId.length > 0 && selfContactIds.has(contactId);
+        })
+        .map((message) => message.content.trim()),
+    );
+    for (const transfer of walletTransfers) {
+      if (transfer.kind !== "send" || !isOpenTransfer(transfer)) continue;
+      const id = String(transfer.id);
+      if (selfSendReclaimAttemptedRef.current.has(id)) continue;
+      if (!selfDirectedTokenTexts.has(transfer.tokenText.trim())) continue;
+      selfSendReclaimAttemptedRef.current.add(id);
+      void lifecycle.returnToWallet(transfer.id);
+    }
+  }, [
+    cashuTransferLifecycle,
+    contacts,
+    currentNpub,
+    chatMessages,
+    nostrMessagesRecent,
+    nostrMessagesLocal,
+    walletTransfers,
+  ]);
 
   const cashuTotalBalance: number = walletBalances.total;
   const cashuBalance: number = walletBalances.spendable;
@@ -957,7 +812,6 @@ export const useCashuWalletComposition = ({
     npubCashClaimInFlightRef,
     receiveCashuToken,
     refreshMintInfo,
-    resolveOwnerIdForWrite,
     rememberCashuTokenKnown,
     routeKind: route.kind,
     setCashuIsBusy,
@@ -1263,8 +1117,14 @@ export const useCashuWalletComposition = ({
         return false;
       }
 
-      if (postUrl.protocol !== "https:" && postUrl.protocol !== "http:") {
-        setStatus(t("paymentRequestUnknownContact"));
+      // An `http:` POST target exposes the bearer proofs to anyone on the
+      // network path, so it is only accepted in development builds.
+      if (
+        !paymentRequestPostUrlIsAllowed(postUrlRaw, {
+          allowHttp: import.meta.env.DEV,
+        })
+      ) {
+        setStatus(t("paymentRequestInsecureTransport"));
         return false;
       }
 
@@ -1454,9 +1314,32 @@ export const useCashuWalletComposition = ({
     ],
   );
 
-  const payCashuPaymentRequest = React.useCallback(
+  const runCashuPaymentRequest = React.useCallback(
     async (requestInfo: CashuPaymentRequestMessageInfo) => {
       if (cashuIsBusy) return;
+
+      // A request addressed to our own key is already satisfied by the funds in
+      // this wallet. Complete it locally as a success instead of gift-wrapping a
+      // cashu token to ourselves over nostr, which the inbox treats as an
+      // own-echo and never auto-claims — that is what stranded the token as an
+      // unclaimable "awaiting claim" transfer.
+      const ownPubkeyHex = normalizePubkeyHex(decodeNpub(currentNpub ?? ""));
+      const targetPubkeyHex = normalizePubkeyHex(
+        requestInfo.transportPubkeyHex,
+      );
+      if (ownPubkeyHex && targetPubkeyHex && ownPubkeyHex === targetPubkeyHex) {
+        const displayAmount = formatDisplayedAmountParts(requestInfo.amount);
+        showPaidOverlay(
+          t("paymentRequestSelfPayment")
+            .replace(
+              "{amount}",
+              `${displayAmount.approxPrefix}${displayAmount.amountText}`,
+            )
+            .replace("{unit}", displayAmount.unitLabel),
+        );
+        return;
+      }
+
       if (requestInfo.amount > cashuBalance) {
         const requestedMints = requestInfo.mintUrls.flatMap((mintUrl) => {
           const normalizedMint = normalizeMintUrl(mintUrl);
@@ -1516,14 +1399,17 @@ export const useCashuWalletComposition = ({
     [
       cashuIsBusy,
       cashuBalance,
+      currentNpub,
       ensureContactForCashuPaymentRequest,
       findPreviousCashuPaymentRequestMessage,
+      formatDisplayedAmountParts,
       payCashuPaymentRequestViaPost,
       payContactWithCashuMessage,
       paymentMintMeltPlan?.toMint,
       requestPaymentMintMelt,
       setCashuIsBusy,
       setStatus,
+      showPaidOverlay,
       t,
     ],
   );
@@ -1597,6 +1483,18 @@ export const useCashuWalletComposition = ({
   const closeLightningInvoiceConfirmation = React.useCallback(() => {
     setPendingLightningInvoiceConfirmation(null);
   }, []);
+
+  const {
+    closeCashuPaymentRequestConfirmation,
+    confirmCashuPaymentRequest,
+    payCashuPaymentRequest,
+    pendingCashuPaymentRequestConfirmation,
+  } = useCashuPaymentRequestConfirmation({
+    cashuIsBusy,
+    currentNpub,
+    autoPayLimit: lightningInvoiceAutoPayLimit,
+    runCashuPaymentRequest,
+  });
 
   const confirmLightningInvoicePayment = React.useCallback(async () => {
     const pending = pendingLightningInvoiceConfirmation;
@@ -2086,50 +1984,21 @@ export const useCashuWalletComposition = ({
       setStatus,
       t,
       updateLocalNostrMessage,
+      walletTransfers,
     ],
   );
 
-  const handleMintIconLoad = React.useCallback(
-    (origin: string, url: string | null) => {
-      setMintIconUrlByMint((prev) => ({
-        ...prev,
-        [origin]: url,
-      }));
-    },
-    [setMintIconUrlByMint],
-  );
-
-  const handleMintIconError = React.useCallback(
-    (origin: string, url: string | null) => {
-      setMintIconUrlByMint((prev) => ({
-        ...prev,
-        [origin]: url,
-      }));
-    },
-    [setMintIconUrlByMint],
-  );
-
-  // Every mint the wallet ever touched, soft-deleted legacy rows included:
-  // deleting a mint's last token locally must not hide it from a recovery.
+  // Every mint the wallet ever touched, spent proofs included: a mint whose
+  // proofs are all spent must still be offered to a recovery.
   const walletMints = React.useMemo(() => {
     const mints = new Set<string>();
-    for (const row of cashuTokensAll) {
-      const fromColumn = (row.mint ?? "").trim();
-      if (fromColumn) {
-        mints.add(fromColumn);
-        continue;
-      }
-      const tokenText = (row.token ?? row.rawToken ?? "").trim();
-      const mint = tokenText ? parseTokenText(tokenText)?.mint : null;
-      if (mint) mints.add(mint);
-    }
     for (const proof of walletProofs) mints.add(proof.mint);
     for (const operation of walletOperations) {
       mints.add(operation.mint);
       if (operation.sourceMint !== null) mints.add(operation.sourceMint);
     }
     return [...mints];
-  }, [cashuTokensAll, walletOperations, walletProofs]);
+  }, [walletOperations, walletProofs]);
 
   const recoverTokens = useRestoreMissingTokens({
     cashuIsBusy,
@@ -2274,9 +2143,7 @@ export const useCashuWalletComposition = ({
 
       setCashuEmitAmount("");
       setStatus(null);
-      const routeId = CashuOperationIdFromUnknown.fromUnknown(
-        receipt.operationId,
-      );
+      const routeId = CashuOperationIdType.fromUnknown(receipt.operationId);
       navigateTo(
         routeId.ok
           ? { route: "cashuToken", id: routeId.value }
@@ -2412,33 +2279,7 @@ export const useCashuWalletComposition = ({
     pushToast,
     resumePendingCashuMelts,
     t,
-    transactionsOwnerId,
-    update,
-  });
-
-  const recurringScheduler = useRecurringPaymentsScheduler({
-    cashuBalance,
-    cashuIsBusy,
-    contacts,
-    enabled: sendCashuToken !== null && meltCashuInvoice !== null,
-    formatDisplayedAmountParts,
-    maybeShowPwaNotification,
-    payContactWithCashuMessage,
-    payLightningAddressWithCashu: payLightningAddressWithCashuBase,
-    payWithCashuEnabled,
-    pushToast,
-    setCashuIsBusy,
-    showPaidOverlay,
-    t,
-    update,
-  });
-  const recurringPaymentsActions = useRecurringPaymentsActions({
-    insert,
-    pushToast,
-    runOrderNow: recurringScheduler.runOrderNow,
-    t,
-    transactionsOwnerId,
-    update,
+    transactions,
   });
 
   const requestSelectedContact = React.useCallback(async () => {
@@ -2581,13 +2422,8 @@ export const useCashuWalletComposition = ({
     [walletTransfers],
   );
   const getCashuTokenMessageInfo = React.useCallback(
-    (text: string) =>
-      getCashuTokenMessageInfoBase(
-        text,
-        cashuTokensAllFiltered,
-        knownTransferTexts,
-      ),
-    [cashuTokensAllFiltered, knownTransferTexts],
+    (text: string) => getCashuTokenMessageInfoBase(text, knownTransferTexts),
+    [knownTransferTexts],
   );
 
   const knownLnAddressPayContact = React.useMemo(() => {
@@ -2629,7 +2465,6 @@ export const useCashuWalletComposition = ({
     cashuOpenTransfers,
     cashuProofs: walletProofs,
     cashuOperations: walletOperations,
-    cashuTokensFiltered,
     cashuTokensHydratedRef,
     cashuTotalBalance,
     cashuTransfers: walletTransfers,
@@ -2653,8 +2488,6 @@ export const useCashuWalletComposition = ({
     getCashuTokenMessageInfo,
     getMintIconUrl,
     getMintRuntime,
-    handleMintIconError,
-    handleMintIconLoad,
     isCashuTokenKnownAny,
     isCashuTokenStored,
     knownLnAddressPayContact,
@@ -2665,16 +2498,19 @@ export const useCashuWalletComposition = ({
     makeNip98AuthHeader,
     markCashuTokenExternalized,
     markCashuTokenIssued,
+    markMintIconFailed,
     meltLargestForeignMintToMainMint,
     mintInfoByUrl,
+    closeCashuPaymentRequestConfirmation,
+    confirmCashuPaymentRequest,
     onPayChatPaymentRequest,
     paidOverlayIsOpen,
     paidOverlayTitle,
     payCashuPaymentRequest,
+    pendingCashuPaymentRequestConfirmation,
     payLightningAddressWithCashu,
     payLightningInvoiceWithCashu,
     paySelectedContact,
-    recurringPaymentsActions,
     payWithCashuEnabled,
     pendingCashuContactSend,
     pendingCashuDeleteId,
@@ -2700,7 +2536,6 @@ export const useCashuWalletComposition = ({
     setDefaultMintUrlDraft,
     setLightningInvoiceAutoPayLimit,
     setLnAddressPayAmount,
-    setMintIconUrlByMint,
     setMintInfoAll,
     setPayWithCashuEnabled,
     setPendingCashuDeleteId,

@@ -1,4 +1,3 @@
-import type { OwnerId } from "@evolu/common";
 import React, { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderIntoDocument } from "../../../testUtils/renderIntoDocument";
@@ -53,56 +52,32 @@ type EvoluSettingsInput = Omit<
 const createEvoluSettings = (
   wipeEvoluStorage: () => Promise<void>,
 ): EvoluSettingsInput => ({
-  evoluCashuOwnerEditsUntilRotation: 0,
-  evoluCashuOwnerId: null,
-  evoluCashuOwnerIndex: 0,
-  evoluCashuVisibleOwnerIds: [],
-  evoluContactsOwnerEditCount: 0,
-  evoluContactsOwnerEditsUntilRotation: 0,
-  evoluContactsOwnerId: null,
-  evoluContactsOwnerIndex: 0,
-  evoluContactsOwnerNewContactsCount: 0,
-  evoluContactsOwnerPointer: "",
   evoluDatabaseBytes: null,
   evoluHasError: false,
   evoluErrorType: null,
-  evoluHistoryAllowedOwnerIds: [],
   evoluHistoryCount: null,
-  evoluMessagesOwnerEditsUntilRotation: 0,
-  evoluMessagesOwnerId: null,
-  evoluMessagesOwnerIndex: 0,
-  evoluMessagesVisibleOwnerIds: [],
   evoluServerStatusByUrl: {},
   evoluServerUrls: [],
   evoluServersReloadRequired: false,
+  evoluShards: [],
+  evoluSyncOwnerIds: [],
   evoluTableCounts: {},
-  evoluTransactionsOwnerEditsUntilRotation: 0,
-  evoluTransactionsOwnerId: null,
-  evoluTransactionsOwnerIndex: 0,
-  evoluTransactionsOwnerPointer: "",
-  evoluTransactionsVisibleOwnerIds: [],
   evoluWipeStorageIsBusy: false,
   isEvoluServerOffline: () => false,
   newEvoluServerUrl: "",
   pendingEvoluServerDeleteUrl: null,
-  requestManualRotateCashuOwner: noopAsync,
-  requestManualRotateContactsOwner: noopAsync,
-  requestManualRotateMessagesOwner: noopAsync,
-  requestManualRotateTransactionsOwner: noopAsync,
-  rotateCashuOwnerIsBusy: false,
-  rotateContactsOwnerIsBusy: false,
-  rotateMessagesOwnerIsBusy: false,
-  rotateTransactionsOwnerIsBusy: false,
+  requestRotateShard: noopAsync,
+  rotatingShardScope: null,
   saveEvoluServerUrls: noop,
   setEvoluServerOffline: noop,
   setNewEvoluServerUrl: noop,
   setPendingEvoluServerDeleteUrl: noop,
   setStatus: noop,
-  syncOwner: null,
+  syncOwnerId: null,
   wipeEvoluStorage,
 });
 
-const appOwnerIdRef = React.createRef<OwnerId>();
+const appOwnerIdRef = React.createRef<string>();
 
 const mintSettings: MintSettingsContextValue = {
   appOwnerIdRef,

@@ -1,10 +1,3 @@
-import * as Evolu from "@evolu/common";
-
-export const ContactId = Evolu.id("Contact");
-export type ContactId = typeof ContactId.Type;
-
-export const TransactionId = Evolu.id("Transaction");
-export type TransactionId = typeof TransactionId.Type;
-
-export const RecurringPaymentId = Evolu.id("RecurringPayment");
-export type RecurringPaymentId = typeof RecurringPaymentId.Type;
+// Branded ids come from the synced storage package; this module keeps the
+// import path lightweight hooks use without initializing the database.
+export { ContactId, TransactionId } from "@linky/linksync";

@@ -17,6 +17,7 @@ import {
   ContactNewPage,
   ContactPage,
   ContactPayPage,
+  ChatStoragePage,
   EvoluCurrentDataPage,
   EvoluDataDetailPage,
   EvoluHistoryDataPage,
@@ -129,6 +130,8 @@ const RoutePage = (): React.ReactElement => {
       return <MintsPage />;
     case "mint":
       return <MintDetailPage />;
+    case "chatStorage":
+      return <ChatStoragePage />;
     case "evoluServers":
       return <EvoluServersPage />;
     case "evoluCurrentData":

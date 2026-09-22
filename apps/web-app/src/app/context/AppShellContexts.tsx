@@ -16,6 +16,7 @@ import type {
   DisplayCurrency,
 } from "../../utils/displayAmounts";
 import type { LightningInvoicePreview } from "@linky/linkshu";
+import type { CashuPaymentRequestMessageInfo } from "../lib/paymentRequestMessage";
 import type {
   MainSwipeRoutesProps,
   MoneyRoutesProps,
@@ -69,7 +70,6 @@ export interface AppShellCoreContextValue {
   effectiveProfileName: string | null;
   effectiveProfilePicture: string | null;
   evoluAppOwnerId: string | null;
-  evoluTransactionsVisibleOwnerIds: readonly string[];
   applyAmountInputKey: (currentAmount: string, key: string) => string;
   applyAmountInputKeyWithDraft: (
     currentAmount: string,
@@ -93,6 +93,7 @@ export interface AppShellCoreContextValue {
   pendingLnurlAuthConfirmation: LnurlAuthPreview | null;
   pendingLnurlWithdrawConfirmation: LnurlWithdrawPreview | null;
   pendingLightningInvoiceConfirmation: LightningInvoicePreview | null;
+  pendingCashuPaymentRequestConfirmation: CashuPaymentRequestMessageInfo | null;
   postPaySaveContact: {
     amountSat: number;
     lnAddress: string;
@@ -148,6 +149,8 @@ export interface AppShellActionsContextValue {
   confirmLnurlAuth: () => Promise<void>;
   confirmLnurlWithdraw: () => Promise<void>;
   confirmLightningInvoicePayment: () => Promise<void>;
+  closeCashuPaymentRequestConfirmation: () => void;
+  confirmCashuPaymentRequest: () => Promise<void>;
   contactsGuideNav: {
     back: () => void;
     next: () => void;

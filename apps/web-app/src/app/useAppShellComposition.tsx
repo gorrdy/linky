@@ -1,16 +1,10 @@
 import { createContactNameFormatter } from "../utils/contactName";
 import { useMemoizedRouteBuilder } from "./hooks/composition/useMemoizedRouteBundle";
-import * as Evolu from "@evolu/common";
-import { useQuery } from "@evolu/react";
+import { ContactId as ContactIdType } from "@linky/linksync";
 import React, { useMemo, useState } from "react";
 import type { MessageContactsGroupAssignment } from "../components/ChatMessage";
 import { ContactCard } from "../components/ContactCard";
 import {
-  createCashuOperationsAllQuery,
-  createCashuProofsAllQuery,
-  createCashuTokensAllQuery,
-  evolu,
-  useEvolu,
   useEvoluDatabaseInfoState,
   useEvoluLastError,
   useEvoluServersManager,
@@ -83,6 +77,18 @@ import { useTopDownTilt } from "./hooks/useTopDownTilt";
 import { useArmedDeleteTimeouts } from "./hooks/useArmedDeleteTimeouts";
 import { useFiatRates } from "./hooks/useFiatRates";
 import { useLnurlAuth } from "./hooks/useLnurlAuth";
+import {
+  useContactsRepository,
+  useConversationsRepository,
+  useSetting,
+  useSettingsRepository,
+  useShardRotation,
+  useShardSummaries,
+  useSyncOwnerIds,
+  useTransactionRecords,
+  useTransactionsRepository,
+  useWalletProofs,
+} from "./hooks/useLinksync";
 import { useOwnerScopedStorage } from "./hooks/useOwnerScopedStorage";
 import { useStatusToasts } from "./hooks/useStatusToasts";
 import { useStoragePersistRequestEffect } from "./hooks/useStoragePersistRequestEffect";
@@ -91,10 +97,10 @@ import {
   buildIdentityChangeMessageWrapId,
 } from "./lib/identityChangeMessage";
 import {
-  buildDismissedOnboardingTutorialOwnerMetaPayload,
-  hasDismissedOnboardingTutorialOwnerMetaRow,
-  ONBOARDING_TUTORIAL_OWNER_META_SCOPE,
-} from "./lib/onboardingTutorialSync";
+  ONBOARDING_TUTORIAL_DISMISSED,
+  ONBOARDING_TUTORIAL_SETTING_KEY,
+} from "./lib/onboardingTutorial";
+import { runWrite } from "./lib/storeWrite";
 import { parsePrivateImageMessage } from "./lib/privateImageMessage";
 import { showPwaNotification } from "./lib/pwaNotifications";
 import {
@@ -107,10 +113,8 @@ import { getDesktopActiveContactId } from "./routes/desktopRouteSection";
 import type { ContactRowLike } from "./types/appTypes";
 import { nowSeconds } from "../utils/time";
 
-const AppContactId = Evolu.id("Contact");
-
 const parseContactId = (value: unknown): ContactId | null => {
-  const result = AppContactId.fromUnknown(value);
+  const result = ContactIdType.fromUnknown(value);
   return result.ok ? result.value : null;
 };
 
@@ -123,8 +127,6 @@ export const useAppShellComposition = ({
   currentNsec,
   setCurrentNsec,
 }: UseAppShellCompositionParams) => {
-  const { insert, update, upsert } = useEvolu();
-
   const route = useRouting();
   const { dismissToast, toasts, pushToast } = useToasts();
   const { lang, setLang, t } = useAppLanguage();
@@ -133,65 +135,34 @@ export const useAppShellComposition = ({
     appOwnerId,
     appOwnerIdRef,
     appendIdentityChangeNoticesRef,
-    cashuOwnerEditsUntilRotation,
-    cashuOwnerId,
-    cashuOwnerIdRef,
-    cashuOwnerIndex,
-    cashuVisibleOwnerIds,
-    contactsOwnerEditCount,
-    contactsOwnerEditsUntilRotation,
-    contactsOwnerId,
-    contactsOwnerIndex,
-    contactsOwnerNewContactsCount,
-    contactsOwnerPointer,
-    contactsVisibleOwnerIds,
     currentNpub,
-    historicalOwnerSetsReady,
-    identityOwnerId,
     isSeedLogin,
-    legacyIdentitiesOwnerId,
-    legacyMessagesIdentityOwnerId,
     logoutArmed,
-    messagesOwnerEditsUntilRotation,
-    messagesOwnerId,
-    messagesOwnerIdRef,
-    messagesOwnerIndex,
-    messagesVisibleOwnerIds,
-    metaOwnerId,
     myProfileMetadataRef,
-    nostrIdentityRows,
     requestLogout,
-    requestManualRotateCashuOwner,
-    requestManualRotateContactsOwner,
-    requestManualRotateMessagesOwner,
-    requestManualRotateTransactionsOwner,
     requestPasteNostrKeys,
-    rotateCashuOwnerIsBusy,
-    rotateContactsOwnerIsBusy,
-    rotateMessagesOwnerIsBusy,
-    rotateTransactionsOwnerIsBusy,
     seedMnemonic,
     slip39Seed,
     syncedNostrIdentityMatchesLocal,
-    syncedNostrIdentityResolution,
-    syncOwner,
-    transactionsBootstrapSnapshot,
-    transactionsOwnerEditsUntilRotation,
-    transactionsOwnerId,
-    transactionsOwnerIdRef,
-    transactionsOwnerIndex,
-    transactionsOwnerPointer,
-    transactionsVisibleOwnerIds,
+    syncedNostrIdentityRow,
   } = useIdentityOwnersComposition({
     currentNsec,
-    evolu,
     lang,
     navigation: globalThis.location,
     pushToast,
     setCurrentNsec,
     t,
-    upsert,
   });
+
+  const contactsRepository = useContactsRepository();
+  const conversationsRepository = useConversationsRepository();
+  const settingsRepository = useSettingsRepository();
+  const transactions = useTransactionsRepository();
+  const transactionRecords = useTransactionRecords();
+  const evoluShards = useShardSummaries();
+  const evoluSyncOwnerIds = useSyncOwnerIds();
+  const shardRotation = useShardRotation();
+  const walletProofs = useWalletProofs();
 
   const {
     logPaymentEvent,
@@ -201,8 +172,7 @@ export const useAppShellComposition = ({
     rememberSeenMint,
   } = useOwnerScopedStorage({
     appOwnerIdRef,
-    insert,
-    transactionsOwnerIdRef,
+    transactions,
   });
 
   const evoluServers = useEvoluServersManager();
@@ -399,7 +369,7 @@ export const useAppShellComposition = ({
   }, [evoluActiveServerUrls, evoluServerStatusByUrl]);
 
   const evoluOverallStatus = useMemo(() => {
-    if (!syncOwner) return "disconnected" as const;
+    if (!appOwnerId) return "disconnected" as const;
     if (evoluHasError) return "disconnected" as const;
     if (evoluActiveServerUrls.length === 0) return "disconnected" as const;
     const states = evoluActiveServerUrls.map(
@@ -408,7 +378,12 @@ export const useAppShellComposition = ({
     if (states.some((s) => s === "connected")) return "connected" as const;
     if (states.some((s) => s === "checking")) return "checking" as const;
     return "disconnected" as const;
-  }, [evoluActiveServerUrls, evoluHasError, evoluServerStatusByUrl, syncOwner]);
+  }, [
+    appOwnerId,
+    evoluActiveServerUrls,
+    evoluHasError,
+    evoluServerStatusByUrl,
+  ]);
 
   const [evoluWipeStorageIsBusy, setEvoluWipeStorageIsBusy] =
     useState<boolean>(false);
@@ -434,55 +409,18 @@ export const useAppShellComposition = ({
     "pay" | "request"
   >("pay");
   const [payAmount, setPayAmount] = useState<string>("");
-  const onboardingTutorialOwnerId = isSeedLogin ? metaOwnerId : appOwnerId;
-  const onboardingTutorialOwnerMetaQuery = useMemo(
-    () =>
-      evolu.createQuery((db) =>
-        db
-          .selectFrom("ownerMeta")
-          .selectAll()
-          .where("isDeleted", "is not", Evolu.sqliteTrue)
-          .where("scope", "=", ONBOARDING_TUTORIAL_OWNER_META_SCOPE),
-      ),
-    [],
-  );
-  const onboardingTutorialOwnerMetaRows = useQuery(
-    onboardingTutorialOwnerMetaQuery,
-  );
-  const contactsOnboardingDismissedSynced = React.useMemo(
-    () =>
-      hasDismissedOnboardingTutorialOwnerMetaRow(
-        onboardingTutorialOwnerMetaRows,
-        onboardingTutorialOwnerId,
-      ),
-    [onboardingTutorialOwnerId, onboardingTutorialOwnerMetaRows],
-  );
+  const contactsOnboardingDismissedSynced =
+    useSetting(ONBOARDING_TUTORIAL_SETTING_KEY) ===
+    ONBOARDING_TUTORIAL_DISMISSED;
   const persistContactsOnboardingDismissed = React.useCallback(() => {
-    if (!onboardingTutorialOwnerId) return;
     if (contactsOnboardingDismissedSynced) return;
-    upsert("ownerMeta", buildDismissedOnboardingTutorialOwnerMetaPayload(), {
-      ownerId: onboardingTutorialOwnerId,
-    });
-  }, [contactsOnboardingDismissedSynced, onboardingTutorialOwnerId, upsert]);
-
-  const evoluHistoryAllowedOwnerIds = React.useMemo(() => {
-    const ids = [
-      (appOwnerId ?? "").trim(),
-      ...cashuVisibleOwnerIds.map((ownerId) => ownerId.trim()),
-      ...messagesVisibleOwnerIds.map((ownerId) => ownerId.trim()),
-      ...transactionsVisibleOwnerIds.map((ownerId) => ownerId.trim()),
-      (metaOwnerId ?? "").trim(),
-      ...contactsVisibleOwnerIds.map((ownerId) => ownerId.trim()),
-    ].filter(Boolean);
-    return Array.from(new Set(ids));
-  }, [
-    appOwnerId,
-    cashuVisibleOwnerIds,
-    contactsVisibleOwnerIds,
-    messagesVisibleOwnerIds,
-    metaOwnerId,
-    transactionsVisibleOwnerIds,
-  ]);
+    void runWrite(
+      settingsRepository.set(
+        ONBOARDING_TUTORIAL_SETTING_KEY,
+        ONBOARDING_TUTORIAL_DISMISSED,
+      ),
+    );
+  }, [contactsOnboardingDismissedSynced, settingsRepository]);
 
   useStoragePersistRequestEffect({ refreshKey: t });
 
@@ -505,13 +443,6 @@ export const useAppShellComposition = ({
     setStatus,
     status,
   });
-
-  const cashuTokensAllQuery = useMemo(createCashuTokensAllQuery, []);
-  const cashuTokensAll = useQuery(cashuTokensAllQuery);
-  const cashuProofsAllQuery = useMemo(createCashuProofsAllQuery, []);
-  const cashuProofsAll = useQuery(cashuProofsAllQuery);
-  const cashuOperationsAllQuery = useMemo(createCashuOperationsAllQuery, []);
-  const cashuOperationsAll = useQuery(cashuOperationsAllQuery);
 
   const copyText = React.useCallback(
     async (value: string) => {
@@ -547,7 +478,6 @@ export const useAppShellComposition = ({
     bankPaymentOfferStaggerDelaySec,
     blockArchivedContact,
     blockUnknownContactFromChat,
-    canAddContact,
     addChatAttachments,
     canSaveNewRelay,
     chatAttachments,
@@ -650,30 +580,18 @@ export const useAppShellComposition = ({
     activeSyncedNostrIdentity,
     appOwnerId,
     appOwnerIdRef,
-    cashuOwnerId,
-    cashuTokensAll: cashuProofsAll,
+    cashuProofs: walletProofs,
     contactPayBackToChatRef,
-    contactsOwnerId,
-    contactsOwnerNewContactsCount,
-    contactsVisibleOwnerIds,
+    contactsRepository,
+    conversationsRepository,
     copyText,
     currentNpub,
     currentNsec,
     formatDisplayedAmountText,
-    historicalOwnerSetsReady,
-    identityOwnerId,
-    insert,
     isSeedLogin,
     lang,
-    legacyIdentitiesOwnerId,
-    legacyMessagesIdentityOwnerId,
     logPayStep,
     maybeShowPwaNotification,
-    messagesOwnerId,
-    messagesOwnerIdRef,
-    messagesVisibleOwnerIds,
-    metaOwnerId,
-    nostrIdentityRows,
     pushToast,
     route,
     seenReceiptsEnabledAtSec,
@@ -681,12 +599,10 @@ export const useAppShellComposition = ({
     setPayAmount,
     setStatus,
     syncedNostrIdentityMatchesLocal,
-    syncedNostrIdentityResolution,
+    syncedNostrIdentityRow,
     t,
-    transactionsBootstrapSnapshot,
-    transactionsOwnerId,
-    update,
-    upsert,
+    transactions,
+    transactionsBootstrapSnapshot: transactionRecords,
   });
 
   React.useEffect(() => {
@@ -805,7 +721,6 @@ export const useAppShellComposition = ({
     cashuMeltToMainMintButtonLabel,
     cashuOperations,
     cashuProofs,
-    cashuTokensFiltered,
     cashuTokensHydratedRef,
     cashuTotalBalance,
     cashuTransferLifecycle,
@@ -815,9 +730,11 @@ export const useAppShellComposition = ({
     checkAndRefreshCashuToken,
     checkIssuedCashuTokensAndDeleteClaimed,
     checkSingleIssuedCashuTokenIsClaimed,
+    closeCashuPaymentRequestConfirmation,
     closeLightningInvoiceConfirmation,
     closeLnurlWithdrawConfirmation,
     closePaymentMintMeltConfirmation,
+    confirmCashuPaymentRequest,
     confirmLightningInvoicePayment,
     confirmLnurlWithdraw,
     confirmPaymentMintMelt,
@@ -830,8 +747,6 @@ export const useAppShellComposition = ({
     getCashuTokenMessageInfo,
     getMintIconUrl,
     getMintRuntime,
-    handleMintIconError,
-    handleMintIconLoad,
     isCashuTokenKnownAny,
     isCashuTokenStored,
     knownLnAddressPayContact,
@@ -842,6 +757,7 @@ export const useAppShellComposition = ({
     makeNip98AuthHeader,
     markCashuTokenExternalized,
     markCashuTokenIssued,
+    markMintIconFailed,
     meltLargestForeignMintToMainMint,
     mintInfoByUrl,
     onPayChatPaymentRequest,
@@ -854,6 +770,7 @@ export const useAppShellComposition = ({
     payWithCashuEnabled,
     pendingCashuContactSend,
     pendingCashuDeleteId,
+    pendingCashuPaymentRequestConfirmation,
     pendingCashuTokenContactPickId,
     pendingLightningInvoiceConfirmation,
     pendingLnurlWithdrawConfirmation,
@@ -877,7 +794,6 @@ export const useAppShellComposition = ({
     setDefaultMintUrlDraft,
     setLightningInvoiceAutoPayLimit,
     setLnAddressPayAmount,
-    setMintIconUrlByMint,
     setMintInfoAll,
     setPayWithCashuEnabled,
     setPendingCashuDeleteId,
@@ -901,12 +817,7 @@ export const useAppShellComposition = ({
     topupMintUrl,
     walletWarningApplies,
     walletWarningDismissed,
-    recurringPaymentsActions,
   } = useCashuWalletComposition({
-    insert,
-    cashuTokensAll,
-    cashuProofsAll,
-    cashuOperationsAll,
     contactPayBackToChatRef,
     contactsMessaging: {
       saveNpubContact,
@@ -936,14 +847,8 @@ export const useAppShellComposition = ({
     identity: {
       appOwnerId,
       appOwnerIdRef,
-      cashuOwnerId,
-      cashuOwnerIdRef,
-      cashuVisibleOwnerIds,
       currentNpub,
       currentNsec,
-      isSeedLogin,
-      metaOwnerId,
-      transactionsOwnerId,
     },
     maybeShowPwaNotification,
     ownerScopedStorage: {
@@ -969,8 +874,7 @@ export const useAppShellComposition = ({
     setPayAmount,
     setStatus,
     t,
-    update,
-    upsert,
+    transactions,
   });
 
   useArmedDeleteTimeouts({
@@ -1070,7 +974,6 @@ export const useAppShellComposition = ({
   } = useScanNativeComposition({
     addNewContactFromIdentifier,
     cashuBalance,
-    cashuOwnerId,
     cashuTransfers,
     contacts,
     contactsLatestRef,
@@ -1078,12 +981,11 @@ export const useAppShellComposition = ({
     contactsOnboardingHasBackedUpKeys,
     contactsOnboardingHasPaid,
     contactsOnboardingHasSentMessage,
-    contactsOwnerId,
+    contactsRepository,
     copyText,
     currentNpub,
     currentNsec,
     dispatchInboxEvent,
-    insert,
     lightningInvoiceAutoPayLimit,
     markCashuTokenExternalized,
     markCashuTokenIssued,
@@ -1154,8 +1056,7 @@ export const useAppShellComposition = ({
           getMintIconUrl={getMintIconUrl}
           getNpubMessageContactInfo={getNpubMessageContactInfo}
           onSelect={handleSelectContact}
-          onMintIconLoad={handleMintIconLoad}
-          onMintIconError={handleMintIconError}
+          onMintIconError={markMintIconFailed}
         />
       );
     },
@@ -1164,8 +1065,7 @@ export const useAppShellComposition = ({
       getCashuTokenMessageInfo,
       getMintIconUrl,
       getNpubMessageContactInfo,
-      handleMintIconError,
-      handleMintIconLoad,
+      markMintIconFailed,
       handleSelectContact,
       lastMessageByContactId,
       nostrPictureByNpub,
@@ -1191,19 +1091,16 @@ export const useAppShellComposition = ({
 
   const { exportAppData, handleImportAppDataFilePicked, requestImportAppData } =
     useAppDataTransfer<(typeof contacts)[number]>({
-      appOwnerId: contactsOwnerId,
       cashuOperations,
       cashuProofs,
-      cashuTokens: cashuTokensFiltered,
       contacts,
+      contactsRepository,
       importCashuLegacyRows: cashuTransferLifecycle?.importLegacyRows ?? null,
       importCashuOperation: cashuTransferLifecycle?.importOperation ?? null,
       importCashuProofs: cashuTransferLifecycle?.importProofs ?? null,
       importDataFileInputRef,
-      insert,
       pushToast,
       t,
-      update,
     });
 
   const copyNostrKeys = async () => {
@@ -1300,6 +1197,9 @@ export const useAppShellComposition = ({
     }
     if (pendingLightningInvoiceConfirmation) {
       return closeLightningInvoiceConfirmation;
+    }
+    if (pendingCashuPaymentRequestConfirmation) {
+      return closeCashuPaymentRequestConfirmation;
     }
     if (postPaySaveContact) return () => setPostPaySaveContact(null);
     return null;
@@ -1439,7 +1339,6 @@ export const useAppShellComposition = ({
       setCashuEmitAmount,
       setCashuDraft,
       setLnAddressPayAmount,
-      setMintIconUrlByMint,
       shareCashuTokenText,
       setTopupAmount,
       t,
@@ -1512,7 +1411,8 @@ export const useAppShellComposition = ({
         pendingContactsGroupAssignment
           ? {
               messageId: pendingContactsGroupAssignment.messageId,
-              contactCount: pendingContactsGroupAssignment.savedContacts.length,
+              contactCount:
+                pendingContactsGroupAssignment.savedContactIds.length,
               groupNames,
               onAssign: assignPendingContactsToGroup,
               onDismiss: closeContactsGroupAssignment,
@@ -1634,7 +1534,7 @@ export const useAppShellComposition = ({
       setChatDraft,
       setContactPayMethod,
       setForm,
-      setMintIconUrlByMint,
+      markMintIconFailed,
       setPayAmount,
       setProfileEditLnAddress,
       setProfileEditName,
@@ -1664,7 +1564,6 @@ export const useAppShellComposition = ({
         dismissWalletWarning,
         handleMainSwipeTabChange: commitMainSwipe,
         mainSwipeRef,
-        canAddContact,
         openNewContactPage,
         openWalletScan,
         otherContactsLabel,
@@ -1715,53 +1614,28 @@ export const useAppShellComposition = ({
       setPayWithCashuEnabled,
     },
     evoluSettingsInput: {
-      evoluCashuOwnerEditsUntilRotation: cashuOwnerEditsUntilRotation,
-      evoluCashuOwnerId: cashuOwnerId,
-      evoluCashuOwnerIndex: cashuOwnerIndex,
-      evoluCashuVisibleOwnerIds: cashuVisibleOwnerIds,
-      evoluContactsOwnerEditCount: contactsOwnerEditCount,
-      evoluContactsOwnerEditsUntilRotation: contactsOwnerEditsUntilRotation,
-      evoluContactsOwnerId: contactsOwnerId,
-      evoluContactsOwnerIndex: contactsOwnerIndex,
-      evoluContactsOwnerNewContactsCount: contactsOwnerNewContactsCount,
-      evoluContactsOwnerPointer: contactsOwnerPointer,
       evoluDatabaseBytes: evoluDbInfo.info.bytes,
       evoluHasError,
       evoluErrorType: evoluLastError?.type ?? null,
-      evoluHistoryAllowedOwnerIds,
       evoluHistoryCount: evoluDbInfo.info.historyCount,
-      evoluMessagesOwnerEditsUntilRotation: messagesOwnerEditsUntilRotation,
-      evoluMessagesOwnerId: messagesOwnerId,
-      evoluMessagesOwnerIndex: messagesOwnerIndex,
-      evoluMessagesVisibleOwnerIds: messagesVisibleOwnerIds,
       evoluServerStatusByUrl,
       evoluServerUrls,
       evoluServersReloadRequired,
+      evoluShards,
+      evoluSyncOwnerIds,
       evoluTableCounts: evoluDbInfo.info.tableCounts,
-      evoluTransactionsOwnerEditsUntilRotation:
-        transactionsOwnerEditsUntilRotation,
-      evoluTransactionsOwnerId: transactionsOwnerId,
-      evoluTransactionsOwnerIndex: transactionsOwnerIndex,
-      evoluTransactionsOwnerPointer: transactionsOwnerPointer,
-      evoluTransactionsVisibleOwnerIds: transactionsVisibleOwnerIds,
       evoluWipeStorageIsBusy,
       isEvoluServerOffline,
       newEvoluServerUrl,
       pendingEvoluServerDeleteUrl,
-      requestManualRotateCashuOwner,
-      requestManualRotateContactsOwner,
-      requestManualRotateMessagesOwner,
-      requestManualRotateTransactionsOwner,
-      rotateCashuOwnerIsBusy,
-      rotateContactsOwnerIsBusy,
-      rotateMessagesOwnerIsBusy,
-      rotateTransactionsOwnerIsBusy,
+      requestRotateShard: shardRotation.rotate,
+      rotatingShardScope: shardRotation.busyScope,
       saveEvoluServerUrls,
       setEvoluServerOffline,
       setNewEvoluServerUrl,
       setPendingEvoluServerDeleteUrl,
       setStatus,
-      syncOwner,
+      syncOwnerId: appOwnerId,
       wipeEvoluStorage,
     },
     mintSettingsInput: {
@@ -1796,11 +1670,6 @@ export const useAppShellComposition = ({
     t,
   });
 
-  const evoluTransactionsVisibleOwnerIds = React.useMemo(
-    () => transactionsVisibleOwnerIds.map((ownerId) => ownerId),
-    [transactionsVisibleOwnerIds],
-  );
-
   const appState = React.useMemo(
     () => ({
       allowedDisplayCurrencies,
@@ -1826,7 +1695,6 @@ export const useAppShellComposition = ({
       effectiveProfileName,
       effectiveProfilePicture,
       evoluAppOwnerId: appOwnerId ? appOwnerId : null,
-      evoluTransactionsVisibleOwnerIds,
       formatDisplayedAmountParts,
       formatDisplayedAmountText,
       isProfileEditing,
@@ -1841,6 +1709,7 @@ export const useAppShellComposition = ({
       pendingLnurlAuthConfirmation,
       pendingLnurlWithdrawConfirmation,
       pendingLightningInvoiceConfirmation,
+      pendingCashuPaymentRequestConfirmation,
       postPaySaveContact,
       profileCustomPictureUrl,
       profileEditInitialRef,
@@ -1898,7 +1767,6 @@ export const useAppShellComposition = ({
       effectiveMyLightningAddress,
       effectiveProfileName,
       effectiveProfilePicture,
-      evoluTransactionsVisibleOwnerIds,
       formatDisplayedAmountParts,
       formatDisplayedAmountText,
       isProfileEditing,
@@ -1913,6 +1781,7 @@ export const useAppShellComposition = ({
       paidOverlayIsOpen,
       paidOverlayTitle,
       pendingLightningInvoiceConfirmation,
+      pendingCashuPaymentRequestConfirmation,
       pendingLnurlAuthConfirmation,
       pendingLnurlWithdrawConfirmation,
       pendingPaymentMintMeltConfirmation,
@@ -1959,10 +1828,12 @@ export const useAppShellComposition = ({
       closeShareOptions,
       closeLightningInvoiceConfirmation,
       closeScan,
+      closeCashuPaymentRequestConfirmation,
       confirmPaymentMintMelt,
       confirmLnurlAuth,
       confirmLnurlWithdraw,
       confirmLightningInvoicePayment,
+      confirmCashuPaymentRequest,
       contactsGuideNav: stableContactsGuideNav,
       copyShareOptionsText,
       copyText,
@@ -2014,7 +1885,9 @@ export const useAppShellComposition = ({
       closeProfileShareOverlay,
       closeScan,
       closeShareOptions,
+      closeCashuPaymentRequestConfirmation,
       confirmLightningInvoicePayment,
+      confirmCashuPaymentRequest,
       confirmLnurlAuth,
       confirmLnurlWithdraw,
       confirmPaymentMintMelt,
@@ -2082,7 +1955,6 @@ export const useAppShellComposition = ({
     advancedSettingsContext,
     evoluSettingsContext,
     mintSettingsContext,
-    recurringPaymentsContext: recurringPaymentsActions,
     relaySettingsContext,
     t,
     toasts,

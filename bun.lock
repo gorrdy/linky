@@ -93,7 +93,7 @@
     },
     "apps/web-app": {
       "name": "@linky/web-app",
-      "version": "26.9.17",
+      "version": "26.9.19",
       "dependencies": {
         "@capacitor/clipboard": "^7.0.0",
         "@capacitor/core": "^7.4.3",
@@ -107,6 +107,7 @@
         "@linky/linkshu": "workspace:*",
         "@linky/linkstr": "workspace:*",
         "@linky/linkstr-react": "workspace:*",
+        "@linky/linksync": "workspace:*",
         "@noble/hashes": "^1.5.0",
         "@scure/base": "^2.0.0",
         "@scure/bip32": "^2.0.1",
@@ -246,6 +247,31 @@
         "react": "^19.2.3",
       },
     },
+    "packages/linksync": {
+      "name": "@linky/linksync",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evolu/common": "^7.4.1",
+        "@linky/linkshu": "workspace:*",
+        "effect": "^3.19.19",
+      },
+      "devDependencies": {
+        "@linky/config": "workspace:*",
+        "@types/node": "^24.10.1",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "eslint": "^9.39.1",
+        "jsdom": "^28.1.0",
+        "prettier": "^3.4.2",
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3",
+        "typescript": "~5.9.3",
+        "vitest": "^4.0.18",
+      },
+      "peerDependencies": {
+        "react": "^19.2.3",
+      },
+    },
     "tools/nostr-error-tracker": {
       "name": "@linky/nostr-error-tracker",
       "version": "0.1.0",
@@ -279,6 +305,7 @@
   "patchedDependencies": {
     "nostr-tools@2.23.3": "patches/nostr-tools@2.23.3.patch",
     "bysquare@4.0.0": "patches/bysquare@4.0.0.patch",
+    "@evolu/sqlite-wasm@2.2.4": "patches/@evolu%2Fsqlite-wasm@2.2.4.patch",
   },
   "packages": {
     "@acemir/cssom": ["@acemir/cssom@0.9.31", "", {}, "sha512-ZnR3GSaH+/vJ0YlHau21FjfLYjMpYVIzTD8M8vIEQvIGxeOXyXdzCI140rrCY862p/C/BbzWsjc1dgnM9mkoTA=="],
@@ -696,6 +723,8 @@
     "@linky/linkstr": ["@linky/linkstr@workspace:packages/linkstr"],
 
     "@linky/linkstr-react": ["@linky/linkstr-react@workspace:packages/linkstr-react"],
+
+    "@linky/linksync": ["@linky/linksync@workspace:packages/linksync"],
 
     "@linky/native-shell": ["@linky/native-shell@workspace:apps/native-shell"],
 

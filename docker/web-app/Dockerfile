@@ -21,6 +21,7 @@ COPY apps/web-app/package.json apps/web-app/
 COPY packages/config/package.json packages/config/
 COPY packages/identity/package.json packages/identity/
 COPY packages/linkshu/package.json packages/linkshu/
+COPY packages/linksync/package.json packages/linksync/
 COPY packages/linkstr/package.json packages/linkstr/
 COPY packages/linkstr-react/package.json packages/linkstr-react/
 COPY tools/nostr-error-tracker/package.json tools/nostr-error-tracker/
@@ -34,12 +35,14 @@ ARG VITE_EVOLU_SERVER_URLS
 ARG VITE_MAIN_MINT_URL
 ARG VITE_NPUB_CASH_DISABLED
 ARG VITE_PUSH_SERVER_URL
+ARG VITE_E2E
 ENV VITE_ALLOW_INSECURE_LOCALHOST_RELAYS=$VITE_ALLOW_INSECURE_LOCALHOST_RELAYS \
     VITE_NOSTR_RELAYS=$VITE_NOSTR_RELAYS \
     VITE_EVOLU_SERVER_URLS=$VITE_EVOLU_SERVER_URLS \
     VITE_MAIN_MINT_URL=$VITE_MAIN_MINT_URL \
     VITE_NPUB_CASH_DISABLED=$VITE_NPUB_CASH_DISABLED \
-    VITE_PUSH_SERVER_URL=$VITE_PUSH_SERVER_URL
+    VITE_PUSH_SERVER_URL=$VITE_PUSH_SERVER_URL \
+    VITE_E2E=$VITE_E2E
 
 WORKDIR /app/apps/web-app
 # Sourcemaps keep Playwright traces readable; passed on the CLI so this test

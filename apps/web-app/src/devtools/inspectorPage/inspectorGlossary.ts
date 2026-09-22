@@ -19,9 +19,33 @@ const NOSTR_KIND_EXPLANATIONS: Record<number, string> = {
 
 const TAG_DESCRIPTIONS: Record<string, string> = {
   "contacts.npubSaved":
-    "A Nostr contact was saved after duplicate and active owner limit checks. The contact link identifies the new row.",
-  "evolu.ownerRotated":
-    "The active write owner moved to the next lane. Previous lanes remain visible for reads; owner links join the rotation to sync diagnostics.",
+    "A Nostr contact was saved after the duplicate check. The contact link identifies the new row; the insert itself runs in the background.",
+  "conversations.archived":
+    "User archived a contact's chat: the conversation row (messages scope) records the archive time and its read cursor moves there; the contact row is untouched. The contact and conversation links identify both rows.",
+  "conversations.unarchived":
+    "A conversation left the archive, either by the user restoring the contact or because an incoming message newer than the archive time arrived.",
+  ShardsForgotten:
+    "Explicit local forget of old chat shards. Payload lists scope, index and whether owner data was deleted; owner links correlate with shard rotation and subscription rows. Evolu 7 reports deleted: false.",
+  ShardsSubscribed:
+    "The set of owners this device syncs was reconciled: the app owner plus every visible shard of every scope, at boot, after each rotation and after explicit forgetting. Owner links list the whole set; the payload says why and how many.",
+  ShardRotated:
+    "A scope's shard pointer moved to a new index, rotated on this device (its writes crossed the byte or mutation rule, or the debug page asked) or on another one. The new shard is subscribed for sync; the owner link is its id.",
+  LaneMigrationStarted:
+    "First launch on this device after the shard storage update: the old owner lanes are about to be copied into the per-scope shards. Owner links list the legacy lanes read.",
+  LaneMigrationScopeIngested:
+    "One scope of the lane migration finished: how many rows of each table were copied into the active shard and how many were skipped (a required column missing, a reaction without its message).",
+  LaneMigrationDone:
+    "The lane migration finished. The payload carries the synced cutoff, the shard pointers written, and the per-table counts; the grace period for older app versions starts at the cutoff.",
+  LaneGracePeriodReingestStarted:
+    "A later launch inside the grace period: the old lanes are read again so rows written by an older app version reach the shards.",
+  LaneGracePeriodReingested:
+    "A boot or late-row grace-period re-ingest finished; counts show which lane rows were newer than their shard copies.",
+  LaneSpentProofsMirrored:
+    "During the migration grace period, spent shard proofs mark their existing legacy copies spent so older devices stop counting them. Owner and proof links identify the copies; no proof secrets are logged.",
+  "evolu.legacySpentProofSyncFailed":
+    "A terminal proof state could not be mirrored to legacy storage. An older device may show stale funds until its mint check corrects them; the next proof change retries.",
+  "evolu.laneMigrationFailed":
+    "The lane migration threw before it could finish; the done flag stays unset and the next launch retries. The app keeps running on the lanes meanwhile.",
   EvoluSyncRetry:
     "The user reloads the app to retry Evolu sync after a quota or server configuration change. Local history is preserved.",
   EvoluError:

@@ -10,6 +10,7 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
 }, testInfo) => {
   const errors: ReturnType<typeof watchAppErrors>[] = [];
   const accounts = [];
+  const removalErrors: string[] = [];
   for (const label of ["sender", "receiver"]) {
     const context = await browser.newContext({
       baseURL: testInfo.project.use.baseURL,
@@ -17,9 +18,16 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
     });
     const page = await context.newPage();
     errors.push(watchAppErrors(page, label));
+    page.on("console", (message) => {
+      if (message.text().includes("reaction removal write failed"))
+        removalErrors.push(message.text());
+    });
     const identity = await createSeedIdentity();
     await setBaseStorage(page);
     await setSeedLoginStorage(page, identity);
+    await page.addInitScript(() => {
+      localStorage.setItem("linky.seen_receipts_enabled_at_sec.v1", "1");
+    });
     await stubFiatRates(page);
     await page.goto("/#wallet");
     await expect(page.getByLabel("Available balance")).toBeVisible();
@@ -42,6 +50,11 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
           .locator(".chat-bubble")
           .filter({ hasText: "Audit smoke original" }),
       ).toBeVisible();
+      await expect(a.page.locator(".chat-message.out")).toHaveClass(/seen/);
+      const originalSecond = Math.floor(Date.now() / 1000);
+      await expect
+        .poll(() => Math.floor(Date.now() / 1000))
+        .toBeGreaterThan(originalSecond);
       await a.page
         .locator(".chat-bubble")
         .filter({ hasText: "Audit smoke original" })
@@ -60,6 +73,7 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
           .filter({ hasText: "Audit smoke edited" }),
       ).toContainText("edited");
     });
+    await expect(a.page.locator(".chat-message.out")).toHaveClass(/seen/);
     await test.step("reaction reaches peer and persists after reload", async () => {
       const received = b.page
         .locator(".chat-message")
@@ -95,6 +109,20 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
         body: await b.page.screenshot(),
         contentType: "image/png",
       });
+    });
+    await test.step("removing a reaction tolerates its self-echo and stays removed after reload", async () => {
+      await b.page.locator(".reaction-chip", { hasText: "👍" }).click();
+      for (const account of accounts)
+        await expect(account.page.locator(".reaction-chip")).toHaveCount(0);
+      expect(removalErrors).toEqual([]);
+      for (const account of accounts) {
+        await account.page.reload();
+        await expect(
+          account.page.getByText("Audit smoke edited", { exact: true }),
+        ).toBeVisible();
+        await expect(account.page.locator(".reaction-chip")).toHaveCount(0);
+      }
+      expect(removalErrors).toEqual([]);
     });
     await test.step("an interrupted topup claims after reload exactly once", async () => {
       await a.page.route("**/v1/mint/bolt11", (route) => route.abort());

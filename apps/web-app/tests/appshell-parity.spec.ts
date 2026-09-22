@@ -411,14 +411,33 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     ).toBeVisible();
     await close.click();
     await expect(page).toHaveURL(/#evolu-servers$/);
+    await page
+      .getByRole("button", { name: "Chat-Speicher", exact: true })
+      .click();
+    await expect(page).toHaveURL(/#advanced\/chat-storage$/);
+    await expect(title).toHaveText("Chat-Speicher");
+    await expect(
+      page.getByText("Erstellte Chat-Shards", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: "Alte Chat-Shards vergessen",
+        exact: true,
+      }),
+    ).toBeDisabled();
+    await close.click();
+    await expect(page).toHaveURL(/#evolu-servers$/);
     await page.getByText("Daten", { exact: true }).click();
     await expect(page).toHaveURL(/#evolu-current-data$/);
     await expect(title).toHaveText("Daten");
     await expect(
-      page.getByText("Eigentümerindex", { exact: true }).first(),
+      page.getByText("Aktiver Shard", { exact: true }).first(),
     ).toBeVisible();
     await expect(
-      page.getByText("Änderungen bis zum Wechsel", { exact: true }).first(),
+      page.getByRole("button", {
+        name: "Shard messages rotieren",
+        exact: true,
+      }),
     ).toBeVisible();
     await close.click();
     await expect(page).toHaveURL(/#evolu-servers$/);

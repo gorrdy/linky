@@ -1,17 +1,29 @@
-import { ContactId, RecurringPaymentId, TransactionId } from "./evoluIds";
-export { ContactId, RecurringPaymentId, TransactionId } from "./evoluIds";
+import { ContactId } from "./evoluIds";
+export { ContactId, TransactionId } from "./evoluIds";
 import { Schema as EffectSchema } from "effect";
 import * as Evolu from "@evolu/common";
 import { createEvolu, SimpleName } from "@evolu/common";
-import { createUseEvolu, EvoluProvider } from "@evolu/react";
+import {
+  appOwnerFromMnemonic,
+  createLinkyStore,
+  linkyScopes,
+  LinkySchema,
+  type CashuOperationId,
+  type CashuProofId,
+  type LinkyScope,
+  type LinkyStore,
+  type NostrIdentityId,
+  type ShardRotation,
+} from "@linky/linksync";
+import { createEvoluShardDb } from "@linky/linksync/evolu";
 import { evoluReactWebDeps } from "@evolu/react-web";
+import { Effect } from "effect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDeferredOnlineReady } from "./hooks/useDeferredOnlineReady";
 import { INITIAL_MNEMONIC_STORAGE_KEY } from "./mnemonic";
 import { shouldUseInMemoryEvoluStorage } from "./platform/evoluWebStorage";
 import type { JsonValue } from "./types/json";
 import { base64 } from "@scure/base";
-import { decodeBase64Url } from "./utils/base64";
 import {
   safeLocalStorageGet,
   safeLocalStorageGetJson,
@@ -40,6 +52,7 @@ const EVOLU_SERVERS_DEFAULT_REMOVED_STORAGE_KEY =
 const EVOLU_SERVERS_DISABLED_STORAGE_KEY = "linky.evoluServers.disabled.v1";
 
 export type EvoluServerStatus = "checking" | "connected" | "disconnected";
+export type EvoluErrorType = Evolu.EvoluError["type"];
 
 type EvoluDatabaseInfo = {
   bytes: number | null;
@@ -398,15 +411,7 @@ const probeWebSocketConnection = (
 
 const CashuTokenId = Evolu.id("CashuToken");
 export type CashuTokenId = typeof CashuTokenId.Type;
-
-const CashuProofId = Evolu.id("CashuProof");
-export type CashuProofId = typeof CashuProofId.Type;
-
-const CashuOperationId = Evolu.id("CashuOperation");
-export type CashuOperationId = typeof CashuOperationId.Type;
-
-const NostrIdentityId = Evolu.id("NostrIdentity");
-type NostrIdentityId = typeof NostrIdentityId.Type;
+export type { CashuOperationId, CashuProofId, NostrIdentityId };
 
 const NostrMessageId = Evolu.id("NostrMessage");
 type NostrMessageId = typeof NostrMessageId.Type;
@@ -417,19 +422,18 @@ type NostrReactionId = typeof NostrReactionId.Type;
 const OwnerMetaId = Evolu.id("OwnerMeta");
 type OwnerMetaId = typeof OwnerMetaId.Type;
 
+/**
+ * The app schema is a superset of the package's `LinkySchema`: the package
+ * tables plus the legacy lane tables (`nostrMessage`, `nostrReaction`,
+ * `cashuToken`, `ownerMeta`) and the legacy columns older versions wrote
+ * (chat state on `contact`, `category` and `phase` on `transaction`), all of
+ * which only the lane migration reads. The package's branded ids are the
+ * source of truth; only the legacy tables keep ids of their own.
+ */
 export const Schema = {
+  ...LinkySchema,
   contact: {
-    id: ContactId,
-    name: Evolu.nullOr(Evolu.NonEmptyString1000),
-    // "1" once the user typed a custom name; profile updates then leave `name` alone.
-    nameSetByUser: Evolu.nullOr(Evolu.SqliteBoolean),
-    npub: Evolu.nullOr(Evolu.NonEmptyString1000),
-    lnAddress: Evolu.nullOr(Evolu.NonEmptyString1000),
-    // "1" once the user typed a custom lightning address; profile updates
-    // then leave `lnAddress` alone until the override is cleared.
-    lnAddressSetByUser: Evolu.nullOr(Evolu.SqliteBoolean),
-    groupName: Evolu.nullOr(Evolu.NonEmptyString1000),
-    groupNamesJson: Evolu.nullOr(Evolu.NonEmptyString1000),
+    ...LinkySchema.contact,
     archivedAtSec: Evolu.nullOr(Evolu.PositiveInt),
     // Read cursor: created_at (seconds) of the newest chat message the user
     // has seen in this conversation.
@@ -438,14 +442,6 @@ export const Schema = {
     // read receipt): our outgoing messages in (since, upTo] render as seen.
     chatPeerSeenSinceSec: Evolu.nullOr(Evolu.PositiveInt),
     chatPeerSeenAtSec: Evolu.nullOr(Evolu.PositiveInt),
-  },
-  nostrIdentity: {
-    id: NostrIdentityId,
-    // Bech32 NIP-19 secret key, must start with "nsec".
-    nsec: Evolu.NonEmptyString1000,
-    npub: Evolu.nullOr(Evolu.NonEmptyString1000),
-    source: Evolu.nullOr(Evolu.NonEmptyString100),
-    switchedAtSec: Evolu.nullOr(Evolu.PositiveInt),
   },
   nostrMessage: {
     id: NostrMessageId,
@@ -514,111 +510,14 @@ export const Schema = {
     state: Evolu.nullOr(Evolu.NonEmptyString100),
     error: Evolu.nullOr(Evolu.NonEmptyString1000),
   },
-
-  // The wallet inventory: one row per cashu proof, id derived from the
-  // secret so every device converges on one row. Written only by linkshu
-  // through the ProofStore adapter; `cashuToken` above is read-only legacy
-  // input that gets ingested into this table.
-  cashuProof: {
-    id: CashuProofId,
-    mint: Evolu.NonEmptyString1000,
-    unit: Evolu.NonEmptyString100,
-    keysetId: Evolu.NonEmptyString100,
-    amount: Evolu.PositiveInt,
-    secret: Evolu.NonEmptyString1000,
-    // The NUT-00 signature point `C`.
-    c: Evolu.NonEmptyString1000,
-    // JSON of the NUT-12 DLEQ proof when the mint supplied one.
-    dleq: Evolu.nullOr(Evolu.NonEmptyString1000),
-    // "available" | "held" | "handedOut" | "externalized" | "spent"
-    state: Evolu.NonEmptyString100,
-    operationId: Evolu.nullOr(CashuOperationId),
-  },
-
-  // Durable links between inputs and outputs: melts, topups, autoswaps,
-  // sends, receives. Quote kinds are what a resumer finishes after a crash
-  // on any device; transfer kinds keep the token text for dedup and returns.
-  cashuOperation: {
-    id: CashuOperationId,
-    // "melt" | "topup" | "autoswap" | "send" | "receive"
-    kind: Evolu.NonEmptyString100,
-    status: Evolu.NonEmptyString100,
-    mint: Evolu.NonEmptyString1000,
-    unit: Evolu.NonEmptyString100,
-    keysetId: Evolu.nullOr(Evolu.NonEmptyString100),
-    amount: Evolu.PositiveInt,
-    feeReserve: Evolu.nullOr(Evolu.NonNegativeInt),
-    inputsTotal: Evolu.nullOr(Evolu.PositiveInt),
-    quoteId: Evolu.nullOr(Evolu.NonEmptyString1000),
-    invoice: Evolu.nullOr(Evolu.NonEmptyString),
-    sourceMint: Evolu.nullOr(Evolu.NonEmptyString1000),
-    // First deterministic output slot of the latest attempt.
-    counter: Evolu.nullOr(Evolu.NonNegativeInt),
-    locked: Evolu.nullOr(Evolu.SqliteBoolean),
-    expiresAtSec: Evolu.nullOr(Evolu.PositiveInt),
-    // Event time, separate from Evolu's updatedAt like `transaction`.
-    createdAtSec: Evolu.PositiveInt,
-    tokenText: Evolu.nullOr(Evolu.NonEmptyString),
-    error: Evolu.nullOr(Evolu.NonEmptyString1000),
-  },
-
   transaction: {
-    id: TransactionId,
-    // Event time is intentionally stored separately from Evolu's updatedAt:
-    // later row updates must not change when the payment actually happened.
-    createdAtSec: Evolu.PositiveInt,
-    direction: Evolu.NonEmptyString100,
-    status: Evolu.NonEmptyString100,
-    amount: Evolu.nullOr(Evolu.PositiveInt),
-    fee: Evolu.nullOr(Evolu.PositiveInt),
+    ...LinkySchema.transaction,
     // Deprecated compatibility column. New writes derive category from method.
     category: Evolu.nullOr(Evolu.NonEmptyString100),
-    method: Evolu.nullOr(Evolu.NonEmptyString100),
     // Deprecated compatibility columns. New writes use method + status and
     // derive labels/icons in the transaction view.
     phase: Evolu.nullOr(Evolu.NonEmptyString100),
-    note: Evolu.nullOr(Evolu.NonEmptyString1000),
-    detailsJson: Evolu.nullOr(Evolu.NonEmptyString),
-    iconKind: Evolu.nullOr(Evolu.NonEmptyString100),
-    contactId: Evolu.nullOr(ContactId),
-    mint: Evolu.nullOr(Evolu.NonEmptyString1000),
-    unit: Evolu.nullOr(Evolu.NonEmptyString100),
-    error: Evolu.nullOr(Evolu.NonEmptyString1000),
-    pendingLabel: Evolu.nullOr(Evolu.NonEmptyString100),
   },
-
-  // Recurring payments. Lives in the transactions owner lane; each run is
-  // recorded as a `transaction` row that carries the payment id and the due
-  // time it settles.
-  recurringPayment: {
-    id: RecurringPaymentId,
-    createdAtSec: Evolu.PositiveInt,
-    // Always a saved contact; its npub or Lightning address decides the rail.
-    contactId: ContactId,
-    amountSat: Evolu.PositiveInt,
-    // "hour" | "day" | "week" | "month", multiplied by intervalCount
-    intervalUnit: Evolu.NonEmptyString100,
-    intervalCount: Evolu.PositiveInt,
-    // First due time; every later due time is anchor + n intervals, so a
-    // month-end anchor clamps per month instead of drifting earlier.
-    anchorAtSec: Evolu.PositiveInt,
-    // IANA zone the calendar units are evaluated in on every device.
-    timeZone: Evolu.nullOr(Evolu.NonEmptyString100),
-    nextDueAtSec: Evolu.PositiveInt,
-    lastRunAtSec: Evolu.nullOr(Evolu.PositiveInt),
-    // "running" | "paid" | "failed" | "skipped" | "interrupted"
-    lastRunStatus: Evolu.nullOr(Evolu.NonEmptyString100),
-    runCount: Evolu.nullOr(Evolu.NonNegativeInt),
-    maxRuns: Evolu.nullOr(Evolu.PositiveInt),
-    endAtSec: Evolu.nullOr(Evolu.PositiveInt),
-    pausedAtSec: Evolu.nullOr(Evolu.PositiveInt),
-    // Which device pays the upcoming due time. Every online device may write
-    // a claim; Evolu's last-writer-wins leaves one value on every device.
-    claimDeviceId: Evolu.nullOr(Evolu.NonEmptyString100),
-    claimAtSec: Evolu.nullOr(Evolu.PositiveInt),
-    claimDueAtSec: Evolu.nullOr(Evolu.PositiveInt),
-  },
-
   ownerMeta: {
     id: OwnerMetaId,
     scope: Evolu.NonEmptyString100,
@@ -634,13 +533,7 @@ const createEvoluForUser = (mnemonic: string | null) => {
     ? validatedName.value
     : SimpleName.orThrow("linky-default");
 
-  const externalAppOwner = (() => {
-    if (!mnemonic) return null;
-    const mnemonicResult = Evolu.Mnemonic.fromUnknown(mnemonic);
-    if (!mnemonicResult.ok) return null;
-    const ownerSecret = Evolu.mnemonicToOwnerSecret(mnemonicResult.value);
-    return Evolu.createAppOwner(ownerSecret);
-  })();
+  const externalAppOwner = mnemonic ? appOwnerFromMnemonic(mnemonic) : null;
 
   return createEvolu(evoluReactWebDeps)(Schema, {
     name: finalName,
@@ -671,6 +564,133 @@ const getEvolu = (mnemonic?: string | null): EvoluInstance => {
 
 export const evolu = getEvolu();
 
+let linkyStorePromise: Promise<LinkyStore> | null = null;
+
+const reportShardRotated = (
+  store: LinkyStore,
+  rotation: ShardRotation<LinkyScope>,
+): void => {
+  if (!getInspectorEmissionEnabled()) return;
+  reportInspectorRows([
+    {
+      at: Date.now(),
+      channel: "evolu.sync",
+      tag: "ShardRotated",
+      summary: `${rotation.scope} shard pointer moved to index ${rotation.index}`,
+      links: { owner: store.shardOwner(rotation.scope, rotation.index).id },
+      payload: rotation,
+    },
+  ]);
+};
+
+const reportShardsSubscribed = async (
+  store: LinkyStore,
+  reason: "boot" | "rotation" | "forget",
+): Promise<void> => {
+  if (!getInspectorEmissionEnabled()) return;
+  const owners = (await Effect.runPromise(store.syncOwners())).map(
+    (owner) => owner.id,
+  );
+  reportInspectorRows([
+    {
+      at: Date.now(),
+      channel: "evolu.sync",
+      tag: "ShardsSubscribed",
+      summary: `Syncing the app owner and ${owners.length - 1} shards`,
+      links: { owner: owners },
+      payload: { reason, owners: owners.length },
+    },
+  ]);
+};
+
+const appScopes = {
+  ...linkyScopes,
+  messages: {
+    ...linkyScopes.messages,
+    rotation: linkyScopes.messages.rotation,
+  },
+};
+
+export const setE2eMessagesRotation = (enabled: boolean): void => {
+  if (import.meta.env.VITE_E2E !== "1") throw new Error("E2E build required");
+  appScopes.messages.rotation = enabled
+    ? { maxBytes: 256 * 1024, maxMutations: 30, cooldownMs: 0 }
+    : linkyScopes.messages.rotation;
+};
+
+export const forgetChatShards = async () => {
+  const store = await getLinkyStore();
+  const forgotten = await Effect.runPromise(store.forget("messages"));
+  if (getInspectorEmissionEnabled()) {
+    reportInspectorRows([
+      {
+        at: Date.now(),
+        channel: "evolu.sync",
+        tag: "ShardsForgotten",
+        summary: `Forgot ${forgotten.length} old chat shards locally`,
+        links: {
+          owner: forgotten.map(
+            ({ index }) => store.shardOwner("messages", index).id,
+          ),
+        },
+        payload: forgotten,
+      },
+    ]);
+    await reportShardsSubscribed(store, "forget");
+  }
+  return forgotten;
+};
+
+/**
+ * The shard store over this Evolu instance. Resolves once the app owner is
+ * known and the local database has answered a query; `appOwner` alone
+ * resolves before the database worker is up. The store subscribes the app
+ * owner and every visible shard for the page's lifetime and follows its
+ * pointers, so a rotation here or on another device subscribes the new shard.
+ */
+export const getLinkyStore = (): Promise<LinkyStore> => {
+  linkyStorePromise ??= Promise.all([
+    evolu.appOwner,
+    evolu.loadQuery(
+      evolu.createQuery((db) =>
+        db.selectFrom("shardPointer").select("id").limit(1),
+      ),
+    ),
+  ]).then(async ([owner]) => {
+    const key = (scope: string) =>
+      `linky.shards.retainedFrom.${owner.id}.${scope}`;
+    const store = createLinkyStore(createEvoluShardDb(evolu), owner, {
+      scopes: appScopes,
+      retention: {
+        get: (scope) =>
+          safeLocalStorageGetJson(
+            key(scope),
+            EffectSchema.NullOr(
+              EffectSchema.Number.pipe(
+                EffectSchema.int(),
+                EffectSchema.nonNegative(),
+              ),
+            ),
+            null,
+          ) ?? undefined,
+        set: (scope, first) => safeLocalStorageSetJson(key(scope), first),
+      },
+    });
+    await Effect.runPromise(store.reconcileSync());
+    void reportShardsSubscribed(store, "boot");
+    store.followPointers((rotation) => {
+      reportShardRotated(store, rotation);
+      void reportShardsSubscribed(store, "rotation");
+    });
+    return store;
+  });
+  return linkyStorePromise;
+};
+
+export const createOwnerMetaAllQuery = () =>
+  evolu.createQuery((db) => db.selectFrom("ownerMeta").selectAll());
+export const createNostrIdentitiesAllQuery = () =>
+  evolu.createQuery((db) => db.selectFrom("nostrIdentity").selectAll());
 export const createCashuTokensAllQuery = () =>
   evolu.createQuery((db) =>
     db.selectFrom("cashuToken").selectAll().orderBy("createdAt", "desc"),
@@ -689,9 +709,8 @@ export const createNostrReactionsAllQuery = () =>
   evolu.createQuery((db) => db.selectFrom("nostrReaction").selectAll());
 export const createTransactionsAllQuery = () =>
   evolu.createQuery((db) => db.selectFrom("transaction").selectAll());
-export const createRecurringPaymentsAllQuery = () =>
-  evolu.createQuery((db) => db.selectFrom("recurringPayment").selectAll());
-export type ContactRow = Evolu.InferRow<
+/** A `contact` row with its legacy chat columns; read only by the lane migration. */
+export type LegacyContactRow = Evolu.InferRow<
   ReturnType<typeof createContactsAllQuery>
 >;
 export type NostrMessageRow = Evolu.InferRow<
@@ -703,9 +722,6 @@ export type NostrReactionRow = Evolu.InferRow<
 export type TransactionRow = Evolu.InferRow<
   ReturnType<typeof createTransactionsAllQuery>
 >;
-export type RecurringPaymentRow = Evolu.InferRow<
-  ReturnType<typeof createRecurringPaymentsAllQuery>
->;
 
 export type CashuTokenRow = Evolu.InferRow<
   ReturnType<typeof createCashuTokensAllQuery>
@@ -716,32 +732,12 @@ export type CashuProofRow = Evolu.InferRow<
 export type CashuOperationRow = Evolu.InferRow<
   ReturnType<typeof createCashuOperationsAllQuery>
 >;
-
-export const useEvoluSyncOwner = (enabled: boolean): Evolu.SyncOwner | null => {
-  const [syncOwner, setSyncOwner] = useState<Evolu.SyncOwner | null>(null);
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    let cancelled = false;
-    void getEvolu()
-      .appOwner.then((owner) => {
-        if (cancelled) return;
-        setSyncOwner(owner);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setSyncOwner(null);
-      });
-
-    return () => {
-      cancelled = true;
-      setSyncOwner(null);
-    };
-  }, [enabled]);
-
-  return enabled ? syncOwner : null;
-};
+export type OwnerMetaRow = Evolu.InferRow<
+  ReturnType<typeof createOwnerMetaAllQuery>
+>;
+export type NostrIdentityRow = Evolu.InferRow<
+  ReturnType<typeof createNostrIdentitiesAllQuery>
+>;
 
 export const useEvoluLastError = (opts?: {
   logToConsole?: boolean;
@@ -793,6 +789,9 @@ const getEvoluDatabaseInfo = async (
 }> => {
   const tables = [
     "contact",
+    "conversation",
+    "message",
+    "reaction",
     "cashuToken",
     "cashuProof",
     "cashuOperation",
@@ -800,8 +799,9 @@ const getEvoluDatabaseInfo = async (
     "nostrMessage",
     "nostrReaction",
     "transaction",
-    "recurringPayment",
     "ownerMeta",
+    "shardPointer",
+    "setting",
   ] as const;
 
   const instance = getEvolu();
@@ -930,64 +930,6 @@ export interface EvoluHistoryRow {
   [key: string]: JsonValue;
 }
 
-interface EvoluHistoryMutationCountRequest {
-  key: string;
-  ownerId: string;
-  rotatedAtMs: number;
-  tables: readonly string[];
-}
-
-const timestampAfterMs = (timestampMs: number): Uint8Array => {
-  const bytes = new Uint8Array(16);
-  let value = Math.max(0, Math.trunc(timestampMs) + 1);
-  for (let index = 5; index >= 0; index -= 1) {
-    bytes[index] = value % 256;
-    value = Math.floor(value / 256);
-  }
-  return bytes;
-};
-
-export const loadEvoluHistoryMutationCounts = async (
-  requests: readonly EvoluHistoryMutationCountRequest[],
-): Promise<Readonly<Record<string, number>>> => {
-  const instance = getEvolu();
-  const counts: Record<string, number> = {};
-
-  await Promise.all(
-    requests.map(async (request) => {
-      const ownerId = decodeBase64Url(request.ownerId);
-      const tables = request.tables
-        .map((table) => table.trim())
-        .filter(Boolean);
-      if (!ownerId?.length || tables.length === 0) {
-        counts[request.key] = 0;
-        return;
-      }
-
-      try {
-        const q = createUntypedQuery(instance, (db) =>
-          db
-            .selectFrom("evolu_history")
-            .select((eb) => eb.fn.count("timestamp").distinct().as("count"))
-            .where("ownerId", "=", ownerId)
-            .where("table", "in", tables)
-            .where("timestamp", ">=", timestampAfterMs(request.rotatedAtMs))
-            .groupBy(["table", "id"]),
-        );
-        const rows = await loadUntypedQueryRows(instance, q);
-        counts[request.key] = rows.reduce(
-          (total, row) => total + Number(row.count ?? 0),
-          0,
-        );
-      } catch {
-        counts[request.key] = 0;
-      }
-    }),
-  );
-
-  return counts;
-};
-
 export const subscribeEvoluHistoryMutationVersion = (
   listener: () => void,
 ): (() => void) => {
@@ -1040,6 +982,9 @@ export const loadEvoluCurrentData = async (): Promise<
 > => {
   const tables = [
     "contact",
+    "conversation",
+    "message",
+    "reaction",
     "cashuToken",
     "cashuProof",
     "cashuOperation",
@@ -1047,8 +992,9 @@ export const loadEvoluCurrentData = async (): Promise<
     "nostrMessage",
     "nostrReaction",
     "transaction",
-    "recurringPayment",
     "ownerMeta",
+    "shardPointer",
+    "setting",
   ] as const;
 
   const instance = getEvolu();
@@ -1296,7 +1242,3 @@ export const useEvoluServersManager = (opts?: {
     setServerOffline,
   } as const;
 };
-
-export { EvoluProvider };
-
-export const useEvolu = createUseEvolu(getEvolu());

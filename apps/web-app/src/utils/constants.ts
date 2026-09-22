@@ -17,38 +17,6 @@ export const NOSTR_IDENTITY_SOURCE_STORAGE_KEY =
   "linky.nostr_identity_source.v1";
 export const NOSTR_IDENTITY_SWITCHED_AT_SEC_STORAGE_KEY =
   "linky.nostr_identity_switched_at_sec.v1";
-export const EVOLU_CONTACTS_OWNER_INDEX_STORAGE_KEY =
-  "linky.evolu.contacts_owner_index.v1";
-export const EVOLU_CASHU_OWNER_INDEX_STORAGE_KEY =
-  "linky.evolu.cashu_owner_index.v1";
-export const EVOLU_MESSAGES_OWNER_INDEX_STORAGE_KEY =
-  "linky.evolu.messages_owner_index.v1";
-export const EVOLU_TRANSACTIONS_OWNER_INDEX_STORAGE_KEY =
-  "linky.evolu.transactions_owner_index.v1";
-export const EVOLU_CONTACTS_OWNER_BASELINE_COUNT_STORAGE_KEY =
-  "linky.evolu.contacts_owner_baseline_count.v1";
-export const EVOLU_CASHU_OWNER_BASELINE_COUNT_STORAGE_KEY =
-  "linky.evolu.cashu_owner_baseline_count.v1";
-export const EVOLU_MESSAGES_OWNER_BASELINE_COUNT_STORAGE_KEY =
-  "linky.evolu.messages_owner_baseline_count.v1";
-export const EVOLU_TRANSACTIONS_OWNER_BASELINE_COUNT_STORAGE_KEY =
-  "linky.evolu.transactions_owner_baseline_count.v1";
-export const EVOLU_CONTACTS_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY =
-  "linky.evolu.contacts_owner_last_rotated_at_ms.v1";
-export const EVOLU_CASHU_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY =
-  "linky.evolu.cashu_owner_last_rotated_at_ms.v1";
-export const EVOLU_MESSAGES_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY =
-  "linky.evolu.messages_owner_last_rotated_at_ms.v1";
-export const EVOLU_TRANSACTIONS_OWNER_LAST_ROTATED_AT_MS_STORAGE_KEY =
-  "linky.evolu.transactions_owner_last_rotated_at_ms.v1";
-export const CONTACTS_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 220;
-export const CASHU_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 170;
-export const MESSAGES_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 160;
-export const TRANSACTIONS_OWNER_ROTATION_TRIGGER_WRITE_COUNT = 220;
-export const OWNER_ROTATION_COOLDOWN_MS = 60_000;
-// Random per-install id; names the device that claims a recurring payment.
-export const DEVICE_ID_STORAGE_KEY = "linky.device_id.v1";
-export const MAX_CONTACTS_PER_OWNER = 100;
 export const INSTALL_PWA_DISMISSED_AT_MS_STORAGE_KEY =
   "linky.install_pwa_dismissed_at_ms.v1";
 export const INSTALL_PWA_DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;

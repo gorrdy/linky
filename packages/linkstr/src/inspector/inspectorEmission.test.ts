@@ -1,7 +1,16 @@
 import { Effect, Fiber, Layer, Stream } from "effect";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
-import { encodeImageMessageRumor } from "../chat/codec";
-import { ImageMessageDraft, MessageText, PrivateImage } from "../chat/domain";
+import {
+  encodeImageMessageRumor,
+  encodeTokenMessageRumor,
+} from "../chat/codec";
+import {
+  CashuTokenText,
+  ImageMessageDraft,
+  MessageText,
+  PrivateImage,
+  TokenMessageDraft,
+} from "../chat/domain";
 import { linkstrServices } from "../composition";
 import {
   ClientId,
@@ -176,6 +185,111 @@ const collectImageEmissions = (): Promise<InspectorEvent[]> => {
 
   return Effect.runPromise(Effect.scoped(Effect.provide(program, layer)));
 };
+
+const cashuToken = `cashuA${Buffer.from(
+  JSON.stringify({
+    token: [
+      { mint: "https://mint.test", proofs: [{ amount: 8, secret: "s" }] },
+    ],
+    unit: "sat",
+  }),
+)
+  .toString("base64url")
+  .replace(/=+$/g, "")}`;
+const incomingTokenWrap = wrapRumorFor(
+  encodeTokenMessageRumor(
+    new TokenMessageDraft({
+      to: me.pubkey,
+      token: CashuTokenText.make(cashuToken),
+    }),
+    sender.pubkey,
+    UnixSeconds.make(1_754_000_001),
+    ClientId.make("incoming-token"),
+  ),
+  sender.secretKey,
+  me.pubkey,
+);
+
+const collectTokenEmissions = (): Promise<InspectorEvent[]> => {
+  const transport = Layer.succeed(NostrTransport, {
+    publish: (relays) =>
+      Effect.succeed(
+        relays.map(
+          (relayUrl) =>
+            new RelayPublishResult({
+              relay: relayUrl,
+              accepted: true,
+              detail: null,
+            }),
+        ),
+      ),
+    subscribe: (_relay, filter, onEvent) =>
+      Effect.sync(() => {
+        if (filter.kinds?.includes(1059)) onEvent(incomingTokenWrap);
+      }).pipe(Effect.andThen(Effect.never)),
+    fetch: () => Effect.succeed([incomingTokenWrap]),
+  });
+  const layer = linkstrServices({
+    secretKey: me.secretKey,
+    readRelays: [relay],
+    writeRelays: [relay],
+    transport: inspectTransport(observeTransport(transport)),
+  }).pipe(
+    Layer.provideMerge(Inspector.live),
+    Layer.provideMerge(RelayHealth.live),
+  );
+
+  const program = Effect.gen(function* () {
+    const inspector = yield* Inspector;
+    const collected: InspectorEvent[] = [];
+    const consumer = yield* Stream.runForEach(inspector.events, (event) =>
+      Effect.sync(() => {
+        collected.push(event);
+      }),
+    ).pipe(Effect.fork);
+
+    const outbox = yield* Outbox;
+    yield* outbox.enqueue(
+      {
+        _tag: "chat.token",
+        draft: new TokenMessageDraft({
+          to: peer,
+          token: CashuTokenText.make(cashuToken),
+        }),
+      },
+      OutboxRef.make("emission-token-1"),
+    );
+    const inbox = yield* WrapInbox;
+    const feed = yield* inbox.open({});
+    yield* Stream.runHead(feed.events);
+    yield* inbox.fetchWrapEvent(incomingTokenWrap.id);
+    yield* Effect.iterate(0, {
+      while: (tries) =>
+        tries < 100 &&
+        !collected.some((event) => eventLabel(event).includes("outbox.job")),
+      body: (tries) => Effect.as(Effect.sleep("20 millis"), tries + 1),
+    });
+    yield* Fiber.interrupt(consumer);
+    return collected;
+  });
+
+  return Effect.runPromise(Effect.scoped(Effect.provide(program, layer)));
+};
+
+describe("inspector emission never carries cashu tokens", () => {
+  it("redacts the token on every send, outbox, and inbox row", async () => {
+    const collected = await collectTokenEmissions();
+    const labels = collected.map(eventLabel);
+
+    expect(labels).toContain("OperationSucceeded:chat.sendToken");
+    expect(labels).toContain("InboxRouted");
+
+    for (const event of collected) {
+      const serialized = JSON.stringify(event);
+      expect(serialized, eventLabel(event)).not.toContain(cashuToken);
+    }
+  });
+});
 
 describe("inspector emission never carries attachment keys", () => {
   it("redacts image key and nonce on every send, outbox, and inbox row", async () => {

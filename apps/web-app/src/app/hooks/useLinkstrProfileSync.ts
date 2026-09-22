@@ -1,5 +1,4 @@
-import { writeContact } from "../lib/writeContact";
-import * as Evolu from "@evolu/common";
+import { NonEmptyString1000, SqliteBoolean, sqliteTrue } from "@linky/linksync";
 import type {
   ProfileFetchEntry,
   ProfileFetchResult,
@@ -9,6 +8,7 @@ import type {
   StatusUpdated,
 } from "@linky/linkstr";
 import { decodeNpub, encodeNpub, Pubkey } from "@linky/linkstr";
+import type { ContactId, ContactsRepository } from "@linky/linksync";
 import {
   profileWatchAtom,
   profileWatchHandlerAtom,
@@ -30,8 +30,8 @@ import {
 } from "../../profileCache";
 import { getBestNostrName } from "../../utils/formatting";
 import { normalizeNpubIdentifier } from "../../utils/nostrNpub";
-import { resolveContactRowOwnerLane } from "../lib/contactOwnerLane";
 import { getContactPublicProfile } from "../lib/contactProfile";
+import { runWrite } from "../lib/storeWrite";
 import type { ContactRowLike } from "../types/appTypes";
 
 const decodeNpubToPubkey = (npub: string): Pubkey | null => {
@@ -108,25 +108,13 @@ type SetByNpub<T> = React.Dispatch<
   React.SetStateAction<Record<string, T | null>>
 >;
 
-type ContactRowUpdate = (
-  table: "contact",
-  props: {
-    id: string;
-    lnAddress?: typeof Evolu.NonEmptyString1000.Type | null;
-    name?: typeof Evolu.NonEmptyString1000.Type | null;
-  },
-  options?: { readonly ownerId?: Evolu.OwnerId },
-) => Evolu.Result<unknown, unknown>;
-
 interface ProfileSyncContext {
-  contacts: readonly (ContactRowLike & { id: string })[];
-  contactsOwnerId: Evolu.OwnerId | null;
-  contactsVisibleOwnerIds: readonly Evolu.OwnerId[];
+  contacts: readonly (ContactRowLike & { id: ContactId })[];
+  contactsRepository: Pick<ContactsRepository, "update">;
   routeKind: string;
   setNostrMetadataByNpub: SetByNpub<ProfileMetadata>;
   setNostrPictureByNpub: SetByNpub<string>;
   setNostrStatusByNpub: SetByNpub<string>;
-  update: ContactRowUpdate;
 }
 
 const syncContactsFromProfile = (
@@ -154,8 +142,8 @@ const syncContactsFromProfile = (
     if (normalizeNpubIdentifier(contact.npub ?? "") !== npub) continue;
 
     const patch: Partial<{
-      lnAddress: typeof Evolu.NonEmptyString1000.Type | null;
-      name: typeof Evolu.NonEmptyString1000.Type | null;
+      lnAddress: typeof NonEmptyString1000.Type | null;
+      name: typeof NonEmptyString1000.Type | null;
     }> = {};
 
     // Non-overridden fields follow the profile. A value the profile never
@@ -165,23 +153,23 @@ const syncContactsFromProfile = (
     const currentName = (contact.name ?? "").trim();
     if (!contact.nameSetByUser) {
       if (bestName && bestName !== currentName) {
-        const parsedName = Evolu.NonEmptyString1000.fromUnknown(bestName);
+        const parsedName = NonEmptyString1000.fromUnknown(bestName);
         if (parsedName.ok) patch.name = parsedName.value;
       } else if (!bestName && currentName && currentName === previousBestName) {
         patch.name = null;
       }
     }
 
-    const parsedLnAddressSetByUser = Evolu.SqliteBoolean.fromUnknown(
+    const parsedLnAddressSetByUser = SqliteBoolean.fromUnknown(
       contact.lnAddressSetByUser,
     );
     const hasLocalLnAddress =
       parsedLnAddressSetByUser.ok &&
-      parsedLnAddressSetByUser.value === Evolu.sqliteTrue;
+      parsedLnAddressSetByUser.value === sqliteTrue;
     const currentLn = (contact.lnAddress ?? "").trim().toLowerCase();
     if (!hasLocalLnAddress) {
       if (profileLn && profileLn.toLowerCase() !== currentLn) {
-        const parsedLn = Evolu.NonEmptyString1000.fromUnknown(profileLn);
+        const parsedLn = NonEmptyString1000.fromUnknown(profileLn);
         if (parsedLn.ok) patch.lnAddress = parsedLn.value;
       } else if (!profileLn && currentLn && currentLn === previousProfileLn) {
         patch.lnAddress = null;
@@ -189,11 +177,12 @@ const syncContactsFromProfile = (
     }
 
     if (Object.keys(patch).length === 0) continue;
-    const ownerId =
-      resolveContactRowOwnerLane(contact, ctx.contactsVisibleOwnerIds) ??
-      ctx.contactsOwnerId;
-    const payload = { id: contact.id, ...patch };
-    writeContact(ctx.update, payload, ownerId);
+    void runWrite(ctx.contactsRepository.update(contact.id, patch)).then(
+      (outcome) => {
+        if (!outcome.ok)
+          console.warn("[linky][contacts] profile sync write failed", outcome);
+      },
+    );
   }
 };
 

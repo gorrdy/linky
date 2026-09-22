@@ -7,24 +7,23 @@ import {
   buildTransactionHistory,
   deriveDeclinedRequestIds,
 } from "../app/lib/transactionHistory";
-import * as Evolu from "@evolu/common";
-import { useQuery } from "@evolu/react";
-import { Copy as CompactCopyIcon, Repeat } from "lucide-react";
+import { Copy as CompactCopyIcon } from "lucide-react";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
 import { Avatar } from "../components/Avatar";
-import { RecurringPaymentsList } from "../components/RecurringPaymentsList";
-import { useRecurringPaymentOrders } from "../app/hooks/payments/useRecurringPaymentOrders";
 
 import { createCashuTokenId } from "../app/lib/cashuTokenIdentity";
 import { calculateTransactionHistoryFee } from "../app/lib/transactionHistoryFee";
-import { readRecurringPaymentIdFromDetails } from "../app/lib/recurringPaymentDisplay";
 import { deriveDefaultProfile } from "../derivedProfile";
-import { evolu } from "../evolu";
-import { navigateTo } from "../hooks/useRouting";
+import {
+  useContactRows,
+  useMessageRows,
+  useTransactionRecords,
+  useWalletOperations,
+} from "../app/hooks/useLinksync";
 import type { Translate } from "../i18n";
 import { getLightningInvoicePreview } from "@linky/linkshu";
 import {
@@ -154,25 +153,6 @@ interface TransactionCardProps {
   tokenByReferenceId: ReadonlyMap<string, string>;
 }
 
-/**
- * A completed outgoing payment to a saved contact that can be turned into a
- * recurring payment with the same recipient and amount.
- */
-const readRepeatablePayment = (
-  item: TransactionItem,
-  contactsById: ReadonlyMap<string, ContactSummary>,
-): { amountSat: number; contactId: string } | null => {
-  if (item.direction !== "out" || item.status !== "ok") return null;
-  if (item.amount === null || (item.unit && item.unit !== "sat")) return null;
-  if (item.method !== "cashu_chat" && item.method !== "lightning_address") {
-    return null;
-  }
-  if (!item.contactId) return null;
-  const contact = contactsById.get(item.contactId);
-  if (!contact || (!contact.npub && !contact.lnAddress)) return null;
-  return { amountSat: item.amount, contactId: item.contactId };
-};
-
 const TransactionCardView = ({
   buildDetailEntries,
   buildProblemStatusPill,
@@ -218,10 +198,6 @@ const TransactionCardView = ({
     item.status === "declined" ||
     item.status === "error";
   const lnurlMessage = readLnurlSuccessMessage(item);
-  const recurringPaymentId = readRecurringPaymentIdFromDetails(item.details);
-  const repeatable = recurringPaymentId
-    ? null
-    : readRepeatablePayment(item, contactsById);
 
   return (
     <div
@@ -260,21 +236,6 @@ const TransactionCardView = ({
           ) : null}
           <div className="transaction-meta">
             <span>{formatDateText(item.createdAtSec)}</span>
-            {recurringPaymentId ? (
-              <button
-                type="button"
-                className="pill pill-muted transaction-status-pill transaction-recurring-pill"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  navigateTo({
-                    route: "recurringPayment",
-                    id: recurringPaymentId,
-                  });
-                }}
-              >
-                {t("recurringPaymentTitle")}
-              </button>
-            ) : null}
             {problemStatusPill ? (
               <span className={problemStatusPill.className}>
                 {problemStatusPill.label}
@@ -331,23 +292,6 @@ const TransactionCardView = ({
               </React.Fragment>
             ))}
           </dl>
-          {repeatable ? (
-            <button
-              type="button"
-              className="btn-small secondary transaction-repeat-button"
-              onClick={(event) => {
-                event.stopPropagation();
-                navigateTo({
-                  route: "recurringPaymentNew",
-                  prefill: repeatable,
-                });
-              }}
-              onKeyDown={(event) => event.stopPropagation()}
-            >
-              <Repeat size={14} aria-hidden="true" />
-              <span>{t("recurringRepeatAction")}</span>
-            </button>
-          ) : null}
         </div>
       ) : null}
     </div>
@@ -357,14 +301,8 @@ const TransactionCardView = ({
 const TransactionCard = React.memo(TransactionCardView);
 
 export function TransactionsPage(): React.ReactElement {
-  const {
-    evoluAppOwnerId,
-    evoluTransactionsVisibleOwnerIds,
-    formatDisplayedAmountText,
-    lang,
-    nostrPictureByNpub,
-    t,
-  } = useAppShellCore();
+  const { formatDisplayedAmountText, lang, nostrPictureByNpub, t } =
+    useAppShellCore();
   const { copyText } = useAppShellActions();
   const [expandedById, setExpandedById] = React.useState<
     Record<string, boolean>
@@ -372,72 +310,22 @@ export function TransactionsPage(): React.ReactElement {
   const [visibleCount, setVisibleCount] = React.useState(TRANSACTION_PAGE_SIZE);
   const locale = React.useMemo(() => normalizeLocale(lang), [lang]);
 
-  const contactsQuery = React.useMemo(
-    () =>
-      evolu.createQuery((db) =>
-        db
-          .selectFrom("contact")
-          .selectAll()
-          .where("isDeleted", "is not", Evolu.sqliteTrue),
-      ),
-    [],
-  );
-
-  const transactionsQuery = React.useMemo(
-    () =>
-      evolu.createQuery((db) =>
-        db
-          .selectFrom("transaction")
-          .selectAll()
-          .where("isDeleted", "is not", Evolu.sqliteTrue),
-      ),
-    [],
-  );
-
-  const cashuTokensQuery = React.useMemo(
-    () => evolu.createQuery((db) => db.selectFrom("cashuToken").selectAll()),
-    [],
-  );
-  const cashuOperationsQuery = React.useMemo(
-    () =>
-      evolu.createQuery((db) => db.selectFrom("cashuOperation").selectAll()),
-    [],
-  );
-
-  const nostrMessagesQuery = React.useMemo(
-    () =>
-      evolu.createQuery((db) =>
-        db
-          .selectFrom("nostrMessage")
-          .selectAll()
-          .where("isDeleted", "is not", Evolu.sqliteTrue),
-      ),
-    [],
-  );
-
-  const contactRows = useQuery(contactsQuery);
-  const cashuTokenRows = useQuery(cashuTokensQuery);
-  const cashuOperationRows = useQuery(cashuOperationsQuery);
-  const nostrMessageRows = useQuery(nostrMessagesQuery);
-  const transactionRows = useQuery(transactionsQuery);
-  const recurringOrders = useRecurringPaymentOrders();
-  const hasScheduled = recurringOrders.length > 0;
+  const contactRows = useContactRows();
+  const cashuOperations = useWalletOperations();
+  const messageRows = useMessageRows();
+  const transactionRecords = useTransactionRecords();
 
   const tokenByReferenceId = React.useMemo(() => {
     const tokens = new Map<string, string>();
-    for (const row of cashuTokenRows) {
-      for (const candidate of [row.token, row.rawToken]) {
-        const token = asNonEmptyString(candidate);
-        if (!token) continue;
-        tokens.set(createCashuTokenId(token), token);
-      }
-    }
-    for (const row of cashuOperationRows) {
-      const token = asNonEmptyString(row.tokenText);
-      if (token) tokens.set(createCashuTokenId(token), token);
+    for (const operation of cashuOperations) {
+      if (operation.tokenText !== null)
+        tokens.set(
+          createCashuTokenId(operation.tokenText),
+          operation.tokenText,
+        );
     }
     return tokens;
-  }, [cashuOperationRows, cashuTokenRows]);
+  }, [cashuOperations]);
 
   const contactsById = React.useMemo(() => {
     const byId = new Map<string, ContactSummary>();
@@ -458,17 +346,14 @@ export function TransactionsPage(): React.ReactElement {
     return byId;
   }, [contactRows]);
 
-  const { fulfilledRequestIds, transactions } = React.useMemo(() => {
-    return buildTransactionHistory(
-      transactionRows,
-      evoluAppOwnerId,
-      evoluTransactionsVisibleOwnerIds,
-    );
-  }, [evoluAppOwnerId, evoluTransactionsVisibleOwnerIds, transactionRows]);
+  const { fulfilledRequestIds, transactions } = React.useMemo(
+    () => buildTransactionHistory(transactionRecords),
+    [transactionRecords],
+  );
 
   const declinedRequestIds = React.useMemo(
-    () => deriveDeclinedRequestIds(nostrMessageRows),
-    [nostrMessageRows],
+    () => deriveDeclinedRequestIds(messageRows),
+    [messageRows],
   );
   const visibleTransactions = React.useMemo(
     () => transactions.slice(0, visibleCount),
@@ -507,9 +392,7 @@ export function TransactionsPage(): React.ReactElement {
       }
       if (item.method === "cashu_receive") return t("transactionCashuInserted");
       if (item.method === "cashu_restore") return t("transactionCashuRestored");
-      if (item.method === "cashu_emit" || item.phase === "swap") {
-        return t("transactionCashuSwap");
-      }
+      if (item.method === "cashu_emit") return t("transactionCashuSwap");
       return t("transactionCashuIssued");
     },
     [contactsById, t],
@@ -758,70 +641,46 @@ export function TransactionsPage(): React.ReactElement {
 
   return (
     <section className="panel panel-plain transactions-page">
-      {hasScheduled ? (
-        <div className="transactions-section">
-          <h2 className="transactions-section-title">
-            {t("recurringScheduledSection")}
-          </h2>
-          <RecurringPaymentsList />
-        </div>
-      ) : null}
-      <div className="transactions-section">
-        {hasScheduled ? (
-          <h2 className="transactions-section-title">
-            {t("recurringHistorySection")}
-          </h2>
-        ) : null}
-        {transactions.length === 0 ? (
-          <p className="muted">{t("paymentsHistoryEmpty")}</p>
-        ) : (
-          <>
-            <div className="transactions-list">
-              {visibleTransactions.map((item) => (
-                <TransactionCard
-                  buildDetailEntries={buildDetailEntries}
-                  buildProblemStatusPill={buildProblemStatusPill}
-                  buildTitle={buildTitle}
-                  contactsById={contactsById}
-                  copyText={copyText}
-                  formatAmountText={formatAmountText}
-                  formatDateText={formatDateText}
-                  getRequestStatus={getRequestStatus}
-                  isExpanded={expandedById[item.id] === true}
-                  item={item}
-                  key={item.id}
-                  nostrPictureByNpub={nostrPictureByNpub}
-                  onToggle={toggleExpanded}
-                  t={t}
-                  tokenByReferenceId={tokenByReferenceId}
-                />
-              ))}
+      {transactions.length === 0 ? (
+        <p className="muted">{t("paymentsHistoryEmpty")}</p>
+      ) : (
+        <>
+          <div className="transactions-list">
+            {visibleTransactions.map((item) => (
+              <TransactionCard
+                buildDetailEntries={buildDetailEntries}
+                buildProblemStatusPill={buildProblemStatusPill}
+                buildTitle={buildTitle}
+                contactsById={contactsById}
+                copyText={copyText}
+                formatAmountText={formatAmountText}
+                formatDateText={formatDateText}
+                getRequestStatus={getRequestStatus}
+                isExpanded={expandedById[item.id] === true}
+                item={item}
+                key={item.id}
+                nostrPictureByNpub={nostrPictureByNpub}
+                onToggle={toggleExpanded}
+                t={t}
+                tokenByReferenceId={tokenByReferenceId}
+              />
+            ))}
+          </div>
+          {visibleCount < transactions.length ? (
+            <div className="settings-row">
+              <button
+                type="button"
+                className="btn-wide secondary"
+                onClick={() =>
+                  setVisibleCount((count) => count + TRANSACTION_PAGE_SIZE)
+                }
+              >
+                {t("loadMore")}
+              </button>
             </div>
-            {visibleCount < transactions.length ? (
-              <div className="settings-row">
-                <button
-                  type="button"
-                  className="btn-wide secondary"
-                  onClick={() =>
-                    setVisibleCount((count) => count + TRANSACTION_PAGE_SIZE)
-                  }
-                >
-                  {t("loadMore")}
-                </button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </div>
-      <button
-        type="button"
-        className="contacts-fab"
-        onClick={() => navigateTo({ route: "recurringPaymentNew" })}
-        aria-label={t("recurringSave")}
-        title={t("recurringSave")}
-      >
-        <Repeat className="contacts-fab-svgIcon" />
-      </button>
+          ) : null}
+        </>
+      )}
     </section>
   );
 }

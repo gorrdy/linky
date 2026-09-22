@@ -4,6 +4,7 @@ import { AuthenticatedLayout } from "../components/AuthenticatedLayout";
 import { CashuContactSendBanner } from "../components/CashuContactSendBanner";
 import { InstallPwaBanner } from "../components/InstallPwaBanner";
 import { PwaUpdateBanner } from "../components/PwaUpdateBanner";
+import { MigratingDataScreen } from "../components/MigratingDataScreen";
 import { ToastNotifications } from "../components/ToastNotifications";
 import { UnauthenticatedLayout } from "../components/UnauthenticatedLayout";
 import { usePersistentInspectorLogStartup } from "../devtools/inspector/usePersistentInspectorLogStartup";
@@ -15,6 +16,7 @@ import {
 } from "./context/AppShellContexts";
 import { RecurringPaymentsProvider } from "./context/RecurringPaymentsContext";
 import { useCurrentNsec } from "./hooks/useCurrentNsec";
+import { useLaneToShardMigration } from "./migrations/useLaneToShardMigration";
 import { AppRouteContent } from "./routes/AppRouteContent";
 import { useAppShellComposition } from "./useAppShellComposition";
 import { useUnauthenticatedAppShellComposition } from "./useUnauthenticatedAppShellComposition";
@@ -171,6 +173,13 @@ const UnauthenticatedAppShell = () => {
   );
 };
 
+/** Holds the authenticated shell back until the one-time lane migration ran. */
+const MigratedAppShell = (props: AuthenticatedAppShellProps) => {
+  const migrating = useLaneToShardMigration();
+  if (migrating) return <MigratingDataScreen />;
+  return <AuthenticatedAppShell {...props} />;
+};
+
 const AppShell = () => {
   const { currentNsec, isResolved, setCurrentNsec } = useCurrentNsec();
   usePersistentInspectorLogStartup();
@@ -179,7 +188,7 @@ const AppShell = () => {
   if (!currentNsec) return <UnauthenticatedAppShell />;
 
   return (
-    <AuthenticatedAppShell
+    <MigratedAppShell
       currentNsec={currentNsec}
       setCurrentNsec={setCurrentNsec}
     />

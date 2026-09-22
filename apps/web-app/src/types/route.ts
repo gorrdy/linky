@@ -1,11 +1,5 @@
-import * as Evolu from "@evolu/common";
-import { RecurringPaymentId } from "../evoluIds";
+import { CashuOperationId, ContactId } from "@linky/linksync";
 import { UNKNOWN_CONTACT_ID_PREFIX } from "../utils/constants";
-
-const CashuOperationId = Evolu.id("CashuOperation");
-type CashuOperationId = typeof CashuOperationId.Type;
-const ContactId = Evolu.id("Contact");
-type ContactId = typeof ContactId.Type;
 
 const decodeSegment = (value: string): string | null => {
   try {
@@ -47,8 +41,6 @@ export type Route =
   | { kind: "profileEdit" }
   | { kind: "wallet" }
   | { kind: "transactions" }
-  | { kind: "recurringPaymentNew" }
-  | { kind: "recurringPayment"; id: RecurringPaymentId }
   | { kind: "topup" }
   | { kind: "topupNoAmount" }
   | { kind: "topupInvoice" }
@@ -63,6 +55,7 @@ export type Route =
   | { kind: "nostrRelays" }
   | { kind: "nostrRelay"; id: string }
   | { kind: "nostrRelayNew" }
+  | { kind: "chatStorage" }
   | { kind: "evoluServers" }
   | { kind: "evoluServer"; id: string }
   | { kind: "evoluServerNew" }
@@ -113,14 +106,6 @@ export const parseRouteFromHash = (): Route => {
   if (hash === "#profile") return { kind: "profile" };
   if (hash === "#wallet") return { kind: "wallet" };
   if (hash === "#wallet/transactions") return { kind: "transactions" };
-  // The recurring payments list now lives in the transaction history.
-  if (hash === "#wallet/recurring") return { kind: "transactions" };
-  if (hash === "#wallet/recurring/new") return { kind: "recurringPaymentNew" };
-  const recurringPaymentIdText = decodeHashSegment(hash, "#wallet/recurring/");
-  if (recurringPaymentIdText) {
-    const id = RecurringPaymentId.fromUnknown(recurringPaymentIdText);
-    if (id.ok) return { kind: "recurringPayment", id: id.value };
-  }
   if (hash === "#wallet/topup") return { kind: "topup" };
   if (hash === "#wallet/topup/no-amount") return { kind: "topupNoAmount" };
   if (hash === "#wallet/topup/invoice") return { kind: "topupInvoice" };
@@ -165,6 +150,7 @@ export const parseRouteFromHash = (): Route => {
   const relayId = decodeHashSegment(hash, relayPrefix);
   if (relayId) return { kind: "nostrRelay", id: relayId };
 
+  if (hash === "#advanced/chat-storage") return { kind: "chatStorage" };
   if (hash === "#evolu-servers") return { kind: "evoluServers" };
   if (hash === "#evolu-data") return { kind: "evoluData" };
   if (hash === "#evolu-current-data") return { kind: "evoluCurrentData" };

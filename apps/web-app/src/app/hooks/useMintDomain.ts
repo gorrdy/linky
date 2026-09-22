@@ -1,20 +1,14 @@
-import type { OwnerId } from "@evolu/common";
 import React from "react";
 import type { StoredProof } from "@linky/linkshu";
 import type { MintIcon } from "../../utils/mint";
-import {
-  GENERIC_MINT_ICON_DATA_URL,
-  getMintIconOverride,
-  getMintOriginAndHost,
-  normalizeMintUrl,
-} from "../../utils/mint";
+import { normalizeMintUrl } from "../../utils/mint";
 import type { LocalMintInfoRow } from "../types/appTypes";
-import { getMintInfoIconUrl } from "./mint/mintInfoHelpers";
+import { resolveMintIcon } from "./mint/mintInfoHelpers";
 import { useMintInfoStore } from "./mint/useMintInfoStore";
 
 interface UseMintDomainParams {
-  appOwnerId: OwnerId | null;
-  appOwnerIdRef: React.MutableRefObject<OwnerId | null>;
+  appOwnerId: string | null;
+  appOwnerIdRef: React.MutableRefObject<string | null>;
   walletProofs: readonly StoredProof[];
   defaultMintUrl: string | null;
   rememberSeenMint: (mintUrl: string | null | undefined) => void;
@@ -26,12 +20,10 @@ interface UseMintDomainResult {
     mintUrl: string,
   ) => { lastCheckedAtSec: number; latencyMs: number | null } | null;
   isMintDeleted: (mintUrl: string) => boolean;
+  markMintIconFailed: (url: string) => void;
   mintInfoByUrl: Map<string, LocalMintInfoRow>;
   mintInfoDeduped: Array<{ canonicalUrl: string; row: LocalMintInfoRow }>;
   refreshMintInfo: (mintUrl: string) => Promise<void>;
-  setMintIconUrlByMint: React.Dispatch<
-    React.SetStateAction<Record<string, string | null>>
-  >;
   setMintInfoAll: React.Dispatch<React.SetStateAction<LocalMintInfoRow[]>>;
   touchMintInfo: (_mintUrl: string, nowSec: number) => void;
 }
@@ -43,9 +35,10 @@ export const useMintDomain = ({
   defaultMintUrl,
   rememberSeenMint,
 }: UseMintDomainParams): UseMintDomainResult => {
-  const [mintIconUrlByMint, setMintIconUrlByMint] = React.useState<
-    Record<string, string | null>
-  >(() => ({}));
+  // Icon URLs that failed to load in this session.
+  const [failedMintIconUrls, setFailedMintIconUrls] = React.useState<
+    ReadonlySet<string>
+  >(() => new Set<string>());
 
   const {
     getMintRuntime,
@@ -63,63 +56,30 @@ export const useMintDomain = ({
     rememberSeenMint,
   });
 
+  const markMintIconFailed = React.useCallback((url: string) => {
+    setFailedMintIconUrls((prev) =>
+      prev.has(url) ? prev : new Set(prev).add(url),
+    );
+  }, []);
+
   const getMintIconUrl = React.useCallback(
-    (
-      mint: string | null | undefined,
-    ): {
-      origin: string | null;
-      url: string | null;
-      host: string | null;
-      failed: boolean;
-    } => {
-      const { origin, host } = getMintOriginAndHost(mint);
-      if (!origin) {
-        return {
-          origin: null,
-          url: GENERIC_MINT_ICON_DATA_URL,
-          host,
-          failed: false,
-        };
-      }
-
-      if (Object.prototype.hasOwnProperty.call(mintIconUrlByMint, origin)) {
-        const stored = mintIconUrlByMint[origin];
-        return {
-          origin,
-          url: stored ?? null,
-          host,
-          failed: stored === null,
-        };
-      }
-
-      const normalizedMintUrl = normalizeMintUrl(mint);
-      const infoIcon = getMintInfoIconUrl(
+    (mint: string | null | undefined): MintIcon =>
+      resolveMintIcon(
         mint,
-        mintInfoByUrl.get(normalizedMintUrl)?.infoJson ?? null,
-      );
-      if (infoIcon) return { origin, url: infoIcon, host, failed: false };
-
-      const override = getMintIconOverride(host);
-      if (override) return { origin, url: override, host, failed: false };
-
-      return {
-        origin,
-        url: `${origin}/favicon.ico`,
-        host,
-        failed: false,
-      };
-    },
-    [mintIconUrlByMint, mintInfoByUrl],
+        mintInfoByUrl.get(normalizeMintUrl(mint))?.infoJson ?? null,
+        failedMintIconUrls,
+      ),
+    [failedMintIconUrls, mintInfoByUrl],
   );
 
   return {
     getMintIconUrl,
     getMintRuntime,
     isMintDeleted,
+    markMintIconFailed,
     mintInfoByUrl,
     mintInfoDeduped,
     refreshMintInfo,
-    setMintIconUrlByMint,
     setMintInfoAll,
     touchMintInfo,
   };

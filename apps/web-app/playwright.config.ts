@@ -3,7 +3,8 @@ import { defineConfig } from "@playwright/test";
 const LOCAL_STACK_SPECS = [
   "**/boot-recovery.spec.ts",
   "**/appshell-parity.spec.ts",
-  "**/owner-lanes.spec.ts",
+  "**/shards.spec.ts",
+  "**/lane-migration.spec.ts",
   "**/private-attachments.spec.ts",
   "**/chat-payment-request.spec.ts",
   "**/chat-recovery.spec.ts",
@@ -12,6 +13,7 @@ const LOCAL_STACK_SPECS = [
   "**/cashu-sync.spec.ts",
   "**/proxy-payment.spec.ts",
   "**/recurring-payments.spec.ts",
+  "**/issued-token-to-contact.spec.ts",
   "**/linkshu-migration.spec.ts",
   "**/password-manager-save.spec.ts",
   "**/profile-tilt-permission.spec.ts",

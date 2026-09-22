@@ -30,6 +30,7 @@ export const getDesktopRouteSection = (route: Route): DesktopRouteSection => {
     case "nostrRelays":
     case "nostrRelay":
     case "nostrRelayNew":
+    case "chatStorage":
     case "evoluServers":
     case "evoluServer":
     case "evoluServerNew":
@@ -80,6 +81,7 @@ export const isDesktopSectionEntryRoute = (route: Route): boolean => {
     case "advancedInspector":
     case "mints":
     case "nostrRelays":
+    case "chatStorage":
     case "evoluServers":
     case "evoluData":
     case "cashuTokens":
