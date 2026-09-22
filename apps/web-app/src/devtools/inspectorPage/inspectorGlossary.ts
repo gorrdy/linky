@@ -18,6 +18,8 @@ const NOSTR_KIND_EXPLANATIONS: Record<number, string> = {
 };
 
 const TAG_DESCRIPTIONS: Record<string, string> = {
+  "recurring.remindersSynced":
+    "The app told the push service when to remind this identity of upcoming recurring payments (the notice window before each next due time), or failed to. The server stores only the times, never amounts or recipients; a reminder arrives as a push when Linky is closed.",
   "contacts.npubSaved":
     "A Nostr contact was saved after the duplicate check. The contact link identifies the new row; the insert itself runs in the background.",
   "conversations.archived":

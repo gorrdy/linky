@@ -26,6 +26,8 @@ import { Cause, Either, Exit, Option, Schema } from "effect";
 import React, { useMemo, useState } from "react";
 import type { CashuOperationId, ContactId } from "../../../evolu";
 import { navigateTo, useRouting } from "../../../hooks/useRouting";
+import { useRecurringPaymentOrders } from "../payments/useRecurringPaymentOrders";
+import { useRecurringReminderSync } from "../payments/useRecurringReminderSync";
 import {
   inferLightningAddressFromLnurlTarget,
   redeemLnurlWithdraw,
@@ -2484,6 +2486,13 @@ export const useCashuWalletComposition = ({
     (text: string) => getCashuTokenMessageInfoBase(text, knownTransferTexts),
     [knownTransferTexts],
   );
+
+  const recurringOrders = useRecurringPaymentOrders();
+  useRecurringReminderSync({
+    currentNsec,
+    enabled: sendCashuToken !== null && meltCashuInvoice !== null,
+    orders: recurringOrders,
+  });
 
   const knownLnAddressPayContact = React.useMemo(() => {
     if (route.kind !== "lnAddressPay") return null;
