@@ -16,7 +16,7 @@ import {
 import { Avatar } from "../components/Avatar";
 import { RecurringPaymentsList } from "../components/RecurringPaymentsList";
 import { useRecurringPaymentOrders } from "../app/hooks/payments/useRecurringPaymentOrders";
-import { readRecurringPaymentIdFromDetails } from "../app/lib/recurringPaymentDisplay";
+import { readRecurringRunRef } from "@linky/recurring-payment";
 import { navigateTo } from "../hooks/useRouting";
 
 import { createCashuTokenId } from "../app/lib/cashuTokenIdentity";
@@ -221,7 +221,8 @@ const TransactionCardView = ({
     item.status === "declined" ||
     item.status === "error";
   const lnurlMessage = readLnurlSuccessMessage(item);
-  const recurringPaymentId = readRecurringPaymentIdFromDetails(item.details);
+  const recurringPaymentId =
+    readRecurringRunRef(item.details)?.recurringPaymentId ?? null;
   const repeatable = recurringPaymentId
     ? null
     : readRepeatablePayment(item, contactsById);
