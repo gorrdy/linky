@@ -164,6 +164,21 @@
         "typescript-eslint": "^8.46.4",
       },
     },
+    "packages/domain": {
+      "name": "@linky/domain",
+      "version": "0.1.0",
+      "dependencies": {
+        "@evolu/common": "^7.4.1",
+      },
+      "devDependencies": {
+        "@linky/config": "workspace:*",
+        "@types/node": "^24.10.1",
+        "eslint": "^9.39.1",
+        "prettier": "^3.4.2",
+        "typescript": "~5.9.3",
+        "vitest": "^4.0.18",
+      },
+    },
     "packages/identity": {
       "name": "@linky/identity",
       "version": "0.1.0",
@@ -253,6 +268,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@evolu/common": "^7.4.1",
+        "@linky/domain": "workspace:*",
         "@linky/linkshu": "workspace:*",
         "effect": "^3.19.19",
       },
@@ -295,6 +311,7 @@
       "name": "@linky/recurring-payment",
       "version": "0.1.0",
       "dependencies": {
+        "@linky/domain": "workspace:*",
         "effect": "^3.19.19",
       },
       "devDependencies": {
@@ -747,6 +764,8 @@
     "@js-sdsl/ordered-map": ["@js-sdsl/ordered-map@4.4.2", "", {}, "sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw=="],
 
     "@linky/config": ["@linky/config@workspace:packages/config"],
+
+    "@linky/domain": ["@linky/domain@workspace:packages/domain"],
 
     "@linky/identity": ["@linky/identity@workspace:packages/identity"],
 

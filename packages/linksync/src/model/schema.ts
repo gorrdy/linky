@@ -21,7 +21,7 @@ import {
   SettingId,
   ShardPointerId,
   TransactionId,
-} from "./ids";
+} from "@linky/domain";
 
 /**
  * Linky's synced data model, the shape every device converges on. System

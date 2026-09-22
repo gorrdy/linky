@@ -20,7 +20,7 @@ IMPORTANT: When you make or change an architectural decision, document it in `do
 
 - TypeScript strict mode with `exactOptionalPropertyTypes`
 - **NEVER use `as` or `any` to cast types** - validate with a runtime type guard instead of casting
-- Branded ID types from Evolu (`ContactId`, `CashuProofId`, `CashuOperationId`, `MintId`, etc.) - don't use plain strings
+- Branded ID types from `@linky/domain` (`ContactId`, `CashuProofId`, `CashuOperationId`, `RecurringPaymentId`, etc.; linksync re-exports them) - don't use plain strings, in packages as much as in the app: a brand travels with its type across the whole stack
 - Components use `interface` for props, not `type`
 - New browser storage names use the `linky.` prefix (e.g., `linky.nostr_nsec`, `linky.lang`). Existing exceptions are listed in `docs/architecture.md` under "Compatibility and audit decisions"; preserve those names for upgrades.
 - Use types from libraries (e.g., Evolu, Cashu, Nostr) instead of redefining them - look up the library's exported types first

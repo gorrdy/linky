@@ -17,6 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@linky/domain": "workspace:*",
     "effect": "^3.19.19"
   },
   "devDependencies": {

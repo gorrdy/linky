@@ -1,4 +1,4 @@
-export * from "./ids";
+export * from "@linky/domain";
 export { LinkySchema, linkyTableColumns } from "./schema";
 export type {
   CashuOperationRow,
