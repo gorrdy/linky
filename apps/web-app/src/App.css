@@ -7783,6 +7783,17 @@ button.cashu-token-pill {
   font-variant-numeric: tabular-nums;
 }
 
+.recurring-order-card .transaction-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.recurring-order-amount-secondary {
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .recurring-detail-amount-secondary {
   display: block;
   margin-top: 2px;

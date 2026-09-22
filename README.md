@@ -195,8 +195,10 @@ End-to-end tests (Playwright) live in `apps/web-app/tests/*.spec.ts`.
 The `local-stack` runs the proxy-payment flow — three accounts on one machine, talking over the local
 Nostr relay and paying each other with the local Cashu mint — plus the linkshu storage-migration
 scenario, chat/edit/offline-reaction and top-up recovery, handing an issued token to a contact
-from its page, a recurring payment paid to a contact exactly once, edited, and cancelled from the
-countdown, and signup/manual password saving
+from its page, recurring payments (pay now, the countdown confirmed, run out and cancelled, a
+payment waiting for funds until a top-up, two devices of one user paying once, pause and resume,
+edit, two-tap delete, form validation, a fiat amount converted at the fixture rate, and "Repeat
+regularly" from the history), and signup/manual password saving
 with checks that recovery seeds stay out of HTTP requests. Attachment tests send encrypted
 images and PDFs between browsers and verify
 decryption, seen receipts, downloads, and bytes handed to the browser sharing API. The shards
