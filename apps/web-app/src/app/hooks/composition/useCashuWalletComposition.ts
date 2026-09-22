@@ -2,6 +2,7 @@ import { isCurrentChatPaymentRequest } from "../../lib/chatPaymentRequestAuthori
 import { getBankOfferForSettlement } from "../../lib/bankOfferSettlement";
 import type { RestoreProgress } from "@linky/linkshu";
 import { useReclaimCashuTransfer } from "../cashu/useReclaimCashuTransfer";
+import { paidOverlayContact } from "../../lib/paidOverlay";
 import { useLatest } from "../../../hooks/useLatest";
 import {
   CashuTokenText,
@@ -401,6 +402,7 @@ export const useCashuWalletComposition = ({
   const npubCashMintSyncRef = React.useRef<string | null>(null);
 
   const {
+    paidOverlayDetails,
     paidOverlayIsOpen,
     paidOverlayTitle,
     showPaidOverlay,
@@ -1564,8 +1566,16 @@ export const useCashuWalletComposition = ({
     setWalletWarningDismissed(true);
   }, []);
 
+  const findPaidOverlayContact = React.useCallback(
+    (contactId: string) =>
+      paidOverlayContact(
+        contacts.find((contact) => (contact.id ?? "") === contactId),
+      ),
+    [contacts],
+  );
   const saveCashuFromText = useSaveCashuFromText({
     enqueueCashuOp,
+    findContact: findPaidOverlayContact,
     formatDisplayedAmountParts,
     isCashuTokenStored,
     isMintDeleted,
@@ -2504,6 +2514,7 @@ export const useCashuWalletComposition = ({
     closeCashuPaymentRequestConfirmation,
     confirmCashuPaymentRequest,
     onPayChatPaymentRequest,
+    paidOverlayDetails,
     paidOverlayIsOpen,
     paidOverlayTitle,
     payCashuPaymentRequest,

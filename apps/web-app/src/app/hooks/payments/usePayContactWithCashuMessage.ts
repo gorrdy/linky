@@ -22,6 +22,10 @@ import { getUnknownErrorMessage } from "../../../utils/unknown";
 import { makeLocalId } from "../../../utils/validation";
 import { reportCashuSendForgotten } from "../../lib/cashuSendInspector";
 import { describeTaggedCashuError } from "../../lib/cashuStoredError";
+import {
+  paidOverlayContact,
+  type PaidOverlayDetails,
+} from "../../lib/paidOverlay";
 import { selectSendMintForAmount } from "../../lib/paymentMintSelection";
 import {
   recurringRunDetails,
@@ -72,7 +76,7 @@ interface UsePayContactWithCashuMessageParams {
   sendCashuToken: SendCashuToken | null;
   setContactsOnboardingHasPaid: React.Dispatch<React.SetStateAction<boolean>>;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
-  showPaidOverlay: (title: string) => void;
+  showPaidOverlay: (title: string, details?: PaidOverlayDetails) => void;
   t: Translate;
   updateLocalNostrMessage: UpdateLocalNostrMessage;
   /** Per-mint spendable balances from the linkshu read model. */
@@ -235,6 +239,11 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
               )
               .replace("{unit}", displayAmount.unitLabel)
               .replace("{name}", displayName),
+            {
+              direction: "out",
+              amountSat,
+              contact: paidOverlayContact(contact),
+            },
           );
           safeLocalStorageSet(CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY, "1");
           setContactsOnboardingHasPaid(true);
@@ -431,6 +440,11 @@ export const usePayContactWithCashuMessage = <TContact extends ContactRowLike>({
             )
             .replace("{unit}", displayAmount.unitLabel)
             .replace("{name}", displayName),
+          {
+            direction: "out",
+            amountSat: receipt.amount,
+            contact: paidOverlayContact(contact),
+          },
         );
         safeLocalStorageSet(CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY, "1");
         setContactsOnboardingHasPaid(true);

@@ -1,3 +1,7 @@
+import {
+  paidOverlayContact,
+  type PaidOverlayDetails,
+} from "../lib/paidOverlay";
 import type { MeltError, MeltReceipt, PaymentPending } from "@linky/linkshu";
 import { Either } from "effect";
 import React from "react";
@@ -65,7 +69,7 @@ interface UseLightningPaymentsDomainParams {
     React.SetStateAction<{ amountSat: number; lnAddress: string } | null>
   >;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
-  showPaidOverlay: (title?: string) => void;
+  showPaidOverlay: (title?: string, details?: PaidOverlayDetails) => void;
   t: Translate;
   /** Per-mint spendable balances from the linkshu read model. */
   walletMintBalances: readonly SendMintBalance[];
@@ -240,6 +244,7 @@ export const useLightningPaymentsDomain = ({
               `${displayAmount.approxPrefix}${displayAmount.amountText}`,
             )
             .replace("{unit}", displayAmount.unitLabel),
+          { direction: "out", amountSat: receipt.paidAmount },
         );
         rememberFirstPayment();
         return true;
@@ -457,6 +462,11 @@ export const useLightningPaymentsDomain = ({
                 "{name}",
                 (knownContact?.name ?? "").trim() || displayTarget,
               ),
+            {
+              direction: "out",
+              amountSat: receipt.paidAmount,
+              contact: paidOverlayContact(knownContact),
+            },
           );
 
           if (successActionMessage) {
