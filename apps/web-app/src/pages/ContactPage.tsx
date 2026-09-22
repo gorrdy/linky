@@ -4,7 +4,6 @@ import {
   HeartHandshake as DonateIcon,
   MessageCircle as FeedbackIcon,
   MessageCircleMore as MessagesIcon,
-  Repeat,
 } from "lucide-react";
 import { useEffect, useState, type FC } from "react";
 import { Avatar } from "../components/Avatar";
@@ -276,22 +275,6 @@ export const ContactPage: FC<ContactPageProps> = ({
             dataGuide="contact-pay"
           >
             {payLabel}
-          </ContactActionButton>
-        )}
-
-        {canPayThisContact && !isArchivedContact && !isFeedbackContact && (
-          <ContactActionButton
-            className="btn-wide secondary"
-            icon={<Repeat size={18} />}
-            onClick={() =>
-              navigateTo({
-                route: "recurringPaymentNew",
-                prefill: { contactId },
-              })
-            }
-            dataGuide="contact-recurring"
-          >
-            {t("recurringPaymentTitle")}
           </ContactActionButton>
         )}
 

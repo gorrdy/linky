@@ -53,7 +53,7 @@ Every synced scope lives on `@linky/linksync` shards; the scope table in `packag
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
   - contact payment via Cashu message flow
   - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent
-  - recurring payments to a contact every N hours, days, weeks, or months (minimum one hour), reached from a card at the top of the transaction history, from a contact's page, or from a completed payment; any of the user's devices with Linky open sends a due payment after a five-minute notice with cancel, a missed period is paid once and the rest skipped, and each run appears in the history
+  - recurring payments to a contact daily, weekly, or monthly, managed in the Scheduled section at the top of the transaction history (also started from a completed payment) and editable later; the amount is fixed in the unit it was typed in (sats, or a fiat currency converted at each run); any of the user's devices running Linky sends a due payment, in the background silently after a one-minute notice, in the foreground after a 10-second countdown with pay and cancel; a missed period is paid once and the rest skipped, and each run appears in the history
 - Push: optional Bun push service in `apps/push/` for generic Web Push notifications on new outer inbox `kind: 1059` events
 - Debug pages for Evolu current/history data and owner/rotation diagnostics
 
@@ -193,7 +193,8 @@ End-to-end tests (Playwright) live in `apps/web-app/tests/*.spec.ts`.
 The `local-stack` runs the proxy-payment flow — three accounts on one machine, talking over the local
 Nostr relay and paying each other with the local Cashu mint — plus the linkshu storage-migration
 scenario, chat/edit/offline-reaction and top-up recovery, handing an issued token to a contact
-from its page, and signup/manual password saving
+from its page, a recurring payment paid to a contact exactly once, edited, and cancelled from the
+countdown, and signup/manual password saving
 with checks that recovery seeds stay out of HTTP requests. Attachment tests send encrypted
 images and PDFs between browsers and verify
 decryption, seen receipts, downloads, and bytes handed to the browser sharing API. The shards

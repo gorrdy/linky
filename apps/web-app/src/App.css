@@ -7719,8 +7719,7 @@ button.cashu-token-pill {
   font-size: 13px;
 }
 
-.recurring-picker label:first-child,
-.recurring-more label:first-child {
+.recurring-picker label:first-child {
   margin-top: 0;
 }
 
@@ -7745,54 +7744,12 @@ button.cashu-token-pill {
   margin-bottom: 10px;
 }
 
-.recurring-interval-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.recurring-interval-row .recurring-interval-count {
-  width: 88px;
-  flex: 0 0 88px;
-  text-align: center;
-  font-weight: 700;
-}
-
 .recurring-summary {
   display: flex;
   align-items: center;
   gap: 6px;
   margin: 4px 0 6px;
   font-size: 13px;
-}
-
-.recurring-more {
-  margin-top: 12px;
-}
-
-.recurring-stepper {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.recurring-stepper button {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-}
-
-.recurring-stepper-value {
-  min-width: 48px;
-  text-align: center;
-  font-size: 20px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
 .recurring-detail .contact-header {
@@ -7826,6 +7783,25 @@ button.cashu-token-pill {
   font-variant-numeric: tabular-nums;
 }
 
+.recurring-detail-amount-secondary {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.recurring-due-recipient {
+  margin-bottom: 4px;
+}
+
+.recurring-due-name {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e2e8f0;
+  max-width: min(360px, calc(100vw - 96px));
+}
+
 .recurring-actions {
   display: flex;
   flex-direction: column;
@@ -7849,6 +7825,8 @@ button.cashu-token-pill {
 .error-text {
   color: #fecaca;
   font-size: 13px;
+}
+
 .payment-request-confirm-warning {
   margin-top: 8px;
   color: #fca5a5;

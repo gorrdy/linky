@@ -14,6 +14,7 @@ import type { Route } from "../../types/route";
 import type {
   DisplayAmountParts,
   DisplayCurrency,
+  FiatRates,
 } from "../../utils/displayAmounts";
 import type { LightningInvoicePreview } from "@linky/linkshu";
 import type { CashuPaymentRequestMessageInfo } from "../lib/paymentRequestMessage";
@@ -71,6 +72,7 @@ export interface AppShellCoreContextValue {
   effectiveProfileName: string | null;
   effectiveProfilePicture: string | null;
   evoluAppOwnerId: string | null;
+  fiatRates: FiatRates | null;
   applyAmountInputKey: (currentAmount: string, key: string) => string;
   applyAmountInputKeyWithDraft: (
     currentAmount: string,
