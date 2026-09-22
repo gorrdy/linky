@@ -701,6 +701,9 @@ export const cs = {
   bankPaymentOfferBackupRecipient: "Tento kontakt je vedený jako náhradník.",
   bankPaymentOfferDeclinedNotification: "Platba byla zamítnuta.",
   bankPaymentOfferExpired: "Čas v této fázi vypršel",
+  bankPaymentOfferCanceledTitle: "Nabídka byla zrušena",
+  bankPaymentOfferCanceledDescription:
+    "{name} nabídku zrušil/a. Bankovní platbu už neposílej.",
   bankPaymentOfferExpiredTitle: "Nabídka již vypršela",
   bankPaymentOfferExpiredDescription:
     "Tato nabídka proxy platby už není platná.",

@@ -10,12 +10,11 @@ import {
   X,
 } from "lucide-react";
 import React from "react";
-import {
-  getBankPaymentOfferStatusLabel,
-  type LinkyBankPaymentOfferInfo,
-  type LinkyBankPaymentOfferStatus,
-  type LinkyBankPaymentOfferStaggerRecord,
-} from "../app/lib/bankPaymentOffer";
+import { getBankPaymentOfferStatusLabel } from "../app/lib/bankPaymentOfferLabels";
+import type {
+  BankOfferStatus,
+  BankPaymentOfferInfo,
+} from "@linky/proxy-payment";
 import {
   isPrivatePdfPayload,
   type PrivateImageMessagePayload,
@@ -30,7 +29,7 @@ import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 
 export interface BankPaymentOfferEntry {
-  info: LinkyBankPaymentOfferInfo;
+  info: BankPaymentOfferInfo;
   message: LocalNostrMessage;
 }
 
@@ -108,7 +107,7 @@ const PendingPaymentConfirmation = ({
 );
 
 interface RecipientProgressProps {
-  status: LinkyBankPaymentOfferStatus;
+  status: BankOfferStatus;
   t: Translate;
 }
 
@@ -174,7 +173,7 @@ interface RequesterIntroProps {
   amountText: string;
   canCycleAmount: boolean;
   requesterName: string;
-  status: LinkyBankPaymentOfferStatus;
+  status: BankOfferStatus;
   t: Translate;
 }
 
@@ -213,6 +212,35 @@ export function ExpiredOfferView({ t, closeOffer }: ExpiredOfferViewProps) {
   );
 }
 
+interface CanceledOfferViewProps {
+  t: Translate;
+  requesterName: string;
+  closeOffer: () => void;
+}
+
+export function CanceledOfferView({
+  t,
+  requesterName,
+  closeOffer,
+}: CanceledOfferViewProps) {
+  return (
+    <section className="panel panel-plain bank-payment-offer-state-page">
+      <div className="bank-payment-offer-state-copy">
+        <h2>{t("bankPaymentOfferCanceledTitle")}</h2>
+        <p className="muted">
+          {t("bankPaymentOfferCanceledDescription").replace(
+            "{name}",
+            requesterName,
+          )}
+        </p>
+      </div>
+      <button type="button" className="btn-wide" onClick={closeOffer}>
+        {t("close")}
+      </button>
+    </section>
+  );
+}
+
 interface OwnerOfferViewProps {
   activeEntry: BankPaymentOfferEntry;
   activeAmountText: string;
@@ -226,7 +254,7 @@ interface OwnerOfferViewProps {
   offerEntries: BankPaymentOfferEntry[];
   contacts: readonly ContactRowLike[];
   nostrPictureByNpub: Record<string, string | null>;
-  queuedRecipients: LinkyBankPaymentOfferStaggerRecord["pending"];
+  queuedRecipients: readonly { contact: ContactRowLike | null; peer: string }[];
   confirmation: BankPaymentConfirmation | null;
   canSettle: boolean;
   isSettling: boolean;
@@ -292,16 +320,13 @@ export function OwnerOfferView({
             />
           );
         })}
-        {queuedRecipients.map((recipient) => {
-          const contact = contacts.find(
-            (candidate) => (candidate.id ?? "").trim() === recipient.contactId,
-          );
+        {queuedRecipients.map(({ contact, peer }) => {
           const name = (contact?.name ?? "").trim() || t("unknownContactTitle");
           const npub = normalizeNpubIdentifier(contact?.npub ?? "");
           const pictureUrl = npub ? (nostrPictureByNpub[npub] ?? null) : null;
           return (
             <OfferRecipientRow
-              key={recipient.contactId}
+              key={peer}
               name={name}
               pictureUrl={pictureUrl}
               status={"queued"}
@@ -819,7 +844,7 @@ export function BankDetailsOfferView({
 interface OfferRecipientRowProps {
   name: string;
   pictureUrl: string | null;
-  status: LinkyBankPaymentOfferStatus | "queued";
+  status: BankOfferStatus | "queued";
   label: string;
 }
 function OfferRecipientRow({
