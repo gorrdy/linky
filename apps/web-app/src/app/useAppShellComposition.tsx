@@ -707,6 +707,8 @@ export const useAppShellComposition = ({
   }, [myProfileMetadata, myProfileMetadataRef]);
 
   const {
+    allCashuProofs,
+    allowTestMints,
     applyDefaultMintSelection,
     canPayWithCashu,
     cancelPendingCashuContactSend,
@@ -790,6 +792,7 @@ export const useAppShellComposition = ({
     sendCashuTokenToContact,
     setCashuDraft,
     setCashuEmitAmount,
+    setAllowTestMints,
     setContactPayMethod,
     setDefaultMintUrlDraft,
     setLightningInvoiceAutoPayLimit,
@@ -1081,7 +1084,7 @@ export const useAppShellComposition = ({
   const { exportAppData, handleImportAppDataFilePicked, requestImportAppData } =
     useAppDataTransfer<(typeof contacts)[number]>({
       cashuOperations,
-      cashuProofs,
+      cashuProofs: allCashuProofs,
       contacts,
       contactsRepository,
       importCashuLegacyRows: cashuTransferLifecycle?.importLegacyRows ?? null,
@@ -1627,6 +1630,7 @@ export const useAppShellComposition = ({
       wipeEvoluStorage,
     },
     mintSettingsInput: {
+      allowTestMints,
       appOwnerIdRef,
       applyDefaultMintSelection,
       cashuIsBusy,
@@ -1640,6 +1644,7 @@ export const useAppShellComposition = ({
       pendingMintDeleteUrl,
       probeLightningFee,
       refreshMintInfo,
+      setAllowTestMints,
       setDefaultMintUrlDraft,
       setMintInfoAll,
       setPendingMintDeleteUrl,
