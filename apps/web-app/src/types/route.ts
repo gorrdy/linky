@@ -30,6 +30,7 @@ export type Route =
   | { kind: "settingsLanguage" }
   | { kind: "settingsUnits" }
   | { kind: "settingsMasterKeys" }
+  | { kind: "settingsProxyPayments" }
   | { kind: "advanced" }
   | { kind: "advancedAutoPayLimit" }
   | { kind: "advancedInspector" }
@@ -46,6 +47,7 @@ export type Route =
   | { kind: "topupInvoice" }
   | { kind: "manualPay" }
   | { kind: "bankPayment"; spdPayload: string; editing?: true }
+  | { kind: "bankPaymentNew" }
   | { kind: "lnAddressPay"; lnAddress: string }
   | { kind: "cashuTokens" }
   | { kind: "cashuProofs" }
@@ -81,6 +83,9 @@ export const parseRouteFromHash = (): Route => {
   if (hash === "#settings/language") return { kind: "settingsLanguage" };
   if (hash === "#settings/units") return { kind: "settingsUnits" };
   if (hash === "#settings/master-keys") return { kind: "settingsMasterKeys" };
+  if (hash === "#settings/proxy-payments") {
+    return { kind: "settingsProxyPayments" };
+  }
   if (hash === "#advanced") return { kind: "advanced" };
   if (hash === "#advanced/auto-pay-limit") {
     return { kind: "advancedAutoPayLimit" };
@@ -110,6 +115,7 @@ export const parseRouteFromHash = (): Route => {
   if (hash === "#wallet/topup/no-amount") return { kind: "topupNoAmount" };
   if (hash === "#wallet/topup/invoice") return { kind: "topupInvoice" };
   if (hash === "#wallet/pay") return { kind: "manualPay" };
+  if (hash === "#wallet/bank-payment/new") return { kind: "bankPaymentNew" };
 
   const bankPaymentPrefix = "#wallet/bank-payment/";
   if (hash.startsWith(bankPaymentPrefix)) {

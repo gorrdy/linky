@@ -66,6 +66,7 @@ describe("SpdPaymentPage offer recipients", () => {
         initialOfferContactCount={2}
         initialOfferDelaySec={0}
         isEditing={false}
+        isManualEntry={false}
         offerContacts={[
           { id: "a", name: "Alice", npub: "npub1alice" },
           { id: "b", name: "Bob", npub: "npub1bob" },
@@ -133,6 +134,7 @@ describe("SpdPaymentPage offer recipients", () => {
         initialOfferContactCount={3}
         initialOfferDelaySec={5}
         isEditing={false}
+        isManualEntry={false}
         offerContacts={[
           { id: "a", name: "Alice", npub: "npub1alice" },
           { id: "b", name: "Bob", npub: "npub1bob" },
@@ -190,6 +192,7 @@ describe("SpdPaymentPage offer recipients", () => {
         initialOfferContactCount={1}
         initialOfferDelaySec={0}
         isEditing={false}
+        isManualEntry={false}
         offerContacts={[{ id: "contact-a", name: "Alice", npub: "npub1alice" }]}
         onRequestReimbursement={onRequestReimbursement}
         spdPayload="SPD*1.0*ACC:CZ5855000000001265098001*AM:480*CC:CZK"
@@ -216,6 +219,7 @@ describe("SpdPaymentPage offer recipients", () => {
         initialOfferContactCount={1}
         initialOfferDelaySec={0}
         isEditing={false}
+        isManualEntry={false}
         offerContacts={[
           {
             id: "contact-a",
@@ -250,6 +254,7 @@ describe("SpdPaymentPage offer recipients", () => {
         initialOfferContactCount={1}
         initialOfferDelaySec={0}
         isEditing={isEditing}
+        isManualEntry={false}
         offerContacts={[{ id: "contact-a", name: "Alice", npub: "npub1alice" }]}
         onRequestReimbursement={onRequestReimbursement}
         spdPayload={spdPayload}
@@ -416,5 +421,77 @@ describe("SpdPaymentPage offer recipients", () => {
     expect(onRequestReimbursement).toHaveBeenCalledWith(
       expect.objectContaining({ spdPayload }),
     );
+  });
+});
+
+describe("SpdPaymentPage manual entry", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+    navigateTo.mockClear();
+  });
+
+  it("builds an SPD payload from the typed fields and opens it as a bank payment", async () => {
+    const { container } = await renderIntoDocument(
+      <SpdPaymentPage
+        cashuBalanceAfterMelt={100_000}
+        initialOfferContactCount={1}
+        initialOfferDelaySec={0}
+        isEditing={true}
+        isManualEntry={true}
+        offerContacts={[]}
+        onRequestReimbursement={async () => null}
+        spdPayload=""
+      />,
+    );
+
+    const confirm = container.querySelector<HTMLButtonElement>(
+      "button.bank-payment-edit-confirm",
+    );
+    if (!confirm) throw new Error("confirm button missing");
+    expect(confirm.disabled).toBe(true);
+    // An empty form is not an error until the user starts typing.
+    expect(container.querySelector(".bank-payment-error")).toBeNull();
+
+    const currency = container.querySelector<HTMLSelectElement>(
+      "#bank-payment-field-CC",
+    );
+    if (!currency) throw new Error("currency select missing");
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(currency, "EUR");
+      currency.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    const amount = container.querySelector<HTMLInputElement>(
+      "#bank-payment-field-AM",
+    );
+    if (!amount) throw new Error("amount input missing");
+    await act(async () => {
+      setInputValue(amount, "12.50");
+    });
+    expect(container.querySelector(".bank-payment-error")?.textContent).toBe(
+      "spdPaymentMissingAccount",
+    );
+
+    const account = container.querySelector<HTMLInputElement>(
+      "#bank-payment-field-ACC",
+    );
+    if (!account) throw new Error("account input missing");
+    await act(async () => {
+      setInputValue(account, "CZ5855000000001265098001");
+    });
+    expect(container.querySelector(".bank-payment-error")).toBeNull();
+    expect(confirm.disabled).toBe(false);
+
+    await act(async () => {
+      confirm.click();
+    });
+    expect(navigateTo).toHaveBeenCalledWith({
+      route: "bankPayment",
+      spdPayload: "SPD*1.0*CC:EUR*AM:12.50*ACC:CZ5855000000001265098001",
+    });
   });
 });

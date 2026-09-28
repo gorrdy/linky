@@ -405,7 +405,6 @@ export const cs = {
   profile: "Profil",
   status: "Status",
   profileNoName: "Nostr profil",
-  profileExchangeStatusLabel: "Známým poskytnu:",
   contactStatusProvides: "Poskytne",
   myNpubQr: "Tvůj kontakt",
   profileMissingNpub: "Chybí Nostr klíče.",
@@ -599,6 +598,7 @@ export const cs = {
   manualPaySuggestions: "Shodné kontakty",
   manualPayLinkyAliasHint: "Zkusím {address}",
   spdPaymentTitle: "Bankovní platba",
+  spdPaymentCurrency: "Měna",
   spdPaymentRequestReimbursementCountOne: "Poptat proplacení u 1 kontaktu",
   spdPaymentRequestReimbursementCountOther:
     "Poptat proplacení u {count} kontaktů",
@@ -939,6 +939,19 @@ export const cs = {
   cashuTokenClaimedWithAmount: "Tvůj token za {amount} byl využit",
   conversations: "Konverzace",
   proxyPayments: "Proxy platby",
+  proxyPaymentsEarnTitle: "Získat bitcoin",
+  proxyPaymentsEarnIntro:
+    "Od svých přátel můžete získat bitcoin, když za ně zaplatíte bankovním převodem.",
+  proxyPaymentsNotificationsHint:
+    "Pro plynulou proxy platbu je potřeba mít zapnuté notifikace.",
+  proxyPaymentsPayTitle: "Platit bitcoinem",
+  proxyPaymentsPayIntro:
+    "Nascanujte QR pro bankovní převod. Vyberete ze svých přátel, kdo za vás zaplatí fiatem a získá část vašeho bitcoinu.",
+  proxyPaymentsProvideCzk: "Platby v CZK",
+  proxyPaymentsProvideEur: "Platby v EUR",
+  proxyPaymentsNotificationsRequired: "Nejdřív je potřeba zapnout notifikace.",
+  proxyPaymentsScanBankQr: "Naskenovat bankovní QR",
+  proxyPaymentsEnterManually: "Zadat údaje ručně",
   otherContacts: "Ostatní kontakty",
   today: "Dnes",
   yesterday: "Včera",

@@ -50,7 +50,11 @@ import {
   stubThirdPartyAssets,
 } from "./helpers/network";
 import { topUp } from "./helpers/wallet";
-import { waitForProfileStatusOnRelay, watchNostrInbox } from "./helpers/relay";
+import {
+  publishProfileStatusToRelay,
+  waitForProfileStatusOnRelay,
+  watchNostrInbox,
+} from "./helpers/relay";
 import {
   SPD_ACCOUNT,
   SPD_MESSAGE,
@@ -121,17 +125,20 @@ const bootAccount = async (
   return { context, errors, identity, label, page, waitForInbox };
 };
 
-/** Publish the NIP-38 CZK status, then prove it actually landed on the relay. */
+/**
+ * Advertise CZK proxy payments, then prove the NIP-38 status actually landed
+ * on the relay. The settings switch requires push notifications, which this
+ * service-worker-blocked browser cannot register, so the status event is
+ * signed by the test; the settings page itself is only checked to exist.
+ */
 const advertiseCzk = async (account: Account): Promise<void> => {
-  await account.page.goto("/#profile");
-  const chip = account.page.locator("button.profile-status-chip", {
-    hasText: "CZK",
+  await account.page.goto("/#settings/proxy-payments");
+  const czkSwitch = account.page.getByRole("checkbox", {
+    name: "Payments in CZK",
   });
-  await expect(chip).toBeVisible();
-  await chip.click();
-  // Re-enabled and still pressed means the publish resolved without reverting.
-  await expect(chip).toBeEnabled({ timeout: 30_000 });
-  await expect(chip).toHaveAttribute("aria-pressed", "true");
+  await expect(czkSwitch).toBeVisible();
+  await expect(czkSwitch).not.toBeChecked();
+  await publishProfileStatusToRelay(account.identity.nsec, ["CZK"]);
   await waitForProfileStatusOnRelay(account.identity.npub, "CZK");
 };
 

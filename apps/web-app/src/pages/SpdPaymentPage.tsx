@@ -8,6 +8,7 @@ import {
   BANK_PAYMENT_OFFER_STAGGER_DELAY_STEP_SEC,
   type BankPayment,
   type BankPaymentFieldKey,
+  type BankPaymentOfferCurrency,
   formatDomesticBankAccount,
   getBankPaymentEditableFieldKeys,
   tryParseBankPayment,
@@ -26,6 +27,7 @@ interface SpdPaymentPageProps {
   initialOfferContactCount: number;
   initialOfferDelaySec: number;
   isEditing: boolean;
+  isManualEntry: boolean;
   offerContacts: readonly (ContactRowLike & {
     lastBankPaymentResponseSec?: number | null;
     pictureUrl?: string | null;
@@ -56,6 +58,27 @@ const getDisplayedFieldValue = (payment: BankPayment, key: string): string => {
 };
 
 const SATS_PER_BTC = 100_000_000;
+
+// Bank QR formats carry the due date as YYYYMMDD; the date input speaks ISO.
+const toDateInputValue = (value: string): string =>
+  /^\d{8}$/.test(value)
+    ? `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`
+    : "";
+
+const fromDateInputValue = (value: string): string => value.replace(/-/g, "");
+
+const MANUAL_BANK_PAYMENT_CURRENCIES: readonly BankPaymentOfferCurrency[] = [
+  "CZK",
+  "EUR",
+];
+
+// A manual entry starts from an empty SPD payment; it stays unparseable (no
+// account) until the form is filled in, which shows as a field error.
+const createManualBankPayment = (): BankPayment => ({
+  fields: { CC: "CZK" },
+  format: "spd",
+  payload: "SPD*1.0*CC:CZK",
+});
 
 const getOfferContactKey = (contact: ContactRowLike): string => {
   const id = (contact.id ?? "").trim();
@@ -166,12 +189,13 @@ interface BankPaymentEdits {
   payload: string;
 }
 
+// The currency is only editable for a manual entry; a scanned payment keeps
+// its own value through the merge.
 const createDraftFields = (payment: BankPayment): BankPaymentFields =>
   Object.fromEntries(
-    ["AM", ...getBankPaymentEditableFieldKeys(payment.format)].map((key) => [
-      key,
-      getDisplayedFieldValue(payment, key),
-    ]),
+    ["CC", "AM", ...getBankPaymentEditableFieldKeys(payment.format)].map(
+      (key) => [key, getDisplayedFieldValue(payment, key)],
+    ),
   );
 
 interface BankPaymentEditError {
@@ -215,6 +239,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   initialOfferContactCount,
   initialOfferDelaySec,
   isEditing,
+  isManualEntry,
   offerContacts,
   onRequestReimbursement,
   spdPayload,
@@ -235,8 +260,11 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
     clampOfferDelaySec(initialOfferDelaySec),
   );
   const payment = React.useMemo(
-    () => tryParseBankPayment(spdPayload),
-    [spdPayload],
+    () =>
+      isManualEntry
+        ? createManualBankPayment()
+        : tryParseBankPayment(spdPayload),
+    [isManualEntry, spdPayload],
   );
   const [edits, setEdits] = React.useState<BankPaymentEdits | null>(null);
   // Edits belong to the payload they were started from; a new scan drops them.
@@ -306,7 +334,10 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   const amount = activePayment
     ? parseSpdAmount(getSpdField(activePayment, "AM"))
     : null;
-  const currency = getSpdField(payment, "CC").toLowerCase();
+  const currencyCode = (
+    draftFields?.["CC"] ?? getSpdField(activePayment ?? payment, "CC")
+  ).toUpperCase();
+  const currency = currencyCode.toLowerCase();
   const amountSat = activePayment
     ? getSpdAmountSat(activePayment, fiatRates)
     : null;
@@ -320,8 +351,9 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
           : formatDisplayedAmountText(amountSat);
   const rows = buildSpdRows(activePayment ?? payment, t);
   const editableKeys = getBankPaymentEditableFieldKeys(payment.format);
-  const currencyCode = getSpdField(payment, "CC").toUpperCase();
-  const editError = editedPayment.error;
+  // Untouched scanned values are always valid; an untouched manual form is
+  // not, and nagging about an empty account before typing would be noise.
+  const editError = activeEdits?.draft ? editedPayment.error : null;
   const updateDraftField = (key: string, value: string) =>
     setEdits((current) => {
       const own = current?.payload === payment.payload ? current : null;
@@ -333,6 +365,13 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
       };
     });
   const confirmEdits = () => {
+    if (!activePayment) return;
+    // A manual entry becomes a regular bank payment route, so the confirmed
+    // payload is what the offer and the payer's bank app receive.
+    if (isManualEntry) {
+      navigateTo({ route: "bankPayment", spdPayload: activePayment.payload });
+      return;
+    }
     setEdits({ confirmed: draftFields, draft: null, payload: payment.payload });
     navigateTo({ route: "bankPayment", spdPayload });
   };
@@ -396,8 +435,28 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
         </div>
 
         <div className="bank-payment-fields bank-payment-edit">
+          {isManualEntry ? (
+            <div className="bank-payment-edit-row">
+              <label htmlFor="bank-payment-field-CC">
+                {t("spdPaymentCurrency")}
+              </label>
+              <select
+                id="bank-payment-field-CC"
+                className="select"
+                value={currencyCode}
+                onChange={(event) => updateDraftField("CC", event.target.value)}
+              >
+                {MANUAL_BANK_PAYMENT_CURRENCIES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           {["AM" as const, ...editableKeys].map((key) => {
             const inputId = `bank-payment-field-${key}`;
+            const isDate = key === "DT";
             const suffix = key === "AM" ? currencyCode : "";
             const fieldError = editError?.field === key ? editError : null;
             return (
@@ -414,9 +473,19 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
                     id={inputId}
                     aria-invalid={fieldError ? true : undefined}
                     inputMode={key === "AM" ? "decimal" : undefined}
-                    value={draftFields[key] ?? ""}
+                    type={isDate ? "date" : undefined}
+                    value={
+                      isDate
+                        ? toDateInputValue(draftFields[key] ?? "")
+                        : (draftFields[key] ?? "")
+                    }
                     onChange={(event) =>
-                      updateDraftField(key, event.target.value)
+                      updateDraftField(
+                        key,
+                        isDate
+                          ? fromDateInputValue(event.target.value)
+                          : event.target.value,
+                      )
                     }
                   />
                   {suffix ? (

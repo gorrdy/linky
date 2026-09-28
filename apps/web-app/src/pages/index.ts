@@ -30,6 +30,7 @@ export { NostrRelayNewPage } from "./NostrRelayNewPage";
 export { NostrRelayPage } from "./NostrRelayPage";
 export { NostrRelaysPage } from "./NostrRelaysPage";
 export { ProfilePage } from "./ProfilePage";
+export { ProxyPaymentsPage } from "./ProxyPaymentsPage";
 export { PushDebugPage } from "./PushDebugPage";
 export { SettingsPage } from "./SettingsPage";
 export { SpdPaymentPage } from "./SpdPaymentPage";

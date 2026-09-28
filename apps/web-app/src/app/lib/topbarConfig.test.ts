@@ -54,6 +54,10 @@ describe("resolveBackAction", () => {
     expect(backHashFor({ kind: "settingsLanguage" })).toBe("#settings");
     expect(backHashFor({ kind: "settingsUnits" })).toBe("#settings");
     expect(backHashFor({ kind: "settingsMasterKeys" })).toBe("#settings");
+    expect(backHashFor({ kind: "settingsProxyPayments" })).toBe("#settings");
+    expect(backHashFor({ kind: "bankPaymentNew" })).toBe(
+      "#settings/proxy-payments",
+    );
     expect(backHashFor({ kind: "advancedAutoPayLimit" })).toBe("#settings");
     expect(backHashFor({ kind: "advancedInspector" })).toBe("#settings");
     expect(backHashFor({ kind: "advancedInspectorTimeline" })).toBe(

@@ -35,6 +35,7 @@ import {
   NostrRelayPage,
   NostrRelaysPage,
   ProfilePage,
+  ProxyPaymentsPage,
   PushDebugPage,
   SettingsPage,
   SpdPaymentPage,
@@ -112,6 +113,8 @@ const RoutePage = (): React.ReactElement => {
       return <LanguagePage />;
     case "settingsMasterKeys":
       return <MasterKeysPage />;
+    case "settingsProxyPayments":
+      return <ProxyPaymentsPage />;
     case "advancedAutoPayLimit":
       return <AdvancedAutoPayLimitPage />;
     case "advancedInspector":
@@ -175,6 +178,7 @@ const RoutePage = (): React.ReactElement => {
     case "manualPay":
       return <ManualPayPage {...moneyRoutes.manualPayProps} />;
     case "bankPayment":
+    case "bankPaymentNew":
       return <SpdPaymentPage {...moneyRoutes.spdPaymentProps} />;
     case "bankPaymentOffer":
       return (

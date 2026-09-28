@@ -411,7 +411,6 @@ export const de = {
   profile: "Profil",
   status: "Status",
   profileNoName: "Nostr-Profil",
-  profileExchangeStatusLabel: "Für Menschen, die ich kenne, biete ich:",
   contactStatusProvides: "Bietet",
   myNpubQr: "Dein Kontakt",
   profileMissingNpub: "Nostr-Schlüssel fehlen.",
@@ -594,6 +593,7 @@ export const de = {
   manualPaySuggestions: "Passende Kontakte",
   manualPayLinkyAliasHint: "{address} wird versucht",
   spdPaymentTitle: "Bankzahlung",
+  spdPaymentCurrency: "Währung",
   spdPaymentRequestReimbursementCountOne: "1 Kontakt um Zahlung bitten",
   spdPaymentRequestReimbursementCountOther:
     "{count} Kontakte um Zahlung bitten",
@@ -935,6 +935,19 @@ export const de = {
   cashuTokenClaimedWithAmount: "Dein Token über {amount} wurde eingelöst",
   conversations: "Unterhaltungen",
   proxyPayments: "Proxy-Zahlungen",
+  proxyPaymentsEarnTitle: "Bitcoin verdienen",
+  proxyPaymentsEarnIntro:
+    "Verdiene Bitcoin von deinen Freunden, indem du ihre Banküberweisungen für sie bezahlst.",
+  proxyPaymentsNotificationsHint:
+    "Für eine reibungslose Proxy-Zahlung müssen Benachrichtigungen aktiviert sein.",
+  proxyPaymentsPayTitle: "Mit Bitcoin bezahlen",
+  proxyPaymentsPayIntro:
+    "Scanne den QR-Code einer Banküberweisung. Dann wählst du, wer von deinen Freunden sie in Fiat für dich bezahlt und dafür einen Teil deines Bitcoin bekommt.",
+  proxyPaymentsProvideCzk: "Zahlungen in CZK",
+  proxyPaymentsProvideEur: "Zahlungen in EUR",
+  proxyPaymentsNotificationsRequired: "Zuerst Benachrichtigungen aktivieren.",
+  proxyPaymentsScanBankQr: "Bank-QR scannen",
+  proxyPaymentsEnterManually: "Daten manuell eingeben",
   otherContacts: "Weitere Kontakte",
   today: "Heute",
   yesterday: "Gestern",

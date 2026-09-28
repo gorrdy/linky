@@ -264,7 +264,10 @@ export const buildMoneyRouteProps = ({
       cashuBalanceAfterMelt,
       initialOfferContactCount: bankPaymentOfferRecipientCount,
       initialOfferDelaySec: bankPaymentOfferStaggerDelaySec,
-      isEditing: route.kind === "bankPayment" && route.editing === true,
+      isEditing:
+        route.kind === "bankPaymentNew" ||
+        (route.kind === "bankPayment" && route.editing === true),
+      isManualEntry: route.kind === "bankPaymentNew",
       offerContacts: bankPaymentOfferContacts,
       onRequestReimbursement: onRequestBankPaymentOffer,
       spdPayload: route.kind === "bankPayment" ? route.spdPayload : "",

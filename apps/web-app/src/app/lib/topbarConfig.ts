@@ -51,12 +51,16 @@ export const resolveBackAction = (
     case "settingsLanguage":
     case "settingsUnits":
     case "settingsMasterKeys":
+    case "settingsProxyPayments":
     case "advancedAutoPayLimit":
     case "advancedInspector":
     case "mints":
     case "nostrRelays":
     case "evoluServers":
       return () => navigateTo({ route: "settings" });
+
+    case "bankPaymentNew":
+      return () => navigateTo({ route: "settingsProxyPayments" });
 
     case "advancedInspectorTimeline":
     case "advancedPushDebug":
@@ -190,6 +194,7 @@ const SHOWS_MENU_BUTTON: Record<
   advancedInspectorTimeline: false,
   advancedPushDebug: false,
   bankPayment: false,
+  bankPaymentNew: false,
   bankPaymentOffer: false,
   cashuToken: false,
   cashuTokenEmit: false,
@@ -216,6 +221,7 @@ const SHOWS_MENU_BUTTON: Record<
   settings: false,
   settingsLanguage: false,
   settingsMasterKeys: false,
+  settingsProxyPayments: false,
   settingsUnits: false,
   topupInvoice: false,
   topupNoAmount: false,
@@ -318,6 +324,7 @@ const TOPBAR_TITLE_KEY: Record<
   advancedInspector: "nostrInspector",
   advancedInspectorTimeline: "nostrInspector",
   bankPayment: "spdPaymentTitle",
+  bankPaymentNew: "spdPaymentTitle",
   bankPaymentOffer: "bankPaymentOfferIncomingTitle",
   cashuToken: "cashuToken",
   cashuTokenEmit: "cashuEmit",
@@ -349,6 +356,7 @@ const TOPBAR_TITLE_KEY: Record<
   settings: "settings",
   settingsLanguage: "language",
   settingsMasterKeys: "masterKeys",
+  settingsProxyPayments: "proxyPayments",
   settingsUnits: "unit",
   topup: "topupTitle",
   topupInvoice: "topupInvoiceTitle",
