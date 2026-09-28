@@ -15,6 +15,7 @@ import {
   NOSTR_IDENTITY_SWITCHED_AT_SEC_STORAGE_KEY,
   NOSTR_NSEC_STORAGE_KEY,
   PAY_WITH_CASHU_STORAGE_KEY,
+  RECEIVE_METHOD_STORAGE_KEY,
   SEEN_RECEIPTS_ENABLED_AT_SEC_STORAGE_KEY,
   SHOW_PROFILE_QR_ON_TILT_STORAGE_KEY,
   UNIT_TOGGLE_STORAGE_KEY,
@@ -24,6 +25,11 @@ import {
   parseDisplayCurrency,
   type DisplayCurrency,
 } from "./displayAmounts";
+import {
+  DEFAULT_RECEIVE_METHOD,
+  parseReceiveMethod,
+  type ReceiveMethod,
+} from "./receiveMethod";
 import { asNonEmptyString, trimString } from "./validation";
 
 import { nowSeconds, sleep } from "./time";
@@ -239,6 +245,10 @@ export const getInitialPayWithCashuEnabled = (): boolean => {
   const stored = trimString(safeLocalStorageGet(PAY_WITH_CASHU_STORAGE_KEY));
   return !stored || stored === "1";
 };
+
+export const getInitialReceiveMethod = (): ReceiveMethod =>
+  parseReceiveMethod(safeLocalStorageGet(RECEIVE_METHOD_STORAGE_KEY)) ??
+  DEFAULT_RECEIVE_METHOD;
 
 export const getInitialShowProfileQrOnTiltEnabled = (): boolean =>
   safeLocalStorageGet(SHOW_PROFILE_QR_ON_TILT_STORAGE_KEY) !== "0";

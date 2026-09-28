@@ -7,11 +7,13 @@ import {
   DISPLAY_CURRENCY_STORAGE_KEY,
   LIGHTNING_INVOICE_AUTO_PAY_LIMIT_STORAGE_KEY,
   PAY_WITH_CASHU_STORAGE_KEY,
+  RECEIVE_METHOD_STORAGE_KEY,
   SEEN_RECEIPTS_ENABLED_AT_SEC_STORAGE_KEY,
   SHOW_PROFILE_QR_ON_TILT_STORAGE_KEY,
   UNIT_TOGGLE_STORAGE_KEY,
 } from "../../utils/constants";
 import type { DisplayCurrency } from "../../utils/displayAmounts";
+import type { ReceiveMethod } from "../../utils/receiveMethod";
 import { safeLocalStorageSet } from "../../utils/storage";
 
 interface UseAppPreferencesParams {
@@ -22,6 +24,7 @@ interface UseAppPreferencesParams {
   bankPaymentOfferStaggerDelaySec: number;
   lightningInvoiceAutoPayLimit: number;
   payWithCashuEnabled: boolean;
+  receiveMethod: ReceiveMethod;
   seenReceiptsEnabledAtSec: number | null;
   showProfileQrOnTiltEnabled: boolean;
 }
@@ -34,6 +37,7 @@ export const useAppPreferences = ({
   bankPaymentOfferStaggerDelaySec,
   lightningInvoiceAutoPayLimit,
   payWithCashuEnabled,
+  receiveMethod,
   seenReceiptsEnabledAtSec,
   showProfileQrOnTiltEnabled,
 }: UseAppPreferencesParams): void => {
@@ -62,6 +66,10 @@ export const useAppPreferences = ({
       payWithCashuEnabled ? "1" : "0",
     );
   }, [payWithCashuEnabled]);
+
+  React.useEffect(() => {
+    safeLocalStorageSet(RECEIVE_METHOD_STORAGE_KEY, receiveMethod);
+  }, [receiveMethod]);
 
   React.useEffect(() => {
     safeLocalStorageSet(

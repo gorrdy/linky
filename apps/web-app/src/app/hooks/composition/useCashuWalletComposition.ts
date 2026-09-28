@@ -1,4 +1,5 @@
 import { isCurrentChatPaymentRequest } from "../../lib/chatPaymentRequestAuthorization";
+import type { ReceiveMethod } from "../../../utils/receiveMethod";
 import type { RestoreProgress } from "@linky/linkshu";
 import { useReclaimCashuTransfer } from "../cashu/useReclaimCashuTransfer";
 import { useLatest } from "../../../hooks/useLatest";
@@ -61,6 +62,7 @@ import { parseNpubCashProfileInfo } from "../../../utils/npubCashInfo";
 import {
   getInitialLightningInvoiceAutoPayLimit,
   getInitialPayWithCashuEnabled,
+  getInitialReceiveMethod,
   safeLocalStorageGet,
   safeLocalStorageRemove,
   safeLocalStorageSet,
@@ -304,6 +306,9 @@ export const useCashuWalletComposition = ({
   );
   const [lightningInvoiceAutoPayLimit, setLightningInvoiceAutoPayLimit] =
     useState<number>(() => getInitialLightningInvoiceAutoPayLimit());
+  const [receiveMethod, setReceiveMethod] = useState<ReceiveMethod>(() =>
+    getInitialReceiveMethod(),
+  );
 
   useAnonymousPaymentTelemetry({
     appOwnerId,
@@ -2529,6 +2534,7 @@ export const useCashuWalletComposition = ({
     pendingCashuContactSend,
     pendingCashuDeleteId,
     pendingCashuTokenContactPickId,
+    receiveMethod,
     pendingLightningInvoiceConfirmation,
     pendingLnurlWithdrawConfirmation,
     pendingMintDeleteUrl,
@@ -2552,6 +2558,7 @@ export const useCashuWalletComposition = ({
     setMintInfoAll,
     setAllowTestMints,
     setPayWithCashuEnabled,
+    setReceiveMethod,
     setPendingCashuDeleteId,
     setPendingLightningInvoiceConfirmation,
     setPendingLnurlWithdrawConfirmation,

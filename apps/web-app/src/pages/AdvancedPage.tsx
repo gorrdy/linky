@@ -16,6 +16,7 @@ import {
   Landmark,
   Languages,
   LogOut,
+  QrCode,
   RadioTower,
   RotateCw,
   ShieldCheck,
@@ -42,6 +43,7 @@ import { usePushNotificationsSetting } from "../app/hooks/usePushNotificationsSe
 import { SettingsLinkRow, SettingsToggleRow } from "../components/SettingsRows";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey } from "../i18n";
+import { RECEIVE_METHOD_LABEL_KEYS } from "../utils/receiveMethod";
 
 export function AdvancedPage(): React.ReactElement {
   const {
@@ -59,6 +61,7 @@ export function AdvancedPage(): React.ReactElement {
     logoutArmed,
     payWithCashuEnabled,
     pushToast,
+    receiveMethod,
     relayUrls,
     requestImportAppData,
     requestLogout,
@@ -207,6 +210,17 @@ export function AdvancedPage(): React.ReactElement {
           onClick={() => navigateTo({ route: "settingsProxyPayments" })}
           icon={<HandCoins size={18} />}
           label={t("proxyPayments")}
+        />
+
+        <SettingsLinkRow
+          onClick={() => navigateTo({ route: "settingsReceiveMethod" })}
+          icon={<QrCode size={18} />}
+          label={t("receiveMethod")}
+          tail={
+            <span className="settings-tail-content settings-value">
+              {t(RECEIVE_METHOD_LABEL_KEYS[receiveMethod])}
+            </span>
+          }
         />
 
         <SettingsToggleRow

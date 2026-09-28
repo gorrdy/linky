@@ -1437,11 +1437,11 @@ button.settings-link:hover {
   transform: none;
 }
 
-button.language-option {
+button.settings-option {
   position: relative;
 }
 
-button.language-option::before {
+button.settings-option::before {
   content: "";
   position: absolute;
   z-index: 0;
@@ -1450,23 +1450,23 @@ button.language-option::before {
   background: transparent;
 }
 
-button.language-option:hover::before,
-button.language-option:focus-visible::before {
+button.settings-option:hover::before,
+button.settings-option:focus-visible::before {
   background: rgba(148, 163, 184, 0.08);
 }
 
-button.language-option.is-selected::before,
-button.language-option.is-selected:hover::before,
-button.language-option.is-selected:focus-visible::before {
+button.settings-option.is-selected::before,
+button.settings-option.is-selected:hover::before,
+button.settings-option.is-selected:focus-visible::before {
   background: rgba(45, 213, 190, 0.12);
 }
 
-button.language-option > * {
+button.settings-option > * {
   position: relative;
   z-index: 1;
 }
 
-button.language-option.is-selected .settings-label {
+button.settings-option.is-selected .settings-label {
   color: #99f6e4;
 }
 
@@ -1918,21 +1918,6 @@ button.settings-sensitive-action.is-armed {
   flex-direction: column;
   align-items: center;
   gap: 14px;
-}
-
-.topup-invoice-mode-bar {
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.topup-invoice-mode-tabs {
-  max-width: 100%;
-  gap: 4px;
-}
-
-.topup-invoice-mode-tabs .bottom-tab {
-  min-width: 0;
-  padding: 10px 12px;
 }
 
 .topup-invoice-qr-button {

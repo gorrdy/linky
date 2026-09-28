@@ -31,6 +31,7 @@ export const CONTACTS_ONBOARDING_HAS_BACKUPED_KEYS_STORAGE_KEY =
 export const CASHU_ONBOARDING_SET_MAIN_MINT_STORAGE_KEY =
   "linky.cashu_onboarding_set_main_mint.v1";
 export const PAY_WITH_CASHU_STORAGE_KEY = "linky.pay_with_cashu";
+export const RECEIVE_METHOD_STORAGE_KEY = "linky.receive_method.v1";
 // v1 is abandoned: its persist effect wrote "0" for every user before a toggle
 // existed, which would keep the default-on feature off for everyone.
 export const SHOW_PROFILE_QR_ON_TILT_STORAGE_KEY =

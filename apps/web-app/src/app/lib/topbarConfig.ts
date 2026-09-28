@@ -52,6 +52,7 @@ export const resolveBackAction = (
 
     case "settingsLanguage":
     case "settingsUnits":
+    case "settingsReceiveMethod":
     case "settingsMasterKeys":
     case "settingsProxyPayments":
     case "advancedAutoPayLimit":
@@ -230,6 +231,7 @@ const SHOWS_MENU_BUTTON: Record<
   settingsLanguage: false,
   settingsMasterKeys: false,
   settingsProxyPayments: false,
+  settingsReceiveMethod: false,
   settingsUnits: false,
   topupInvoice: false,
   topupNoAmount: false,
@@ -377,6 +379,7 @@ const TOPBAR_TITLE_KEY: Record<
   settingsLanguage: "language",
   settingsMasterKeys: "masterKeys",
   settingsProxyPayments: "proxyPayments",
+  settingsReceiveMethod: "receiveMethod",
   settingsUnits: "unit",
   topup: "topupTitle",
   topupInvoice: "topupInvoiceTitle",

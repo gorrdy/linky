@@ -26,7 +26,7 @@ export function LanguagePage(): React.ReactElement {
         return (
           <button
             type="button"
-            className={`settings-row settings-link language-option${isSelected ? " is-selected" : ""}`}
+            className={`settings-row settings-link settings-option${isSelected ? " is-selected" : ""}`}
             key={language.value}
             aria-pressed={isSelected}
             onClick={() => setLang(language.value)}
