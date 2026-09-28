@@ -88,8 +88,6 @@ interface BuildPeopleRoutePropsParams {
   profileEditsSavable: PeopleRoutesProps["profileProps"]["profileEditsSavable"];
   unregisteredOwnLightningAddress: PeopleRoutesProps["profileProps"]["unregisteredOwnLightningAddress"];
   profileStatus: PeopleRoutesProps["profileProps"]["profileStatus"];
-  profileStatusCurrencies: PeopleRoutesProps["profileProps"]["profileStatusCurrencies"];
-  profileStatusIsSaving: PeopleRoutesProps["profileProps"]["profileStatusIsSaving"];
   profilePhotoInputRef: PeopleRoutesProps["profileProps"]["profilePhotoInputRef"];
   profileSelectedPictureKind: PeopleRoutesProps["profileProps"]["profileSelectedPictureKind"];
   restoreArchivedContact: PeopleRoutesProps["contactEditProps"]["restoreArchivedContact"];
@@ -101,7 +99,6 @@ interface BuildPeopleRoutePropsParams {
   saveProfileEdits: PeopleRoutesProps["profileProps"]["saveProfileEdits"];
   searchNewContact: PeopleRoutesProps["contactNewProps"]["searchNewContact"];
   replyContext: PeopleRoutesProps["chatProps"]["replyContext"];
-  selectedProfileStatusCurrencies: PeopleRoutesProps["profileProps"]["selectedProfileStatusCurrencies"];
   selectedContact: PeopleRoutesProps["contactProps"]["selectedContact"];
   selectedContactPublicProfile: {
     lnAddress: string;
@@ -119,7 +116,6 @@ interface BuildPeopleRoutePropsParams {
   setProfileEditName: PeopleRoutesProps["profileProps"]["setProfileEditName"];
   setProfileEditStatus: PeopleRoutesProps["profileProps"]["setProfileEditStatus"];
   t: Translate;
-  toggleProfileStatusCurrency: PeopleRoutesProps["profileProps"]["toggleProfileStatusCurrency"];
   writeCurrentNpubToNfc: PeopleRoutesProps["profileProps"]["writeCurrentNpubToNfc"];
 }
 
@@ -204,8 +200,6 @@ export const buildPeopleRouteProps = ({
   profileEditsSavable,
   unregisteredOwnLightningAddress,
   profileStatus,
-  profileStatusCurrencies,
-  profileStatusIsSaving,
   profilePhotoInputRef,
   profileSelectedPictureKind,
   restoreArchivedContact,
@@ -217,7 +211,6 @@ export const buildPeopleRouteProps = ({
   saveProfileEdits,
   searchNewContact,
   replyContext,
-  selectedProfileStatusCurrencies,
   selectedContact,
   selectedContactPublicProfile,
   sendChatImage,
@@ -232,7 +225,6 @@ export const buildPeopleRouteProps = ({
   setProfileEditName,
   setProfileEditStatus,
   t,
-  toggleProfileStatusCurrency,
   writeCurrentNpubToNfc,
 }: BuildPeopleRoutePropsParams): PeopleRoutesProps => {
   return {
@@ -375,8 +367,6 @@ export const buildPeopleRouteProps = ({
       profileEditsSavable,
       unregisteredOwnLightningAddress,
       profileStatus,
-      profileStatusCurrencies,
-      profileStatusIsSaving,
       myProfileQr,
       effectiveMyLightningAddress,
       makeNip98AuthHeader,
@@ -384,7 +374,6 @@ export const buildPeopleRouteProps = ({
       profileSelectedPictureKind,
       payLightningInvoiceWithCashu,
       saveClaimedLightningAddress,
-      selectedProfileStatusCurrencies,
       serverBaseUrl: NPUB_CASH_SERVER_BASE_URL,
       setProfileEditName,
       setProfileEditLnAddress,
@@ -395,7 +384,6 @@ export const buildPeopleRouteProps = ({
       ownedLightningAddresses,
       saveProfileEdits,
       copyText,
-      toggleProfileStatusCurrency,
       writeCurrentNpubToNfc,
     },
   };

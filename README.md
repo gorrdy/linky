@@ -53,7 +53,7 @@ Every synced scope lives on `@linky/linksync` shards; the scope table in `packag
 - Payments:
   - Lightning invoice and LN address payment; a payment the mint has not settled shows as pending in the history and is finished (or refunded to the balance) on the next launch or reconnect
   - contact payment via Cashu message flow
-  - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent
+  - proxy payment of a scanned bank QR (SPD, EPC, PAY by square) with editable fields before the offer is sent, or of details entered by hand; Settings > Payments > Proxy payments explains the flow, holds the CZK/EUR "I will pay for friends" switches (they require push notifications) and starts a scan or a manual entry
 - Push: optional Bun push service in `apps/push/` for generic Web Push notifications on new outer inbox `kind: 1059` events
 - Debug pages for Evolu current/history data and owner/rotation diagnostics
 

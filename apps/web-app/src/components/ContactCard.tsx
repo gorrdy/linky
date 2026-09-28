@@ -5,7 +5,7 @@ import { formatChatMessagePreviewText } from "../app/lib/chatMessageDisplay";
 import { hasMessageEntityPreview } from "../app/lib/messageEntityPreview";
 import type { CashuTokenMessageInfo } from "../app/lib/tokenMessageInfo";
 import type { ContactRowLike, LocalNostrMessage } from "../app/types/appTypes";
-import { formatDisplayGeneralStatus } from "../nostrStatus";
+import { parseProfileGeneralStatus } from "../nostrStatus";
 import { getContactName } from "../utils/contactName";
 import {
   formatContactMessageTimestamp,
@@ -52,10 +52,8 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
   }) => {
     const { formatDisplayedAmountText, t } = useAppShellCore();
     const initials = getInitials(getContactName(contact) || nameLabel);
-    const contactStatus = formatDisplayGeneralStatus({
-      status: statusText,
-      providesLabel: t("contactStatusProvides"),
-    });
+    // The offered currencies belong on the contact's page, not in the list.
+    const contactStatus = parseProfileGeneralStatus(statusText).text;
     const lastText = (lastMessage?.content ?? "").trim();
     const rawDirection = (lastMessage?.direction ?? "").trim();
     const previewDirection =

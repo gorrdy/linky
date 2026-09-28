@@ -6,10 +6,7 @@ import { Avatar } from "../components/Avatar";
 import { ProfileAvatarEditor } from "../components/ProfileAvatarEditor";
 import { ProfileQrButton } from "../components/ProfileQrButton";
 import type { AvatarEditorControlId } from "../derivedProfile";
-import {
-  type ProfileStatusCurrency,
-  parseProfileGeneralStatus,
-} from "../nostrStatus";
+import { parseProfileGeneralStatus } from "../nostrStatus";
 import {
   formatShortLightningAddress,
   formatShortNpub,
@@ -55,22 +52,16 @@ interface ProfilePageProps {
   profileEditsSavable: boolean;
   unregisteredOwnLightningAddress: OwnLightningAddressInputCandidate | null;
   profileStatus: string | null;
-  profileStatusCurrencies: readonly ProfileStatusCurrency[];
-  profileStatusIsSaving: boolean;
   profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
   profileSelectedPictureKind: "custom" | "generated";
   makeNip98AuthHeader: Nip98AuthHeaderFactory;
   payLightningInvoiceWithCashu: (invoice: string) => Promise<boolean>;
   saveClaimedLightningAddress: (lightningAddress: string) => Promise<boolean>;
   saveProfileEdits: () => Promise<void>;
-  selectedProfileStatusCurrencies: readonly ProfileStatusCurrency[];
   serverBaseUrl: string;
   setProfileEditLnAddress: (value: string) => void;
   setProfileEditName: (value: string) => void;
   setProfileEditStatus: (value: string) => void;
-  toggleProfileStatusCurrency: (
-    currency: ProfileStatusCurrency,
-  ) => Promise<void>;
   writeCurrentNpubToNfc: () => Promise<void>;
 }
 
@@ -100,20 +91,16 @@ export function ProfilePage({
   profileEditsSavable,
   unregisteredOwnLightningAddress,
   profileStatus,
-  profileStatusCurrencies,
-  profileStatusIsSaving,
   profilePhotoInputRef,
   profileSelectedPictureKind,
   makeNip98AuthHeader,
   payLightningInvoiceWithCashu,
   saveClaimedLightningAddress,
   saveProfileEdits,
-  selectedProfileStatusCurrencies,
   serverBaseUrl,
   setProfileEditLnAddress,
   setProfileEditName,
   setProfileEditStatus,
-  toggleProfileStatusCurrency,
   writeCurrentNpubToNfc,
 }: ProfilePageProps): React.ReactElement {
   const { formatDisplayedAmountParts, t } = useAppShellCore();
@@ -474,37 +461,6 @@ export function ProfilePage({
               </div>
             </>
           )}
-
-          <div className="profile-status-row">
-            <div className="profile-status-label">
-              {t("profileExchangeStatusLabel")}
-            </div>
-            <div className="profile-status-buttons">
-              {profileStatusCurrencies.map((currency) => {
-                const isActive =
-                  selectedProfileStatusCurrencies.includes(currency);
-
-                return (
-                  <button
-                    key={currency}
-                    type="button"
-                    className={
-                      isActive
-                        ? "profile-status-chip"
-                        : "secondary profile-status-chip"
-                    }
-                    aria-pressed={isActive}
-                    disabled={!currentNpub || profileStatusIsSaving}
-                    onClick={() => {
-                      void toggleProfileStatusCurrency(currency);
-                    }}
-                  >
-                    {currency}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </>
       )}
     </section>

@@ -61,6 +61,20 @@ describe("parseRouteFromHash", () => {
 
     replaceHash("#settings/master-keys");
     expect(parseRouteFromHash()).toEqual({ kind: "settingsMasterKeys" });
+
+    replaceHash("#settings/proxy-payments");
+    expect(parseRouteFromHash()).toEqual({ kind: "settingsProxyPayments" });
+  });
+
+  it("parses the manual bank payment entry before the payload routes", () => {
+    replaceHash("#wallet/bank-payment/new");
+    expect(parseRouteFromHash()).toEqual({ kind: "bankPaymentNew" });
+
+    replaceHash("#wallet/bank-payment/SPD*1.0*ACC:CZ65");
+    expect(parseRouteFromHash()).toEqual({
+      kind: "bankPayment",
+      spdPayload: "SPD*1.0*ACC:CZ65",
+    });
   });
 
   it("parses the in-app inspector route", () => {

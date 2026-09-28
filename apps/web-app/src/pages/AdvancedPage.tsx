@@ -11,6 +11,7 @@ import {
   Download,
   FlaskConical,
   MessageCircle as FeedbackIcon,
+  HandCoins,
   Smartphone,
   Landmark,
   Languages,
@@ -36,12 +37,11 @@ import {
   overallRelayStatus,
   useRelayHealth,
 } from "../app/hooks/useRelayHealth";
+import { usePushNotificationsSetting } from "../app/hooks/usePushNotificationsSetting";
 
 import { SettingsLinkRow, SettingsToggleRow } from "../components/SettingsRows";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey } from "../i18n";
-import { getNativeNotificationPermissionState } from "../platform/nativeBridge";
-import { isNativePlatform } from "../platform/runtime";
 
 export function AdvancedPage(): React.ReactElement {
   const {
@@ -83,8 +83,7 @@ export function AdvancedPage(): React.ReactElement {
     toggleSendReadReceipts,
     toggleShowProfileQrOnTilt,
   } = useAppShellActions();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationsIsBusy, setNotificationsIsBusy] = useState(false);
+  const notifications = usePushNotificationsSetting();
   const [armedSecurityAction, setArmedSecurityAction] = useState<
     "copyNostr" | "pasteNostr" | null
   >(null);
@@ -155,114 +154,6 @@ export function AdvancedPage(): React.ReactElement {
     };
   }, [clearArmTimeout]);
 
-  useEffect(() => {
-    let isActive = true;
-    void (async () => {
-      try {
-        const {
-          arePushNotificationsDisabledByUser,
-          hasNativePushRegistrationForIdentity,
-        } = await import("../utils/pushNotifications");
-        if (arePushNotificationsDisabledByUser()) {
-          if (isActive) setNotificationsEnabled(false);
-          return;
-        }
-
-        if (isNativePlatform()) {
-          const permissionGranted =
-            getNativeNotificationPermissionState() === "granted";
-          const registrationStored = currentNsec
-            ? await hasNativePushRegistrationForIdentity(currentNsec)
-            : false;
-          if (isActive) {
-            setNotificationsEnabled(permissionGranted && registrationStored);
-          }
-          return;
-        }
-
-        if (
-          !("Notification" in window) ||
-          Notification.permission !== "granted" ||
-          !("serviceWorker" in navigator)
-        ) {
-          if (isActive) setNotificationsEnabled(false);
-          return;
-        }
-
-        const registration = await navigator.serviceWorker.getRegistration();
-        const subscription = registration
-          ? await registration.pushManager.getSubscription()
-          : null;
-        if (isActive) setNotificationsEnabled(subscription !== null);
-      } catch {
-        if (isActive) setNotificationsEnabled(false);
-      }
-    })();
-
-    return () => {
-      isActive = false;
-    };
-  }, [currentNsec]);
-
-  const handleNotificationsChange = async (enabled: boolean) => {
-    if (!currentNsec) {
-      pushToast(t("notificationsNotLoggedIn"));
-      return;
-    }
-
-    setNotificationsIsBusy(true);
-    try {
-      const {
-        registerPushNotifications,
-        requestNotificationPermission,
-        setPushNotificationsDisabledByUser,
-        unregisterPushNotifications,
-      } = await import("../utils/pushNotifications");
-
-      if (enabled) {
-        pushToast(t("notificationsRegistering"));
-        const permissionGranted = await requestNotificationPermission();
-        if (!permissionGranted) {
-          setPushNotificationsDisabledByUser(true);
-          const isUnsupported =
-            isNativePlatform() &&
-            getNativeNotificationPermissionState() === "unsupported";
-          pushToast(
-            t(
-              isUnsupported
-                ? "notificationsUnsupported"
-                : "notificationsDenied",
-            ),
-          );
-          return;
-        }
-
-        const result = await registerPushNotifications(currentNsec);
-        if (result.success) {
-          setPushNotificationsDisabledByUser(false);
-          setNotificationsEnabled(true);
-          pushToast(t("notificationsRegistered"));
-        } else {
-          setPushNotificationsDisabledByUser(true);
-          pushToast(result.error ?? t("notificationsError"));
-        }
-        return;
-      }
-
-      const disabled = await unregisterPushNotifications(currentNsec);
-      if (disabled) {
-        setNotificationsEnabled(false);
-        pushToast(t("notificationsDisabled"));
-      } else {
-        pushToast(t("notificationsDisableError"));
-      }
-    } catch {
-      pushToast(t("notificationsError"));
-    } finally {
-      setNotificationsIsBusy(false);
-    }
-  };
-
   return (
     <section className="panel settings-page">
       <div className="settings-section">
@@ -289,9 +180,9 @@ export function AdvancedPage(): React.ReactElement {
         <SettingsToggleRow
           icon={<Bell size={18} />}
           label={t("notifications")}
-          checked={notificationsEnabled}
-          disabled={!currentNsec || notificationsIsBusy}
-          onChange={(checked) => void handleNotificationsChange(checked)}
+          checked={notifications.enabled}
+          disabled={!currentNsec || notifications.isBusy}
+          onChange={(checked) => void notifications.setEnabled(checked)}
         />
 
         <SettingsToggleRow
@@ -311,6 +202,12 @@ export function AdvancedPage(): React.ReactElement {
 
       <div className="settings-section">
         <h2 className="settings-section-title">{t("settingsPayments")}</h2>
+
+        <SettingsLinkRow
+          onClick={() => navigateTo({ route: "settingsProxyPayments" })}
+          icon={<HandCoins size={18} />}
+          label={t("proxyPayments")}
+        />
 
         <SettingsToggleRow
           icon={<Bean size={18} />}

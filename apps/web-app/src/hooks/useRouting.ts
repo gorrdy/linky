@@ -105,6 +105,7 @@ type NavigationAction =
   | { route: "lnAddressPay"; lnAddress: string }
   | { route: "manualPay" }
   | { route: "bankPayment"; spdPayload: string; editing?: boolean }
+  | { route: "bankPaymentNew" }
   | { route: "bankPaymentOffer"; chatId: string; offerId: string }
   | { route: "mint"; mintUrl: string }
   | { route: "mints" }
@@ -117,6 +118,7 @@ type NavigationAction =
   | { route: "settings" }
   | { route: "settingsLanguage" }
   | { route: "settingsMasterKeys" }
+  | { route: "settingsProxyPayments" }
   | { route: "settingsUnits" }
   | { route: "transactions" }
   | { route: "topup" }
@@ -140,6 +142,9 @@ export const navigateTo = (action: NavigationAction): void => {
       break;
     case "settingsMasterKeys":
       window.location.assign("#settings/master-keys");
+      break;
+    case "settingsProxyPayments":
+      window.location.assign("#settings/proxy-payments");
       break;
     case "advanced":
       window.location.assign("#advanced");
@@ -213,6 +218,9 @@ export const navigateTo = (action: NavigationAction): void => {
       window.location.assign(
         `#wallet/bank-payment/${encodeURIComponent(action.spdPayload.trim())}${action.editing ? BANK_PAYMENT_EDIT_SUFFIX : ""}`,
       );
+      break;
+    case "bankPaymentNew":
+      window.location.assign("#wallet/bank-payment/new");
       break;
     case "bankPaymentOffer":
       rememberBankPaymentOfferReturnHash();

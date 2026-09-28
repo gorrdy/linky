@@ -4,7 +4,7 @@ import {
   type WebSocket as PlaywrightWebSocket,
 } from "@playwright/test";
 import { Option, Schema } from "effect";
-import { nip19 } from "nostr-tools";
+import { finalizeEvent, nip19 } from "nostr-tools";
 
 const LOCAL_RELAY_URL = "ws://localhost:7777";
 
@@ -144,6 +144,60 @@ const queryRelay = (
       if (parsed[0] === "EOSE") finish(() => resolve(events));
     };
   });
+
+const nsecToSecretKey = (nsec: string): Uint8Array => {
+  const decoded = nip19.decode(nsec);
+  if (decoded.type !== "nsec") throw new Error("Not an nsec");
+  return decoded.data;
+};
+
+/**
+ * Publish the NIP-38 general status the app would publish from Settings >
+ * Payments > Proxy payments. The switch there first enables push
+ * notifications, which a service-worker-blocked test browser cannot do, so the
+ * test signs the same `kind:30315` event itself; the relay does not care who
+ * pressed the switch.
+ */
+export const publishProfileStatusToRelay = async (
+  nsec: string,
+  currencies: readonly string[],
+): Promise<void> => {
+  const event = finalizeEvent(
+    {
+      content: currencies.join(", "),
+      created_at: Math.floor(Date.now() / 1000),
+      kind: 30315,
+      tags: [["d", "general"]],
+    },
+    nsecToSecretKey(nsec),
+  );
+
+  await new Promise<void>((resolve, reject) => {
+    const socket = new WebSocket(LOCAL_RELAY_URL);
+    const timer = setTimeout(() => {
+      socket.close();
+      reject(new Error("relay publish timed out"));
+    }, 10_000);
+    socket.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error("relay socket error"));
+    };
+    socket.onopen = () => socket.send(JSON.stringify(["EVENT", event]));
+    socket.onmessage = (message) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(String(message.data));
+      } catch {
+        return;
+      }
+      if (!Array.isArray(parsed) || parsed[0] !== "OK") return;
+      clearTimeout(timer);
+      socket.close();
+      if (parsed[2] === true) resolve();
+      else reject(new Error(`relay rejected status: ${String(parsed[3])}`));
+    };
+  });
+};
 
 /**
  * Block until the account's NIP-38 status is actually on the relay. The status

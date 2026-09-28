@@ -5,8 +5,10 @@ import { asNonEmptyString } from "./utils/validation";
  * `@linky/linkstr`.
  */
 
-export const PROFILE_STATUS_CURRENCIES = ["BTC", "CZK", "EUR"] as const;
-const LEGACY_PROFILE_STATUS_CURRENCIES = ["USD"] as const;
+// The currencies a user can offer to pay for friends (proxy payments).
+// Older statuses may still carry BTC or USD; both parse and are dropped.
+export const PROFILE_STATUS_CURRENCIES = ["CZK", "EUR"] as const;
+const LEGACY_PROFILE_STATUS_CURRENCIES = ["BTC", "USD"] as const;
 const STATUS_FILTER_PREFIX = "status:";
 
 export type ProfileStatusCurrency = (typeof PROFILE_STATUS_CURRENCIES)[number];
