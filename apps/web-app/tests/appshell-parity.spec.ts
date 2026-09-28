@@ -167,7 +167,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
   await expect(page.locator(".profile-detail")).toBeVisible();
 
   await page.goto("/#");
-  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
   await page.waitForURL(/#settings$/, { timeout: 10_000 });
   await expect(page.getByRole("button", { name: /^Mint\b/ })).toBeVisible();
 

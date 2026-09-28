@@ -16,6 +16,7 @@ describe("ContactsPage", () => {
         contactsSearch=""
         contactsSearchInputRef={{ current: null }}
         conversationsLabel="Conversations"
+        filterOpen={false}
         filterOptions={[]}
         openNewContactPage={() => undefined}
         otherContactsLabel="Other contacts"
@@ -49,5 +50,47 @@ describe("ContactsPage", () => {
     ).toHaveLength(1);
 
     await act(async () => root.unmount());
+  });
+
+  it("renders search and group filter only while the filter is open", async () => {
+    const renderPage = (filterOpen: boolean) =>
+      renderIntoDocument(
+        <ContactsPage
+          activeGroup={null}
+          bottomTabActive="contacts"
+          contactsSearch=""
+          contactsSearchInputRef={{ current: null }}
+          conversationsLabel="Conversations"
+          filterOpen={filterOpen}
+          filterOptions={[{ count: 1, label: "Friends", value: "friends" }]}
+          openNewContactPage={() => undefined}
+          otherContactsLabel="Other contacts"
+          renderContactCard={(contact) => (
+            <div key={contact.id ?? ""}>{contact.name ?? ""}</div>
+          )}
+          setActiveGroup={() => undefined}
+          setContactsSearch={() => undefined}
+          showBottomTabBar={false}
+          showFab={false}
+          showGroupFilter={true}
+          t={(key) => key}
+          visibleContacts={{
+            conversations: [],
+            others: [{ id: "contact-1", name: "Alice" }],
+            pinned: [],
+            proxyPayments: [],
+          }}
+        />,
+      );
+
+    const closed = await renderPage(false);
+    expect(closed.container.querySelector('input[type="search"]')).toBeNull();
+    expect(closed.container.querySelector(".group-filter-bar")).toBeNull();
+    await act(async () => closed.root.unmount());
+
+    const open = await renderPage(true);
+    expect(open.container.querySelector('input[type="search"]')).not.toBeNull();
+    expect(open.container.querySelector(".group-filter-bar")).not.toBeNull();
+    await act(async () => open.root.unmount());
   });
 });

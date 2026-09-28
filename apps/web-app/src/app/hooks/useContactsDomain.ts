@@ -59,8 +59,17 @@ export const useContactsDomain = ({
   const [dedupeContactsIsBusy, setDedupeContactsIsBusy] = React.useState(false);
   const [activeGroup, setActiveGroup] = React.useState<string | null>(null);
   const [contactsSearch, setContactsSearch] = React.useState("");
+  const [contactsFilterOpen, setContactsFilterOpen] = React.useState(false);
 
   const contactsSearchInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const toggleContactsFilter = React.useCallback(() => {
+    setContactsFilterOpen(!contactsFilterOpen);
+    if (contactsFilterOpen) return;
+    requestAnimationFrame(() => {
+      contactsSearchInputRef.current?.focus();
+    });
+  }, [contactsFilterOpen]);
 
   const contactRows = useRepositoryRows(contactsRepository);
   const conversationRows = useRepositoryRows(conversations);
@@ -348,6 +357,7 @@ export const useContactsDomain = ({
   return {
     activeGroup,
     contacts,
+    contactsFilterOpen,
     contactsSearch,
     contactsSearchData,
     contactsSearchInputRef,
@@ -359,6 +369,7 @@ export const useContactsDomain = ({
     selectedContact,
     setActiveGroup,
     setContactsSearch,
+    toggleContactsFilter,
     ungroupedCount,
   };
 };

@@ -1,16 +1,63 @@
+import {
+  Users as ContactsIcon,
+  Settings as SettingsIcon,
+  Wallet as WalletIcon,
+} from "lucide-react";
 import React from "react";
+import { useAppShellCore } from "../app/context/AppShellContexts";
 import { navigateTo } from "../hooks/useRouting";
 import type { Translate } from "../i18n";
+import { formatShortNpub, getInitials } from "../utils/formatting";
+import { Avatar } from "./Avatar";
 import { BottomTab } from "./BottomTab";
 
+export type BottomTabKey = "profile" | "contacts" | "wallet" | "settings";
+
+const TAB_KEYS: readonly BottomTabKey[] = [
+  "profile",
+  "contacts",
+  "wallet",
+  "settings",
+];
+
 interface BottomTabBarProps {
-  activeTab: "contacts" | "wallet" | null;
+  activeTab: BottomTabKey | null;
   activeProgress?: number;
   contactsLabel: string;
   onTabChange?: (tab: "contacts" | "wallet") => void;
   t: Translate;
   walletLabel: string;
 }
+
+interface TabMetric {
+  left: number;
+  width: number;
+}
+
+type TabMetrics = Partial<Record<BottomTabKey, TabMetric>>;
+
+const clampProgress = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+};
+
+const ProfileTabAvatar = (): React.ReactElement => {
+  const { currentNpub, effectiveProfileName, effectiveProfilePicture } =
+    useAppShellCore();
+  return (
+    <span className="bottom-tab-avatar">
+      <Avatar
+        pictureUrl={effectiveProfilePicture}
+        fallback={getInitials(
+          effectiveProfileName ??
+            (currentNpub ? formatShortNpub(currentNpub) : "?"),
+        )}
+        fallbackClassName="bottom-tab-avatar-fallback"
+        loading="lazy"
+      />
+    </span>
+  );
+};
 
 export function BottomTabBar({
   activeTab,
@@ -21,55 +68,33 @@ export function BottomTabBar({
   walletLabel,
 }: BottomTabBarProps): React.ReactElement {
   const tabsRef = React.useRef<HTMLDivElement | null>(null);
-  const contactsTabRef = React.useRef<HTMLButtonElement | null>(null);
-  const walletTabRef = React.useRef<HTMLButtonElement | null>(null);
-  const [tabMetrics, setTabMetrics] = React.useState<{
-    contactsLeft: number;
-    contactsWidth: number;
-    walletLeft: number;
-    walletWidth: number;
-    ready: boolean;
-  }>({
-    contactsLeft: 0,
-    contactsWidth: 0,
-    walletLeft: 0,
-    walletWidth: 0,
-    ready: false,
-  });
+  const tabRefs = React.useRef<
+    Partial<Record<BottomTabKey, HTMLButtonElement>>
+  >({});
+  const [tabMetrics, setTabMetrics] = React.useState<TabMetrics>({});
 
-  const clampProgress = (value: number) => {
-    if (!Number.isFinite(value)) return 0;
-    return Math.min(1, Math.max(0, value));
-  };
-
-  const progress =
-    activeProgress !== undefined
-      ? clampProgress(activeProgress)
-      : activeTab === "wallet"
-        ? 1
-        : 0;
-  const visualActiveTab: "contacts" | "wallet" | null =
-    activeProgress !== undefined
-      ? progress >= 0.5
+  // Swipe progress interpolates the indicator between contacts and wallet.
+  const swipeProgress =
+    activeProgress !== undefined ? clampProgress(activeProgress) : null;
+  const visualActiveTab: BottomTabKey | null =
+    swipeProgress !== null
+      ? swipeProgress >= 0.5
         ? "wallet"
         : "contacts"
       : activeTab;
 
   const measureTabs = React.useCallback(() => {
     const container = tabsRef.current;
-    const contacts = contactsTabRef.current;
-    const wallet = walletTabRef.current;
-    if (!container || !contacts || !wallet) return;
+    if (!container) return;
     const containerRect = container.getBoundingClientRect();
-    const contactsRect = contacts.getBoundingClientRect();
-    const walletRect = wallet.getBoundingClientRect();
-    setTabMetrics({
-      contactsLeft: contactsRect.left - containerRect.left,
-      contactsWidth: contactsRect.width,
-      walletLeft: walletRect.left - containerRect.left,
-      walletWidth: walletRect.width,
-      ready: true,
-    });
+    const next: TabMetrics = {};
+    for (const key of TAB_KEYS) {
+      const element = tabRefs.current[key];
+      if (!element) continue;
+      const rect = element.getBoundingClientRect();
+      next[key] = { left: rect.left - containerRect.left, width: rect.width };
+    }
+    setTabMetrics(next);
   }, []);
 
   React.useLayoutEffect(() => {
@@ -79,42 +104,56 @@ export function BottomTabBar({
   React.useEffect(() => {
     if (typeof ResizeObserver === "undefined") return;
     const container = tabsRef.current;
-    const contacts = contactsTabRef.current;
-    const wallet = walletTabRef.current;
-    if (!container || !contacts || !wallet) return;
+    if (!container) return;
     const observer = new ResizeObserver(() => {
       measureTabs();
     });
     observer.observe(container);
-    observer.observe(contacts);
-    observer.observe(wallet);
+    for (const key of TAB_KEYS) {
+      const element = tabRefs.current[key];
+      if (element) observer.observe(element);
+    }
     return () => observer.disconnect();
   }, [measureTabs]);
 
-  const indicatorLeft =
-    tabMetrics.contactsLeft +
-    (tabMetrics.walletLeft - tabMetrics.contactsLeft) * progress;
-  const indicatorWidth =
-    tabMetrics.contactsWidth +
-    (tabMetrics.walletWidth - tabMetrics.contactsWidth) * progress;
+  const indicator = (() => {
+    const contacts = tabMetrics.contacts;
+    const wallet = tabMetrics.wallet;
+    if (swipeProgress !== null && contacts && wallet) {
+      return {
+        left: contacts.left + (wallet.left - contacts.left) * swipeProgress,
+        width: contacts.width + (wallet.width - contacts.width) * swipeProgress,
+      };
+    }
+    return visualActiveTab ? (tabMetrics[visualActiveTab] ?? null) : null;
+  })();
 
   const handleTabChange = React.useCallback(
-    (tab: "contacts" | "wallet") => {
+    (tab: BottomTabKey) => {
       if (tab === activeTab) return;
-      if (onTabChange) {
+      if (onTabChange && (tab === "contacts" || tab === "wallet")) {
         onTabChange(tab);
         return;
       }
       navigateTo({ route: tab });
     },
-    [activeTab, navigateTo, onTabChange],
+    [activeTab, onTabChange],
   );
 
+  const setTabRef =
+    (key: BottomTabKey) => (element: HTMLButtonElement | null) => {
+      if (element) {
+        tabRefs.current[key] = element;
+      } else {
+        delete tabRefs.current[key];
+      }
+    };
+
   return (
-    <div className="contacts-qr-bar" role="region">
+    <div className="contacts-qr-bar bottom-nav" role="region">
       <div className="bottom-tabs-bar" role="tablist" aria-label={t("list")}>
         <div
-          className={["bottom-tabs", tabMetrics.ready ? null : "no-indicator"]
+          className={["bottom-tabs", indicator ? null : "no-indicator"]
             .filter(Boolean)
             .join(" ")}
           ref={tabsRef}
@@ -123,27 +162,43 @@ export function BottomTabBar({
             className="bottom-tabs-indicator"
             aria-hidden="true"
             style={
-              tabMetrics.ready
+              indicator
                 ? {
-                    transform: `translateX(${indicatorLeft}px)`,
-                    width: `${indicatorWidth}px`,
+                    transform: `translateX(${indicator.left}px)`,
+                    width: `${indicator.width}px`,
                   }
                 : undefined
             }
           />
           <BottomTab
-            icon="contacts"
-            label={contactsLabel}
-            isActive={visualActiveTab === "contacts"}
-            onClick={() => handleTabChange("contacts")}
-            buttonRef={contactsTabRef}
+            buttonRef={setTabRef("profile")}
+            dataGuide="profile-qr-button"
+            icon={<ProfileTabAvatar />}
+            isActive={visualActiveTab === "profile"}
+            label={t("profile")}
+            onClick={() => handleTabChange("profile")}
           />
           <BottomTab
-            icon="wallet"
-            label={walletLabel}
+            buttonRef={setTabRef("contacts")}
+            icon={<ContactsIcon size={18} />}
+            isActive={visualActiveTab === "contacts"}
+            label={contactsLabel}
+            onClick={() => handleTabChange("contacts")}
+          />
+          <BottomTab
+            buttonRef={setTabRef("wallet")}
+            icon={<WalletIcon size={18} />}
             isActive={visualActiveTab === "wallet"}
+            label={walletLabel}
             onClick={() => handleTabChange("wallet")}
-            buttonRef={walletTabRef}
+          />
+          <BottomTab
+            buttonRef={setTabRef("settings")}
+            dataGuide="open-menu"
+            icon={<SettingsIcon size={18} />}
+            isActive={visualActiveTab === "settings"}
+            label={t("settings")}
+            onClick={() => handleTabChange("settings")}
           />
         </div>
       </div>

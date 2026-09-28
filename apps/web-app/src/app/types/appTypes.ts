@@ -195,6 +195,7 @@ export type ContactFormState = {
 
 export type TopbarButton = {
   icon: string;
+  isActive?: boolean;
   label: string;
   onClick: () => void;
 };

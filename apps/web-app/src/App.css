@@ -584,6 +584,10 @@
   justify-content: flex-start;
 }
 
+.topbar-btn.is-active {
+  color: #99f6e4;
+}
+
 .topbar > .topbar-btn {
   justify-content: flex-end;
 }
@@ -3122,6 +3126,10 @@ button.settings-sensitive-action.is-armed {
   padding-bottom: 140px;
 }
 
+.page.has-bottom-nav {
+  padding-bottom: calc(80px + var(--safe-area-bottom));
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -4352,12 +4360,16 @@ button.icon {
   background: var(--app-flat-bg);
 }
 
+.contacts-filter-panel {
+  padding: 4px 0;
+}
+
 .contacts-search-bar {
   position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 6px 0 8px;
+  margin: 2px 0 8px;
 }
 
 .contacts-search-bar input {
@@ -5853,6 +5865,74 @@ button.bank-payment-amount-button:hover {
 
 .bottom-tab-label {
   white-space: nowrap;
+}
+
+.bottom-nav {
+  padding: 0 0 var(--safe-area-bottom);
+  background: #0b1222;
+}
+
+.bottom-nav .bottom-tabs-bar {
+  margin-bottom: 0;
+}
+
+.bottom-nav .bottom-tabs {
+  display: flex;
+  width: 100%;
+  max-width: 520px;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.bottom-nav .bottom-tabs-indicator {
+  border-radius: 14px;
+}
+
+.bottom-nav-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  gap: 0;
+  padding: 9px 4px;
+  border-radius: 14px;
+}
+
+.bottom-nav-tab .bottom-tab-icon {
+  height: 26px;
+}
+
+.bottom-tab-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-tab-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bottom-tab-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.16);
+  font-size: 10px;
+  font-weight: 800;
+  color: #cbd5e1;
+  line-height: 1;
 }
 
 .contacts-qr-inner {
