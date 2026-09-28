@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Route } from "../../types/route";
 import { setBankPaymentOfferMinimized } from "./bankPaymentOfferStorage";
 import {
+  buildTopbar,
   buildTopbarRight,
   resolveBackAction,
   type BackActionContext,
@@ -142,14 +143,33 @@ describe("resolveBackAction", () => {
   });
 });
 
+describe("buildTopbar", () => {
+  it("hides the back button on the bottom-nav roots", () => {
+    const args = {
+      closeContactDetail: vi.fn(),
+      contactPayBackToChatId: null,
+      navigateToMainReturn: vi.fn(),
+      t: (key: string) => key,
+    };
+
+    expect(buildTopbar({ ...args, route: { kind: "profile" } })).toBeNull();
+    expect(buildTopbar({ ...args, route: { kind: "settings" } })).toBeNull();
+    expect(buildTopbar({ ...args, route: { kind: "advanced" } })?.icon).toBe(
+      "<",
+    );
+  });
+});
+
 describe("buildTopbarRight", () => {
   it("offers the pencil on the bank payment page and hides it while editing", () => {
     const args = {
       chatEditContactId: null,
+      contactsFilterIsActive: false,
       isProfileEditing: false,
       openReceiveScan: vi.fn(),
       openScan: vi.fn(),
       t: (key: string) => key,
+      toggleContactsFilter: vi.fn(),
       toggleMenu: vi.fn(),
     };
     const button = buildTopbarRight({
@@ -176,11 +196,13 @@ describe("buildTopbarRight", () => {
     const openReceiveScan = vi.fn();
     const button = buildTopbarRight({
       chatEditContactId: null,
+      contactsFilterIsActive: false,
       isProfileEditing: false,
       openReceiveScan,
       openScan: vi.fn(),
       route: { kind: "topup" },
       t: (key) => key,
+      toggleContactsFilter: vi.fn(),
       toggleMenu: vi.fn(),
     });
 
@@ -188,6 +210,27 @@ describe("buildTopbarRight", () => {
 
     expect(button?.icon).toBe("scan");
     expect(openReceiveScan).toHaveBeenCalledOnce();
+  });
+
+  it("toggles the contact filter from the contacts page", () => {
+    const toggleContactsFilter = vi.fn();
+    const button = buildTopbarRight({
+      chatEditContactId: null,
+      contactsFilterIsActive: true,
+      isProfileEditing: false,
+      openReceiveScan: vi.fn(),
+      openScan: vi.fn(),
+      route: { kind: "contacts" },
+      t: (key) => key,
+      toggleContactsFilter,
+      toggleMenu: vi.fn(),
+    });
+
+    button?.onClick();
+
+    expect(button?.icon).toBe("filter");
+    expect(button?.isActive).toBe(true);
+    expect(toggleContactsFilter).toHaveBeenCalledOnce();
   });
 });
 

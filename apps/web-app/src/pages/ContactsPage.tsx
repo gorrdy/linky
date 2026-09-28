@@ -12,6 +12,7 @@ interface ContactsPageProps {
   contactsSearch: string;
   contactsSearchInputRef: React.RefObject<HTMLInputElement | null>;
   conversationsLabel: string;
+  filterOpen: boolean;
   filterOptions: Array<{ count: number; label: string; value: string }>;
   openNewContactPage: () => void;
   onboardingContent?: React.ReactNode;
@@ -38,6 +39,7 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
     contactsSearch,
     contactsSearchInputRef,
     conversationsLabel,
+    filterOpen,
     filterOptions,
     openNewContactPage,
     onboardingContent,
@@ -61,60 +63,64 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
     return (
       <>
         {onboardingContent}
-        <div className="contacts-toolbar">
-          <div className="contacts-search-bar" role="search">
-            <input
-              ref={contactsSearchInputRef}
-              type="search"
-              placeholder={t("contactsSearchPlaceholder")}
-              value={contactsSearch}
-              onChange={(e) => setContactsSearch(e.target.value)}
-              autoComplete="off"
-            />
-            {contactsSearch.trim() && (
-              <button
-                type="button"
-                className="contacts-search-clear"
-                aria-label={t("contactsSearchClear")}
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  setContactsSearch("");
-                  requestAnimationFrame(() => {
-                    contactsSearchInputRef.current?.focus();
-                  });
-                }}
-              >
-                ×
-              </button>
-            )}
-          </div>
-
-          {showGroupFilter && (
-            <nav className="group-filter-bar" aria-label={t("group")}>
-              <div className="group-filter-inner">
-                {filterOptions.map((option) => (
+        {filterOpen && (
+          <div className="contacts-toolbar">
+            <div className="contacts-filter-panel">
+              <div className="contacts-search-bar" role="search">
+                <input
+                  ref={contactsSearchInputRef}
+                  type="search"
+                  placeholder={t("contactsSearchPlaceholder")}
+                  value={contactsSearch}
+                  onChange={(e) => setContactsSearch(e.target.value)}
+                  autoComplete="off"
+                />
+                {contactsSearch.trim() && (
                   <button
-                    key={option.value}
                     type="button"
-                    className={
-                      activeGroup === option.value
-                        ? "group-filter-btn contact-group-pill is-active"
-                        : "group-filter-btn contact-group-pill"
-                    }
-                    onClick={() =>
-                      setActiveGroup(
-                        activeGroup === option.value ? null : option.value,
-                      )
-                    }
-                    title={option.label}
+                    className="contacts-search-clear"
+                    aria-label={t("contactsSearchClear")}
+                    onPointerDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setContactsSearch("");
+                      requestAnimationFrame(() => {
+                        contactsSearchInputRef.current?.focus();
+                      });
+                    }}
                   >
-                    {option.label}
+                    ×
                   </button>
-                ))}
+                )}
               </div>
-            </nav>
-          )}
-        </div>
+
+              {showGroupFilter && (
+                <nav className="group-filter-bar" aria-label={t("group")}>
+                  <div className="group-filter-inner">
+                    {filterOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={
+                          activeGroup === option.value
+                            ? "group-filter-btn contact-group-pill is-active"
+                            : "group-filter-btn contact-group-pill"
+                        }
+                        onClick={() =>
+                          setActiveGroup(
+                            activeGroup === option.value ? null : option.value,
+                          )
+                        }
+                        title={option.label}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </nav>
+              )}
+            </div>
+          </div>
+        )}
 
         <section className="panel panel-plain contacts-list-panel">
           <div className="contact-list">

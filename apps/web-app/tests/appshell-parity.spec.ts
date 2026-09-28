@@ -167,7 +167,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
   await expect(page.locator(".profile-detail")).toBeVisible();
 
   await page.goto("/#");
-  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: "Settings" }).click();
   await page.waitForURL(/#settings$/, { timeout: 10_000 });
   await expect(page.getByRole("button", { name: /^Mint\b/ })).toBeVisible();
 
@@ -355,10 +355,13 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     await createContactAndOpenChat(page, "Hinzufügen");
   });
 
-  await test.step("open German settings from the wallet menu and inspect the mint", async () => {
+  await test.step("open German settings from the bottom navigation and inspect the mint", async () => {
     await page.goto("/#wallet");
     await expect(page.getByLabel("Verfügbares Guthaben")).toBeVisible();
-    await banner.getByRole("button", { name: "Menü", exact: true }).click();
+    await page
+      .locator(".bottom-nav")
+      .getByRole("button", { name: "Einstellungen", exact: true })
+      .click();
     await expect(page).toHaveURL(/#settings$/);
     await expect(title).toHaveText("Einstellungen");
     for (const name of [

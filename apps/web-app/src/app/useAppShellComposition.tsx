@@ -503,6 +503,7 @@ export const useAppShellComposition = ({
     contactsOnboardingHasBackedUpKeys,
     contactsOnboardingHasPaid,
     contactsOnboardingHasSentMessage,
+    contactsFilterOpen,
     contactsSearch,
     contactsSearchInputRef,
     dedupeContacts,
@@ -572,6 +573,7 @@ export const useAppShellComposition = ({
     setForm,
     setNewRelayUrl,
     statusFilterCurrencies,
+    toggleContactsFilter,
     ungroupedCount,
     unreadByContactId,
     updateLocalNostrMessage,
@@ -1214,24 +1216,30 @@ export const useAppShellComposition = ({
     route.kind === "chat" && !selectedChatContact?.isUnknownContact
       ? parseContactId(selectedContact?.id)
       : null;
+  const contactsFilterIsActive =
+    contactsSearch.trim() !== "" || activeGroup !== null;
   const topbarRight = React.useMemo(
     () =>
       buildTopbarRight({
         chatEditContactId,
+        contactsFilterIsActive,
         isProfileEditing,
         openReceiveScan,
         openScan,
         route,
         t,
+        toggleContactsFilter,
         toggleMenu,
       }),
     [
       chatEditContactId,
+      contactsFilterIsActive,
       isProfileEditing,
       openReceiveScan,
       openScan,
       route,
       t,
+      toggleContactsFilter,
       toggleMenu,
     ],
   );
@@ -1543,6 +1551,7 @@ export const useAppShellComposition = ({
         cashuTotalBalance,
         contactsOnboardingCelebrating,
         contactsOnboardingTasks,
+        contactsFilterOpen,
         contactsSearch,
         contactsSearchInputRef,
         contactFilterOptions,

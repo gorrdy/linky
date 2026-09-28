@@ -18,11 +18,13 @@ interface BuildTopbarArgs extends BackActionContext {
 
 interface BuildTopbarRightArgs {
   chatEditContactId: ContactId | null;
+  contactsFilterIsActive: boolean;
   isProfileEditing: boolean;
   openReceiveScan: () => void;
   openScan: () => void;
   route: Route;
   t: Translate;
+  toggleContactsFilter: () => void;
   toggleMenu: () => void;
 }
 
@@ -163,6 +165,10 @@ export const buildTopbar = ({
   route,
   t,
 }: BuildTopbarArgs): TopbarButton | null => {
+  // Profile and settings are bottom-nav roots: no back chevron, although the
+  // hardware back button still returns to the main screen.
+  if (route.kind === "profile" || route.kind === "settings") return null;
+
   const onClick = resolveBackAction(route, {
     closeContactDetail,
     contactPayBackToChatId,
@@ -204,7 +210,7 @@ const SHOWS_MENU_BUTTON: Record<
   cashuProofs: false,
   contactEdit: false,
   contactPay: true,
-  contacts: true,
+  contacts: false,
   chatStorage: false,
   evoluCurrentData: false,
   evoluData: false,
@@ -218,7 +224,7 @@ const SHOWS_MENU_BUTTON: Record<
   mints: false,
   nostrRelay: true,
   nostrRelayNew: true,
-  profile: true,
+  profile: false,
   profileEdit: false,
   settings: false,
   settingsLanguage: false,
@@ -228,18 +234,29 @@ const SHOWS_MENU_BUTTON: Record<
   topupInvoice: false,
   topupNoAmount: false,
   transactions: false,
-  wallet: true,
+  wallet: false,
 };
 
 export const buildTopbarRight = ({
   chatEditContactId,
+  contactsFilterIsActive,
   isProfileEditing,
   openReceiveScan,
   openScan,
   route,
   t,
+  toggleContactsFilter,
   toggleMenu,
 }: BuildTopbarRightArgs): TopbarButton | null => {
+  if (route.kind === "contacts") {
+    return {
+      icon: "filter",
+      isActive: contactsFilterIsActive,
+      label: t("contactsFilterToggle"),
+      onClick: toggleContactsFilter,
+    };
+  }
+
   if (route.kind === "nostrRelays") {
     return {
       icon: "+",

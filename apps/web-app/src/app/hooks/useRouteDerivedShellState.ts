@@ -27,7 +27,9 @@ export const useRouteDerivedShellState = ({
     ? "page has-group-filter"
     : route.kind === "chat"
       ? "page chat-page"
-      : "page";
+      : route.kind === "profile" || route.kind === "settings"
+        ? "page has-bottom-nav"
+        : "page";
   const pageClassNameWithSwipe = isMainSwipeRoute
     ? `${pageClassName} main-swipe-active`
     : pageClassName;

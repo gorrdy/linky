@@ -1,36 +1,40 @@
-import { Users as ContactsIcon, Wallet as WalletIcon } from "lucide-react";
-import type { Ref } from "react";
+import type { ReactNode, Ref } from "react";
 
 interface BottomTabProps {
-  icon: "contacts" | "wallet";
+  buttonRef?: Ref<HTMLButtonElement>;
+  dataGuide?: string;
+  icon: ReactNode;
   isActive: boolean;
   label: string;
   onClick: () => void;
-  buttonRef?: Ref<HTMLButtonElement>;
 }
 
 export function BottomTab({
+  buttonRef,
+  dataGuide,
   icon,
   isActive,
   label,
   onClick,
-  buttonRef,
 }: BottomTabProps) {
-  const iconContent =
-    icon === "contacts" ? <ContactsIcon size={18} /> : <WalletIcon size={18} />;
-
   return (
     <button
       type="button"
-      className={isActive ? "bottom-tab is-active" : "bottom-tab"}
+      className={
+        isActive
+          ? "bottom-tab bottom-nav-tab is-active"
+          : "bottom-tab bottom-nav-tab"
+      }
       onClick={onClick}
+      aria-label={label}
+      title={label}
       aria-current={isActive ? "page" : undefined}
       ref={buttonRef}
+      {...(dataGuide ? { "data-guide": dataGuide } : {})}
     >
       <span className="bottom-tab-icon" aria-hidden="true">
-        {iconContent}
+        {icon}
       </span>
-      <span className="bottom-tab-label">{label}</span>
     </button>
   );
 }

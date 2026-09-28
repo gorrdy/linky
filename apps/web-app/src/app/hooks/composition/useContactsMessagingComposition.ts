@@ -430,6 +430,7 @@ export const useContactsMessagingComposition = ({
   const {
     activeGroup,
     contacts,
+    contactsFilterOpen,
     contactsSearch,
     contactsSearchInputRef,
     contactsSearchParts,
@@ -440,6 +441,7 @@ export const useContactsMessagingComposition = ({
     selectedContact,
     setActiveGroup,
     setContactsSearch,
+    toggleContactsFilter,
     ungroupedCount,
   } = useContactsDomain({
     contacts: contactsRepository,
@@ -2155,6 +2157,7 @@ export const useContactsMessagingComposition = ({
     contactsOnboardingHasBackedUpKeys,
     contactsOnboardingHasPaid,
     contactsOnboardingHasSentMessage,
+    contactsFilterOpen,
     contactsSearch,
     contactsSearchInputRef,
     dedupeContacts,
@@ -2222,6 +2225,7 @@ export const useContactsMessagingComposition = ({
     setContactsOnboardingHasBackedUpKeys,
     setContactsOnboardingHasPaid,
     setContactsSearch,
+    toggleContactsFilter,
     setForm,
     setNewRelayUrl,
     statusFilterCurrencies,

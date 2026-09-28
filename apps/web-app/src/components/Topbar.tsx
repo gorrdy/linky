@@ -1,15 +1,17 @@
-import { Pencil as EditIcon, ScanLine, Settings } from "lucide-react";
-import React from "react";
 import {
-  useAppShellActions,
-  useAppShellCore,
-} from "../app/context/AppShellContexts";
+  Filter as FilterIcon,
+  Pencil as EditIcon,
+  ScanLine,
+  Settings,
+} from "lucide-react";
+import React from "react";
+import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
   getDesktopRouteSection,
   isDesktopSectionEntryRoute,
 } from "../app/routes/desktopRouteSection";
 import { navigateTo } from "../hooks/useRouting";
-import { formatShortNpub, getInitials } from "../utils/formatting";
+import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 import { Avatar } from "./Avatar";
 
@@ -22,7 +24,6 @@ export function Topbar({
   className = "",
   desktopDetail = false,
 }: TopbarProps): React.ReactElement {
-  const actions = useAppShellActions();
   const state = useAppShellCore();
 
   const desktopTopbar = isDesktopSectionEntryRoute(state.route)
@@ -40,19 +41,9 @@ export function Topbar({
         }
       : state.topbar;
   const desktopTopbarRight =
-    state.topbarRight?.icon === "☰" ? null : state.topbarRight;
+    state.topbarRight?.icon === "filter" ? null : state.topbarRight;
 
-  const {
-    chatTopbarContact,
-    currentNpub,
-    effectiveProfileName,
-    effectiveProfilePicture,
-    nostrPictureByNpub,
-    route,
-    t,
-    topbarTitle,
-  } = state;
-  const { openProfileQr } = actions;
+  const { chatTopbarContact, nostrPictureByNpub, t, topbarTitle } = state;
   const topbar = desktopDetail ? desktopTopbar : state.topbar;
   const topbarRight = desktopDetail ? desktopTopbarRight : state.topbarRight;
   const canOpenChatContact = Boolean(chatTopbarContact?.contactId);
@@ -61,26 +52,6 @@ export function Topbar({
     <div className={className}>
       <header className="topbar">
         <div className="topbar-left">
-          {route.kind === "contacts" || route.kind === "wallet" ? (
-            <button
-              className="topbar-btn topbar-profile-btn"
-              onClick={openProfileQr}
-              aria-label={t("profile")}
-              title={t("profile")}
-              data-guide="profile-qr-button"
-            >
-              <Avatar
-                pictureUrl={effectiveProfilePicture}
-                fallback={getInitials(
-                  effectiveProfileName ??
-                    (currentNpub ? formatShortNpub(currentNpub) : "?"),
-                )}
-                fallbackClassName="topbar-profile-fallback"
-                loading="lazy"
-              />
-            </button>
-          ) : null}
-
           {topbar ? (
             <button
               className="topbar-btn"
@@ -90,7 +61,9 @@ export function Topbar({
             >
               <span aria-hidden="true">{topbar.icon}</span>
             </button>
-          ) : null}
+          ) : (
+            <span className="topbar-spacer" aria-hidden="true" />
+          )}
         </div>
 
         {chatTopbarContact ? (
@@ -135,15 +108,15 @@ export function Topbar({
 
         {topbarRight ? (
           <button
-            className="topbar-btn"
+            className={
+              topbarRight.isActive ? "topbar-btn is-active" : "topbar-btn"
+            }
             onClick={topbarRight.onClick}
             aria-label={topbarRight.label}
             title={topbarRight.label}
-            {...(topbarRight.icon === "☰"
-              ? { "data-guide": "open-menu" }
-              : topbarRight.icon === "scan"
-                ? { "data-guide": "scan-contact-button" }
-                : {})}
+            {...(topbarRight.icon === "scan"
+              ? { "data-guide": "scan-contact-button" }
+              : {})}
           >
             <span aria-hidden="true">
               {topbarRight.icon === "☰" ? (
@@ -152,6 +125,8 @@ export function Topbar({
                 <EditIcon size={18} />
               ) : topbarRight.icon === "scan" ? (
                 <ScanLine size={20} />
+              ) : topbarRight.icon === "filter" ? (
+                <FilterIcon size={20} />
               ) : (
                 topbarRight.icon
               )}

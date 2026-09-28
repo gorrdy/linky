@@ -12,6 +12,22 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.9.21] - 2026-09-28
+
+### en-US
+
+- Bottom navigation with Profile, Contacts, Wallet and Settings; contact search and group filter open from the filter button in the top bar.
+- Wallet: balance per mint, moving funds between mints with a fee estimate, adding a mint and choosing the default one from its page; synced "Allow test mints" switch.
+- Proxy payments settings page with manual bank-transfer entry; one-tap chat archive with undo.
+- Long contact names are shortened in lists; app data export fixed on Android.
+
+### cs-CZ
+
+- Dolní navigace s Profilem, Kontakty, Peněženkou a Nastavením; hledání kontaktů a filtr skupin se otevírají tlačítkem filtru v horní liště.
+- Peněženka: zůstatek podle mintu, přesun mezi minty s odhadem poplatku, přidání mintu a volba výchozího z jeho stránky; přepínač „Povolit testovací minty“.
+- Stránka nastavení proxy plateb s ručním zadáním převodu; archivace chatu jedním klepnutím s možností vrátit zpět.
+- Dlouhá jména kontaktů se zkracují; opraven export dat na Androidu.
+
 ## [26.9.20] - 2026-09-25
 
 ### en-US

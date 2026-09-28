@@ -30,6 +30,7 @@ export interface MainSwipeRouteProps {
     tasks: ReadonlyArray<{ done: boolean; key: string; label: string }>;
     total: number;
   };
+  contactsFilterOpen: boolean;
   contactsSearch: string;
   contactsSearchInputRef: React.RefObject<HTMLInputElement | null>;
   contactFilterOptions: Array<{ count: number; label: string; value: string }>;
@@ -185,6 +186,7 @@ export const MainSwipeContent = (): React.ReactElement => {
     activeBankPaymentOfferContacts,
     contactsOnboardingCelebrating,
     contactsOnboardingTasks,
+    contactsFilterOpen,
     contactsSearch,
     contactsSearchInputRef,
     contactFilterOptions,
@@ -242,6 +244,7 @@ export const MainSwipeContent = (): React.ReactElement => {
             }
             contactsSearchInputRef={contactsSearchInputRef}
             contactsSearch={contactsSearch}
+            filterOpen={contactsFilterOpen || isDesktopSplitView}
             setContactsSearch={setContactsSearch}
             showGroupFilter={
               showGroupFilter ||
@@ -339,6 +342,7 @@ export const DesktopContactsPane = (): React.ReactElement => {
         }
         contactsSearchInputRef={contactsSearchInputRef}
         contactsSearch={contactsSearch}
+        filterOpen={true}
         setContactsSearch={setContactsSearch}
         showGroupFilter={contactFilterOptions.length > 0}
         activeGroup={activeGroup}

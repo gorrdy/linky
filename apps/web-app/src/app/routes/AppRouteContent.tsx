@@ -1,5 +1,6 @@
 import React from "react";
 import { DesktopNavigation } from "../../components/DesktopNavigation";
+import { MobileBottomNav } from "../../components/MobileBottomNav";
 import { ScanModal } from "../../components/ScanModal";
 import { Topbar } from "../../components/Topbar";
 import { useDesktopSplitView } from "../../hooks/useDesktopSplitView";
@@ -106,6 +107,12 @@ const RoutePage = (): React.ReactElement => {
     case "wallet":
       return <MainSwipeContent />;
     case "settings":
+      return (
+        <>
+          <AdvancedPage />
+          <MobileBottomNav activeTab="settings" />
+        </>
+      );
     case "advanced":
       return <AdvancedPage />;
     case "settingsUnits":
@@ -196,6 +203,12 @@ const RoutePage = (): React.ReactElement => {
     case "contactNew":
       return <ContactNewPage {...peopleRoutes.contactNewProps} />;
     case "profile":
+      return (
+        <>
+          <ProfilePage {...peopleRoutes.profileProps} />
+          <MobileBottomNav activeTab="profile" />
+        </>
+      );
     case "profileEdit":
       return <ProfilePage {...peopleRoutes.profileProps} />;
     default:
