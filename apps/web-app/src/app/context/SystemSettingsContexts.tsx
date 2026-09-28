@@ -1,4 +1,5 @@
 import type { MintIcon } from "../../utils/mint";
+import type { ReceiveMethod } from "../../utils/receiveMethod";
 /* eslint-disable react-refresh/only-export-components */
 import type { LinkyScope } from "@linky/linksync";
 import type { AutoswapEstimate, StoredProof } from "@linky/linkshu";
@@ -27,6 +28,7 @@ export interface AdvancedSettingsContextValue {
   logoutArmed: boolean;
   payWithCashuEnabled: boolean;
   pushToast: (message: string) => void;
+  receiveMethod: ReceiveMethod;
   relayUrls: string[];
   requestImportAppData: () => void;
   requestLogout: () => void;
@@ -35,6 +37,7 @@ export interface AdvancedSettingsContextValue {
   seedMnemonic: string | null;
   setLightningInvoiceAutoPayLimit: (value: number) => void;
   setPayWithCashuEnabled: (value: boolean) => void;
+  setReceiveMethod: (value: ReceiveMethod) => void;
 }
 
 export interface EvoluSettingsContextValue {

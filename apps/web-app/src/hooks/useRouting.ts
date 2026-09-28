@@ -120,6 +120,7 @@ type NavigationAction =
   | { route: "settingsMasterKeys" }
   | { route: "settingsProxyPayments" }
   | { route: "settingsUnits" }
+  | { route: "settingsReceiveMethod" }
   | { route: "transactions" }
   | { route: "topup" }
   | { route: "topupNoAmount" }
@@ -139,6 +140,9 @@ export const navigateTo = (action: NavigationAction): void => {
       break;
     case "settingsUnits":
       window.location.assign("#settings/units");
+      break;
+    case "settingsReceiveMethod":
+      window.location.assign("#settings/receive-method");
       break;
     case "settingsMasterKeys":
       window.location.assign("#settings/master-keys");

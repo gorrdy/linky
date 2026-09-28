@@ -27,6 +27,7 @@ import {
   EvoluServersPage,
   InspectorSettingsPage,
   LanguagePage,
+  ReceiveMethodPage,
   LnAddressPayPage,
   ManualPayPage,
   MasterKeysPage,
@@ -119,6 +120,8 @@ const RoutePage = (): React.ReactElement => {
       return <SettingsPage />;
     case "settingsLanguage":
       return <LanguagePage />;
+    case "settingsReceiveMethod":
+      return <ReceiveMethodPage />;
     case "settingsMasterKeys":
       return <MasterKeysPage />;
     case "settingsProxyPayments":

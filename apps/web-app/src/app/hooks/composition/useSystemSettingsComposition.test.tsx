@@ -34,6 +34,7 @@ const createAdvancedSettings = (
   logoutArmed: false,
   payWithCashuEnabled: true,
   pushToast,
+  receiveMethod: "universal",
   relayUrls: [],
   requestImportAppData: noop,
   requestLogout: noop,
@@ -42,6 +43,7 @@ const createAdvancedSettings = (
   seedMnemonic: null,
   setLightningInvoiceAutoPayLimit: noop,
   setPayWithCashuEnabled: noop,
+  setReceiveMethod: noop,
 });
 
 type EvoluSettingsInput = Omit<

@@ -153,6 +153,7 @@ export const de = {
   cashuPendingDays: "Seit {days} Tagen ausstehend",
   tokens: "Tokens",
   preferCashu: "Cashu bevorzugen",
+  receiveMethod: "Empfangsmethode",
   payWithCashuDisabled:
     "Cashu-Zahlungen sind in den erweiterten Einstellungen deaktiviert.",
   lightningInvoiceAutoPayLimit: "Limit für automatische Zahlungen",
@@ -618,7 +619,6 @@ export const de = {
   topupInvoiceTitle: "Aufladerechnung",
   topupFetchingInvoice: "Rechnung wird abgerufen…",
   topupInvoiceFailed: "Rechnung konnte nicht abgerufen werden",
-  topupQrModeLabel: "QR-Typ für den Empfang",
   topupQrModeCashu: "Cashu",
   topupQrModeUniversal: "Universell",
   topupQrModeLightning: "Lightning",

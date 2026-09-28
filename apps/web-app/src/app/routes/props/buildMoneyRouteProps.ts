@@ -80,6 +80,7 @@ interface BuildMoneyRoutePropsParams {
       : never
     : never;
   setTopupAmount: MoneyRoutesProps["topupProps"]["setTopupAmount"];
+  receiveMethod: MoneyRoutesProps["topupInvoiceProps"]["receiveMethod"];
   t: Translate;
   topupAmount: MoneyRoutesProps["topupProps"]["topupAmount"];
   topupInvoice: MoneyRoutesProps["topupInvoiceProps"]["topupInvoice"];
@@ -161,6 +162,7 @@ export const buildMoneyRouteProps = ({
   topupMintUrl,
   topupInvoiceQr,
   topupInvoiceQrPayload,
+  receiveMethod,
   tokensRestoreIsBusy,
   tokensRestoreProgress,
   writeCashuTokenToNfc,
@@ -273,6 +275,7 @@ export const buildMoneyRouteProps = ({
       spdPayload: route.kind === "bankPayment" ? route.spdPayload : "",
     },
     topupInvoiceProps: {
+      receiveMethod,
       topupAmount,
       topupInvoiceCashuRequest,
       topupInvoiceQr,
