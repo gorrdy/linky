@@ -1,5 +1,6 @@
 import { bech32 } from "@scure/base";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { LnurlFallback } from "./common";
 import {
   isLnurlAuthTarget,
   parseLnurlAuthTarget,
@@ -128,5 +129,79 @@ describe("LNURL-auth callback", () => {
         sign: () => signature,
       }),
     ).rejects.toThrow();
+  });
+
+  it("sends the signed callback through the fallback first, exactly once", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const fallback = vi.fn<LnurlFallback>(async () =>
+      jsonResponse({ status: "OK" }),
+    );
+
+    await submitLnurlAuth(
+      { preview: previewFor(AUTH_URL), sign: () => signature },
+      fallback,
+    );
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fallback).toHaveBeenCalledTimes(1);
+    const called = new URL(String(fallback.mock.calls[0]?.[0]));
+    expect(called.searchParams.get("k1")).toBe(K1);
+    expect(called.searchParams.get("sig")).toBe(signature.signatureHex);
+    expect(called.searchParams.get("key")).toBe(signature.publicKeyHex);
+  });
+
+  it("keeps the domain's reason from an error status the fallback relayed", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const fallback = vi.fn(async () =>
+      Response.json(
+        { status: "ERROR", reason: "k1 already used" },
+        {
+          status: 400,
+        },
+      ),
+    );
+
+    await expect(
+      submitLnurlAuth(
+        { preview: previewFor(AUTH_URL), sign: () => signature },
+        fallback,
+      ),
+    ).rejects.toThrow("k1 already used");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not retry directly after the fallback relayed a failure", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const fallback = vi.fn(async () =>
+      Response.json({ error: "Proxy fetch failed" }, { status: 502 }),
+    );
+
+    await expect(
+      submitLnurlAuth(
+        { preview: previewFor(AUTH_URL), sign: () => signature },
+        fallback,
+      ),
+    ).rejects.toThrow("HTTP 502");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("goes direct only when the fallback cannot be reached", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(jsonResponse({ status: "OK" }));
+    const fallback = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+
+    await submitLnurlAuth(
+      { preview: previewFor(AUTH_URL), sign: () => signature },
+      fallback,
+    );
+
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(
+      new URL(String(fetchSpy.mock.calls[0]?.[0])).searchParams.get("sig"),
+    ).toBe(signature.signatureHex);
   });
 });

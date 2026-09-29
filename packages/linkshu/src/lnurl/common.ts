@@ -1,7 +1,7 @@
 import { bech32 } from "@scure/base";
 import { Schema } from "effect";
 import { stripLightningPrefix } from "./lightningAddress";
-import { isHttpsUrl } from "./text";
+import { asNonEmptyString, isHttpsUrl } from "./text";
 
 /**
  * Browsers cannot reach every LNURL server directly (CORS), so a consumer may
@@ -70,7 +70,34 @@ export const requireLnurlHttpsUrl = (url: string): void => {
   if (!isHttpsUrl(url)) throw new InsecureLnurlUrlError();
 };
 
-const fetchJson = async (url: string) => {
+const readLnurlErrorReason = async (
+  response: Response,
+): Promise<string | null> => {
+  try {
+    const body: unknown = await response.json();
+    if (!isLnurlStatusResponse(body) || !isLnurlErrorStatus(body.status)) {
+      return null;
+    }
+    return asNonEmptyString(body.reason) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * LNURL services answer errors under any HTTP status, so a `status: "ERROR"`
+ * body names the failure better than the status code.
+ */
+export const readLnurlJsonResponse = async (response: Response) => {
+  if (response.ok) {
+    const body: unknown = await response.json();
+    return body;
+  }
+  const reason = await readLnurlErrorReason(response);
+  throw new Error(reason ?? `HTTP ${response.status}`);
+};
+
+export const fetchLnurlJsonDirect = async (url: string) => {
   let requestUrl = url;
   for (let redirects = 0; ; redirects += 1) {
     requireLnurlHttpsUrl(requestUrl);
@@ -88,21 +115,16 @@ const fetchJson = async (url: string) => {
       continue;
     }
     // Browsers hide manual redirects; the HTTPS-enforcing proxy handles them.
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const body: unknown = await response.json();
-    return body;
+    return readLnurlJsonResponse(response);
   }
 };
 
 export const fetchLnurlJson = async (url: string, fallback?: LnurlFallback) => {
   requireLnurlHttpsUrl(url);
   try {
-    return await fetchJson(url);
+    return await fetchLnurlJsonDirect(url);
   } catch (error) {
     if (!fallback || error instanceof InsecureLnurlUrlError) throw error;
-    const response = await fallback(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const body: unknown = await response.json();
-    return body;
+    return readLnurlJsonResponse(await fallback(url));
   }
 };

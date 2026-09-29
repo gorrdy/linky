@@ -4,6 +4,8 @@ import type { Translate } from "../../i18n";
 import { submitLnurlAuth, type LnurlAuthPreview } from "../../lnurlAuth";
 import { getUnknownErrorMessage } from "../../utils/unknown";
 
+const SUCCESS_OVERLAY_MS = 2400;
+
 interface UseLnurlAuthParams {
   currentNsec: string | null;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
@@ -14,6 +16,7 @@ export interface LnurlAuthResult {
   closeLnurlAuthConfirmation: () => void;
   confirmLnurlAuth: () => Promise<void>;
   lnurlAuthIsBusy: boolean;
+  lnurlAuthIsDone: boolean;
   pendingLnurlAuthConfirmation: LnurlAuthPreview | null;
   requestLnurlAuthConfirmation: (preview: LnurlAuthPreview) => void;
 }
@@ -22,6 +25,8 @@ export interface LnurlAuthResult {
  * LUD-04 signer: a scanned login request waits for the user to approve it, then
  * Linky signs the challenge with the domain's linking key and reports the
  * result. Nothing about the login is stored — the domain owns the session.
+ * A confirmed login keeps the sheet up in its done state for a moment; only
+ * failures go to the status toast.
  */
 export const useLnurlAuth = ({
   currentNsec,
@@ -31,6 +36,28 @@ export const useLnurlAuth = ({
   const [pendingLnurlAuthConfirmation, setPendingLnurlAuthConfirmation] =
     React.useState<LnurlAuthPreview | null>(null);
   const [lnurlAuthIsBusy, setLnurlAuthIsBusy] = React.useState(false);
+  const [lnurlAuthIsDone, setLnurlAuthIsDone] = React.useState(false);
+  const successTimerRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    const timerRef = successTimerRef;
+    return () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    };
+  }, []);
+
+  const showDone = React.useCallback(() => {
+    setLnurlAuthIsDone(true);
+    if (successTimerRef.current !== null) {
+      window.clearTimeout(successTimerRef.current);
+    }
+    successTimerRef.current = window.setTimeout(() => {
+      setLnurlAuthIsDone(false);
+      setPendingLnurlAuthConfirmation(null);
+      successTimerRef.current = null;
+    }, SUCCESS_OVERLAY_MS);
+  }, []);
 
   const requestLnurlAuthConfirmation = React.useCallback(
     (preview: LnurlAuthPreview) => {
@@ -46,13 +73,13 @@ export const useLnurlAuth = ({
   );
 
   const closeLnurlAuthConfirmation = React.useCallback(() => {
-    if (lnurlAuthIsBusy) return;
+    if (lnurlAuthIsBusy || lnurlAuthIsDone) return;
     setPendingLnurlAuthConfirmation(null);
-  }, [lnurlAuthIsBusy]);
+  }, [lnurlAuthIsBusy, lnurlAuthIsDone]);
 
   const confirmLnurlAuth = React.useCallback(async () => {
     const pending = pendingLnurlAuthConfirmation;
-    if (!pending || lnurlAuthIsBusy) return;
+    if (!pending || lnurlAuthIsBusy || lnurlAuthIsDone) return;
 
     if (!currentNsec) {
       setStatus(`${t("errorPrefix")}: ${t("lnurlAuthUnavailable")}`);
@@ -61,10 +88,8 @@ export const useLnurlAuth = ({
 
     setLnurlAuthIsBusy(true);
     try {
-      setStatus(t("lnurlAuthInProgress"));
       await submitLnurlAuth({ nsec: currentNsec, preview: pending });
-      setPendingLnurlAuthConfirmation(null);
-      setStatus(t("lnurlAuthSucceeded").replace("{domain}", pending.domain));
+      showDone();
       reportAppLog({
         tag: "lnurlAuth.approved",
         summary: `LNURL-auth ${pending.action} accepted by ${pending.domain}`,
@@ -90,8 +115,10 @@ export const useLnurlAuth = ({
   }, [
     currentNsec,
     lnurlAuthIsBusy,
+    lnurlAuthIsDone,
     pendingLnurlAuthConfirmation,
     setStatus,
+    showDone,
     t,
   ]);
 
@@ -99,6 +126,7 @@ export const useLnurlAuth = ({
     closeLnurlAuthConfirmation,
     confirmLnurlAuth,
     lnurlAuthIsBusy,
+    lnurlAuthIsDone,
     pendingLnurlAuthConfirmation,
     requestLnurlAuthConfirmation,
   };

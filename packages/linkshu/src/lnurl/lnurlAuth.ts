@@ -1,10 +1,11 @@
 import {
   decodeLnurlBech32Url,
-  fetchLnurlJson,
-  requireLnurlHttpsUrl,
+  fetchLnurlJsonDirect,
   isLnurlErrorStatus,
   isLnurlStatusResponse,
   normalizeLnurlHttpsUrl,
+  readLnurlJsonResponse,
+  requireLnurlHttpsUrl,
   toHttpsLnurlUrl,
   type LnurlFallback,
 } from "./common";
@@ -94,6 +95,26 @@ export const parseLnurlAuthTarget = (
 export const isLnurlAuthTarget = (value: string): boolean =>
   parseLnurlAuthTarget(value) !== null;
 
+// The callback consumes the challenge, so it is sent exactly once. A browser
+// still delivers a direct request whose response CORS then hides, and a retry
+// through the fallback would land on a used k1 — so the fallback, which reads
+// every response, goes first, and the direct request only runs when the
+// fallback could not be reached at all.
+const fetchLnurlAuthCallback = async (
+  url: string,
+  fallback?: LnurlFallback,
+) => {
+  if (!fallback) return fetchLnurlJsonDirect(url);
+
+  let response: Response;
+  try {
+    response = await fallback(url);
+  } catch {
+    return fetchLnurlJsonDirect(url);
+  }
+  return readLnurlJsonResponse(response);
+};
+
 export const submitLnurlAuth = async (
   args: {
     preview: LnurlAuthPreview;
@@ -111,7 +132,10 @@ export const submitLnurlAuth = async (
   callbackUrl.searchParams.set("sig", signatureHex);
   callbackUrl.searchParams.set("key", publicKeyHex);
 
-  const responseJson = await fetchLnurlJson(callbackUrl.toString(), fallback);
+  const responseJson = await fetchLnurlAuthCallback(
+    callbackUrl.toString(),
+    fallback,
+  );
   if (!isLnurlStatusResponse(responseJson)) {
     throw new Error("Invalid LNURL-auth callback response");
   }

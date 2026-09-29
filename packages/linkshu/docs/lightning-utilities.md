@@ -74,7 +74,7 @@ These work on error _messages_. `Melt` itself fails with a typed `InsufficientFu
 
 `fallback: LnurlFallback = (url) => Promise<Response>` is tried when the direct fetch fails — Linky routes through its `/api/lnurlp` proxy for CORS-blocked servers (`apps/web-app/src/lnurlPay.ts`). Fixed-amount LNURLs that re-quote in fiat are followed within 2 % drift.
 
-All LNURL targets and pay/withdraw/auth callbacks require HTTPS, including bech32-encoded URLs. `lnurlp://`, `lnurlw://`, and `keyauth://` resolve to HTTPS. HTTP loopback URLs are rejected too; local LNURL providers need HTTPS. Redirects are followed manually, up to three hops, with HTTPS checked before each request. Browsers hide redirect destinations, so those requests use the optional fallback. Fallback adapters must enforce HTTPS on every upstream redirect as well. Invalid schemes fail before the fallback is called, and an insecure auth preview fails before signing.
+All LNURL targets and pay/withdraw/auth callbacks require HTTPS, including bech32-encoded URLs. `lnurlp://`, `lnurlw://`, and `keyauth://` resolve to HTTPS. HTTP loopback URLs are rejected too; local LNURL providers need HTTPS. Redirects are followed manually, up to three hops, with HTTPS checked before each request. Browsers hide redirect destinations, so those requests use the optional fallback. Fallback adapters must enforce HTTPS on every upstream redirect as well, and should return the upstream response rather than throwing on a non-2xx status: the package reads a `status: "ERROR"` body under any HTTP status and reports its `reason` instead of a bare `HTTP <status>`. Invalid schemes fail before the fallback is called, and an insecure auth preview fails before signing.
 
 ### LNURL-withdraw
 
@@ -111,6 +111,8 @@ LUD-04 logs the user into a third-party site. The whole request is in the scanne
 
 The linking key is the user's, so this package never derives or holds it: `submitLnurlAuth` asks the caller's `sign` for a signature over the challenge and appends `sig`/`key` to the LNURL's own query.
 
+The callback consumes the challenge, so it is sent exactly once. When a fallback is given it goes **first** — the pay/withdraw order (direct, then fallback) would let a browser deliver a direct request whose response CORS then hides, and the retry through the fallback would land on a used `k1` after the site had already logged the user in. The direct request runs only when the fallback throws, i.e. the proxy itself could not be reached; a failure the fallback relayed is final.
+
 ```ts
 import { parseLnurlAuthTarget, submitLnurlAuth } from "@linky-fit/linkshu";
 
@@ -127,11 +129,11 @@ const login = async (scanned: string) => {
 };
 ```
 
-| Export                             | Returns                    | Notes                                                                                              |
-| ---------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `parseLnurlAuthTarget(text)`       | `LnurlAuthPreview \| null` | accepts `lnurl1…`, `keyauth://`, and plain https; `{ action, domain, k1, requestUrl }`, no network |
-| `isLnurlAuthTarget(text)`          | `boolean`                  | the same check without the preview                                                                 |
-| `submitLnurlAuth(args, fallback?)` | `Promise<void>`            | resolves only on an explicit `status: "OK"`; throws the service's `reason` on `status: "ERROR"`    |
+| Export                             | Returns                    | Notes                                                                                                                                              |
+| ---------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parseLnurlAuthTarget(text)`       | `LnurlAuthPreview \| null` | accepts `lnurl1…`, `keyauth://`, and plain https; `{ action, domain, k1, requestUrl }`, no network                                                 |
+| `isLnurlAuthTarget(text)`          | `boolean`                  | the same check without the preview                                                                                                                 |
+| `submitLnurlAuth(args, fallback?)` | `Promise<void>`            | sends the callback once, through `fallback` first; resolves only on an explicit `status: "OK"`; throws the service's `reason` on `status: "ERROR"` |
 
 `action` is the site's own word for what the login does (`login`, `register`, `link`, `auth`) and defaults to `login`; show it, because the user is consenting to it. An unconfirmed callback is an error rather than a silent success — a site that never confirmed has not logged the user in.
 

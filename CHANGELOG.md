@@ -16,11 +16,13 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 - Every Evolu server can be removed or disabled, including the defaults; removing one default no longer restores the other. The server list warns when no server is enabled, so data stays on this device only.
 - Settings > Payments > Receive method chooses which QR a top-up shows: Cashu, Universal (Cashu and Lightning in one) or Lightning. The switch on the top-up page is gone.
+- Lightning login (LNURL-auth) shows a success screen with an unlock animation instead of "HTTP 400" on sites that block browser requests; the site's own error reason is shown when it rejects a login.
 
 ### cs-CZ
 
 - Každý Evolu server jde odebrat nebo vypnout, včetně výchozích; odebrání jednoho výchozího už neobnoví druhý. Seznam serverů upozorní, když není zapnutý žádný server a data tak zůstávají jen na tomto zařízení.
 - Nastavení > Platby > Způsob přijímání určuje, jaký QR se u dobití zobrazí: Cashu, Univerzální (Cashu a Lightning v jednom) nebo Lightning. Přepínač na stránce dobití zmizel.
+- Přihlášení Lightningem (LNURL-auth) ukáže obrazovku úspěchu s animací odemknutí místo „HTTP 400“ na webech, které blokují požadavky z prohlížeče; když web přihlášení odmítne, zobrazí se jeho vlastní důvod.
 
 ## [26.9.21] - 2026-09-28
 
