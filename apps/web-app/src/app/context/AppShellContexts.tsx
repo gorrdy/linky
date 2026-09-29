@@ -132,6 +132,7 @@ export interface AppShellCoreContextValue {
   topbarRight: TopbarButton | null;
   topbarTitle: string | null;
   lnurlAuthIsBusy: boolean;
+  lnurlAuthIsDone: boolean;
   lnurlWithdrawIsBusy: boolean;
 }
 

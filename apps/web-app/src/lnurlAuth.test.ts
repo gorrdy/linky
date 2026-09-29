@@ -34,7 +34,18 @@ describe("LNURL-auth signing", () => {
 
     const identity = identityFromNsec(NSEC);
     if (!identity) throw new Error("expected a valid nsec");
-    const called = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+    // The callback goes through the CORS proxy, so the signed URL is its
+    // `url` parameter.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const proxied = new URL(
+      String(fetchSpy.mock.calls[0]?.[0]),
+      "http://localhost",
+    );
+    expect(proxied.pathname).toBe("/api/lnurlp");
+    const called = new URL(proxied.searchParams.get("url") ?? "");
+    expect(called.origin + called.pathname).toBe(
+      "https://example.com/lnurl-auth",
+    );
     expect(called.searchParams.get("key")).toBe(
       deriveLnurlAuthPublicKeyHex(identity.secretKey, "example.com"),
     );

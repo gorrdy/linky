@@ -8,7 +8,7 @@ import { shouldRenderNativeNfcWritePrompt } from "../platform/nativeBridge";
 import { ContactsGuideOverlay } from "./ContactsGuideOverlay";
 import { LightningInvoiceConfirmModal } from "./LightningInvoiceConfirmModal";
 import { CashuPaymentRequestConfirmModal } from "./CashuPaymentRequestConfirmModal";
-import { LnurlAuthConfirmModal } from "./LnurlAuthConfirmModal";
+import { LnurlAuthModal } from "./LnurlAuthModal";
 import { LnurlWithdrawConfirmModal } from "./LnurlWithdrawConfirmModal";
 import { MenuModal } from "./MenuModal";
 import { NfcWriteModal } from "./NfcWriteModal";
@@ -107,11 +107,17 @@ export function AuthenticatedLayout({
       ) : null}
 
       {state.pendingLnurlAuthConfirmation && !state.paidOverlayIsOpen ? (
-        <LnurlAuthConfirmModal
+        <LnurlAuthModal
           confirmation={state.pendingLnurlAuthConfirmation}
-          isBusy={state.lnurlAuthIsBusy}
           onClose={actions.closeLnurlAuthConfirmation}
           onConfirm={actions.confirmLnurlAuth}
+          phase={
+            state.lnurlAuthIsDone
+              ? "done"
+              : state.lnurlAuthIsBusy
+                ? "busy"
+                : "confirm"
+          }
           t={state.t}
         />
       ) : null}

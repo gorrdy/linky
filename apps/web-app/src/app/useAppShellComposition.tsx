@@ -919,6 +919,7 @@ export const useAppShellComposition = ({
     closeLnurlAuthConfirmation,
     confirmLnurlAuth,
     lnurlAuthIsBusy,
+    lnurlAuthIsDone,
     pendingLnurlAuthConfirmation,
     requestLnurlAuthConfirmation,
   } = useLnurlAuth({ currentNsec, setStatus, t });
@@ -1184,7 +1185,7 @@ export const useAppShellComposition = ({
     }
     // The paid overlay hides every confirmation below it and clears itself on a
     // timer, so there is nothing for back to dismiss while it is up.
-    if (paidOverlayIsOpen) return null;
+    if (paidOverlayIsOpen || lnurlAuthIsDone) return null;
     if (pendingPaymentMintMeltConfirmation) {
       return closePaymentMintMeltConfirmation;
     }
@@ -1746,6 +1747,7 @@ export const useAppShellComposition = ({
       topbarRight,
       topbarTitle,
       lnurlAuthIsBusy,
+      lnurlAuthIsDone,
       lnurlWithdrawIsBusy,
     }),
     [
@@ -1777,6 +1779,7 @@ export const useAppShellComposition = ({
       isProfileEditing,
       lang,
       lnurlAuthIsBusy,
+      lnurlAuthIsDone,
       lnurlWithdrawIsBusy,
       menuIsOpen,
       myProfileQr,
