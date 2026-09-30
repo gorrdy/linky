@@ -51,7 +51,7 @@ If we have to guess what changed, we are much less likely to review it.
 Tell us:
 
 - What exactly has changed
-- Why exactly should the change should exist. 
+- Why exactly should the change exist. 
 
 If the PR makes anything resembling a UI change, include clear before and after screenshots. If the change depends on motion, timing, transitions or interaction details, include a short video.
 
