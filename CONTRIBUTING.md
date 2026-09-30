@@ -61,9 +61,8 @@ Paste this checklist into the description and tick the boxes:
 
 ```markdown
 - [ ] I ran the app and tried this change myself
-- [ ] `bun run check-code` and `bun run test` pass
 - [ ] Before and after screenshots (or a video) are attached, or the UI didn't change
-- [ ] I understand what this change does and can explain it
+- [ ] I understand why this change is needed, what this change does and can explain it
 ```
 
 ## License
