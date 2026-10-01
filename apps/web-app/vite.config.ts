@@ -1,3 +1,4 @@
+import { linkyUi } from "@linky-fit/ui/vite";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import react from "@vitejs/plugin-react-swc";
 import { execSync } from "node:child_process";
@@ -233,6 +234,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    linkyUi(),
     bootDiagnosticRedaction(),
     serveSqliteWasm(),
     inspectorCollector(),

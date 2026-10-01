@@ -1,13 +1,18 @@
+import { linkyUi } from "@linky-fit/ui/vite";
 import react from "@vitejs/plugin-react-swc";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [linkyUi(), react()],
   test: {
     environment: "jsdom",
     globals: true,
     setupFiles: "./vitest.setup.ts",
     css: true,
+    // Node cannot load React Native sources; inlining sends them through the react-native-web aliases.
+    server: {
+      deps: { inline: [/tamagui/, /react-native/, /lucide-react-native/] },
+    },
     // tests/ holds the Playwright suites and their helpers; unit tests sit
     // next to their subject under src/.
     exclude: [...configDefaults.exclude, "tests/**"],

@@ -1,3 +1,4 @@
+import { UIProvider } from "@linky-fit/ui";
 import { act, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -16,7 +17,7 @@ export const renderIntoDocument = async (
   const root = createRoot(container);
   const rerender = async (next: ReactElement): Promise<void> => {
     await act(async () => {
-      root.render(next);
+      root.render(<UIProvider mode="dark">{next}</UIProvider>);
     });
   };
   await rerender(element);

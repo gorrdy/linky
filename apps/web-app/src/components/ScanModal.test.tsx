@@ -112,24 +112,22 @@ describe("ScanModal", () => {
   } satisfies ScanModalProps;
 
   it("shows animated QR progress in the footer outside the native camera viewport", async () => {
-    const { container, root, unmount } = await renderIntoDocument(
+    const { container, rerender, unmount } = await renderIntoDocument(
       <TestScanModal {...baseProps} scanEntryPoint="receive" />,
     );
     expect(container.querySelector(".scan-status")).toBeNull();
 
-    await act(async () => {
-      root.render(
-        <TestScanModal
-          {...baseProps}
-          scanEntryPoint="receive"
-          scanDiagnostics={{
-            ...baseProps.scanDiagnostics,
-            animation: { expected: 10, received: 4 },
-            reads: 4,
-          }}
-        />,
-      );
-    });
+    await rerender(
+      <TestScanModal
+        {...baseProps}
+        scanEntryPoint="receive"
+        scanDiagnostics={{
+          ...baseProps.scanDiagnostics,
+          animation: { expected: 10, received: 4 },
+          reads: 4,
+        }}
+      />,
+    );
 
     expect(
       container.querySelector(".scan-footer .scan-status")?.textContent,
@@ -142,16 +140,14 @@ describe("ScanModal", () => {
   });
 
   it("shows the manual action only when allowed", async () => {
-    const { container, root } = await renderIntoDocument(
+    const { container, rerender } = await renderIntoDocument(
       <TestScanModal {...baseProps} showTypeAction={true} />,
     );
 
     expect(container.textContent).toContain("Type");
     expect(container.textContent).toContain("Paste");
 
-    await act(async () => {
-      root.render(<TestScanModal {...baseProps} showTypeAction={false} />);
-    });
+    await rerender(<TestScanModal {...baseProps} showTypeAction={false} />);
 
     expect(container.textContent).not.toContain("Type");
     expect(container.textContent).toContain("Paste");

@@ -52,7 +52,7 @@ describe("WalletPendingReceives", () => {
 
     const { container, unmount } = await renderLine();
 
-    expect(container.innerHTML).toBe("");
+    expect(container.textContent).toBe("");
     await unmount();
   });
 

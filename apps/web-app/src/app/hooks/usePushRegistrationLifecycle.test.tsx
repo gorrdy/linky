@@ -9,7 +9,10 @@ import {
   it,
   vi,
 } from "vitest";
-import { renderIntoDocument } from "../../testUtils/renderIntoDocument";
+import {
+  renderIntoDocument,
+  type RenderedElement,
+} from "../../testUtils/renderIntoDocument";
 import { usePushRegistrationLifecycle } from "./usePushRegistrationLifecycle";
 
 const platformMocks = vi.hoisted(() => ({
@@ -76,12 +79,12 @@ const installWebPushCapabilities = (): void => {
 const renderLifecycle = async ({
   currentNsec = "nsec-test",
   enabled = true,
-}: Partial<HarnessProps> = {}): Promise<Root> => {
-  const { root } = await renderIntoDocument(
+}: Partial<HarnessProps> = {}): Promise<RenderedElement> => {
+  const rendered = await renderIntoDocument(
     <Harness currentNsec={currentNsec} enabled={enabled} />,
   );
-  mountedRoots.add(root);
-  return root;
+  mountedRoots.add(rendered.root);
+  return rendered;
 };
 
 // Registration only happens after the hook's dynamic import settles, which
@@ -156,12 +159,10 @@ afterEach(async () => {
 
 describe("usePushRegistrationLifecycle", () => {
   it("does not initialize while disabled or without an nsec", async () => {
-    const root = await renderLifecycle({ enabled: false });
+    const { rerender } = await renderLifecycle({ enabled: false });
     await flushLifecycle();
 
-    await act(async () => {
-      root.render(<Harness currentNsec={null} enabled />);
-    });
+    await rerender(<Harness currentNsec={null} enabled />);
     await flushLifecycle();
 
     expect(requestPermission).not.toHaveBeenCalled();
@@ -192,16 +193,14 @@ describe("usePushRegistrationLifecycle", () => {
   it("requests default web permission and registers only when granted", async () => {
     notificationPermission = "default";
     requestPermission.mockResolvedValueOnce("denied");
-    const root = await renderLifecycle();
+    const { rerender } = await renderLifecycle();
     await flushLifecycle();
 
     expect(requestPermission).toHaveBeenCalledOnce();
     expect(pushMocks.registerPushNotifications).not.toHaveBeenCalled();
 
     requestPermission.mockResolvedValueOnce("granted");
-    await act(async () => {
-      root.render(<Harness currentNsec="nsec-next" enabled />);
-    });
+    await rerender(<Harness currentNsec="nsec-next" enabled />);
     await flushLifecycle();
 
     expect(requestPermission).toHaveBeenCalledTimes(2);
@@ -350,7 +349,7 @@ describe("usePushRegistrationLifecycle", () => {
   it("stops registering on foreground and service-worker events after unmount", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
-    const root = await renderLifecycle();
+    const { root } = await renderLifecycle();
     await flushLifecycle();
     pushMocks.registerPushNotifications.mockClear();
 

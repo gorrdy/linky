@@ -67,7 +67,7 @@ describe("useContactsOnboardingProgress", () => {
     const onProgress = (value: OnboardingProgress) =>
       progressSnapshots.push(value);
 
-    const { root } = await renderIntoDocument(
+    const { rerender, root } = await renderIntoDocument(
       <Harness
         dismissedSynced={false}
         onProgress={onProgress}
@@ -77,16 +77,14 @@ describe("useContactsOnboardingProgress", () => {
     );
     expect(progressSnapshots.at(-1)?.showContactsOnboarding).toBe(true);
 
-    await act(async () => {
-      root.render(
-        <Harness
-          dismissedSynced
-          onProgress={onProgress}
-          persistDismissed={persistDismissed}
-          stopGuide={stopGuide}
-        />,
-      );
-    });
+    await rerender(
+      <Harness
+        dismissedSynced
+        onProgress={onProgress}
+        persistDismissed={persistDismissed}
+        stopGuide={stopGuide}
+      />,
+    );
 
     expect(progressSnapshots.at(-1)?.showContactsOnboarding).toBe(false);
     expect(

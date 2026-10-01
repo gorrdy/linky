@@ -77,7 +77,7 @@ describe("MintDeferredReceives", () => {
       <MintDeferredReceives mint="https://cashu.cz" />,
     );
 
-    expect(container.innerHTML).toBe("");
+    expect(container.textContent).toBe("");
     await unmount();
   });
 
