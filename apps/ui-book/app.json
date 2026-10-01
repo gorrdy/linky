@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Linky UI book",
+    "slug": "linky-ui-book",
+    "orientation": "default",
+    "scheme": "linky-ui-book",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "fit.linky.uibook" },
+    "android": { "package": "fit.linky.uibook" },
+    "web": { "bundler": "metro", "name": "Linky UI book" },
+    "plugins": ["expo-font"]
+  }
+}

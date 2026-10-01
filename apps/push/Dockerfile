@@ -9,6 +9,7 @@ COPY apps/linkshu-cli/package.json apps/linkshu-cli/package.json
 COPY apps/native-shell/package.json apps/native-shell/package.json
 COPY apps/push/package.json apps/push/package.json
 COPY apps/site/package.json apps/site/package.json
+COPY apps/ui-book/package.json apps/ui-book/package.json
 COPY apps/web-app/package.json apps/web-app/package.json
 COPY packages/identity/package.json packages/identity/package.json
 COPY packages/linkshu/package.json packages/linkshu/package.json

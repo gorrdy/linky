@@ -42,7 +42,8 @@
     "e2e": "bash scripts/e2e.sh",
     "check-code": "bun run typecheck && bun run eslint && bun run prettier",
     "build:npm": "bun run --filter @linky-fit/linkshu --filter @linky-fit/linkstr build:npm",
-    "check:npm": "bash packages/config/npm/check.sh"
+    "check:npm": "bash packages/config/npm/check.sh",
+    "ui:dev": "bun run --filter @linky-fit/ui-book dev"
   },
   "patchedDependencies": {
     "bysquare@4.0.0": "patches/bysquare@4.0.0.patch",
