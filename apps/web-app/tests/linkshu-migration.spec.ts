@@ -436,7 +436,9 @@ test("legacy cashu storage migrates and the wallet keeps working", async ({
       await page.goto("/#advanced");
       const chooser = page.waitForEvent("filechooser");
       await page.getByRole("button", { name: "Import data" }).click();
-      await (await chooser).setFiles({
+      await (
+        await chooser
+      ).setFiles({
         name: "linky-export.txt",
         mimeType: "text/plain",
         buffer: Buffer.from(

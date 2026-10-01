@@ -1,4 +1,4 @@
-import { Icon, ListRow, Switch } from "@linky-fit/ui";
+import { Icon, ListRow, Switch, Stack, Section, Text } from "@linky-fit/ui";
 import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -106,8 +106,13 @@ export function InspectorSettingsPage(): React.ReactElement {
   };
 
   return (
-    <section className="panel settings-page">
-      <div className="settings-section">
+    <Stack
+      gap="$lg"
+      marginTop="$sm"
+      paddingBottom="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <Section>
         <ListRow
           leading={<Icon name="Bug" />}
           title={t("nostrInspector")}
@@ -125,9 +130,9 @@ export function InspectorSettingsPage(): React.ReactElement {
           title={t("openNostrInspector")}
           onPress={() => navigateTo({ route: "advancedInspectorTimeline" })}
         />
-      </div>
+      </Section>
 
-      <div className="settings-section">
+      <Section>
         <ListRow
           leading={<Icon name="Bug" />}
           title={t("nostrInspectorLogs")}
@@ -141,9 +146,9 @@ export function InspectorSettingsPage(): React.ReactElement {
         />
 
         {inspectorLogsEnabled ? (
-          <div className="inspector-log-stats" aria-live="polite">
+          <Text variant="caption" color="$colorMuted" aria-live="polite">
             {inspectorLogStatsLabel}
-          </div>
+          </Text>
         ) : null}
 
         <ListRow
@@ -167,15 +172,15 @@ export function InspectorSettingsPage(): React.ReactElement {
             !inspectorLogStats?.rowCount
           }
         />
-      </div>
+      </Section>
 
-      <div className="settings-section">
+      <Section>
         <ListRow
           leading={<Icon name="FlaskConical" />}
           title="Push / SW Debug (log)"
           onPress={() => navigateTo({ route: "advancedPushDebug" })}
         />
-      </div>
-    </section>
+      </Section>
+    </Stack>
   );
 }

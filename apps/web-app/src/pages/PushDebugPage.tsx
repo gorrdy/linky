@@ -1,5 +1,5 @@
+import { Button, CodeBlock, Row, Stack, Text } from "@linky-fit/ui";
 import React from "react";
-
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { isNativePlatform } from "../platform/runtime";
 import {
@@ -14,12 +14,10 @@ import {
   unregisterPushNotifications,
 } from "../utils/pushNotifications";
 import { safeLocalStorageGet, safeLocalStorageKeys } from "../utils/storage";
-
 interface PushDebugMessage {
   receivedAtIso: string;
   text: string;
 }
-
 interface PushDebugReport {
   cacheKeys: string[];
   hasPushManager: boolean;
@@ -41,7 +39,6 @@ interface PushDebugReport {
   }>;
   storedDebugLog: PushDebugLogEntry[];
 }
-
 const INITIAL_REPORT: PushDebugReport = {
   cacheKeys: [],
   hasPushManager: false,
@@ -55,7 +52,6 @@ const INITIAL_REPORT: PushDebugReport = {
   serviceWorkerController: false,
   serviceWorkerRegistrations: [],
 };
-
 async function resetServiceWorkersAndCaches(): Promise<void> {
   if ("serviceWorker" in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
@@ -63,13 +59,11 @@ async function resetServiceWorkersAndCaches(): Promise<void> {
       registrations.map((registration) => registration.unregister()),
     );
   }
-
   if ("caches" in globalThis) {
     const cacheKeys = await caches.keys();
     await Promise.all(cacheKeys.map((key) => caches.delete(key)));
   }
 }
-
 async function loadPushDebugReport(): Promise<PushDebugReport> {
   const report: PushDebugReport = {
     ...INITIAL_REPORT,
@@ -80,7 +74,6 @@ async function loadPushDebugReport(): Promise<PushDebugReport> {
       "Notification" in window ? Notification.permission : "unsupported",
     serviceWorkerController: Boolean(navigator.serviceWorker?.controller),
   };
-
   if ("caches" in globalThis) {
     try {
       report.cacheKeys = (await caches.keys()).sort();
@@ -88,13 +81,10 @@ async function loadPushDebugReport(): Promise<PushDebugReport> {
       report.cacheKeys = [];
     }
   }
-
   report.storedDebugLog = await readPushDebugLog();
-
   if (!report.hasServiceWorker) {
     return report;
   }
-
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     report.serviceWorkerRegistrations = registrations.map((registration) => ({
@@ -103,7 +93,6 @@ async function loadPushDebugReport(): Promise<PushDebugReport> {
       scope: registration.scope,
       waitingScriptUrl: registration.waiting?.scriptURL ?? null,
     }));
-
     const readyRegistration = await navigator.serviceWorker.ready;
     const subscription = await readyRegistration.pushManager.getSubscription();
     const applicationServerKey = subscription?.options.applicationServerKey;
@@ -124,30 +113,24 @@ async function loadPushDebugReport(): Promise<PushDebugReport> {
   } catch {
     // ignore best-effort debug reads
   }
-
   return report;
 }
-
 export function PushDebugPage(): React.ReactElement {
   const { currentNsec, t } = useAppShellCore();
   const [report, setReport] = React.useState<PushDebugReport>(INITIAL_REPORT);
   const [messages, setMessages] = React.useState<PushDebugMessage[]>([]);
   const [isBusy, setIsBusy] = React.useState(false);
   const [status, setStatus] = React.useState<string>("");
-
   const refreshReport = React.useCallback(async () => {
     setReport(await loadPushDebugReport());
   }, []);
-
   React.useEffect(() => {
     void refreshReport();
   }, [refreshReport]);
-
   React.useEffect(() => {
     if (!("serviceWorker" in navigator)) {
       return;
     }
-
     const onMessage = (event: MessageEvent) => {
       const nextText = JSON.stringify(event.data);
       setMessages((prev) =>
@@ -160,13 +143,11 @@ export function PushDebugPage(): React.ReactElement {
         ].slice(0, 10),
       );
     };
-
     navigator.serviceWorker.addEventListener("message", onMessage);
     return () => {
       navigator.serviceWorker.removeEventListener("message", onMessage);
     };
   }, []);
-
   const handleRequestPermission = React.useCallback(async () => {
     setIsBusy(true);
     try {
@@ -179,18 +160,15 @@ export function PushDebugPage(): React.ReactElement {
       setIsBusy(false);
     }
   }, [refreshReport, t]);
-
   const handleRegister = React.useCallback(async () => {
     if (!currentNsec) {
       setStatus(t("notificationsNotLoggedIn"));
       return;
     }
-
     if (!isNativePlatform() && !("Notification" in window)) {
       setStatus(t("notificationsUnsupported"));
       return;
     }
-
     setIsBusy(true);
     try {
       if (!isNativePlatform() && Notification.permission === "default") {
@@ -201,7 +179,6 @@ export function PushDebugPage(): React.ReactElement {
           return;
         }
       }
-
       const result = await registerPushNotifications(currentNsec);
       setStatus(
         result.success
@@ -213,13 +190,11 @@ export function PushDebugPage(): React.ReactElement {
       setIsBusy(false);
     }
   }, [currentNsec, refreshReport, t]);
-
   const handleUnregister = React.useCallback(async () => {
     if (!currentNsec) {
       setStatus(t("notificationsNotLoggedIn"));
       return;
     }
-
     setIsBusy(true);
     try {
       const ok = await unregisterPushNotifications(currentNsec);
@@ -229,7 +204,6 @@ export function PushDebugPage(): React.ReactElement {
       setIsBusy(false);
     }
   }, [currentNsec, refreshReport, t]);
-
   const handleReset = React.useCallback(async () => {
     setIsBusy(true);
     try {
@@ -243,7 +217,6 @@ export function PushDebugPage(): React.ReactElement {
       setIsBusy(false);
     }
   }, [refreshReport]);
-
   const handleClearLogs = React.useCallback(async () => {
     setIsBusy(true);
     try {
@@ -255,7 +228,6 @@ export function PushDebugPage(): React.ReactElement {
       setIsBusy(false);
     }
   }, [refreshReport]);
-
   const reportText = JSON.stringify(
     {
       ...report,
@@ -271,7 +243,6 @@ export function PushDebugPage(): React.ReactElement {
     null,
     2,
   );
-
   const handleCopyLogs = React.useCallback(async () => {
     setIsBusy(true);
     try {
@@ -287,75 +258,96 @@ export function PushDebugPage(): React.ReactElement {
       setIsBusy(false);
     }
   }, [reportText]);
-
   return (
-    <section className="panel">
-      <div className="settings-row settings-row-stack-mobile">
-        <div className="settings-left">
-          <span className="settings-label">Push / SW debug</span>
-        </div>
-        <div className="settings-right settings-right-wrap">
-          <div className="badge-box badge-box-wrap">
-            <button
-              className="ghost"
-              onClick={() => void refreshReport()}
-              disabled={isBusy}
-            >
-              Refresh
-            </button>
-            <button
-              className="ghost"
-              onClick={() => void handleRequestPermission()}
-              disabled={isBusy}
-            >
-              Permission
-            </button>
-            <button
-              className="ghost"
-              onClick={() => void handleRegister()}
-              disabled={isBusy || !currentNsec}
-            >
-              Register
-            </button>
-            <button
-              className="ghost"
-              onClick={() => void handleUnregister()}
-              disabled={isBusy}
-            >
-              Unregister
-            </button>
-            <button
-              className="ghost"
-              onClick={() => void handleReset()}
-              disabled={isBusy}
-            >
-              Reset SW
-            </button>
-            <button
-              className="ghost"
-              onClick={() => void handleClearLogs()}
-              disabled={isBusy}
-            >
-              Clear logs
-            </button>
-            <button
-              className="ghost"
-              onClick={() => void handleCopyLogs()}
-              disabled={isBusy}
-            >
-              Copy logs
-            </button>
-          </div>
-        </div>
-      </div>
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <Row
+        alignItems="flex-start"
+        justifyContent="space-between"
+        $compact={{ flexDirection: "column" }}
+      >
+        <Text variant="label">Push / SW debug</Text>
+        <Row
+          flexGrow={1}
+          flexShrink={1}
+          flexWrap="wrap"
+          justifyContent="flex-end"
+          gap="$sm"
+          $compact={{
+            justifyContent: "flex-start",
+            flexGrow: 0,
+            flexShrink: 0,
+          }}
+        >
+          <Button
+            onPress={() => void refreshReport()}
+            disabled={isBusy}
+            variant="ghost"
+          >
+            Refresh
+          </Button>
+          <Button
+            onPress={() => void handleRequestPermission()}
+            disabled={isBusy}
+            variant="ghost"
+          >
+            Permission
+          </Button>
+          <Button
+            onPress={() => void handleRegister()}
+            disabled={isBusy || !currentNsec}
+            variant="ghost"
+          >
+            Register
+          </Button>
+          <Button
+            onPress={() => void handleUnregister()}
+            disabled={isBusy}
+            variant="ghost"
+          >
+            Unregister
+          </Button>
+          <Button
+            onPress={() => void handleReset()}
+            disabled={isBusy}
+            variant="ghost"
+          >
+            Reset SW
+          </Button>
+          <Button
+            onPress={() => void handleClearLogs()}
+            disabled={isBusy}
+            variant="ghost"
+          >
+            Clear logs
+          </Button>
+          <Button
+            onPress={() => void handleCopyLogs()}
+            disabled={isBusy}
+            variant="ghost"
+          >
+            Copy logs
+          </Button>
+        </Row>
+      </Row>
 
       {status ? (
-        <div className="settings-row">
-          <div className="push-debug-empty">{status}</div>
-        </div>
+        <Row
+          justifyContent="space-between"
+          minHeight="$control"
+          paddingVertical="$sm"
+        >
+          <Text color="$colorMuted" variant="label">
+            {status}
+          </Text>
+        </Row>
       ) : null}
 
-      <pre className="push-debug-details">{reportText}</pre>
-    </section>
+      <CodeBlock testID="push-debug-report">{reportText}</CodeBlock>
+    </Stack>
   );
 }

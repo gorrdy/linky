@@ -30,9 +30,10 @@ describe("PushDebugPage", () => {
     });
     const { container, unmount } = await renderIntoDocument(<PushDebugPage />);
     await vi.waitFor(() =>
-      expect(container.querySelector("pre")?.textContent).toContain(
-        LOCAL_NPUB_CASH_CLAIM_INBOX_STORAGE_KEY_PREFIX,
-      ),
+      expect(
+        container.querySelector('[data-testid="push-debug-report"]')
+          ?.textContent,
+      ).toContain(LOCAL_NPUB_CASH_CLAIM_INBOX_STORAGE_KEY_PREFIX),
     );
 
     const copyLogs = [...container.querySelectorAll("button")].find(

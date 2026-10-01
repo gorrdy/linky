@@ -1,3 +1,4 @@
+import { Button, DataTable, Row, Stack, Text } from "@linky-fit/ui";
 import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -9,7 +10,6 @@ import {
 } from "../app/lib/shardTables";
 import { loadEvoluCurrentData } from "../evolu";
 import { formatEvoluDebugValue } from "../utils/evoluDebugValue";
-
 export function EvoluCurrentDataPage(): React.ReactElement {
   const { evoluShards, requestRotateShard, rotatingShardScope } =
     useEvoluSettingsContext();
@@ -22,14 +22,12 @@ export function EvoluCurrentDataPage(): React.ReactElement {
   const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>(
     {},
   );
-
   useEffect(() => {
     loadEvoluCurrentData().then((data) => {
       setCurrentData(data);
       setIsLoading(false);
     });
   }, []);
-
   const dataSections = React.useMemo(
     () =>
       Object.entries(currentData)
@@ -46,69 +44,97 @@ export function EvoluCurrentDataPage(): React.ReactElement {
         .filter(({ scope, rows }) => scope !== null || rows.length > 0),
     [currentData, evoluShards],
   );
-
   if (isLoading) {
     return (
-      <section className="panel panel-plain page-loading-panel">
-        <p className="muted">{t("loading")}...</p>
-      </section>
+      <Stack
+        gap="$lg"
+        marginTop="$lg"
+        paddingTop="$sm"
+        paddingBottom="$xxl"
+        $wide={{ marginTop: "$none" }}
+      >
+        <Text variant="body" color="$colorMuted">
+          {t("loading")}...
+        </Text>
+      </Stack>
     );
   }
-
   return (
-    <section className="panel panel-layout">
-      <div className="evolu-data-scroll">
-        <div className="evolu-data-card">
-          <div className="evolu-data-card-header">
-            <div className="evolu-data-title-row has-owner-summary">
-              <h3 className="unspaced">{t("evoluShards")}</h3>
-            </div>
-            <div className="evolu-owner-summary-grid">
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingTop="$sm"
+      paddingBottom="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <Stack maxHeight="$contentWidth" overflow="scroll">
+        <Stack padding="$none" gap="$none">
+          <Stack padding="$lg">
+            <Row justifyContent="space-between">
+              <Text variant="title" role="heading">
+                {t("evoluShards")}
+              </Text>
+            </Row>
+            <Row flexWrap="wrap" gap="$md">
               {evoluShards.map((shard) => (
-                <div key={shard.scope} className="evolu-owner-stat">
-                  <div className="evolu-owner-stat-line">
-                    <span className="evolu-owner-stat-value">
+                <Stack
+                  key={shard.scope}
+                  flexGrow={1}
+                  minWidth="$column"
+                  padding="$md"
+                  gap="$xs"
+                >
+                  <Row justifyContent="space-between" gap="$sm">
+                    <Text variant="label" flex={1} textAlign="right">
                       {shard.scope}
-                    </span>
+                    </Text>
                     {shard.rotates ? (
-                      <button
+                      <Button
                         type="button"
-                        className="secondary"
                         disabled={rotatingShardScope !== null}
-                        onClick={() => {
+                        onPress={() => {
                           if (rotatingShardScope !== null) return;
                           void requestRotateShard(shard.scope);
                         }}
+                        variant="secondary"
                       >
                         {t(
                           rotatingShardScope === shard.scope
                             ? "evoluShardRotating"
                             : "evoluShardRotate",
                         ).replace("{scope}", shard.scope)}
-                      </button>
+                      </Button>
                     ) : (
-                      <span className="muted">{t("evoluShardFixed")}</span>
+                      <Text variant="body" color="$colorMuted">
+                        {t("evoluShardFixed")}
+                      </Text>
                     )}
-                  </div>
-                  <div className="evolu-owner-stat-line">
-                    <span className="muted">{t("evoluShardIndex")}</span>
-                    <span>{shard.index}</span>
-                  </div>
-                  <div className="evolu-owner-stat-line">
-                    <span className="muted">{t("evoluShardVisibleCount")}</span>
-                    <span>{shard.visibleOwnerIds.length}</span>
-                  </div>
-                  <div className="evolu-owner-stat-line">
-                    <span className="muted">{t("evoluShardOwner")}</span>
-                    <span title={shard.ownerId}>
+                  </Row>
+                  <Row justifyContent="space-between" gap="$sm">
+                    <Text variant="body" color="$colorMuted">
+                      {t("evoluShardIndex")}
+                    </Text>
+                    <Text variant="body">{shard.index}</Text>
+                  </Row>
+                  <Row justifyContent="space-between" gap="$sm">
+                    <Text variant="body" color="$colorMuted">
+                      {t("evoluShardVisibleCount")}
+                    </Text>
+                    <Text variant="body">{shard.visibleOwnerIds.length}</Text>
+                  </Row>
+                  <Row justifyContent="space-between" gap="$sm">
+                    <Text variant="body" color="$colorMuted">
+                      {t("evoluShardOwner")}
+                    </Text>
+                    <Text accessibilityLabel={shard.ownerId} variant="body">
                       {shortOwnerId(shard.ownerId)}
-                    </span>
-                  </div>
-                </div>
+                    </Text>
+                  </Row>
+                </Stack>
               ))}
-            </div>
-          </div>
-        </div>
+            </Row>
+          </Stack>
+        </Stack>
 
         {dataSections.map(({ tableName, scope, rows }) => {
           const shard = evoluShards.find((entry) => entry.scope === scope);
@@ -123,79 +149,72 @@ export function EvoluCurrentDataPage(): React.ReactElement {
               [tableName]: !current[tableName],
             }));
           };
-
           return (
-            <div key={tableName} className="evolu-data-card">
-              <div className="evolu-data-card-header">
-                <div className="evolu-data-title-row has-owner-summary">
-                  <h3 className="unspaced">{tableName}</h3>
+            <Stack key={tableName} padding="$none" gap="$none">
+              <Stack padding="$lg">
+                <Row justifyContent="space-between">
+                  <Text variant="title" role="heading">
+                    {tableName}
+                  </Text>
                   {shard && (
-                    <span className="muted">
+                    <Text variant="body" color="$colorMuted">
                       {shard.scope} / {shard.index}
-                    </span>
+                    </Text>
                   )}
-                </div>
+                </Row>
 
-                <div className="evolu-owner-summary-grid">
-                  <div className="evolu-owner-stat">
-                    <div className="evolu-owner-stat-line">
-                      <span className="muted">Rows</span>
-                      <span className="evolu-owner-stat-value">
-                        {rows.length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <Row flexWrap="wrap" gap="$md">
+                  <Stack
+                    padding="$md"
+                    flexGrow={1}
+                    minWidth="$column"
+                    gap="$xs"
+                  >
+                    <Row justifyContent="space-between" gap="$sm">
+                      <Text variant="body" color="$colorMuted">
+                        Rows
+                      </Text>
+                      <Text variant="body">{rows.length}</Text>
+                    </Row>
+                  </Stack>
+                </Row>
+              </Stack>
 
-              <div className="evolu-data-card-body">
+              <Stack padding="$md">
                 {rows.length > 0 ? (
                   <>
-                    <table className="evolu-data-table">
-                      <thead>
-                        <tr className="evolu-data-row">
-                          {Object.keys(rows[0])
-                            .filter((key) => key !== "createdAt")
-                            .map((key) => (
-                              <th key={key} className="evolu-data-heading-cell">
-                                {key}
-                              </th>
-                            ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleRows.map((row, idx) => (
-                          <tr key={idx}>
-                            {Object.entries(row)
-                              .filter(([key]) => key !== "createdAt")
-                              .map(([key, val], valueIdx) => (
-                                <td key={valueIdx} className="evolu-data-cell">
-                                  {formatEvoluDebugValue(
-                                    tableName,
-                                    key,
-                                    val,
-                                  ).slice(0, 50)}
-                                </td>
-                              ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <DataTable
+                      accessibilityLabel={tableName}
+                      columns={Object.keys(rows[0])
+                        .filter((key) => key !== "createdAt")
+                        .map((key) => ({ key, label: key }))}
+                      rows={visibleRows.map((row, index) => ({
+                        key: String(index),
+                        cells: Object.entries(row)
+                          .filter(([key]) => key !== "createdAt")
+                          .map(([key, value]) =>
+                            formatEvoluDebugValue(tableName, key, value).slice(
+                              0,
+                              50,
+                            ),
+                          ),
+                      }))}
+                    />
 
                     {(rows.length > previewRowCount || isExpanded) && (
-                      <div className="evolu-data-pagination">
-                        <span className="muted">
+                      <Row flexWrap="wrap" justifyContent="space-between">
+                        <Text variant="body" color="$colorMuted">
                           {isExpanded
                             ? t("evoluShowingAllRows")
                             : t("evoluShowingPreviewRows").replace(
                                 "{count}",
                                 String(visibleRows.length),
                               )}
-                        </span>
-                        <button
+                        </Text>
+                        <Button
                           type="button"
-                          className="secondary"
-                          onClick={toggleExpanded}
+                          onPress={toggleExpanded}
+                          variant="secondary"
                         >
                           {isExpanded
                             ? t("evoluHideSectionDetail")
@@ -203,18 +222,20 @@ export function EvoluCurrentDataPage(): React.ReactElement {
                                 "{count}",
                                 String(hiddenRowsCount),
                               )}
-                        </button>
-                      </div>
+                        </Button>
+                      </Row>
                     )}
                   </>
                 ) : (
-                  <p className="muted unspaced">{t("evoluNoDataYet")}</p>
+                  <Text variant="body" color="$colorMuted">
+                    {t("evoluNoDataYet")}
+                  </Text>
                 )}
-              </div>
-            </div>
+              </Stack>
+            </Stack>
           );
         })}
-      </div>
-    </section>
+      </Stack>
+    </Stack>
   );
 }

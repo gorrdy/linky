@@ -2,7 +2,8 @@ import { createRoot } from "react-dom/client";
 
 import { InspectorApp } from "./InspectorApp";
 import { createHttpInspectorDataSource } from "./inspectorDataSource";
-import "./inspector.css";
+import { UIProvider, Stack } from "@linky-fit/ui";
+import "../../index.css";
 
 const root = document.getElementById("root");
 
@@ -11,5 +12,9 @@ if (!root) {
 }
 
 createRoot(root).render(
-  <InspectorApp dataSource={createHttpInspectorDataSource()} />,
+  <UIProvider mode="dark">
+    <Stack position="fixed" inset={0}>
+      <InspectorApp dataSource={createHttpInspectorDataSource()} />
+    </Stack>
+  </UIProvider>,
 );

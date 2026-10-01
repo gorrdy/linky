@@ -183,14 +183,15 @@ describe("recommended Nostr relays", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
     });
     const reconciledRow = Array.from(
-      viewer.container.querySelectorAll("button.timeline-row"),
+      viewer.container.querySelectorAll('button[data-testid="timeline-row"]'),
     ).find((button) => button.textContent?.includes("relayList.reconciled"));
     expect(reconciledRow).toBeDefined();
     await act(async () => {
       reconciledRow?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(
-      viewer.container.querySelector(".related-rows")?.textContent,
+      viewer.container.querySelector('[data-testid="related-rows"]')
+        ?.textContent,
     ).toContain("WirePlainPublished");
   });
 

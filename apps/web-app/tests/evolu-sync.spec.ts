@@ -14,9 +14,7 @@ import { sendDirectMessage, watchNostrInbox } from "./helpers/relay";
 import { EVOLU_RELAY_URL, isNostrRelay } from "./helpers/stack";
 
 const readCurrentRows = async (page: Page): Promise<number> => {
-  const row = page.locator(".settings-row").filter({
-    has: page.getByText("Data", { exact: true }),
-  });
+  const row = page.getByTestId("evoluData");
   await expect(row).toContainText(/\d+ rows/);
   return Number((await row.innerText()).match(/(\d+) rows/)?.[1]);
 };

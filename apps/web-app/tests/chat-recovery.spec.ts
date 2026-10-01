@@ -151,10 +151,14 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
       // The pending topup is an operation row; wait for it to land in Evolu
       // before reloading, so the claim after reload resumes from storage.
       await a.page.goto("/#evolu-current-data");
-      const operationTable = a.page.locator("table").filter({
+      const operationTable = a.page.getByRole("table").filter({
         has: a.page.getByRole("columnheader", { name: "quoteId", exact: true }),
       });
-      await expect(operationTable.locator("tbody tr")).toHaveCount(1);
+      await expect(
+        operationTable
+          .getByRole("row")
+          .filter({ has: a.page.getByRole("cell") }),
+      ).toHaveCount(1);
       await a.page.reload();
       await a.page.unroute("**/v1/mint/bolt11");
       await a.page.goto("/#wallet");

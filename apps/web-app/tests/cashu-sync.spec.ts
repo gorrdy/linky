@@ -129,21 +129,26 @@ test("restored Cashu funds sync to an open second device and survive an owner ro
         // records none): the operation table is the one whose row count
         // tracks rotations, proofs vary per topup amount.
         await source.page.goto("/#evolu-current-data");
-        const operationTable = source.page.locator("table").filter({
+        const operationTable = source.page.getByRole("table").filter({
           has: source.page.getByRole("columnheader", {
             name: "quoteId",
             exact: true,
           }),
         });
-        await expect(operationTable.locator("tbody tr")).toHaveCount(
-          rotation.index,
-        );
-        const headers = await operationTable.locator("th").allTextContents();
+        const dataRows = operationTable.getByRole("row").filter({
+          has: source.page.getByRole("cell"),
+        });
+        await expect(dataRows).toHaveCount(rotation.index);
+        const headers = await operationTable
+          .getByRole("columnheader")
+          .allTextContents();
         const ownerColumn = headers.indexOf("ownerId");
         expect(ownerColumn).toBeGreaterThanOrEqual(0);
-        const owners = await operationTable
-          .locator(`tbody td:nth-child(${ownerColumn + 1})`)
-          .allTextContents();
+        const owners = await Promise.all(
+          (await dataRows.all()).map((row) =>
+            row.getByRole("cell").nth(ownerColumn).textContent(),
+          ),
+        );
         expect(new Set(owners).size).toBe(rotation.index);
         await source.page.goto("/#wallet");
       }
@@ -235,9 +240,7 @@ test("token consumption rotates shard zero from its mutation history while few l
       // Every issue leaves one send operation behind; the proofs it spent
       // stay on record as `spent`, so nothing is deleted any more.
       await source.page.goto("/#evolu-data");
-      const operationRowCount = source.page.locator(".settings-row").filter({
-        has: source.page.getByText("cashuOperation", { exact: true }),
-      });
+      const operationRowCount = source.page.getByTestId("cashuOperation");
       await expect(operationRowCount).toContainText(/\d+ rows/);
       const rows = Number(
         (await operationRowCount.innerText()).match(/(\d+) rows/)?.[1],

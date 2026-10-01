@@ -17,7 +17,7 @@ test("recommended relays stay configured while the user's own relays come and go
     localStorage.setItem("linky.inspector_enabled", "true"),
   );
   await page.goto("/#evolu-servers");
-  const rows = page.locator(".evolu-server-list button");
+  const rows = page.getByTestId("evolu-server-list").getByRole("button");
   const recommended = rows.filter({ hasText: EVOLU_RELAY_URL });
   const custom = rows.filter({ hasText: "wss://sync.example.com" });
   const noBackupWarning = page.getByText(

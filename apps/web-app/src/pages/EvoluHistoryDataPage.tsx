@@ -1,3 +1,4 @@
+import { Button, Chip, Row, Stack, Text } from "@linky-fit/ui";
 import { EvoluHistoryTable } from "../components/EvoluHistoryTable";
 import { base64 } from "@scure/base";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -5,9 +6,7 @@ import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
 import { loadEvoluHistoryData, type EvoluHistoryRow } from "../evolu";
 import { decodeBase64Url } from "../utils/base64";
-
 const BATCH_SIZE = 50;
-
 export function EvoluHistoryDataPage(): React.ReactElement {
   const { evoluSyncOwnerIds } = useEvoluSettingsContext();
   const { t } = useAppShellCore();
@@ -17,17 +16,14 @@ export function EvoluHistoryDataPage(): React.ReactElement {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
-
   const normalizeOwnerId = useCallback((value: string): string => {
     const bytes = decodeBase64Url(value);
     return bytes?.length ? base64.encode(bytes) : value.trim();
   }, []);
-
   const allowedOwnerIds = useMemo(() => {
     const values = evoluSyncOwnerIds
       .map((ownerId) => ownerId.trim())
       .filter(Boolean);
-
     const out = new Set<string>();
     for (const value of values) {
       out.add(value);
@@ -35,7 +31,6 @@ export function EvoluHistoryDataPage(): React.ReactElement {
     }
     return out;
   }, [evoluSyncOwnerIds, normalizeOwnerId]);
-
   const readRowOwnerId = useCallback(
     (row: EvoluHistoryRow): string => {
       const ownerId = row.ownerId;
@@ -46,7 +41,6 @@ export function EvoluHistoryDataPage(): React.ReactElement {
     },
     [normalizeOwnerId],
   );
-
   useEffect(() => {
     loadEvoluHistoryData(BATCH_SIZE, 0).then((data) => {
       setHistoryData(data);
@@ -54,14 +48,12 @@ export function EvoluHistoryDataPage(): React.ReactElement {
       setHasMore(data.length === BATCH_SIZE);
     });
   }, []);
-
   const visibleHistoryData = useMemo(() => {
     if (allowedOwnerIds.size === 0) return [];
     return historyData.filter((row) =>
       allowedOwnerIds.has(readRowOwnerId(row)),
     );
   }, [allowedOwnerIds, historyData, readRowOwnerId]);
-
   const tableNames = useMemo(() => {
     const tables = new Set<string>();
     visibleHistoryData.forEach((row) => {
@@ -69,21 +61,16 @@ export function EvoluHistoryDataPage(): React.ReactElement {
     });
     return Array.from(tables).sort();
   }, [visibleHistoryData]);
-
   const filteredData = useMemo(() => {
     if (!selectedTable) return visibleHistoryData;
     return visibleHistoryData.filter((row) => row.table === selectedTable);
   }, [selectedTable, visibleHistoryData]);
-
   const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
-
     setIsLoadingMore(true);
     const newOffset = offset + BATCH_SIZE;
-
     try {
       const newData = await loadEvoluHistoryData(BATCH_SIZE, newOffset);
-
       if (newData.length > 0) {
         setHistoryData((prev) => [...prev, ...newData]);
         setOffset(newOffset);
@@ -97,76 +84,76 @@ export function EvoluHistoryDataPage(): React.ReactElement {
       setIsLoadingMore(false);
     }
   }, [isLoadingMore, hasMore, offset]);
-
   if (isLoading) {
     return (
-      <section className="panel panel-plain page-loading-panel">
-        <p className="muted">{t("loading")}...</p>
-      </section>
+      <Stack
+        gap="$lg"
+        marginTop="$lg"
+        paddingTop="$sm"
+        paddingBottom="$xxl"
+        $wide={{ marginTop: "$none" }}
+      >
+        <Text variant="label" color="$colorMuted">
+          {t("loading")}...
+        </Text>
+      </Stack>
     );
   }
-
   return (
-    <section className="panel panel-layout">
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingTop="$sm"
+      paddingBottom="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
       {tableNames.length > 0 && (
-        <nav
-          className="group-filter-bar evolu-data-table-group"
-          aria-label={t("filterByTable")}
-        >
-          <div className="group-filter-inner">
-            <button
-              type="button"
-              className={
-                selectedTable === null
-                  ? "group-filter-btn is-active"
-                  : "group-filter-btn"
-              }
-              onClick={() => setSelectedTable(null)}
-            >
-              {t("all")}
-            </button>
+        <Stack aria-label={t("filterByTable")}>
+          <Row flexWrap="wrap" gap="$sm">
+            <Chip
+              label={t("all")}
+              selected={selectedTable === null}
+              onPress={() => setSelectedTable(null)}
+            />
             {tableNames.map((tableName) => (
-              <button
+              <Chip
                 key={tableName}
-                type="button"
-                className={
-                  selectedTable === tableName
-                    ? "group-filter-btn is-active"
-                    : "group-filter-btn"
-                }
-                onClick={() => setSelectedTable(tableName)}
-                title={tableName}
-              >
-                {tableName}
-              </button>
+                label={tableName}
+                selected={selectedTable === tableName}
+                onPress={() => setSelectedTable(tableName)}
+              />
             ))}
-          </div>
-        </nav>
+          </Row>
+        </Stack>
       )}
 
-      <div className="evolu-data-scroll">
+      <Stack maxHeight="$contentWidth" overflow="scroll">
         {filteredData.length > 0 ? (
           <EvoluHistoryTable rows={filteredData} t={t} />
         ) : (
-          <p className="muted">{t("evoluNoDataYet")}</p>
+          <Text variant="label" color="$colorMuted">
+            {t("evoluNoDataYet")}
+          </Text>
         )}
 
         {hasMore && (
-          <div className="evolu-data-load-more">
-            <button
-              onClick={handleLoadMore}
+          <Stack alignItems="center" paddingVertical="$lg">
+            <Button
+              onPress={handleLoadMore}
               disabled={isLoadingMore}
-              className="secondary"
+              variant="secondary"
             >
               {isLoadingMore ? t("loadingMore") : t("loadMore")}
-            </button>
-          </div>
+            </Button>
+          </Stack>
         )}
 
         {!hasMore && historyData.length > 0 && (
-          <p className="muted evolu-data-load-more">{t("allRecordsLoaded")}</p>
+          <Text alignItems="center" paddingVertical="$lg">
+            {t("allRecordsLoaded")}
+          </Text>
         )}
-      </div>
-    </section>
+      </Stack>
+    </Stack>
   );
 }

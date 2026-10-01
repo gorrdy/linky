@@ -1,3 +1,4 @@
+import { Stack, Text, ListRow, Button } from "@linky-fit/ui";
 import { useState } from "react";
 import { keepNewest, linkyScopes, messageScopes } from "@linky-fit/linksync";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -30,26 +31,27 @@ export function ChatStoragePage(): React.ReactElement {
     }
   };
   return (
-    <section className="panel settings-page">
-      <p>{t("chatStoragePolicy").replace("{count}", String(keep))}</p>
-      <div className="settings-row">
-        <span>{t("chatStorageTotal")}</span>
-        <span>{messages ? messages.index + 1 : t("unknown")}</span>
-      </div>
-      <div className="settings-row">
-        <span>{t("chatStorageSubscribed")}</span>
-        <span>{messages ? subscribed : t("unknown")}</span>
-      </div>
-      <p className="muted">{t("chatStorageForgetHint")}</p>
-      <button
-        type="button"
-        className="btn-wide secondary"
+    <Stack marginTop="$sm" paddingBottom="$xxl" $wide={{ marginTop: "$none" }}>
+      <Text>{t("chatStoragePolicy").replace("{count}", String(keep))}</Text>
+      <ListRow
+        testID="chat-storage-total"
+        title={t("chatStorageTotal")}
+        trailing={<Text>{messages ? messages.index + 1 : t("unknown")}</Text>}
+      />
+      <ListRow
+        testID="chat-storage-subscribed"
+        title={t("chatStorageSubscribed")}
+        trailing={<Text>{messages ? subscribed : t("unknown")}</Text>}
+      />
+      <Text color="$colorMuted">{t("chatStorageForgetHint")}</Text>
+      <Button
+        variant="secondary"
         disabled={busy || !forgettable}
-        onClick={() => void forget()}
+        onPress={() => void forget()}
       >
         {t("chatStorageForget")}
-      </button>
-      <p role="status">{status}</p>
-    </section>
+      </Button>
+      <Text role="status">{status}</Text>
+    </Stack>
   );
 }

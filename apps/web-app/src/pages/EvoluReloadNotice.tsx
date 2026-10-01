@@ -1,3 +1,4 @@
+import { Text, Stack, Button } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -12,18 +13,18 @@ export function EvoluReloadNotice(): React.ReactElement | null {
   }
   return (
     <>
-      <p className="muted">
+      <Text color="$colorMuted" variant="label">
         {t(
           evoluServersReloadRequired
             ? "evoluServersReloadHint"
             : "evoluQuotaRecoveryHint",
         )}
-      </p>
-      <div className="settings-row">
-        <button
+      </Text>
+      <Stack>
+        <Button
           type="button"
-          className="btn-wide secondary"
-          onClick={() => {
+          variant="secondary"
+          onPress={() => {
             reportAppLog({
               tag: "EvoluSyncRetry",
               summary: "Reloading to retry Evolu synchronization",
@@ -40,8 +41,8 @@ export function EvoluReloadNotice(): React.ReactElement | null {
               ? "evoluServersReloadButton"
               : "evoluRetrySync",
           )}
-        </button>
-      </div>
+        </Button>
+      </Stack>
     </>
   );
 }

@@ -1,3 +1,5 @@
+import { Button, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
+import { connectionStatus } from "../utils/connectionStatus";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -5,7 +7,6 @@ import { deriveEvoluServerState } from "../app/lib/evoluServerState";
 import { navigateTo } from "../hooks/useRouting";
 import { EvoluReloadNotice } from "./EvoluReloadNotice";
 import { EvoluSyncErrorNotice } from "./EvoluSyncErrorNotice";
-
 export function EvoluServerPage(): React.ReactElement {
   const {
     evoluHasError,
@@ -22,9 +23,13 @@ export function EvoluServerPage(): React.ReactElement {
   } = useEvoluSettingsContext();
   const { route, t } = useAppShellCore();
   const selectedEvoluServerUrl = route.kind === "evoluServer" ? route.id : null;
-
   return (
-    <section className="panel">
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
       <EvoluSyncErrorNotice />
       <EvoluReloadNotice />
 
@@ -38,68 +43,73 @@ export function EvoluServerPage(): React.ReactElement {
               state: evoluServerStatusByUrl[selectedEvoluServerUrl],
               syncOwnerId,
             });
-
             return (
               <>
-                <div className="settings-row">
-                  <div className="settings-left">
-                    <span className="relay-url">{selectedEvoluServerUrl}</span>
-                  </div>
-                  <div className="settings-right">
-                    <span
-                      className={
-                        state === "connected"
-                          ? "status-dot connected"
-                          : state === "checking"
-                            ? "status-dot checking"
-                            : "status-dot disconnected"
-                      }
-                      aria-label={state}
-                      title={state}
-                    />
-                  </div>
-                </div>
+                <ListRow
+                  title={
+                    <>
+                      <Text variant="label">{selectedEvoluServerUrl}</Text>
+                    </>
+                  }
+                  trailing={
+                    <>
+                      <StatusDot
+                        tone={connectionStatus[state].tone}
+                        accessibilityLabel={state}
+                      />
+                    </>
+                  }
+                />
 
-                <div className="settings-row">
-                  <div className="settings-left">
-                    <span className="settings-label">
-                      {t("evoluSyncLabel")}
-                    </span>
-                  </div>
-                  <div className="settings-right">
-                    <span className="muted">{t(labelKey)}</span>
-                  </div>
-                </div>
+                <ListRow
+                  title={t("evoluSyncLabel")}
+                  trailing={
+                    <>
+                      <Text variant="label" color="$colorMuted">
+                        {t(labelKey)}
+                      </Text>
+                    </>
+                  }
+                  testID="evoluSyncLabel"
+                />
 
-                <div className="settings-row">
-                  <div className="settings-left">
-                    <span className="settings-label">
-                      {t("evoluServerOfflineLabel")}
-                    </span>
-                  </div>
-                  <div className="settings-right">
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        setEvoluServerOffline(selectedEvoluServerUrl, !offline);
-                      }}
-                    >
-                      {offline
-                        ? t("evoluServerOfflineEnable")
-                        : t("evoluServerOfflineDisable")}
-                    </button>
-                  </div>
-                </div>
+                <ListRow
+                  title={t("evoluServerOfflineLabel")}
+                  trailing={
+                    <>
+                      <Button
+                        type="button"
+                        onPress={() => {
+                          setEvoluServerOffline(
+                            selectedEvoluServerUrl,
+                            !offline,
+                          );
+                        }}
+                        variant="secondary"
+                      >
+                        {offline
+                          ? t("evoluServerOfflineEnable")
+                          : t("evoluServerOfflineDisable")}
+                      </Button>
+                    </>
+                  }
+                  testID="evoluServerOfflineLabel"
+                />
 
                 {isEvoluServerRecommended(selectedEvoluServerUrl) ? (
-                  <p className="muted">{t("relayRecommendedNote")}</p>
+                  <Text variant="label" color="$colorMuted">
+                    {t("relayRecommendedNote")}
+                  </Text>
                 ) : (
-                  <div className="settings-row settings-error-note">
-                    <button
+                  <Row
+                    justifyContent="space-between"
+                    minHeight="$control"
+                    paddingVertical="$sm"
+                  >
+                    <Button
+                      width="100%"
                       type="button"
-                      className="btn-wide danger"
-                      onClick={() => {
+                      onPress={() => {
                         if (
                           pendingEvoluServerDeleteUrl === selectedEvoluServerUrl
                         ) {
@@ -114,22 +124,24 @@ export function EvoluServerPage(): React.ReactElement {
                           navigateTo({ route: "evoluServers" });
                           return;
                         }
-
                         setStatus(t("deleteArmedHint"));
                         setPendingEvoluServerDeleteUrl(selectedEvoluServerUrl);
                       }}
+                      variant="danger"
                     >
                       {t("evoluServerRemove")}
-                    </button>
-                  </div>
+                    </Button>
+                  </Row>
                 )}
               </>
             );
           })()}
         </>
       ) : (
-        <p className="lede">{t("errorPrefix")}</p>
+        <Text variant="label" color="$colorMuted">
+          {t("errorPrefix")}
+        </Text>
       )}
-    </section>
+    </Stack>
   );
 }

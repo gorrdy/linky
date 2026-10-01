@@ -53,11 +53,8 @@ vi.mock("../evolu", () => ({
 }));
 
 const rowValue = (container: HTMLElement, label: string): string | null => {
-  const row = Array.from(container.querySelectorAll(".settings-row")).find(
-    (element) =>
-      element.querySelector(".settings-label")?.textContent === label,
-  );
-  return row?.querySelector(".settings-right")?.textContent ?? null;
+  const row = container.querySelector(`[data-testid="${label}"]`);
+  return row?.textContent?.slice(label.length) ?? null;
 };
 
 beforeEach(() => {
@@ -92,9 +89,10 @@ describe("Evolu row counts", () => {
     expect(rowValue(view.container, "evoluData")).toContain("4 rows");
     const buttons = Array.from(view.container.querySelectorAll("button"));
     expect(
-      buttons.find((button) => button.textContent === "evoluClearDatabase")
-        ?.disabled,
-    ).toBe(true);
+      buttons
+        .find((button) => button.textContent === "evoluClearDatabase")
+        ?.getAttribute("aria-disabled"),
+    ).toBe("true");
     expect(
       buttons.some((button) => button.textContent === "evoluRetrySync"),
     ).toBe(true);

@@ -1,3 +1,4 @@
+import { Stack, Row, Button, TextField } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
@@ -19,22 +20,26 @@ export function EvoluServerNewPage(): React.ReactElement {
   const { pushToast } = useAdvancedSettingsContext();
 
   return (
-    <section className="panel">
-      <label htmlFor="evoluServerUrl">{t("evoluAddServerLabel")}</label>
-      <input
+    <Stack
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <TextField
+        label={t("evoluAddServerLabel")}
         id="evoluServerUrl"
         value={newEvoluServerUrl}
-        onChange={(e) => setNewEvoluServerUrl(e.target.value)}
+        onChangeText={setNewEvoluServerUrl}
         placeholder="wss://..."
         autoCapitalize="none"
-        autoCorrect="off"
+        autoCorrect={false}
         spellCheck={false}
       />
 
-      <div className="panel-header panel-header-layout">
-        <button
+      <Row justifyContent="flex-end">
+        <Button
           type="button"
-          onClick={() => {
+          onPress={() => {
             const normalized = normalizeEvoluServerUrl(newEvoluServerUrl);
             if (!normalized) {
               pushToast(t("evoluAddServerInvalid"));
@@ -58,8 +63,8 @@ export function EvoluServerNewPage(): React.ReactElement {
           disabled={!normalizeEvoluServerUrl(newEvoluServerUrl)}
         >
           {t("evoluAddServerButton")}
-        </button>
-      </div>
-    </section>
+        </Button>
+      </Row>
+    </Stack>
   );
 }

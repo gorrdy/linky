@@ -81,6 +81,7 @@ export function MasterKeysPage(): React.ReactElement {
         <Button
           width="48%"
           minWidth="$column"
+          paddingHorizontal="$xs"
           $wide={{ width: "30%", flexGrow: 1 }}
           variant="secondary"
           icon={isVisible ? "EyeOff" : "Eye"}
@@ -92,6 +93,7 @@ export function MasterKeysPage(): React.ReactElement {
         <Button
           width="48%"
           minWidth="$column"
+          paddingHorizontal="$xs"
           $wide={{ width: "30%", flexGrow: 1 }}
           icon="Copy"
           onPress={copySeed}
@@ -103,6 +105,7 @@ export function MasterKeysPage(): React.ReactElement {
         <Button
           width="48%"
           minWidth="$column"
+          paddingHorizontal="$xs"
           $wide={{ width: "30%", flexGrow: 1 }}
           variant="secondary"
           icon="ShieldCheck"

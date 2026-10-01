@@ -508,15 +508,11 @@ test("natural message rotations retain local history until forget and sync only 
         source.page.getByText(forgottenContent, { exact: true }),
       ).toBeVisible();
       await source.page.goto("/#advanced/chat-storage");
+      await expect(source.page.getByTestId("chat-storage-total")).toHaveText(
+        "Chat shards created5",
+      );
       await expect(
-        source.page
-          .locator(".settings-row")
-          .filter({ hasText: "Chat shards created" }),
-      ).toHaveText("Chat shards created5");
-      await expect(
-        source.page
-          .locator(".settings-row")
-          .filter({ hasText: "Subscribed on this device" }),
+        source.page.getByTestId("chat-storage-subscribed"),
       ).toHaveText("Subscribed on this device5");
       await source.page
         .getByRole("button", { name: "Forget old chat shards", exact: true })
@@ -525,9 +521,7 @@ test("natural message rotations retain local history until forget and sync only 
         "Old chat shards forgotten on this device.",
       );
       await expect(
-        source.page
-          .locator(".settings-row")
-          .filter({ hasText: "Subscribed on this device" }),
+        source.page.getByTestId("chat-storage-subscribed"),
       ).toHaveText("Subscribed on this device4");
       await expect(
         source.page.getByRole("button", {
@@ -550,23 +544,25 @@ test("natural message rotations retain local history until forget and sync only 
       ).toBeVisible();
       await source.page.goto("/#advanced/inspector/timeline");
       const forgottenRow = source.page
-        .locator(".timeline-row")
+        .getByTestId("timeline-row")
         .filter({ hasText: "ShardsForgotten" });
       await expect(forgottenRow).toHaveCount(1);
       await forgottenRow.click();
       const detail = source.page.getByRole("complementary", {
         name: "Row detail",
       });
-      await expect(detail.locator(".link-value")).toContainText(oldOwner);
+      await expect(detail.getByTestId("link-value")).toContainText(oldOwner);
       await expect(
         detail
-          .locator(".related-row")
+          .getByTestId("related-row")
           .filter({ hasText: "ShardsSubscribed" })
           .first(),
       ).toBeVisible();
-      await expect(detail.locator("pre")).toContainText('"deleted": false');
+      await expect(detail.getByTestId("inspector-payload")).toContainText(
+        '"deleted": false',
+      );
       await source.page.reload();
-      await expect(source.page.locator(".timeline")).toBeVisible();
+      await expect(source.page.getByTestId("timeline")).toBeVisible();
       await expect
         .poll(async () =>
           (await hooks.shardRows(source.page, "messages", "message"))

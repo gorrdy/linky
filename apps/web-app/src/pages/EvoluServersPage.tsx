@@ -1,4 +1,15 @@
-import { Icon, ListRow } from "@linky-fit/ui";
+import {
+  Button,
+  Icon,
+  ListRow,
+  Row,
+  Stack,
+  StatusDot,
+  Text,
+  Pill,
+} from "@linky-fit/ui";
+import { connectionStatus } from "../utils/connectionStatus";
+
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -6,7 +17,6 @@ import { deriveEvoluServerState } from "../app/lib/evoluServerState";
 import { navigateTo } from "../hooks/useRouting";
 import { EvoluReloadNotice } from "./EvoluReloadNotice";
 import { EvoluSyncErrorNotice } from "./EvoluSyncErrorNotice";
-
 export function EvoluServersPage(): React.ReactElement {
   const {
     clearDatabaseArmed,
@@ -25,27 +35,32 @@ export function EvoluServersPage(): React.ReactElement {
     syncOwnerId,
   } = useEvoluSettingsContext();
   const { t } = useAppShellCore();
-
   const counts = Object.values(evoluTableCounts);
   const totalCurrentRows = counts.reduce<number | null>(
     (sum, count) => (sum === null || count === null ? null : sum + count),
     counts.length ? 0 : null,
   );
-
   return (
-    <section className="panel">
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
       <EvoluSyncErrorNotice />
       <EvoluReloadNotice />
       {evoluServerUrls.every(isEvoluServerOffline) && (
-        <p className="muted" role="status">
+        <Text role="status" variant="label" color="$colorMuted">
           {t("evoluNoBackupWarning")}
-        </p>
+        </Text>
       )}
       {/* Server list */}
       {evoluServerUrls.length === 0 ? (
-        <p className="muted evolu-server-empty">{t("evoluServersEmpty")}</p>
+        <Text variant="label" color="$colorMuted">
+          {t("evoluServersEmpty")}
+        </Text>
       ) : (
-        <div className="evolu-server-list">
+        <Stack testID="evolu-server-list" gap="$xs">
           {evoluServerUrls.map((url) => {
             const { state, labelKey } = deriveEvoluServerState({
               evoluHasError,
@@ -53,136 +68,121 @@ export function EvoluServersPage(): React.ReactElement {
               state: evoluServerStatusByUrl[url],
               syncOwnerId,
             });
-
             return (
-              <button
-                type="button"
-                className="settings-row settings-link"
+              <ListRow
                 key={url}
-                onClick={() => navigateTo({ route: "evoluServer", id: url })}
-              >
-                <div className="settings-left">
-                  <span className="relay-cell">
-                    <span className="relay-url">{url}</span>
-                    {isEvoluServerRecommended(url) ? (
-                      <span className="relay-detail">
-                        {t("relayRecommended")}
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
-                <div className="settings-right">
-                  <span
-                    className={
-                      state === "connected"
-                        ? "status-dot connected"
-                        : state === "checking"
-                          ? "status-dot checking"
-                          : "status-dot disconnected"
-                    }
-                    aria-label={state}
-                    title={state}
-                  />
-                  <span className="muted evolu-server-status-label">
-                    {t(labelKey)}
-                  </span>
-                  <span className="settings-chevron" aria-hidden="true">
-                    &gt;
-                  </span>
-                </div>
-              </button>
+                title={url}
+                description={
+                  isEvoluServerRecommended(url) ? (
+                    <Pill size="sm" label={t("relayRecommended")} />
+                  ) : undefined
+                }
+                trailing={
+                  <Row gap="$sm">
+                    <StatusDot
+                      tone={connectionStatus[state].tone}
+                      accessibilityLabel={state}
+                    />
+                    <Text variant="label" color="$colorMuted">
+                      {t(labelKey)}
+                    </Text>
+                  </Row>
+                }
+                onPress={() => navigateTo({ route: "evoluServer", id: url })}
+              />
             );
           })}
-        </div>
+        </Stack>
       )}
 
-      <div className="settings-row evolu-data-section">
-        <button
+      <Row
+        justifyContent="space-between"
+        minHeight="$control"
+        paddingVertical="$sm"
+      >
+        <Button
+          width="100%"
           type="button"
-          className={
-            clearDatabaseArmed
-              ? "btn-wide secondary danger-armed"
-              : "btn-wide secondary"
-          }
-          onClick={requestClearDatabase}
+          onPress={requestClearDatabase}
           disabled={
             evoluWipeStorageIsBusy || evoluErrorType === "ProtocolQuotaError"
           }
+          variant={clearDatabaseArmed ? "danger" : "secondary"}
         >
           {t("evoluClearDatabase")}
-        </button>
-      </div>
+        </Button>
+      </Row>
 
-      <h3 className="evolu-data-heading">{t("evoluShards")}</h3>
+      <Text variant="title" role="heading" marginTop="$lg">
+        {t("evoluShards")}
+      </Text>
 
       {evoluShards.map((shard) => (
-        <div key={shard.scope} className="settings-row">
-          <div className="settings-left">
-            <span className="settings-label">{shard.scope}</span>
-          </div>
-          <div className="settings-right">
-            <span className="muted">
-              {shard.index} ({shard.visibleOwnerIds.length}{" "}
-              {t("evoluShardVisibleCount").toLowerCase()})
-            </span>
-          </div>
-        </div>
+        <ListRow
+          key={shard.scope}
+          title={shard.scope}
+          trailing={
+            <>
+              <Text variant="label" color="$colorMuted">
+                {shard.index} ({shard.visibleOwnerIds.length}{" "}
+                {t("evoluShardVisibleCount").toLowerCase()})
+              </Text>
+            </>
+          }
+        />
       ))}
 
-      <div className="settings-row">
-        <div className="settings-left">
-          <span className="settings-label">{t("evoluSyncedOwners")}</span>
-        </div>
-        <div className="settings-right">
-          <span className="muted">{evoluSyncOwnerIds.length}</span>
-        </div>
-      </div>
+      <ListRow
+        title={t("evoluSyncedOwners")}
+        trailing={
+          <>
+            <Text variant="label" color="$colorMuted">
+              {evoluSyncOwnerIds.length}
+            </Text>
+          </>
+        }
+        testID="evoluSyncedOwners"
+      />
 
-      <h3 className="evolu-data-heading">{t("evoluRowCounts")}</h3>
+      <Text variant="title" role="heading" marginTop="$lg">
+        {t("evoluRowCounts")}
+      </Text>
 
-      <div
-        className="settings-row settings-link settings-row-layout"
-        onClick={() => navigateTo({ route: "evoluCurrentData" })}
-      >
-        <div className="settings-left">
-          <span className="settings-label">{t("evoluData")}</span>
-        </div>
-        <div className="settings-right">
-          <span className="muted">
-            {totalCurrentRows === null
-              ? t("unknown")
-              : `${totalCurrentRows} rows`}
-          </span>
-          <span className="settings-chevron" aria-hidden="true">
-            &gt;
-          </span>
-        </div>
-      </div>
+      <ListRow
+        title={t("evoluData")}
+        trailing={
+          <>
+            <Text variant="label" color="$colorMuted">
+              {totalCurrentRows === null
+                ? t("unknown")
+                : `${totalCurrentRows} rows`}
+            </Text>
+          </>
+        }
+        testID="evoluData"
+        onPress={() => navigateTo({ route: "evoluCurrentData" })}
+      />
 
-      <div
-        className="settings-row settings-link settings-row-layout"
-        onClick={() => navigateTo({ route: "evoluHistoryData" })}
-      >
-        <div className="settings-left">
-          <span className="settings-label">{t("evoluHistory")}</span>
-        </div>
-        <div className="settings-right">
-          <span className="muted">
-            {evoluHistoryCount === null
-              ? t("unknown")
-              : `${evoluHistoryCount} rows`}
-          </span>
-          <span className="settings-chevron" aria-hidden="true">
-            &gt;
-          </span>
-        </div>
-      </div>
+      <ListRow
+        title={t("evoluHistory")}
+        trailing={
+          <>
+            <Text variant="label" color="$colorMuted">
+              {evoluHistoryCount === null
+                ? t("unknown")
+                : `${evoluHistoryCount} rows`}
+            </Text>
+          </>
+        }
+        testID="evoluHistory"
+        onPress={() => navigateTo({ route: "evoluHistoryData" })}
+      />
 
       <ListRow
         leading={<Icon name="MessageCircle" />}
         title={t("chatStorage")}
         onPress={() => navigateTo({ route: "chatStorage" })}
       />
-    </section>
+    </Stack>
   );
 }

@@ -1,3 +1,4 @@
+import { Notice } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -7,12 +8,13 @@ export function EvoluSyncErrorNotice(): React.ReactElement | null {
   const { t } = useAppShellCore();
   if (!evoluErrorType) return null;
   return (
-    <p role="alert">
-      {t(
+    <Notice
+      tone="danger"
+      title={t(
         evoluErrorType === "ProtocolQuotaError"
           ? "evoluQuotaExceeded"
           : "evoluSyncError",
       )}
-    </p>
+    />
   );
 }

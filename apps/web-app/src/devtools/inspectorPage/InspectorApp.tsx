@@ -1,3 +1,22 @@
+import {
+  Button,
+  Chip,
+  CodeBlock,
+  IconButton,
+  ListRow,
+  Row,
+  SelectField,
+  Stack,
+  StatusDot,
+  Text,
+  TextField,
+  TimelineRow as DiagnosticTimelineRow,
+  border,
+  Pill,
+} from "@linky-fit/ui";
+import type { Tone } from "@linky-fit/ui";
+import { pickFile } from "../../utils/pickFile";
+import { connectionStatus } from "../../utils/connectionStatus";
 import React from "react";
 
 import {
@@ -55,8 +74,14 @@ interface OfflineImport {
 }
 
 const timelineRowDomId = (id: number): string => `inspector-row-${id}`;
-const channelClassName = (channel: string): string =>
-  `channel-${channel.replaceAll(".", "-")}`;
+const channelTone = (channel: string): Tone =>
+  channel.startsWith("nostr")
+    ? "accent"
+    : channel.startsWith("cashu")
+      ? "warning"
+      : channel.startsWith("evolu")
+        ? "info"
+        : "neutral";
 
 const formatTime = (at: number): string => {
   const date = new Date(at);
@@ -75,7 +100,7 @@ const rowSearchText = (row: CollectedInspectorRow): string => {
   return `${row.tag}\n${row.summary}\n${JSON.stringify(row.links)}\n${JSON.stringify(row.context)}\n${payloadText}`;
 };
 
-function TimelineRow({
+const TimelineRow = React.memo(function TimelineRow({
   clientLabel,
   isRelated,
   isSelected,
@@ -83,25 +108,21 @@ function TimelineRow({
   row,
 }: TimelineRowProps): React.ReactElement {
   return (
-    <button
-      aria-pressed={isSelected}
-      className={`timeline-row ${channelClassName(row.channel)}${isSelected ? " selected" : ""}${isRelated ? " related" : ""}`}
+    <DiagnosticTimelineRow
+      time={formatTime(row.at)}
+      clientLabel={clientLabel ?? undefined}
+      channel={row.channel}
+      tag={row.tag}
+      summary={row.summary}
+      tone={channelTone(row.channel)}
+      selected={isSelected}
+      related={isRelated}
       id={timelineRowDomId(row.id)}
-      onClick={() => onSelect(row)}
-      type="button"
-    >
-      <time className="row-time" dateTime={new Date(row.at).toISOString()}>
-        {formatTime(row.at)}
-      </time>
-      {clientLabel !== null && (
-        <span className="client-tag">{clientLabel}</span>
-      )}
-      <span className="channel-badge">{row.channel}</span>
-      <span className="row-tag">{row.tag}</span>
-      <span className="row-summary">{row.summary}</span>
-    </button>
+      testID="timeline-row"
+      onPress={() => onSelect(row)}
+    />
   );
-}
+});
 
 interface DetailEntry {
   label: string;
@@ -155,122 +176,143 @@ function DetailPane({
   }, [rowJson]);
 
   return (
-    <aside aria-label="Row detail" className="detail-pane">
-      <div className="detail-header">
-        <div>
-          <p className="detail-eyebrow">Row #{row.id}</p>
-          <h2>{row.tag}</h2>
-        </div>
-        <button
-          aria-label="Close row detail"
-          className="icon-button"
-          onClick={onClose}
-          title="Close (Escape)"
-          type="button"
-        >
-          ✕
-        </button>
-      </div>
-
-      <dl className="detail-fields">
-        <div>
-          <dt>time</dt>
-          <dd>{formatTime(row.at)}</dd>
-        </div>
-        <div>
-          <dt>channel</dt>
-          <dd className={`detail-channel ${channelClassName(row.channel)}`}>
-            {row.channel}
-          </dd>
-        </div>
-        <div>
-          <dt>app</dt>
-          <dd>{row.client}</dd>
-        </div>
-        <div>
-          <dt>summary</dt>
-          <dd>{row.summary || "—"}</dd>
-        </div>
-      </dl>
-
+    <Stack
+      aria-label="Row detail"
+      role="complementary"
+      width="$sheetWidth"
+      maxWidth="100%"
+      flexShrink={0}
+      minHeight={0}
+      gap="$md"
+      padding="$lg"
+      backgroundColor="$surface"
+      borderLeftWidth={border.hairline}
+      borderColor="$borderColor"
+      overflow="scroll"
+      $compact={{ width: "100%", flex: 1 }}
+    >
+      <Row justifyContent="space-between">
+        <Stack gap="$xs">
+          <Text eyebrow>Row #{row.id}</Text>
+          <Text variant="title" role="heading">
+            {row.tag}
+          </Text>
+        </Stack>
+        <IconButton
+          icon="X"
+          accessibilityLabel="Close row detail"
+          onPress={onClose}
+          size="sm"
+        />
+      </Row>
+      <Stack gap="$xs">
+        <ListRow
+          title="time"
+          trailing={
+            <Text mono variant="caption">
+              {formatTime(row.at)}
+            </Text>
+          }
+        />
+        <ListRow
+          title="channel"
+          trailing={
+            <Pill
+              size="sm"
+              label={row.channel}
+              tone={channelTone(row.channel)}
+            />
+          }
+        />
+        <Text eyebrow>app</Text>
+        <CodeBlock>{row.client}</CodeBlock>
+        <Text eyebrow>summary</Text>
+        <Text variant="label">{row.summary || "—"}</Text>
+      </Stack>
       {links.length > 0 && (
-        <>
-          <div className="json-heading">
-            <span>Links</span>
-          </div>
-          <ul className="link-list">
-            {links.map((link, index) => (
-              <li key={`${link.label}-${index}`}>
-                <span className="link-label">{link.label}</span>
-                <span className="link-value">{link.value}</span>
-              </li>
-            ))}
-          </ul>
-        </>
+        <Stack gap="$sm">
+          <Text variant="label" bold>
+            Links
+          </Text>
+          {links.map((link, index) => (
+            <Stack key={`${link.label}-${index}`} gap="$xxs">
+              <Text variant="caption" color="$colorMuted">
+                {link.label}
+              </Text>
+              <Text
+                mono
+                variant="caption"
+                testID="link-value"
+                userSelect="text"
+              >
+                {link.value}
+              </Text>
+            </Stack>
+          ))}
+        </Stack>
       )}
-
       {context.length > 0 && (
-        <>
-          <div className="json-heading">
-            <span>Context</span>
-          </div>
-          <dl className="context-list">
-            {context.map((entry, index) => (
-              <div key={`${entry.label}-${index}`}>
-                <dt>{entry.label}</dt>
-                <dd>{entry.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </>
+        <Stack gap="$sm">
+          <Text variant="label" bold>
+            Context
+          </Text>
+          {context.map((entry, index) => (
+            <Stack key={`${entry.label}-${index}`} gap="$xxs">
+              <Text variant="caption" color="$colorMuted">
+                {entry.label}
+              </Text>
+              <Text mono variant="caption" userSelect="text">
+                {entry.value}
+              </Text>
+            </Stack>
+          ))}
+        </Stack>
       )}
-
-      <div className="json-heading">
-        <span>Related rows ({relatedRows.length})</span>
-      </div>
+      <Text variant="label" bold>
+        Related rows ({relatedRows.length})
+      </Text>
       {relatedRows.length === 0 ? (
-        <p className="related-empty">
+        <Text variant="caption" color="$colorMuted">
           {hasLinkIds
             ? "No other rows share this row's link ids."
             : "This row carries no link ids to correlate by."}
-        </p>
+        </Text>
       ) : (
-        <ul className="related-rows">
+        <Stack testID="related-rows" gap="$none" overflow="scroll">
           {relatedRows.map((relatedRow) => (
-            <li key={relatedRow.id}>
-              <button
-                className={`related-row ${channelClassName(relatedRow.channel)}`}
-                onClick={() => onJumpToRow(relatedRow)}
-                title="Jump to row"
-                type="button"
-              >
-                <time className="row-time">{formatTime(relatedRow.at)}</time>
-                <span className="channel-badge">{relatedRow.channel}</span>
-                <span className="row-tag">{relatedRow.tag}</span>
-                <span className="row-summary">{relatedRow.summary}</span>
-              </button>
-            </li>
+            <DiagnosticTimelineRow
+              key={relatedRow.id}
+              testID="related-row"
+              time={formatTime(relatedRow.at)}
+              channel={relatedRow.channel}
+              tag={relatedRow.tag}
+              summary={relatedRow.summary}
+              tone={channelTone(relatedRow.channel)}
+              onPress={() => onJumpToRow(relatedRow)}
+            />
           ))}
-        </ul>
+        </Stack>
       )}
-
-      <div className="json-heading">
-        <span>What is this?</span>
-      </div>
-      <p className="row-description">{describeInspectorRow(row)}</p>
-
-      <div className="json-heading">
-        <span>Payload</span>
-        <button className="secondary-button" onClick={handleCopy} type="button">
+      <Text variant="label" bold>
+        What is this?
+      </Text>
+      <Text variant="caption" color="$colorMuted">
+        {describeInspectorRow(row)}
+      </Text>
+      <Row justifyContent="space-between">
+        <Text variant="label" bold>
+          Payload
+        </Text>
+        <Button variant="secondary" size="sm" onPress={handleCopy}>
           {copyStatus === "copied"
             ? "Copied"
             : copyStatus === "failed"
               ? "Copy failed"
               : "Copy row JSON"}
-        </button>
-      </div>
-      <pre className="json-block">{payloadJson ?? "—"}</pre>
-    </aside>
+        </Button>
+      </Row>
+      <CodeBlock testID="inspector-payload">{payloadJson ?? "—"}</CodeBlock>
+    </Stack>
   );
 }
 
@@ -303,7 +345,6 @@ export function InspectorApp({
   const lastSeenIdRef = React.useRef(0);
   const isPausedRef = React.useRef(false);
   const timelineRef = React.useRef<HTMLDivElement>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const activeDataSource = React.useMemo(
     () =>
@@ -494,35 +535,33 @@ export function InspectorApp({
     }
   }, [activeDataSource]);
 
-  const handleImport = React.useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.currentTarget.files?.[0];
-      event.currentTarget.value = "";
-      if (!file) return;
+  const handleImport = React.useCallback(async () => {
+    const file = await pickFile(
+      ".ndjson,.jsonl,.txt,application/x-ndjson,application/json,text/plain",
+    );
+    if (!file) return;
 
-      setIsImporting(true);
-      setImportMessage(`Reading ${file.name}…`);
-      try {
-        const result = parseInspectorNdjson(await file.text());
-        incomingRowsRef.current = [];
-        setRows([]);
-        setSelectedRow(null);
-        setOfflineImport({ fileName: file.name, result });
-        const truncation =
-          result.truncatedRowCount > 0
-            ? `; ${result.truncatedRowCount.toLocaleString()} older rows truncated`
-            : "";
-        setImportMessage(
-          `Imported ${result.rows.length.toLocaleString()} rows (${result.skippedLineCount.toLocaleString()} skipped${truncation}).`,
-        );
-      } catch {
-        setImportMessage(`Could not read ${file.name}.`);
-      } finally {
-        setIsImporting(false);
-      }
-    },
-    [],
-  );
+    setIsImporting(true);
+    setImportMessage(`Reading ${file.name}…`);
+    try {
+      const result = parseInspectorNdjson(await file.text());
+      incomingRowsRef.current = [];
+      setRows([]);
+      setSelectedRow(null);
+      setOfflineImport({ fileName: file.name, result });
+      const truncation =
+        result.truncatedRowCount > 0
+          ? `; ${result.truncatedRowCount.toLocaleString()} older rows truncated`
+          : "";
+      setImportMessage(
+        `Imported ${result.rows.length.toLocaleString()} rows (${result.skippedLineCount.toLocaleString()} skipped${truncation}).`,
+      );
+    } catch {
+      setImportMessage(`Could not read ${file.name}.`);
+    } finally {
+      setIsImporting(false);
+    }
+  }, []);
 
   const handleLeaveOffline = React.useCallback(() => {
     incomingRowsRef.current = [];
@@ -539,149 +578,178 @@ export function InspectorApp({
       : "reconnecting";
 
   return (
-    <main className="inspector-app">
-      <header className="top-bar">
-        <div className="brand-block">
-          <h1>Linky Inspector</h1>
-          <span
-            aria-label={statusLabel}
-            className={`connection-dot ${statusLabel}`}
-            title={statusLabel}
+    <Stack
+      width="100%"
+      height="100%"
+      minHeight={0}
+      backgroundColor="$background"
+      gap="$none"
+    >
+      <Row
+        role="banner"
+        justifyContent="space-between"
+        flexWrap="wrap"
+        gap="$sm"
+        padding="$sm"
+        backgroundColor="$surface"
+        borderBottomWidth={border.hairline}
+        borderColor="$borderColor"
+      >
+        <Row gap="$sm">
+          <Text variant="label" bold role="heading">
+            Linky Inspector
+          </Text>
+          <StatusDot
+            tone={
+              offlineImport
+                ? "info"
+                : connectionStatus[isConnected ? "connected" : "disconnected"]
+                    .tone
+            }
+            accessibilityLabel={statusLabel}
           />
-          <span className="connection-label">{statusLabel}</span>
-        </div>
-        <div className="top-actions">
+          <Text
+            variant="caption"
+            color="$colorMuted"
+            $compact={{ display: "none" }}
+          >
+            {statusLabel}
+          </Text>
+        </Row>
+        <Row flexWrap="wrap" gap="$sm">
           {onToggleFullscreen && (
-            <button
-              aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            <IconButton
+              icon={isFullscreen ? "Minimize" : "Maximize"}
+              accessibilityLabel={
+                isFullscreen ? "Exit fullscreen" : "Fullscreen"
+              }
               aria-pressed={isFullscreen}
-              className="icon-button"
-              onClick={onToggleFullscreen}
-              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-              type="button"
-            >
-              {isFullscreen ? "⤡" : "⤢"}
-            </button>
+              onPress={onToggleFullscreen}
+              size="sm"
+            />
           )}
-          <span className="row-count">
+          <Text
+            variant="caption"
+            color="$colorMuted"
+            $compact={{ display: "none" }}
+          >
             {renderedRows.length.toLocaleString()} shown /{" "}
             {rows.length.toLocaleString()} total
-          </span>
-          <input
-            accept=".ndjson,.jsonl,.txt,application/x-ndjson,application/json,text/plain"
-            className="visually-hidden"
-            onChange={(event) => void handleImport(event)}
-            ref={fileInputRef}
-            type="file"
-          />
+          </Text>
           {offlineImport ? (
-            <span className="import-pill" title={offlineImport.fileName}>
-              <span>{offlineImport.fileName}</span>
-              <button
-                aria-label={`Close ${offlineImport.fileName} and return to the live feed`}
-                onClick={handleLeaveOffline}
-                title="Return to live feed"
-                type="button"
-              >
-                ✕
-              </button>
-            </span>
+            <Row gap="$xs">
+              <Pill size="sm" label={offlineImport.fileName} tone="info" />
+              <IconButton
+                icon="X"
+                accessibilityLabel={`Close ${offlineImport.fileName} and return to the live feed`}
+                onPress={handleLeaveOffline}
+                size="sm"
+              />
+            </Row>
           ) : (
-            <button
-              className="secondary-button"
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={isImporting}
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
+              onPress={() => void handleImport()}
             >
               {isImporting ? "Importing…" : "Import"}
-            </button>
+            </Button>
           )}
           {!offlineImport && (
             <>
-              <button
-                className={`secondary-button${isPaused ? " active" : ""}`}
-                onClick={handlePauseToggle}
-                type="button"
-              >
+              <Button variant="secondary" size="sm" onPress={handlePauseToggle}>
                 {isPaused ? "Resume" : "Pause"}
-              </button>
-              <button
-                className="secondary-button danger-button"
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 disabled={isClearing}
-                onClick={() => void handleClear()}
-                type="button"
+                onPress={() => void handleClear()}
               >
                 {isClearing ? "Clearing…" : "Clear"}
-              </button>
+              </Button>
             </>
           )}
-        </div>
-      </header>
-
-      <section aria-label="Row filters" className="filter-bar">
+        </Row>
+      </Row>
+      <Row
+        aria-label="Row filters"
+        flexWrap="wrap"
+        gap="$sm"
+        padding="$sm"
+        backgroundColor="$surface"
+        borderBottomWidth={border.hairline}
+        borderColor="$borderColor"
+      >
         {appClients.length > 1 && (
-          <label className="app-filter">
-            <span>App</span>
-            <select
-              onChange={(event) => setClientFilter(event.target.value)}
-              value={clientFilter}
-            >
-              <option value="all">all apps</option>
-              {appClients.map((appClient) => (
-                <option key={appClient.id} value={appClient.id}>
-                  {appClient.label} · {appClient.id.slice(0, 8)} (
-                  {appClient.rowCount})
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <div className="channel-filters">
-          {observedChannels.map((channel) => (
-            <button
-              aria-pressed={!hiddenChannels.has(channel)}
-              className={`filter-chip ${channelClassName(channel)}${hiddenChannels.has(channel) ? "" : " enabled"}`}
-              key={channel}
-              onClick={() => handleChannelToggle(channel)}
-              type="button"
-            >
-              {channel}
-            </button>
-          ))}
-        </div>
-
-        <label className="text-filter">
-          <span className="visually-hidden">Filter rows</span>
-          <input
-            onChange={(event) => setTextFilter(event.target.value)}
-            placeholder="Filter tag, summary, link id, or payload…"
-            type="search"
-            value={textFilter}
+          <SelectField
+            label="App"
+            value={clientFilter}
+            onValueChange={setClientFilter}
+            options={[
+              { value: "all", label: "all apps" },
+              ...appClients.map((appClient) => ({
+                value: appClient.id,
+                label: `${appClient.label} · ${appClient.id.slice(0, 8)} (${appClient.rowCount})`,
+              })),
+            ]}
           />
-        </label>
-        {importMessage && (
-          <span className="import-status" role="status" title={importMessage}>
-            {importMessage}
-          </span>
         )}
-      </section>
-
-      <div className={`workspace${selectedRow ? " has-detail" : ""}`}>
-        <section className="timeline-panel">
-          <div
+        <Row flexWrap="wrap" gap="$xs" flexShrink={1}>
+          {observedChannels.map((channel) => (
+            <Chip
+              key={channel}
+              label={channel}
+              selected={!hiddenChannels.has(channel)}
+              onPress={() => handleChannelToggle(channel)}
+            />
+          ))}
+        </Row>
+        <Stack flexGrow={1} minWidth="$column">
+          <TextField
+            label="Filter rows"
+            hideLabel
+            role="searchbox"
+            value={textFilter}
+            onChangeText={setTextFilter}
+            placeholder="Filter tag, summary, link id, or payload…"
+          />
+        </Stack>
+        {importMessage && (
+          <Text variant="caption" role="status">
+            {importMessage}
+          </Text>
+        )}
+      </Row>
+      <Row
+        flex={1}
+        minHeight={0}
+        alignItems="stretch"
+        gap="$none"
+        $compact={{ flexDirection: "column" }}
+      >
+        <Stack flex={1} minHeight={0} gap="$none">
+          <Stack
             aria-label="Inspector row timeline"
-            className={`timeline${appClients.length > 1 ? " multi-app" : ""}`}
+            testID="timeline"
+            overflow="scroll"
+            flex={1}
+            minHeight={0}
+            gap="$none"
             onScroll={handleTimelineScroll}
-            ref={timelineRef}
+            ref={(element) => {
+              timelineRef.current =
+                element instanceof HTMLDivElement ? element : null;
+            }}
           >
             {hiddenRowCount > 0 && (
-              <p className="hidden-rows-notice">
+              <Text variant="caption" color="$colorMuted" padding="$sm">
                 …{hiddenRowCount.toLocaleString()} older rows hidden
-              </p>
+              </Text>
             )}
             {renderedRows.length === 0 ? (
-              <div className="empty-state">
+              <Text variant="label" color="$colorMuted" padding="$lg">
                 {rows.length === 0
                   ? offlineImport
                     ? "No valid inspector rows were imported."
@@ -689,10 +757,11 @@ export function InspectorApp({
                       ? "Waiting for inspector rows…"
                       : "The inspector is off — enable it in Advanced settings, or use Import to view a log file."
                   : "No rows match the current filters."}
-              </div>
+              </Text>
             ) : (
               renderedRows.map((row) => (
                 <TimelineRow
+                  key={row.id}
                   clientLabel={
                     appClients.length > 1
                       ? (clientLabelById.get(row.client) ?? null)
@@ -700,24 +769,23 @@ export function InspectorApp({
                   }
                   isRelated={relatedRowIds.has(row.id)}
                   isSelected={selectedRow?.id === row.id}
-                  key={row.id}
                   onSelect={setSelectedRow}
                   row={row}
                 />
               ))
             )}
-          </div>
+          </Stack>
           {!isFollowing && renderedRows.length > 0 && (
-            <button
-              className="follow-button"
-              onClick={handleFollow}
-              type="button"
+            <Button
+              size="sm"
+              variant="secondary"
+              alignSelf="center"
+              onPress={handleFollow}
             >
               Follow ↓
-            </button>
+            </Button>
           )}
-        </section>
-
+        </Stack>
         {selectedRow && (
           <DetailPane
             onClose={() => setSelectedRow(null)}
@@ -726,7 +794,7 @@ export function InspectorApp({
             row={selectedRow}
           />
         )}
-      </div>
-    </main>
+      </Row>
+    </Stack>
   );
 }
