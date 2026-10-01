@@ -1,3 +1,4 @@
+import { Stack, ListRow } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
@@ -19,24 +20,20 @@ export function LanguagePage(): React.ReactElement {
   const { setLang } = useAppShellActions();
 
   return (
-    <section className="panel">
-      {LANGUAGES.map((language) => {
-        const isSelected = lang === language.value;
-
-        return (
-          <button
-            type="button"
-            className={`settings-row settings-link settings-option${isSelected ? " is-selected" : ""}`}
-            key={language.value}
-            aria-pressed={isSelected}
-            onClick={() => setLang(language.value)}
-          >
-            <span className="settings-left">
-              <span className="settings-label">{t(language.key)}</span>
-            </span>
-          </button>
-        );
-      })}
-    </section>
+    <Stack
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      {LANGUAGES.map((language) => (
+        <ListRow
+          key={language.value}
+          title={t(language.key)}
+          selected={lang === language.value}
+          onPress={() => setLang(language.value)}
+          chevron={false}
+        />
+      ))}
+    </Stack>
   );
 }

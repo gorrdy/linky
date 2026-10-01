@@ -1,5 +1,8 @@
+import { ListRow, Stack, Text, StatusDot, Pill } from "@linky-fit/ui";
 import type { RelayDotState } from "../app/hooks/useRelayHealth";
 import { navigateTo } from "../hooks/useRouting";
+
+import { connectionStatus } from "../utils/connectionStatus";
 
 interface NostrRelayRowProps {
   detail: string | null;
@@ -15,28 +18,25 @@ export function NostrRelayRow({
   url,
 }: NostrRelayRowProps) {
   return (
-    <button
-      type="button"
-      className="settings-row settings-link"
-      onClick={() => navigateTo({ route: "nostrRelay", id: url })}
-    >
-      <div className="settings-left">
-        <span className="relay-cell">
-          <span className="relay-url">{url}</span>
-          {label ? <span className="relay-detail">{label}</span> : null}
-          {detail ? <span className="relay-detail">{detail}</span> : null}
-        </span>
-      </div>
-      <div className="settings-right">
-        <span
-          className={`status-dot ${state}`}
-          aria-label={state}
-          title={state}
+    <ListRow
+      title={url}
+      description={
+        <Stack gap="$xxs">
+          {label ? <Pill size="sm" label={label} /> : null}
+          {detail ? (
+            <Text variant="caption" color="$colorMuted">
+              {detail}
+            </Text>
+          ) : null}
+        </Stack>
+      }
+      trailing={
+        <StatusDot
+          tone={connectionStatus[state].tone}
+          accessibilityLabel={state}
         />
-        <span className="settings-chevron" aria-hidden="true">
-          &gt;
-        </span>
-      </div>
-    </button>
+      }
+      onPress={() => navigateTo({ route: "nostrRelay", id: url })}
+    />
   );
 }

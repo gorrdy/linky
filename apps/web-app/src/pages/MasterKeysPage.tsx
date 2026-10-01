@@ -1,5 +1,5 @@
+import { Stack, Row, Text, Button } from "@linky-fit/ui";
 import React, { useCallback, useMemo, useState } from "react";
-import { Copy, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
 
@@ -41,60 +41,77 @@ export function MasterKeysPage(): React.ReactElement {
   }, [hasSeedMnemonic, pushToast, saveSeedToPasswordManager, t]);
 
   return (
-    <section className="panel settings-page master-keys-page">
-      <div className="master-keys-word-grid" aria-live="polite">
+    <Stack
+      gap="$lg"
+      marginTop="$sm"
+      paddingBottom="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <Row flexWrap="wrap" gap="$sm" aria-live="polite">
         {hasSeedMnemonic ? (
           seedWords.map((word, index) => (
-            <span
-              className={
-                isVisible
-                  ? "master-keys-word"
-                  : "master-keys-word master-keys-word-hidden"
-              }
+            <Row
               key={index}
+              width="$hero"
+              minWidth="$hero"
+              flexGrow={1}
+              paddingHorizontal="$md"
+              paddingVertical="$sm"
+              borderRadius="$control"
+              backgroundColor="$neutralSoft"
+              gap="$sm"
             >
-              <span className="master-keys-word-index">{index + 1}</span>
-              <span className="master-keys-word-value">
+              <Text variant="caption" color="$colorMuted">
+                {index + 1}
+              </Text>
+              <Text
+                mono
+                variant="label"
+                color={isVisible ? "$colorStrong" : "$colorMuted"}
+              >
                 {isVisible ? word : "****"}
-              </span>
-            </span>
+              </Text>
+            </Row>
           ))
         ) : (
-          <p className="muted settings-note">{t("seedMissing")}</p>
+          <Text color="$colorMuted">{t("seedMissing")}</Text>
         )}
-      </div>
-
-      <div className="master-keys-actions">
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => setIsVisible((current) => !current)}
+      </Row>
+      <Row gap="$sm" flexWrap="wrap">
+        <Button
+          width="48%"
+          minWidth="$column"
+          $wide={{ width: "30%", flexGrow: 1 }}
+          variant="secondary"
+          icon={isVisible ? "EyeOff" : "Eye"}
+          onPress={() => setIsVisible((current) => !current)}
           disabled={!hasSeedMnemonic}
         >
-          {isVisible ? <EyeOff size={18} /> : <Eye size={18} />}
-          <span>{isVisible ? t("masterKeysHide") : t("masterKeysShow")}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={copySeed}
+          {isVisible ? t("masterKeysHide") : t("masterKeysShow")}
+        </Button>
+        <Button
+          width="48%"
+          minWidth="$column"
+          $wide={{ width: "30%", flexGrow: 1 }}
+          icon="Copy"
+          onPress={copySeed}
           disabled={!hasSeedMnemonic}
           data-guide="copy-seed"
         >
-          <Copy size={18} />
-          <span>{t("copy")}</span>
-        </button>
-
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => void handleSaveSeed()}
+          {t("copy")}
+        </Button>
+        <Button
+          width="48%"
+          minWidth="$column"
+          $wide={{ width: "30%", flexGrow: 1 }}
+          variant="secondary"
+          icon="ShieldCheck"
+          onPress={() => void handleSaveSeed()}
           disabled={!hasSeedMnemonic}
         >
-          <ShieldCheck size={18} />
-          <span>{t("onboardingBackupSave")}</span>
-        </button>
-      </div>
-    </section>
+          {t("onboardingBackupSave")}
+        </Button>
+      </Row>
+    </Stack>
   );
 }

@@ -1,6 +1,18 @@
-import { Icon, ListRow, Switch } from "@linky-fit/ui";
+import {
+  AvatarGroup,
+  Button,
+  Dialog,
+  Divider,
+  Icon,
+  ListRow,
+  Pill,
+  Row,
+  Stack,
+  Switch,
+  Text,
+} from "@linky-fit/ui";
+
 import type { IconName } from "@linky-fit/ui";
-import { PencilLine, ScanLine } from "lucide-react";
 import React from "react";
 import {
   useAppShellActions,
@@ -9,26 +21,20 @@ import {
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
 import { usePushNotificationsSetting } from "../app/hooks/usePushNotificationsSetting";
 import type { ProxyPaymentPayerContact } from "../app/types/appTypes";
-import { Avatar } from "../components/Avatar";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey } from "../i18n";
 import {
   PROFILE_STATUS_CURRENCIES,
   type ProfileStatusCurrency,
 } from "../nostrStatus";
-import { getInitials } from "../utils/formatting";
-
 const CURRENCY_LABEL_KEYS: Record<ProfileStatusCurrency, I18nKey> = {
   CZK: "proxyPaymentsProvideCzk",
   EUR: "proxyPaymentsProvideEur",
 };
-
 const CURRENCY_ICONS: Record<ProfileStatusCurrency, IconName> = {
   CZK: "Banknote",
   EUR: "Euro",
 };
-
-const MAX_PAYER_AVATARS = 5;
 
 function PayerRow({
   currency,
@@ -37,31 +43,26 @@ function PayerRow({
   currency: ProfileStatusCurrency;
   payers: readonly ProxyPaymentPayerContact[];
 }): React.ReactElement {
-  const names = payers.map(({ contact }) => (contact.name ?? "").trim());
+  const people = payers.map(({ contact, pictureUrl }) => ({
+    name: (contact.name ?? "").trim(),
+    uri: pictureUrl ?? undefined,
+  }));
   return (
-    <li className="proxy-payments-payer-row">
-      <span className="proxy-payments-currency">{currency}</span>
-      <span className="proxy-payments-avatars" aria-hidden="true">
-        {payers.slice(0, MAX_PAYER_AVATARS).map(({ contact, pictureUrl }) => (
-          <span
-            key={contact.id ?? contact.npub}
-            className="proxy-payments-avatar"
-          >
-            <Avatar
-              pictureUrl={pictureUrl}
-              fallback={getInitials((contact.name ?? "").trim())}
-              fallbackClassName=""
-            />
-          </span>
-        ))}
-        {payers.length > MAX_PAYER_AVATARS ? (
-          <span className="proxy-payments-avatar proxy-payments-avatar-more">
-            +{payers.length - MAX_PAYER_AVATARS}
-          </span>
-        ) : null}
-      </span>
-      <span className="proxy-payments-payer-names">{names.join(", ")}</span>
-    </li>
+    <Row>
+      {/* Pill aligns itself to the top; its own box lets the row center it. */}
+      <Stack>
+        <Pill label={currency} size="sm" />
+      </Stack>
+      <AvatarGroup people={people} />
+      <Text
+        variant="label"
+        color="$colorMuted"
+        numberOfLines={1}
+        flexShrink={1}
+      >
+        {people.map(({ name }) => name).join(", ")}
+      </Text>
+    </Row>
   );
 }
 
@@ -101,7 +102,6 @@ export function ProxyPaymentsPage(): React.ReactElement {
     }
     void toggleProfileStatusCurrency(currency);
   };
-
   const confirmNotifications = async () => {
     const currency = pendingCurrency;
     setPendingCurrency(null);
@@ -113,57 +113,62 @@ export function ProxyPaymentsPage(): React.ReactElement {
     }
     await toggleProfileStatusCurrency(currency);
   };
-
   return (
-    <section className="panel panel-plain proxy-payments-page">
-      <header className="proxy-payments-hero">
-        <h1>{t("proxyPaymentsHeroTitle")}</h1>
-        <p>{t("proxyPaymentsHeroBody")}</p>
-      </header>
+    <Stack
+      gap="$xxxl"
+      marginTop="$sm"
+      paddingBottom="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <Stack gap="$sm">
+        <Text variant="heading" role="heading">
+          {t("proxyPaymentsHeroTitle")}
+        </Text>
+        <Text color="$colorMuted">{t("proxyPaymentsHeroBody")}</Text>
+      </Stack>
 
-      <div className="proxy-payments-actions">
-        <button
-          type="button"
-          className="contacts-qr-btn"
-          onClick={openWalletScan}
+      <Row gap="$sm">
+        <Button
+          icon="ScanLine"
+          flex={1}
+          flexDirection="column"
+          paddingVertical="$xl"
+          onPress={openWalletScan}
         >
-          <span className="contacts-qr-btn-icon" aria-hidden="true">
-            <ScanLine size={18} strokeWidth={2} />
-          </span>
-          <span className="contacts-qr-btn-label">
-            {t("proxyPaymentsScanBankQr")}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="contacts-qr-btn secondary"
-          onClick={() => navigateTo({ route: "bankPaymentNew" })}
+          {t("proxyPaymentsScanBankQr")}
+        </Button>
+        <Button
+          icon="PencilLine"
+          variant="secondary"
+          flex={1}
+          flexDirection="column"
+          paddingVertical="$xl"
+          onPress={() => navigateTo({ route: "bankPaymentNew" })}
         >
-          <span className="contacts-qr-btn-icon" aria-hidden="true">
-            <PencilLine size={18} strokeWidth={2} />
-          </span>
-          <span className="contacts-qr-btn-label">
-            {t("proxyPaymentsEnterManually")}
-          </span>
-        </button>
-      </div>
+          {t("proxyPaymentsEnterManually")}
+        </Button>
+      </Row>
 
-      <section className="proxy-payments-section">
-        <h2>{t("proxyPaymentsPayersTitle")}</h2>
+      <Stack gap="$sm">
+        <Text variant="title" role="heading">
+          {t("proxyPaymentsPayersTitle")}
+        </Text>
         {payersByCurrency.length === 0 ? (
-          <p>{t("proxyPaymentsPayersEmpty")}</p>
+          <Text color="$colorMuted">{t("proxyPaymentsPayersEmpty")}</Text>
         ) : (
-          <ul className="proxy-payments-payers">
-            {payersByCurrency.map(({ currency, payers }) => (
-              <PayerRow key={currency} currency={currency} payers={payers} />
-            ))}
-          </ul>
+          payersByCurrency.map(({ currency, payers }) => (
+            <PayerRow key={currency} currency={currency} payers={payers} />
+          ))
         )}
-      </section>
+      </Stack>
 
-      <section className="proxy-payments-section proxy-payments-earn">
-        <h2>{t("proxyPaymentsEarnTitle")}</h2>
-        <p>{t("proxyPaymentsEarnBody")}</p>
+      <Divider />
+
+      <Stack gap="$sm">
+        <Text variant="title" role="heading">
+          {t("proxyPaymentsEarnTitle")}
+        </Text>
+        <Text color="$colorMuted">{t("proxyPaymentsEarnBody")}</Text>
 
         {PROFILE_STATUS_CURRENCIES.map((currency) => (
           <ListRow
@@ -186,47 +191,33 @@ export function ProxyPaymentsPage(): React.ReactElement {
         ))}
 
         {selectedProfileStatusCurrencies.length > 0 ? (
-          <p className="proxy-payments-earn-active">
+          <Text variant="label" color="$accentText">
             {t("proxyPaymentsEarnActive")}
-          </p>
+          </Text>
         ) : null}
-      </section>
+      </Stack>
 
-      {pendingCurrency ? (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("notifications")}
-          onClick={() => setPendingCurrency(null)}
-        >
-          <div
-            className="modal-sheet"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="modal-title">{t("notifications")}</div>
-            <div className="modal-body">
-              {t("proxyPaymentsNotificationsHint")}
-            </div>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn-wide"
-                onClick={() => void confirmNotifications()}
-              >
-                {t("enable")}
-              </button>
-              <button
-                type="button"
-                className="btn-wide secondary"
-                onClick={() => setPendingCurrency(null)}
-              >
-                {t("payCancel")}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </section>
+      <Dialog
+        open={pendingCurrency !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingCurrency(null);
+        }}
+        title={t("notifications")}
+        description={t("proxyPaymentsNotificationsHint")}
+        actions={
+          <>
+            <Button onPress={() => void confirmNotifications()}>
+              {t("enable")}
+            </Button>
+            <Button
+              variant="secondary"
+              onPress={() => setPendingCurrency(null)}
+            >
+              {t("payCancel")}
+            </Button>
+          </>
+        }
+      />
+    </Stack>
   );
 }

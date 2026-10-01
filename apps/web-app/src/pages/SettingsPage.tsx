@@ -1,3 +1,4 @@
+import { Stack, Text, Row, ListRow, Switch, Pill } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
@@ -20,62 +21,48 @@ export function SettingsPage(): React.ReactElement {
     useAppShellActions();
 
   return (
-    <section className="panel">
-      <p className="muted settings-note">{t("unitManageInfo")}</p>
-
+    <Stack
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <Text color="$colorMuted" variant="label">
+        {t("unitManageInfo")}
+      </Text>
       {DISPLAY_CURRENCIES.map((currency) => {
         const isEnabled = allowedDisplayCurrencies.includes(currency);
-        const isCurrent = displayCurrency === currency;
-        const isLastEnabled = isEnabled && allowedDisplayCurrencies.length <= 1;
-
         return (
-          <div className="settings-row" key={currency}>
-            <div className="settings-left">
-              <span className="settings-label-group">
-                <span className="settings-label">
-                  {getDisplayUnitLabel(currency, lang)}
-                </span>
-                {isCurrent ? (
-                  <span className="settings-inline-badge">
-                    {t("unitCurrent")}
-                  </span>
+          <ListRow
+            key={currency}
+            title={
+              <Row gap="$sm">
+                <Text>{getDisplayUnitLabel(currency, lang)}</Text>
+                {displayCurrency === currency ? (
+                  <Pill size="sm" label={t("unitCurrent")} />
                 ) : null}
-              </span>
-            </div>
-
-            <div className="settings-right">
-              <label className="switch">
-                <input
-                  className="switch-input"
-                  type="checkbox"
-                  checked={isEnabled}
-                  disabled={isLastEnabled}
-                  aria-label={`${t("unit")} ${getDisplayUnitLabel(currency, lang)}`}
-                  onChange={() => toggleAllowedDisplayCurrency(currency)}
-                />
-              </label>
-            </div>
-          </div>
+              </Row>
+            }
+            trailing={
+              <Switch
+                accessibilityLabel={`${t("unit")} ${getDisplayUnitLabel(currency, lang)}`}
+                value={isEnabled}
+                disabled={isEnabled && allowedDisplayCurrencies.length <= 1}
+                onValueChange={() => toggleAllowedDisplayCurrency(currency)}
+              />
+            }
+          />
         );
       })}
-
-      <div className="settings-row">
-        <div className="settings-left">
-          <span className="settings-label">{t("decimalInput")}</span>
-        </div>
-
-        <div className="settings-right">
-          <label className="switch">
-            <input
-              className="switch-input"
-              type="checkbox"
-              checked={decimalAmountInputEnabled}
-              aria-label={t("decimalInput")}
-              onChange={toggleDecimalAmountInput}
-            />
-          </label>
-        </div>
-      </div>
-    </section>
+      <ListRow
+        title={t("decimalInput")}
+        trailing={
+          <Switch
+            accessibilityLabel={t("decimalInput")}
+            value={decimalAmountInputEnabled}
+            onValueChange={toggleDecimalAmountInput}
+          />
+        }
+      />
+    </Stack>
   );
 }

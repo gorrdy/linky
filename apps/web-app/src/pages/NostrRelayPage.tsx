@@ -1,9 +1,10 @@
+import { Button, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
+import { connectionStatus } from "../utils/connectionStatus";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useRelaySettingsContext } from "../app/context/SystemSettingsContexts";
 import { relayDotState, useRelayHealth } from "../app/hooks/useRelayHealth";
 import { formatRelativeTime } from "../utils/formatting";
-
 export function NostrRelayPage(): React.ReactElement {
   const {
     isRecommendedRelay,
@@ -13,15 +14,20 @@ export function NostrRelayPage(): React.ReactElement {
   } = useRelaySettingsContext();
   const relayHealth = useRelayHealth();
   const { lang, t } = useAppShellCore();
-
   if (!selectedRelayUrl) {
     return (
-      <section className="panel">
-        <p className="lede">{t("errorPrefix")}</p>
-      </section>
+      <Stack
+        gap="$lg"
+        marginTop="$lg"
+        paddingVertical="$xxl"
+        $wide={{ marginTop: "$none" }}
+      >
+        <Text variant="label" color="$colorMuted">
+          {t("errorPrefix")}
+        </Text>
+      </Stack>
     );
   }
-
   const health = relayHealth.get(selectedRelayUrl);
   const dotState = relayDotState(health);
   const stateLabel =
@@ -31,68 +37,86 @@ export function NostrRelayPage(): React.ReactElement {
         ? t("relayStateConnecting")
         : t("relayStateUnreachable");
   const lastPublish = health?.lastPublish ?? null;
-
   return (
-    <section className="panel">
-      <div className="settings-row">
-        <div className="settings-left">
-          <span className="relay-url">{selectedRelayUrl}</span>
-        </div>
-        <div className="settings-right">
-          <span
-            className={`status-dot ${dotState}`}
-            aria-label={dotState}
-            title={dotState}
-          />
-        </div>
-      </div>
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <ListRow
+        title={
+          <>
+            <Text variant="label">{selectedRelayUrl}</Text>
+          </>
+        }
+        trailing={
+          <>
+            <StatusDot
+              tone={connectionStatus[dotState].tone}
+              accessibilityLabel={dotState}
+            />
+          </>
+        }
+      />
 
-      <div className="settings-row">
-        <div className="settings-left">
-          <span className="settings-label">{t("relayStatusLabel")}</span>
-        </div>
-        <div className="settings-right">
-          <span className="muted">{stateLabel}</span>
-        </div>
-      </div>
+      <ListRow
+        title={t("relayStatusLabel")}
+        trailing={
+          <>
+            <Text variant="label" color="$colorMuted">
+              {stateLabel}
+            </Text>
+          </>
+        }
+        testID="relayStatusLabel"
+      />
 
       {health?.state === "unreachable" && health.detail ? (
-        <p className="muted nostr-relay-note">{health.detail}</p>
+        <Text variant="label" color="$colorMuted">
+          {health.detail}
+        </Text>
       ) : null}
 
       {lastPublish ? (
-        <div className="settings-row">
-          <div className="settings-left">
-            <span className="settings-label">{t("relayLastPublish")}</span>
-          </div>
-          <div className="settings-right">
-            <span className="muted">
-              {lastPublish.accepted
-                ? t("relayPublishAccepted")
-                : t("relayPublishRejected")}
-              {" · "}
-              {formatRelativeTime(lastPublish.at, lang)}
-            </span>
-          </div>
-        </div>
+        <ListRow
+          title={t("relayLastPublish")}
+          trailing={
+            <>
+              <Text variant="label" color="$colorMuted">
+                {lastPublish.accepted
+                  ? t("relayPublishAccepted")
+                  : t("relayPublishRejected")}
+                {" · "}
+                {formatRelativeTime(lastPublish.at, lang)}
+              </Text>
+            </>
+          }
+          testID="relayLastPublish"
+        />
       ) : null}
 
       {isRecommendedRelay(selectedRelayUrl) ? (
-        <p className="muted nostr-relay-note">{t("relayRecommendedNote")}</p>
+        <Text variant="label" color="$colorMuted">
+          {t("relayRecommendedNote")}
+        </Text>
       ) : (
-        <div className="settings-row">
-          <button
-            className={
-              pendingRelayDeleteUrl === selectedRelayUrl
-                ? "btn-wide danger"
-                : "btn-wide"
+        <Row
+          justifyContent="space-between"
+          minHeight="$control"
+          paddingVertical="$sm"
+        >
+          <Button
+            width="100%"
+            onPress={requestDeleteSelectedRelay}
+            variant={
+              pendingRelayDeleteUrl === selectedRelayUrl ? "danger" : "primary"
             }
-            onClick={requestDeleteSelectedRelay}
           >
             {t("delete")}
-          </button>
-        </div>
+          </Button>
+        </Row>
       )}
-    </section>
+    </Stack>
   );
 }

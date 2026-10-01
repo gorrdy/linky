@@ -1,19 +1,26 @@
+import { Stack, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useRelaySettingsContext } from "../app/context/SystemSettingsContexts";
 import { relayDotState, useRelayHealth } from "../app/hooks/useRelayHealth";
 import { NostrRelayRow } from "../components/NostrRelayRow";
-
 export function NostrRelaysPage(): React.ReactElement {
   const { isRecommendedRelay, relayUrls } = useRelaySettingsContext();
   const relayHealth = useRelayHealth();
   const { t } = useAppShellCore();
   return (
-    <section className="panel">
+    <Stack
+      gap="$lg"
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
       {relayUrls.length === 0 ? (
-        <p className="lede">{t("noContactsYet")}</p>
+        <Text variant="label" color="$colorMuted">
+          {t("noContactsYet")}
+        </Text>
       ) : (
-        <div>
+        <Stack>
           {relayUrls.map((url) => {
             const health = relayHealth.get(url);
             return (
@@ -26,8 +33,8 @@ export function NostrRelaysPage(): React.ReactElement {
               />
             );
           })}
-        </div>
+        </Stack>
       )}
-    </section>
+    </Stack>
   );
 }

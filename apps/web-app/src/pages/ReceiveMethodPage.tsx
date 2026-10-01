@@ -1,3 +1,4 @@
+import { Stack, ListRow } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -11,26 +12,20 @@ export function ReceiveMethodPage(): React.ReactElement {
   const { receiveMethod, setReceiveMethod } = useAdvancedSettingsContext();
 
   return (
-    <section className="panel">
-      {RECEIVE_METHODS.map((method) => {
-        const isSelected = receiveMethod === method;
-
-        return (
-          <button
-            type="button"
-            className={`settings-row settings-link settings-option${isSelected ? " is-selected" : ""}`}
-            key={method}
-            aria-pressed={isSelected}
-            onClick={() => setReceiveMethod(method)}
-          >
-            <span className="settings-left">
-              <span className="settings-label">
-                {t(RECEIVE_METHOD_LABEL_KEYS[method])}
-              </span>
-            </span>
-          </button>
-        );
-      })}
-    </section>
+    <Stack
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      {RECEIVE_METHODS.map((method) => (
+        <ListRow
+          key={method}
+          title={t(RECEIVE_METHOD_LABEL_KEYS[method])}
+          selected={receiveMethod === method}
+          onPress={() => setReceiveMethod(method)}
+          chevron={false}
+        />
+      ))}
+    </Stack>
   );
 }

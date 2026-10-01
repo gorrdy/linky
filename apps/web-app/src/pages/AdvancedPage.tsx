@@ -33,6 +33,7 @@ import {
   type ConnectionState,
 } from "../utils/connectionStatus";
 import { isDesktopShell } from "../platform/runtime";
+import { pickFile } from "../utils/pickFile";
 import { RECEIVE_METHOD_LABEL_KEYS } from "../utils/receiveMethod";
 
 export function AdvancedPage(): React.ReactElement {
@@ -46,14 +47,12 @@ export function AdvancedPage(): React.ReactElement {
     evoluServerUrls,
     exportAppData,
     handleImportAppDataFilePicked,
-    importDataFileInputRef,
     lightningInvoiceAutoPayLimit,
     logoutArmed,
     payWithCashuEnabled,
     pushToast,
     receiveMethod,
     relayUrls,
-    requestImportAppData,
     requestLogout,
     requestPasteNostrKeys,
     seedMnemonic,
@@ -306,23 +305,16 @@ export function AdvancedPage(): React.ReactElement {
           navigateTo({ route: "cashuTokens" }),
         )}
         {linkRow("Upload", t("exportData"), exportAppData)}
-        {linkRow("Download", t("importData"), requestImportAppData)}
+        {linkRow("Download", t("importData"), () => {
+          void pickFile(".txt,.json,application/json,text/plain").then(
+            handleImportAppDataFilePicked,
+          );
+        })}
         <ListRow
           leading={<Icon name="BrushCleaning" />}
           title={t("dedupeContacts")}
           onPress={() => void dedupeContacts()}
           disabled={dedupeContactsIsBusy}
-        />
-        <input
-          ref={importDataFileInputRef}
-          type="file"
-          accept=".txt,.json,application/json,text/plain"
-          className="hidden-input"
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            e.currentTarget.value = "";
-            void handleImportAppDataFilePicked(file);
-          }}
         />
         {linkRow("RotateCw", t("reloadApp"), () => void handleReloadApp())}
         {linkRow("Bug", t("nostrInspector"), () =>

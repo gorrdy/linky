@@ -1,3 +1,4 @@
+import { Stack, Button } from "@linky-fit/ui";
 import type { FC } from "react";
 import { useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -25,7 +26,11 @@ export const AdvancedAutoPayLimitPage: FC = () => {
   });
 
   return (
-    <section className="panel">
+    <Stack
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
       <AmountDisplay
         amount={amount}
         inputDisplayValue={amountInput.inputDisplayValue}
@@ -45,10 +50,9 @@ export const AdvancedAutoPayLimitPage: FC = () => {
         }}
       />
 
-      <div className="actions">
-        <button
-          className="btn-wide"
-          onClick={() => {
+      <Stack>
+        <Button
+          onPress={() => {
             if (invalid) return;
             setLightningInvoiceAutoPayLimit(amountSat);
             navigateTo({ route: "advanced" });
@@ -56,8 +60,8 @@ export const AdvancedAutoPayLimitPage: FC = () => {
           disabled={invalid}
         >
           {t("saveChanges")}
-        </button>
-      </div>
-    </section>
+        </Button>
+      </Stack>
+    </Stack>
   );
 };

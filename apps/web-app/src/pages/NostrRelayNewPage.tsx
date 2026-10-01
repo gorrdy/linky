@@ -1,3 +1,4 @@
+import { Stack, Row, Button, TextField } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useRelaySettingsContext } from "../app/context/SystemSettingsContexts";
@@ -7,23 +8,27 @@ export function NostrRelayNewPage(): React.ReactElement {
     useRelaySettingsContext();
   const { t } = useAppShellCore();
   return (
-    <section className="panel">
-      <label htmlFor="relayUrl">{t("relayUrl")}</label>
-      <input
+    <Stack
+      marginTop="$lg"
+      paddingVertical="$xxl"
+      $wide={{ marginTop: "$none" }}
+    >
+      <TextField
+        label={t("relayUrl")}
         id="relayUrl"
         value={newRelayUrl}
-        onChange={(e) => setNewRelayUrl(e.target.value)}
+        onChangeText={setNewRelayUrl}
         placeholder="wss://..."
         autoCapitalize="none"
-        autoCorrect="off"
+        autoCorrect={false}
         spellCheck={false}
       />
 
-      <div className="panel-header panel-header-layout">
+      <Row justifyContent="flex-end">
         {canSaveNewRelay ? (
-          <button onClick={saveNewRelay}>{t("saveChanges")}</button>
+          <Button onPress={saveNewRelay}>{t("saveChanges")}</Button>
         ) : null}
-      </div>
-    </section>
+      </Row>
+    </Stack>
   );
 }
