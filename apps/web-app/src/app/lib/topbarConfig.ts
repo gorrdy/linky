@@ -183,7 +183,7 @@ export const buildTopbar = ({
   return {
     // A bank payment offer is dismissed rather than stepped out of, so it keeps
     // the close glyph instead of the back chevron.
-    icon: route.kind === "bankPaymentOffer" ? "×" : "<",
+    icon: route.kind === "bankPaymentOffer" ? "X" : "ChevronLeft",
     label: t("close"),
     onClick,
   };
@@ -256,7 +256,7 @@ export const buildTopbarRight = ({
 }: BuildTopbarRightArgs): TopbarButton | null => {
   if (route.kind === "contacts") {
     return {
-      icon: "filter",
+      icon: "Filter",
       isActive: contactsFilterIsActive,
       label: t("contactsFilterToggle"),
       onClick: toggleContactsFilter,
@@ -265,7 +265,7 @@ export const buildTopbarRight = ({
 
   if (route.kind === "transactions") {
     return {
-      icon: "hidden",
+      icon: hiddenTransactionsShown ? "Eye" : "EyeOff",
       isActive: hiddenTransactionsShown,
       label: t(
         hiddenTransactionsShown
@@ -278,7 +278,7 @@ export const buildTopbarRight = ({
 
   if (route.kind === "nostrRelays") {
     return {
-      icon: "+",
+      icon: "Plus",
       label: t("addRelay"),
       onClick: () => navigateTo({ route: "nostrRelayNew" }),
     };
@@ -286,7 +286,7 @@ export const buildTopbarRight = ({
 
   if (route.kind === "evoluServers") {
     return {
-      icon: "+",
+      icon: "Plus",
       label: t("evoluAddServerLabel"),
       onClick: () => navigateTo({ route: "evoluServerNew" }),
     };
@@ -294,7 +294,7 @@ export const buildTopbarRight = ({
 
   if (route.kind === "profile" && !isProfileEditing) {
     return {
-      icon: "edit",
+      icon: "Pencil",
       label: t("edit"),
       onClick: () => navigateTo({ route: "profileEdit" }),
     };
@@ -303,7 +303,7 @@ export const buildTopbarRight = ({
   if (route.kind === "chat") {
     if (!chatEditContactId) return null;
     return {
-      icon: "edit",
+      icon: "Pencil",
       label: t("edit"),
       onClick: () =>
         navigateTo({ route: "contactEdit", id: chatEditContactId }),
@@ -312,7 +312,7 @@ export const buildTopbarRight = ({
 
   if (route.kind === "contact") {
     return {
-      icon: "edit",
+      icon: "Pencil",
       label: t("editContact"),
       onClick: () => navigateTo({ route: "contactEdit", id: route.id }),
     };
@@ -321,7 +321,7 @@ export const buildTopbarRight = ({
   if (route.kind === "bankPayment") {
     if (route.editing) return null;
     return {
-      icon: "edit",
+      icon: "Pencil",
       label: t("spdPaymentEditFields"),
       onClick: () =>
         navigateTo({
@@ -334,7 +334,7 @@ export const buildTopbarRight = ({
 
   if (route.kind === "contactNew") {
     return {
-      icon: "scan",
+      icon: "ScanLine",
       label: t("contactLoadQr"),
       onClick: openScan,
     };
@@ -342,14 +342,14 @@ export const buildTopbarRight = ({
 
   if (route.kind === "topup") {
     return {
-      icon: "scan",
+      icon: "ScanLine",
       label: t("scan"),
       onClick: openReceiveScan,
     };
   }
 
   return SHOWS_MENU_BUTTON[route.kind]
-    ? { icon: "☰", label: t("menu"), onClick: toggleMenu }
+    ? { icon: "Settings", label: t("menu"), onClick: toggleMenu }
     : null;
 };
 

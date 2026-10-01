@@ -50,7 +50,7 @@ const readMintBalanceSat = async (page: Page, mintUrl: string) => {
 
 const setAllowTestMints = async (page: Page, allow: boolean) => {
   await page.goto("/#settings");
-  const toggle = page.getByRole("checkbox", { name: "Allow test mints" });
+  const toggle = page.getByRole("switch", { name: "Allow test mints" });
   await expect(toggle).toBeChecked({ checked: !allow });
   // The switch follows the synced setting, so it flips once the write lands.
   await toggle.click();

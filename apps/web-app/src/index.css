@@ -1,19 +1,13 @@
 @import "./assets/manrope/manrope.css";
 
 :root {
+  /* Matches the dark theme background of @linky-fit/ui for the boot screen. */
   --app-flat-bg: #020617;
-  --app-primary-button-bg: #2dd4bf;
-  --color-success: #2dd4bf;
-  --app-danger-button-bg: #f87171;
-  --app-secondary-button-bg: #1e293b;
-  --app-primary-button-fg: #042f2e;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --chat-keyboard-inset: 0px;
   --native-keyboard-inset: 0px;
-  --chat-compose-height: 116px;
   --floating-safe-area-bottom: var(--safe-area-bottom);
-  --page-gutter: 20px;
   --topbar-content-height: 48px;
   --topbar-height: calc(var(--topbar-content-height) + var(--safe-area-top));
   font-family:
@@ -102,15 +96,11 @@ body {
   }
 }
 
-a {
-  color: #2dd4bf;
-  text-decoration: none;
+/* nativeBridge.ts writes native insets to these variables, which Tamagui props cannot read. */
+[data-safe-area="top"] {
+  padding-top: var(--safe-area-top);
 }
 
-a:hover {
-  color: #5eead4;
-}
-
-button {
-  font-family: inherit;
+[data-safe-area="bottom"] {
+  padding-bottom: var(--floating-safe-area-bottom);
 }

@@ -180,7 +180,7 @@ const bootAccount = async (
  */
 const advertiseCzk = async (account: Account): Promise<void> => {
   await account.page.goto("/#settings/proxy-payments");
-  const czkSwitch = account.page.getByRole("checkbox", {
+  const czkSwitch = account.page.getByRole("switch", {
     name: "Payments in CZK",
   });
   await expect(czkSwitch).toBeVisible();

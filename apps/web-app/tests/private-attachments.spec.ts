@@ -250,7 +250,7 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
             const covered = await receiver.page.evaluate(() => {
               const viewer = document.querySelector(".chat-image-viewer");
               const probes = [
-                document.querySelector(".topbar"),
+                document.querySelector('[role="banner"]'),
                 document.querySelector(".chat-compose"),
               ];
               return probes.every((probe) => {

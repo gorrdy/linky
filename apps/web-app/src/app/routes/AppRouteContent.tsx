@@ -253,7 +253,7 @@ export const AppRouteContent = (): React.ReactElement => {
             <ScanModal />
           ) : (
             <>
-              <Topbar className="desktop-app-topbar" desktopDetail={true} />
+              <Topbar desktopDetail />
               <div className="desktop-secondary-content">
                 <RoutePage />
               </div>

@@ -1,3 +1,4 @@
+import { Stack, StatusLine } from "@linky-fit/ui";
 import React from "react";
 import { useAccountHydrated } from "../app/hooks/useLinksync";
 import { useDeferredOnlineReady } from "../hooks/useDeferredOnlineReady";
@@ -7,21 +8,28 @@ import type { Translate } from "../i18n";
 const SHOW_AFTER_MS = 3_000;
 
 interface EvoluRelayWaitBannerProps {
+  /** Sits inside the desktop layout's padding instead of spanning the window. */
+  inset: boolean;
   t: Translate;
 }
 
 /** Says why no messages arrive: Nostr waits until an Evolu relay has delivered the account's data. */
 export const EvoluRelayWaitBanner: React.FC<EvoluRelayWaitBannerProps> = ({
+  inset,
   t,
 }) => {
   const due = useDeferredOnlineReady({ delayMs: SHOW_AFTER_MS });
   const hydrated = useAccountHydrated();
   if (!due || hydrated) return null;
 
-  return (
-    <div className="evolu-relay-wait-banner" role="status" aria-live="polite">
-      <span className="btn-spinner" aria-hidden="true" />
-      <span>{t("evoluRelayWaiting")}</span>
-    </div>
+  const line = (
+    <StatusLine busy rounded={inset} label={t("evoluRelayWaiting")} />
+  );
+  return inset ? (
+    <Stack paddingHorizontal="$lg" paddingTop="$lg">
+      {line}
+    </Stack>
+  ) : (
+    line
   );
 };

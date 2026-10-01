@@ -208,14 +208,14 @@ export const useContactsGuide = ({
       backup_keys: [
         {
           id: "backup_keys_1",
-          selector: '[data-guide="open-menu"]',
+          selector: '[data-testid="open-menu"]',
           titleKey: "guideBackupKeysStep1Title",
           bodyKey: "guideBackupKeysStep1Body",
           ensure: () => ensureRoute("contacts"),
         },
         {
           id: "backup_keys_2",
-          selector: '[data-guide="open-master-keys"]',
+          selector: '[data-testid="open-master-keys"]',
           titleKey: "guideBackupKeysStep2Title",
           bodyKey: "guideBackupKeysStep2Body",
           ensure: () => ensureRoute("settings"),

@@ -24,7 +24,6 @@ export const en = {
   openNostrInspector: "Open inspector",
   back: "Back",
   menu: "Menu",
-  advanced: "Advanced",
   transactionsTitle: "Transactions",
   showTransactions: "Show transactions",
   feedback: "Feedback",

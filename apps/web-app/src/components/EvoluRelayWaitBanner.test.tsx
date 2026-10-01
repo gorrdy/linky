@@ -24,7 +24,9 @@ describe("EvoluRelayWaitBanner", () => {
   });
 
   it("shows once the account has waited for an Evolu relay a while, and goes when it hydrates", async () => {
-    const view = await renderIntoDocument(<EvoluRelayWaitBanner t={t} />);
+    const view = await renderIntoDocument(
+      <EvoluRelayWaitBanner inset={false} t={t} />,
+    );
     expect(view.container.textContent).toBe("");
 
     await act(async () => {
@@ -33,14 +35,16 @@ describe("EvoluRelayWaitBanner", () => {
     expect(view.container.textContent).toBe("evoluRelayWaiting");
 
     state.hydrated = true;
-    await view.rerender(<EvoluRelayWaitBanner t={t} />);
+    await view.rerender(<EvoluRelayWaitBanner inset={false} t={t} />);
     expect(view.container.textContent).toBe("");
     await view.unmount();
   });
 
   it("stays hidden offline, where nothing could sync anyway", async () => {
     state.online = false;
-    const view = await renderIntoDocument(<EvoluRelayWaitBanner t={t} />);
+    const view = await renderIntoDocument(
+      <EvoluRelayWaitBanner inset={false} t={t} />,
+    );
     await act(async () => {
       vi.advanceTimersByTime(10_000);
     });

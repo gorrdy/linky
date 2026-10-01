@@ -1,11 +1,5 @@
-import {
-  Camera,
-  ImageUp,
-  Languages,
-  Copy as PasteIcon,
-  Settings,
-  Smile,
-} from "lucide-react";
+import { IconButton, SelectField, Sheet } from "@linky-fit/ui";
+import { Camera, ImageUp, Copy as PasteIcon, Smile } from "lucide-react";
 import React from "react";
 import type {
   OnboardingStep,
@@ -19,7 +13,7 @@ import { analyzeSlip39Input, SLIP39_WORD_COUNT } from "../utils/slip39Input";
 import { Avatar } from "./Avatar";
 import { AvatarControlGrid } from "./AvatarControlGrid";
 import { AvatarPhotoInput } from "./AvatarPhotoInput";
-import { ModalSheet } from "./ModalSheet";
+import { FixedTopBar } from "./FixedTopBar";
 import { SelfieCaptureModal } from "./SelfieCaptureModal";
 
 import type { Translate } from "../i18n";
@@ -90,46 +84,24 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
     [],
   );
 
-  const renderPickerMenu = () => {
-    if (!pickerMenuIsOpen) return null;
-
-    return (
-      <ModalSheet
-        className="menu-modal-overlay"
-        sheetClassName="menu-modal-sheet"
-        aria-modal="false"
-        aria-label={t("menu")}
-        onClick={() => setPickerMenuIsOpen(false)}
-      >
-        <div className="settings-row">
-          <div className="settings-left">
-            <span className="settings-icon" aria-hidden="true">
-              <Languages size={18} />
-            </span>
-            <span className="settings-label">{t("language")}</span>
-          </div>
-          <div className="settings-right">
-            <select
-              className="select"
-              value={lang}
-              onChange={(event) =>
-                setLang(
-                  event.target.value === "cs" || event.target.value === "de"
-                    ? event.target.value
-                    : "en",
-                )
-              }
-              aria-label={t("language")}
-            >
-              <option value="cs">{t("czech")}</option>
-              <option value="de">{t("german")}</option>
-              <option value="en">{t("english")}</option>
-            </select>
-          </div>
-        </div>
-      </ModalSheet>
-    );
-  };
+  const menuButton = (disabled = false) => (
+    <IconButton
+      icon="Settings"
+      size="sm"
+      accessibilityLabel={t("menu")}
+      onPress={() => setPickerMenuIsOpen((current) => !current)}
+      disabled={disabled}
+    />
+  );
+  const backButton = (onPress: () => void) => (
+    <IconButton
+      icon="ChevronLeft"
+      size="sm"
+      accessibilityLabel={t("back")}
+      onPress={onPress}
+      disabled={onboardingIsBusy}
+    />
+  );
 
   React.useEffect(() => {
     if (onboardingStep?.kind !== "profile") {
@@ -214,37 +186,14 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
 
     return (
       <div className="onboarding-avatar-stage onboarding-return-stage">
-        <header className="topbar onboarding-avatar-nav">
-          <div className="topbar-left">
-            <button
-              type="button"
-              className="topbar-btn"
-              onClick={() => {
-                setPickerMenuIsOpen(false);
-                setOnboardingStep(null);
-              }}
-              disabled={onboardingIsBusy}
-              aria-label={t("back")}
-              title={t("back")}
-            >
-              <span aria-hidden="true">&lt;</span>
-            </button>
-          </div>
-          <div className="topbar-title" aria-label={t("onboardingReturn")}>
-            {t("onboardingReturn")}
-          </div>
-          <button
-            type="button"
-            className="topbar-btn"
-            onClick={() => setPickerMenuIsOpen((current) => !current)}
-            aria-label={t("menu")}
-            title={t("menu")}
-          >
-            <Settings size={20} aria-hidden="true" />
-          </button>
-        </header>
-
-        {renderPickerMenu()}
+        <FixedTopBar
+          leading={backButton(() => {
+            setPickerMenuIsOpen(false);
+            setOnboardingStep(null);
+          })}
+          title={t("onboardingReturn")}
+          trailing={menuButton()}
+        />
 
         <div className="onboarding-return-scroll">
           <div className="onboarding-return-copy">
@@ -580,32 +529,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
 
     return (
       <div className="onboarding-avatar-stage">
-        <header className="topbar onboarding-avatar-nav">
-          <div className="topbar-left">
-            <button
-              type="button"
-              className="topbar-btn"
-              onClick={goBack}
-              disabled={onboardingIsBusy}
-              aria-label={t("back")}
-              title={t("back")}
-            >
-              <span aria-hidden="true">&lt;</span>
-            </button>
-          </div>
-          <span className="topbar-title-spacer" aria-hidden="true" />
-          <button
-            type="button"
-            className="topbar-btn"
-            onClick={() => setPickerMenuIsOpen((current) => !current)}
-            aria-label={t("menu")}
-            title={t("menu")}
-          >
-            <Settings size={20} aria-hidden="true" />
-          </button>
-        </header>
-
-        {renderPickerMenu()}
+        <FixedTopBar leading={backButton(goBack)} trailing={menuButton()} />
 
         {profileStage === "name"
           ? renderProfileNameStep(profile)
@@ -620,22 +544,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
     >
       {showOnboardingHeader ? (
         <>
-          <header className="topbar onboarding-avatar-nav">
-            <div className="topbar-left">
-              <span className="topbar-spacer" aria-hidden="true" />
-            </div>
-            <span className="topbar-title-spacer" aria-hidden="true" />
-            <button
-              type="button"
-              className="topbar-btn"
-              onClick={() => setPickerMenuIsOpen((current) => !current)}
-              aria-label={t("menu")}
-              title={t("menu")}
-              disabled={onboardingIsBusy}
-            >
-              <Settings size={20} aria-hidden="true" />
-            </button>
-          </header>
+          <FixedTopBar trailing={menuButton(onboardingIsBusy)} />
 
           <div className="onboarding-logo" aria-hidden="true">
             <img
@@ -656,8 +565,6 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
               {t("onboardingSubtitle")}
             </p>
           </div>
-
-          {renderPickerMenu()}
         </>
       ) : null}
 
@@ -700,6 +607,23 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           </div>
         </div>
       )}
+
+      <Sheet
+        open={pickerMenuIsOpen}
+        onOpenChange={setPickerMenuIsOpen}
+        title={t("menu")}
+      >
+        <SelectField
+          label={t("language")}
+          value={lang}
+          options={[
+            { value: "cs", label: t("czech") },
+            { value: "de", label: t("german") },
+            { value: "en", label: t("english") },
+          ]}
+          onValueChange={setLang}
+        />
+      </Sheet>
     </section>
   );
 };

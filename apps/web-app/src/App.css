@@ -1,3 +1,26 @@
+:root {
+  --app-primary-button-bg: #2dd4bf;
+  --color-success: #2dd4bf;
+  --app-danger-button-bg: #f87171;
+  --app-secondary-button-bg: #1e293b;
+  --app-primary-button-fg: #042f2e;
+  --chat-compose-height: 116px;
+  --page-gutter: 20px;
+}
+
+a {
+  color: #2dd4bf;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #5eead4;
+}
+
+button {
+  font-family: inherit;
+}
+
 .page {
   max-width: 1200px;
   margin: 0 auto;
@@ -72,29 +95,6 @@
 .pwa-update-banner-button:disabled {
   opacity: 0.6;
   cursor: progress;
-}
-
-.evolu-relay-wait-banner {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-  margin: 0 calc(-1 * var(--page-gutter)) 8px;
-  padding: 8px var(--page-gutter);
-  background: rgba(148, 163, 184, 0.06);
-  color: #94a3b8;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.evolu-relay-wait-banner .btn-spinner {
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-}
-
-.page.chat-page > .evolu-relay-wait-banner {
-  margin: 8px 0 0;
 }
 
 .install-pwa-overlay {
@@ -283,12 +283,6 @@
   border-bottom: none;
   backdrop-filter: blur(8px);
   z-index: 10;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .scan-overlay {
@@ -500,96 +494,6 @@
   text-overflow: ellipsis;
 }
 
-.topbar-title {
-  flex: 1;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #cbd5e1;
-  text-transform: lowercase;
-}
-
-.topbar-title::first-letter {
-  text-transform: uppercase;
-}
-
-.topbar-title-spacer {
-  flex: 1;
-}
-
-.topbar-chat {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.topbar-chat-button {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  transform: none;
-  padding: 0;
-  border-radius: 12px;
-}
-
-.topbar-chat-button:hover,
-.topbar-chat-button:focus,
-.topbar-chat-button:active,
-.topbar-chat-button:disabled {
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-}
-
-.topbar-chat-button:disabled {
-  cursor: default;
-}
-
-.topbar-chat-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  overflow: visible;
-  position: relative;
-  background: #0b1222;
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.topbar-chat-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 999px;
-}
-
-.topbar-chat-avatar-fallback {
-  font-size: 12px;
-  font-weight: 800;
-  color: #cbd5e1;
-}
-
-.topbar-chat-name {
-  min-width: 0;
-  max-width: 220px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #cbd5e1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.topbar-spacer {
-  width: 42px;
-  height: 36px;
-}
-
 .topbar-btn {
   width: 42px;
   height: 36px;
@@ -603,38 +507,12 @@
   color: #e2e8f0;
 }
 
-.topbar-left .topbar-btn {
-  justify-content: flex-start;
-}
-
 .topbar-btn.is-active {
   color: #99f6e4;
 }
 
 .topbar > .topbar-btn {
   justify-content: flex-end;
-}
-
-.topbar-profile-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: #0b1222;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  padding: 0;
-}
-
-.topbar-profile-btn img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.topbar-profile-fallback {
-  font-size: 12px;
-  font-weight: 800;
-  color: #cbd5e1;
 }
 
 .topbar-btn:hover {
@@ -667,10 +545,6 @@
 .onboarding-avatar-stage {
   display: grid;
   gap: 12px;
-}
-
-.onboarding-avatar-nav {
-  z-index: 15;
 }
 
 .onboarding-avatar-copy {
@@ -1502,12 +1376,6 @@ button.settings-option.is-selected .settings-label {
   text-align: right;
 }
 
-.relay-count {
-  color: #cbd5e1;
-  font-weight: 700;
-  font-size: 14px;
-}
-
 .status-dot {
   flex-shrink: 0;
   width: 10px;
@@ -1805,85 +1673,6 @@ button.settings-link .settings-right {
   color: #cbd5e1;
   font-size: 14px;
   font-weight: 700;
-}
-
-.settings-value-truncate {
-  display: block;
-  max-width: min(56vw, 260px);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.settings-tail-content {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.settings-connection-state {
-  gap: 8px;
-}
-
-.settings-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.58);
-}
-
-.settings-stepper-button {
-  width: 30px;
-  height: 30px;
-  min-height: 30px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: rgba(30, 41, 59, 0.86);
-  color: #e2e8f0;
-}
-
-.settings-stepper-button:hover:not(:disabled) {
-  transform: none;
-  background: rgba(51, 65, 85, 0.96);
-  box-shadow: none;
-}
-
-.settings-stepper-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.42;
-}
-
-.settings-stepper-value {
-  min-width: 24px;
-  color: #e2e8f0;
-  font-size: 14px;
-  font-weight: 800;
-  text-align: center;
-}
-
-button.settings-danger-link.is-armed .settings-left,
-button.settings-sensitive-action.is-armed .settings-left {
-  color: var(--app-danger-button-bg);
-}
-
-button.settings-danger-link.is-armed,
-button.settings-sensitive-action.is-armed {
-  background: transparent !important;
-  color: inherit !important;
-}
-
-.settings-version {
-  padding: 20px 0 4px;
-  text-align: center;
-  font-size: 13px;
 }
 
 .master-keys-page {
@@ -5458,18 +5247,6 @@ button.bank-payment-amount-button:hover {
   display: none;
 }
 
-.contacts-qr-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
-  padding: 0 var(--page-gutter)
-    calc(var(--page-gutter) + var(--floating-safe-area-bottom));
-  background: transparent;
-  backdrop-filter: none;
-}
-
 .contacts-fab {
   position: fixed;
   right: var(--page-gutter);
@@ -5497,77 +5274,6 @@ button.bank-payment-amount-button:hover {
 .contacts-fab:hover {
   transform: translateY(-1px);
   box-shadow: none;
-}
-
-.bottom-tabs-bar {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.bottom-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 999px;
-  background: #0f162a;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
-  position: relative;
-}
-
-.bottom-tabs-indicator {
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 0;
-  border-radius: 999px;
-  background: #2dd5be;
-  transition:
-    transform 220ms ease,
-    width 220ms ease;
-  z-index: 0;
-}
-
-.bottom-tabs.no-indicator .bottom-tabs-indicator {
-  display: none;
-}
-
-.bottom-tab {
-  background: transparent;
-  border: none;
-  color: #65748b;
-  border-radius: 999px;
-  padding: 10px 16px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: none;
-  position: relative;
-  z-index: 1;
-}
-
-.bottom-tab:hover {
-  transform: none;
-  box-shadow: none;
-  background: transparent;
-}
-
-.bottom-tab.is-active {
-  background: transparent;
-  color: #042f2e;
-}
-
-.bottom-tab:disabled {
-  color: #475569;
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.bottom-tabs.no-indicator .bottom-tab.is-active {
-  background: #2dd5be;
 }
 
 .main-swipe {
@@ -5641,26 +5347,9 @@ button.bank-payment-amount-button:hover {
     overflow: hidden;
   }
 
-  .page.authenticated-page:has(> .evolu-relay-wait-banner) {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .page.authenticated-page > .evolu-relay-wait-banner {
-    width: min(1240px, 100%);
-    margin: 0 auto 12px;
-    border-radius: 8px;
-  }
-
-  .mobile-app-topbar {
-    display: none;
-  }
-
   .desktop-app-layout {
     display: grid;
-    flex: 1 1 auto;
-    min-height: 0;
-    grid-template-columns: 104px minmax(360px, 0.88fr) minmax(420px, 1.12fr);
+    grid-template-columns: 160px minmax(360px, 0.88fr) minmax(420px, 1.12fr);
     gap: 16px;
     width: min(1240px, 100%);
     height: 100%;
@@ -5668,10 +5357,9 @@ button.bank-payment-amount-button:hover {
   }
 
   .desktop-app-layout.is-primary-only {
-    grid-template-columns: 104px minmax(0, 1fr);
+    grid-template-columns: 160px minmax(0, 1fr);
   }
 
-  .desktop-navigation,
   .desktop-primary-pane,
   .desktop-secondary-pane {
     min-width: 0;
@@ -5679,82 +5367,6 @@ button.bank-payment-amount-button:hover {
     border: 1px solid rgba(148, 163, 184, 0.14);
     background: rgba(11, 18, 34, 0.72);
     border-radius: 18px;
-  }
-
-  .desktop-navigation {
-    position: fixed;
-    top: 18px;
-    bottom: 18px;
-    left: 18px;
-    z-index: 5;
-    width: 104px;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    padding: 18px 10px 12px;
-    border: 0;
-    background: transparent;
-  }
-
-  .desktop-navigation-profile {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 20px;
-    padding: 0;
-    overflow: hidden;
-    border: 0;
-    border-radius: 999px;
-    background: #0b1222;
-    color: #cbd5e1;
-    font-size: 13px;
-    font-weight: 800;
-  }
-
-  .desktop-navigation-profile img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .desktop-navigation-main {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .desktop-navigation-item {
-    width: 100%;
-    min-height: 66px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 8px 4px;
-    border: 0;
-    border-radius: 14px;
-    background: transparent;
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.1;
-  }
-
-  .desktop-navigation-item:hover,
-  .desktop-navigation-item:focus-visible {
-    transform: none;
-    box-shadow: none;
-    background: rgba(148, 163, 184, 0.08);
-    color: #e2e8f0;
-  }
-
-  .desktop-navigation-item.is-active {
-    background: rgba(45, 213, 190, 0.12);
-    color: #5eead4;
-  }
-
-  .desktop-navigation-settings {
-    margin-top: auto;
   }
 
   .desktop-primary-pane,
@@ -5777,7 +5389,8 @@ button.bank-payment-amount-button:hover {
     padding: 18px 20px;
   }
 
-  .desktop-primary-content > .panel {
+  .desktop-primary-content > .panel,
+  .desktop-settings-pane > * {
     min-height: 0;
     margin-top: 0;
     overflow-y: auto;
@@ -5787,7 +5400,7 @@ button.bank-payment-amount-button:hover {
   }
 
   .desktop-contacts-pane > .contacts-list-panel,
-  .desktop-settings-pane > .settings-page {
+  .desktop-settings-pane > * {
     flex: 1 1 auto;
   }
 
@@ -5839,29 +5452,6 @@ button.bank-payment-amount-button:hover {
     color: #99f6e4;
   }
 
-  .desktop-settings-pane button.settings-link {
-    position: relative;
-  }
-
-  .desktop-settings-pane button.settings-link::before {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    inset: -4px -12px;
-    border-radius: 18px;
-    background: transparent;
-  }
-
-  .desktop-settings-pane button.settings-link:hover::before,
-  .desktop-settings-pane button.settings-link:focus-visible::before {
-    background: rgba(148, 163, 184, 0.08);
-  }
-
-  .desktop-settings-pane button.settings-link > * {
-    position: relative;
-    z-index: 1;
-  }
-
   .desktop-contacts-pane .desktop-contacts-fab {
     position: absolute;
     right: 28px;
@@ -5888,23 +5478,6 @@ button.bank-payment-amount-button:hover {
     position: relative;
     display: flex;
     flex-direction: column;
-  }
-
-  .desktop-app-topbar {
-    flex: 0 0 auto;
-  }
-
-  .desktop-app-topbar .topbar {
-    position: static;
-    min-height: 58px;
-    padding: 10px 18px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-    background: rgba(15, 23, 42, 0.54);
-    backdrop-filter: none;
-  }
-
-  .desktop-app-topbar .topbar-profile-btn {
-    display: none;
   }
 
   .desktop-secondary-content {
@@ -5963,10 +5536,6 @@ button.bank-payment-amount-button:hover {
     --desktop-surface-radius: 16px;
     position: relative;
     padding-bottom: 20px;
-  }
-
-  .page.main-swipe-active .topbar-title {
-    visibility: hidden;
   }
 
   .page.main-swipe-active .main-swipe {
@@ -6041,10 +5610,6 @@ button.bank-payment-amount-button:hover {
     border-radius: var(--desktop-surface-radius);
   }
 
-  .page.main-swipe-active > .contacts-qr-bar {
-    display: none;
-  }
-
   .page.main-swipe-active .main-swipe-fab {
     right: calc(var(--desktop-wallet-share) + 42px);
     bottom: 42px;
@@ -6062,97 +5627,6 @@ button.bank-payment-amount-button:hover {
   .page.main-swipe-active .main-swipe-page {
     padding-inline: var(--page-gutter);
   }
-}
-
-.bottom-tab-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bottom-tab-label {
-  white-space: nowrap;
-}
-
-.bottom-nav {
-  padding: 0 0 var(--safe-area-bottom);
-  background: #0b1222;
-}
-
-.bottom-nav .bottom-tabs-bar {
-  margin-bottom: 0;
-}
-
-.bottom-nav .bottom-tabs {
-  display: flex;
-  width: 100%;
-  max-width: 520px;
-  gap: 4px;
-  padding: 6px 8px;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-}
-
-.bottom-nav .bottom-tabs-indicator {
-  border-radius: 14px;
-}
-
-.bottom-nav-tab {
-  flex: 1 1 0;
-  min-width: 0;
-  justify-content: center;
-  gap: 0;
-  padding: 9px 4px;
-  border-radius: 14px;
-}
-
-.bottom-nav-tab .bottom-tab-icon {
-  height: 26px;
-}
-
-.bottom-tab-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bottom-tab-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.bottom-tab-avatar-fallback {
-  width: 100%;
-  height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(148, 163, 184, 0.16);
-  font-size: 10px;
-  font-weight: 800;
-  color: #cbd5e1;
-  line-height: 1;
-}
-
-.contacts-qr-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  position: relative;
-  width: fit-content;
-  max-width: 100%;
-  padding-inline: 6px;
-  box-sizing: border-box;
 }
 
 .contacts-qr-btn {
@@ -6762,60 +6236,6 @@ dd {
   color: #94a3b8;
 }
 
-.toast-container {
-  position: fixed;
-  top: 70px;
-  right: 12px;
-  z-index: 96;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: min(360px, calc(100vw - 24px));
-}
-
-.toast {
-  border: 1px solid #1f2937;
-  background: #0b1222;
-  color: #e2e8f0;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.toast-button {
-  appearance: none;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-}
-
-.toast-with-action {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.toast-action {
-  appearance: none;
-  flex-shrink: 0;
-  margin: -4px -6px -4px 0;
-  padding: 4px 8px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #93c5fd;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.toast-action:hover,
-.toast-action:focus-visible {
-  background: rgba(147, 197, 253, 0.12);
-}
-
 .profile-share-overlay {
   position: fixed;
   inset: 0;
@@ -6876,27 +6296,6 @@ dd {
   background: #040913;
   border-radius: 18px;
   padding: 20px 18px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-}
-
-/* Small menu modal (top-left) */
-.menu-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 56px 12px 12px;
-  background: rgba(15, 23, 42, 0.1);
-}
-
-.menu-modal-sheet {
-  width: min(360px, calc(100vw - 24px));
-  border: none;
-  background: #040913;
-  border-radius: 14px;
-  padding: 10px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
@@ -7614,8 +7013,6 @@ dd {
   .scan-action-btn,
   .scan-action-btn:hover,
   .scan-action-btn:focus,
-  .topbar-chat-avatar,
-  .topbar-profile-btn,
   .onboarding-avatar-choice,
   .onboarding-avatar-choice:hover,
   .onboarding-avatar-choice.is-selected,
@@ -7642,7 +7039,6 @@ dd {
   .panel,
   .message-actions-sheet,
   .modal-sheet,
-  .menu-modal-sheet,
   .contact-avatar,
   .contact-detail-card,
   .nfc-write-sheet,

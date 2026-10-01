@@ -1,8 +1,7 @@
-import { Bug, Download, FlaskConical, Trash2 } from "lucide-react";
+import { Icon, ListRow, Switch } from "@linky-fit/ui";
 import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
-import { SettingsLinkRow, SettingsToggleRow } from "../components/SettingsRows";
 import {
   setInspectorEnabled,
   setInspectorLogsEnabled,
@@ -109,26 +108,36 @@ export function InspectorSettingsPage(): React.ReactElement {
   return (
     <section className="panel settings-page">
       <div className="settings-section">
-        <SettingsToggleRow
-          icon={<Bug size={18} />}
-          label={t("nostrInspector")}
-          checked={inspectorEnabled}
-          onChange={setInspectorEnabled}
+        <ListRow
+          leading={<Icon name="Bug" />}
+          title={t("nostrInspector")}
+          trailing={
+            <Switch
+              accessibilityLabel={t("nostrInspector")}
+              value={inspectorEnabled}
+              onValueChange={setInspectorEnabled}
+            />
+          }
         />
 
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "advancedInspectorTimeline" })}
-          icon={<Bug size={18} />}
-          label={t("openNostrInspector")}
+        <ListRow
+          leading={<Icon name="Bug" />}
+          title={t("openNostrInspector")}
+          onPress={() => navigateTo({ route: "advancedInspectorTimeline" })}
         />
       </div>
 
       <div className="settings-section">
-        <SettingsToggleRow
-          icon={<Bug size={18} />}
-          label={t("nostrInspectorLogs")}
-          checked={inspectorLogsEnabled}
-          onChange={setInspectorLogsEnabled}
+        <ListRow
+          leading={<Icon name="Bug" />}
+          title={t("nostrInspectorLogs")}
+          trailing={
+            <Switch
+              accessibilityLabel={t("nostrInspectorLogs")}
+              value={inspectorLogsEnabled}
+              onValueChange={setInspectorLogsEnabled}
+            />
+          }
         />
 
         {inspectorLogsEnabled ? (
@@ -137,34 +146,34 @@ export function InspectorSettingsPage(): React.ReactElement {
           </div>
         ) : null}
 
-        <SettingsLinkRow
-          onClick={() => void downloadInspectorLogs()}
+        <ListRow
+          leading={<Icon name="Download" />}
+          title={t("downloadNostrInspectorLogs")}
+          onPress={() => void downloadInspectorLogs()}
           disabled={
             !inspectorLogsEnabled ||
             inspectorLogActionIsBusy ||
             !inspectorLogStats?.rowCount
           }
-          icon={<Download size={18} />}
-          label={t("downloadNostrInspectorLogs")}
         />
 
-        <SettingsLinkRow
-          onClick={() => void clearInspectorLogs()}
+        <ListRow
+          leading={<Icon name="Trash2" />}
+          title={t("clearNostrInspectorLogs")}
+          onPress={() => void clearInspectorLogs()}
           disabled={
             !inspectorLogsEnabled ||
             inspectorLogActionIsBusy ||
             !inspectorLogStats?.rowCount
           }
-          icon={<Trash2 size={18} />}
-          label={t("clearNostrInspectorLogs")}
         />
       </div>
 
       <div className="settings-section">
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "advancedPushDebug" })}
-          icon={<FlaskConical size={18} />}
-          label="Push / SW Debug (log)"
+        <ListRow
+          leading={<Icon name="FlaskConical" />}
+          title="Push / SW Debug (log)"
+          onPress={() => navigateTo({ route: "advancedPushDebug" })}
         />
       </div>
     </section>

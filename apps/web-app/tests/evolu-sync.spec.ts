@@ -196,7 +196,7 @@ test("the Evolu wait status reserves space below the mobile navigation", async (
     }),
     contentType: "image/png",
   });
-  const header = await page.locator(".mobile-app-topbar .topbar").boundingBox();
+  const header = await page.getByRole("banner").boundingBox();
   const banner = await status.boundingBox();
   const content = await page.locator(".main-swipe").boundingBox();
   await testInfo.attach("Evolu wait layout bounds", {
@@ -208,10 +208,7 @@ test("the Evolu wait status reserves space below the mobile navigation", async (
   expect(content).not.toBeNull();
   expect(banner!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
   expect(content!.y).toBeGreaterThanOrEqual(banner!.y + banner!.height);
-  await expect(status.locator(".btn-spinner")).toHaveCSS(
-    "animation-name",
-    "btn-spinner-spin",
-  );
+  await expect(status.getByRole("progressbar")).toBeVisible();
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator(".desktop-app-layout")).toBeVisible();
   const desktopBanner = await status.boundingBox();

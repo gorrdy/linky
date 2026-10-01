@@ -23,7 +23,6 @@ export const cs = {
   openNostrInspector: "Otevřít inspector",
   back: "Zpět",
   menu: "Menu",
-  advanced: "Pokročilé",
   transactionsTitle: "Transakce",
   showTransactions: "Ukázat transakce",
   feedback: "Zpětná vazba",

@@ -1,3 +1,4 @@
+import { Stepper } from "@linky-fit/ui";
 import type { ContactRowLike } from "../app/types/appTypes";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -17,7 +18,6 @@ import {
 } from "@linky-fit/proxy-payment";
 import { Avatar } from "../components/Avatar";
 import { BankPaymentAmount } from "../components/BankPaymentAmount";
-import { SettingsStepper } from "../components/SettingsStepper";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey, Translate } from "../i18n";
 import type { FiatRates } from "../utils/displayAmounts";
@@ -601,13 +601,13 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
         <span className="bank-payment-offer-delay-label">
           {t("bankPaymentOfferStaggerDelay")}
         </span>
-        <SettingsStepper
-          ariaLabel={t("bankPaymentOfferStaggerDelay")}
+        <Stepper
+          accessibilityLabel={t("bankPaymentOfferStaggerDelay")}
           decreaseLabel={t("bankPaymentOfferStaggerDelayDecrease")}
           increaseLabel={t("bankPaymentOfferStaggerDelayIncrease")}
           max={BANK_PAYMENT_OFFER_MAX_STAGGER_DELAY_SEC}
           min={BANK_PAYMENT_OFFER_MIN_STAGGER_DELAY_SEC}
-          onChange={(value) => setOfferDelaySec(clampOfferDelaySec(value))}
+          onValueChange={(value) => setOfferDelaySec(clampOfferDelaySec(value))}
           step={BANK_PAYMENT_OFFER_STAGGER_DELAY_STEP_SEC}
           value={offerDelaySec}
           valueText={`${offerDelaySec} s`}

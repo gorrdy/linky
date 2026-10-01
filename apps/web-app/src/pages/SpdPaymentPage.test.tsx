@@ -181,10 +181,10 @@ describe("SpdPaymentPage offer recipients", () => {
     });
     expect(readOrders()).toEqual(["1", "3", "2"]);
 
-    const delayValue = container.querySelector(
-      ".bank-payment-offer-delay .settings-stepper-value",
+    const delay = container.querySelector(
+      '.bank-payment-offer-delay [role="group"]',
     );
-    expect(delayValue?.textContent).toBe("5 s");
+    expect(delay?.textContent).toBe("5 s");
   });
 
   it("opens the newly created proxy payment", async () => {

@@ -156,7 +156,7 @@ describe("buildTopbar", () => {
     expect(buildTopbar({ ...args, route: { kind: "profile" } })).toBeNull();
     expect(buildTopbar({ ...args, route: { kind: "settings" } })).toBeNull();
     expect(buildTopbar({ ...args, route: { kind: "advanced" } })?.icon).toBe(
-      "<",
+      "ChevronLeft",
     );
   });
 });
@@ -182,7 +182,7 @@ describe("buildTopbarRight", () => {
 
     button?.onClick();
 
-    expect(button?.icon).toBe("edit");
+    expect(button?.icon).toBe("Pencil");
     expect(button?.label).toBe("spdPaymentEditFields");
     expect(assignMock).toHaveBeenLastCalledWith(
       "#wallet/bank-payment/SPD*1.0/edit",
@@ -213,7 +213,7 @@ describe("buildTopbarRight", () => {
 
     button?.onClick();
 
-    expect(button?.icon).toBe("scan");
+    expect(button?.icon).toBe("ScanLine");
     expect(openReceiveScan).toHaveBeenCalledOnce();
   });
 
@@ -235,7 +235,7 @@ describe("buildTopbarRight", () => {
 
     button?.onClick();
 
-    expect(button?.icon).toBe("filter");
+    expect(button?.icon).toBe("Filter");
     expect(button?.isActive).toBe(true);
     expect(toggleContactsFilter).toHaveBeenCalledOnce();
   });
@@ -259,7 +259,7 @@ describe("buildTopbarRight", () => {
     button?.onClick();
 
     expect(button).toMatchObject({
-      icon: "hidden",
+      icon: "Eye",
       isActive: true,
       label: "transactionsHideHidden",
     });

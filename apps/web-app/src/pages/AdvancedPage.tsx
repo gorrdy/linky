@@ -1,29 +1,15 @@
 import {
-  Bean,
-  Bell,
-  Bitcoin,
-  BrushCleaning,
-  Bug,
-  CheckCheck,
-  Cloud,
-  Coins,
-  Copy,
-  Download,
-  FlaskConical,
-  MessageCircle as FeedbackIcon,
-  HandCoins,
-  Smartphone,
-  Landmark,
-  Languages,
-  LogOut,
-  QrCode,
-  RadioTower,
-  RotateCw,
-  ShieldCheck,
-  Upload,
-  UserRound,
-  Zap,
-} from "lucide-react";
+  Divider,
+  Icon,
+  ListRow,
+  Row,
+  Section,
+  Stack,
+  StatusDot,
+  Switch,
+  Text,
+} from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   useAppShellActions,
@@ -40,9 +26,12 @@ import {
 } from "../app/hooks/useRelayHealth";
 import { usePushNotificationsSetting } from "../app/hooks/usePushNotificationsSetting";
 
-import { SettingsLinkRow, SettingsToggleRow } from "../components/SettingsRows";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey } from "../i18n";
+import {
+  connectionStatus,
+  type ConnectionState,
+} from "../utils/connectionStatus";
 import { isDesktopShell } from "../platform/runtime";
 import { RECEIVE_METHOD_LABEL_KEYS } from "../utils/receiveMethod";
 
@@ -158,178 +147,172 @@ export function AdvancedPage(): React.ReactElement {
     };
   }, [clearArmTimeout]);
 
+  const linkRow = (
+    icon: IconName,
+    title: string,
+    onPress: () => void,
+    trailing?: React.ReactNode,
+  ) => (
+    <ListRow
+      leading={<Icon name={icon} />}
+      title={title}
+      onPress={onPress}
+      trailing={trailing}
+    />
+  );
+  const toggleRow = (
+    icon: IconName,
+    title: string,
+    value: boolean,
+    onValueChange: (value: boolean) => void,
+    disabled?: boolean,
+  ) => (
+    <ListRow
+      leading={<Icon name={icon} />}
+      title={title}
+      trailing={
+        <Switch
+          accessibilityLabel={title}
+          value={value}
+          onValueChange={onValueChange}
+          disabled={disabled}
+        />
+      }
+    />
+  );
+  const valueText = (text: string) => (
+    <Text variant="label" bold color="$colorSubtle" numberOfLines={1}>
+      {text}
+    </Text>
+  );
+  const connectionState = (
+    connected: number,
+    total: number,
+    state: ConnectionState,
+  ) => (
+    <Row gap="$sm">
+      {valueText(`${connected}/${total}`)}
+      <StatusDot
+        tone={connectionStatus[state].tone}
+        accessibilityLabel={t(connectionStatus[state].labelKey)}
+      />
+    </Row>
+  );
+
   return (
-    <section className="panel settings-page">
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("settingsGeneral")}</h2>
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "settingsLanguage" })}
-          icon={<Languages size={18} />}
-          label={t("language")}
-        />
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "settingsUnits" })}
-          icon={<Bitcoin size={18} />}
-          label={t("unit")}
-        />
-
-        <SettingsLinkRow
-          onClick={openFeedbackContact}
-          icon={<FeedbackIcon size={18} />}
-          label={t("feedback")}
-        />
-
-        {/* Electron has no Web Push service; the running desktop app notifies. */}
-        {isDesktopShell() ? null : (
-          <SettingsToggleRow
-            icon={<Bell size={18} />}
-            label={t("notifications")}
-            checked={notifications.enabled}
-            disabled={!currentNsec || notifications.isBusy}
-            onChange={(checked) => void notifications.setEnabled(checked)}
-          />
+    <Stack gap="$lg">
+      <Section title={t("settingsGeneral")}>
+        {linkRow("Languages", t("language"), () =>
+          navigateTo({ route: "settingsLanguage" }),
         )}
+        {linkRow("Bitcoin", t("unit"), () =>
+          navigateTo({ route: "settingsUnits" }),
+        )}
+        {linkRow("MessageCircle", t("feedback"), openFeedbackContact)}
+        {/* Electron has no Web Push service; the running desktop app notifies. */}
+        {isDesktopShell()
+          ? null
+          : toggleRow(
+              "Bell",
+              t("notifications"),
+              notifications.enabled,
+              (checked) => void notifications.setEnabled(checked),
+              !currentNsec || notifications.isBusy,
+            )}
+        {toggleRow(
+          "CheckCheck",
+          t("sendReadReceipts"),
+          sendReadReceiptsEnabled,
+          toggleSendReadReceipts,
+        )}
+        {toggleRow(
+          "Smartphone",
+          t("showProfileQrOnTilt"),
+          showProfileQrOnTiltEnabled,
+          toggleShowProfileQrOnTilt,
+        )}
+      </Section>
 
-        <SettingsToggleRow
-          icon={<CheckCheck size={18} />}
-          label={t("sendReadReceipts")}
-          checked={sendReadReceiptsEnabled}
-          onChange={toggleSendReadReceipts}
-        />
+      <Divider />
 
-        <SettingsToggleRow
-          icon={<Smartphone size={18} />}
-          label={t("showProfileQrOnTilt")}
-          checked={showProfileQrOnTiltEnabled}
-          onChange={toggleShowProfileQrOnTilt}
-        />
-      </div>
+      <Section title={t("settingsPayments")}>
+        {linkRow("HandCoins", t("proxyPayments"), () =>
+          navigateTo({ route: "settingsProxyPayments" }),
+        )}
+        {linkRow(
+          "QrCode",
+          t("receiveMethod"),
+          () => navigateTo({ route: "settingsReceiveMethod" }),
+          valueText(t(RECEIVE_METHOD_LABEL_KEYS[receiveMethod])),
+        )}
+        {toggleRow(
+          "Bean",
+          t("preferCashu"),
+          payWithCashuEnabled,
+          setPayWithCashuEnabled,
+        )}
+        {linkRow(
+          "Zap",
+          t("lightningInvoiceAutoPayLimit"),
+          () => navigateTo({ route: "advancedAutoPayLimit" }),
+          valueText(getAutoPayLimitLabel(lightningInvoiceAutoPayLimit)),
+        )}
+      </Section>
 
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("settingsPayments")}</h2>
+      <Divider />
 
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "settingsProxyPayments" })}
-          icon={<HandCoins size={18} />}
-          label={t("proxyPayments")}
-        />
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "settingsReceiveMethod" })}
-          icon={<QrCode size={18} />}
-          label={t("receiveMethod")}
-          tail={
-            <span className="settings-tail-content settings-value">
-              {t(RECEIVE_METHOD_LABEL_KEYS[receiveMethod])}
-            </span>
-          }
-        />
-
-        <SettingsToggleRow
-          icon={<Bean size={18} />}
-          label={t("preferCashu")}
-          checked={payWithCashuEnabled}
-          onChange={setPayWithCashuEnabled}
-        />
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "advancedAutoPayLimit" })}
-          icon={<Zap size={18} />}
-          label={t("lightningInvoiceAutoPayLimit")}
-          tail={
-            <span className="settings-tail-content settings-value">
-              {getAutoPayLimitLabel(lightningInvoiceAutoPayLimit)}
-            </span>
-          }
-        />
-      </div>
-
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("settingsNetwork")}</h2>
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "nostrRelays" })}
-          icon={<RadioTower size={18} />}
-          label="Nostr"
-          tail={
-            <span className="settings-tail-content settings-connection-state">
-              <span className="relay-count">
-                {connectedRelayCount}/{relayUrls.length}
-              </span>
-              <span className={`status-dot ${nostrRelayOverallStatus}`} />
-            </span>
-          }
-        />
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "evoluServers" })}
-          icon={<Cloud size={18} />}
-          label="Evolu"
-          tail={
-            <span className="settings-tail-content settings-connection-state">
-              <span className="relay-count">
-                {evoluConnectedServerCount}/{evoluServerUrls.length}
-              </span>
-              <span className={`status-dot ${evoluOverallStatus}`} />
-            </span>
-          }
-        />
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "mints" })}
-          icon={<Landmark size={18} />}
-          label="Mint"
-          tail={
-            defaultMintDisplay ? (
-              <span className="settings-tail-content settings-value settings-value-truncate">
-                {defaultMintDisplay}
-              </span>
-            ) : null
-          }
-        />
-
-        <SettingsToggleRow
-          icon={<FlaskConical size={18} />}
-          label={t("allowTestMints")}
-          checked={allowTestMints}
-          onChange={(checked) =>
+      <Section title={t("settingsNetwork")}>
+        {linkRow(
+          "RadioTower",
+          "Nostr",
+          () => navigateTo({ route: "nostrRelays" }),
+          connectionState(
+            connectedRelayCount,
+            relayUrls.length,
+            nostrRelayOverallStatus,
+          ),
+        )}
+        {linkRow(
+          "Cloud",
+          "Evolu",
+          () => navigateTo({ route: "evoluServers" }),
+          connectionState(
+            evoluConnectedServerCount,
+            evoluServerUrls.length,
+            evoluOverallStatus,
+          ),
+        )}
+        {linkRow(
+          "Landmark",
+          "Mint",
+          () => navigateTo({ route: "mints" }),
+          defaultMintDisplay ? valueText(defaultMintDisplay) : null,
+        )}
+        {toggleRow(
+          "FlaskConical",
+          t("allowTestMints"),
+          allowTestMints,
+          (checked) =>
             void setAllowTestMints(checked).then((outcome) => {
               if (!outcome.ok) pushToast(outcome.error);
-            })
-          }
-        />
-      </div>
+            }),
+        )}
+      </Section>
 
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("settingsDebug")}</h2>
+      <Divider />
 
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "cashuTokens" })}
-          icon={<Coins size={18} />}
-          label={t("tokens")}
-        />
-
-        <SettingsLinkRow
-          onClick={exportAppData}
-          icon={<Upload size={18} />}
-          label={t("exportData")}
-        />
-
-        <SettingsLinkRow
-          onClick={requestImportAppData}
-          icon={<Download size={18} />}
-          label={t("importData")}
-        />
-
-        <SettingsLinkRow
-          onClick={() => void dedupeContacts()}
+      <Section title={t("settingsDebug")}>
+        {linkRow("Coins", t("tokens"), () =>
+          navigateTo({ route: "cashuTokens" }),
+        )}
+        {linkRow("Upload", t("exportData"), exportAppData)}
+        {linkRow("Download", t("importData"), requestImportAppData)}
+        <ListRow
+          leading={<Icon name="BrushCleaning" />}
+          title={t("dedupeContacts")}
+          onPress={() => void dedupeContacts()}
           disabled={dedupeContactsIsBusy}
-          icon={<BrushCleaning size={18} />}
-          label={t("dedupeContacts")}
         />
-
         <input
           ref={importDataFileInputRef}
           type="file"
@@ -341,51 +324,35 @@ export function AdvancedPage(): React.ReactElement {
             void handleImportAppDataFilePicked(file);
           }}
         />
+        {linkRow("RotateCw", t("reloadApp"), () => void handleReloadApp())}
+        {linkRow("Bug", t("nostrInspector"), () =>
+          navigateTo({ route: "advancedInspector" }),
+        )}
+      </Section>
 
-        <SettingsLinkRow
-          onClick={() => void handleReloadApp()}
-          icon={<RotateCw size={18} />}
-          label={t("reloadApp")}
-        />
+      <Divider />
 
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "advancedInspector" })}
-          icon={<Bug size={18} />}
-          label={t("nostrInspector")}
-        />
-      </div>
-
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("settingsSecurity")}</h2>
-
-        <SettingsLinkRow
-          onClick={() => navigateTo({ route: "settingsMasterKeys" })}
+      <Section title={t("settingsSecurity")}>
+        <ListRow
+          leading={<Icon name="ShieldCheck" />}
+          title={t("masterKeys")}
+          testID="open-master-keys"
+          onPress={() => navigateTo({ route: "settingsMasterKeys" })}
           disabled={!hasSeedMnemonic}
-          dataGuide="open-master-keys"
-          icon={<ShieldCheck size={18} />}
-          label={t("masterKeys")}
         />
-
-        <SettingsLinkRow
-          className={
-            armedSecurityAction === "copyNostr"
-              ? "settings-sensitive-action is-armed"
-              : "settings-sensitive-action"
-          }
-          onClick={() => requestSecurityAction("copyNostr", copyNostrKeys)}
+        <ListRow
+          leading={<Icon name="Copy" />}
+          title={t("copyNostrKeys")}
+          testID="copy-nostr-keys"
+          destructive={armedSecurityAction === "copyNostr"}
+          onPress={() => requestSecurityAction("copyNostr", copyNostrKeys)}
           disabled={!hasCurrentNsec}
-          dataGuide="copy-nostr-keys"
-          icon={<Copy size={18} />}
-          label={t("copyNostrKeys")}
         />
-
-        <SettingsLinkRow
-          className={
-            armedSecurityAction === "pasteNostr"
-              ? "settings-sensitive-action is-armed"
-              : "settings-sensitive-action"
-          }
-          onClick={() =>
+        <ListRow
+          leading={<Icon name="UserRound" />}
+          title={t("pasteCustomNostrKeys")}
+          destructive={armedSecurityAction === "pasteNostr"}
+          onPress={() =>
             requestSecurityAction(
               "pasteNostr",
               requestPasteNostrKeys,
@@ -393,29 +360,27 @@ export function AdvancedPage(): React.ReactElement {
             )
           }
           disabled={!hasCurrentNsec || !hasSeedMnemonic}
-          icon={<UserRound size={18} />}
-          label={t("pasteCustomNostrKeys")}
         />
-
-        <SettingsLinkRow
-          className={
-            logoutArmed
-              ? "settings-danger-link is-armed"
-              : "settings-danger-link"
-          }
-          onClick={() =>
+        <ListRow
+          leading={<Icon name="LogOut" />}
+          title={t("logout")}
+          destructive={logoutArmed}
+          onPress={() =>
             requestLogout({
               evoluConnected: evoluOverallStatus === "connected",
             })
           }
-          icon={<LogOut size={18} />}
-          label={t("logout")}
         />
-      </div>
+      </Section>
 
-      <div className="settings-version">
-        <div className="muted">{appVersionLabel}</div>
-      </div>
-    </section>
+      <Text
+        variant="caption"
+        color="$colorMuted"
+        textAlign="center"
+        paddingTop="$lg"
+      >
+        {appVersionLabel}
+      </Text>
+    </Stack>
   );
 }

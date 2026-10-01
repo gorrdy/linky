@@ -160,7 +160,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
     page.locator("[data-guide='contact-add-button']").first(),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Wallet" }).click();
+  await page.getByRole("tab", { name: "Wallet" }).click();
   await page.waitForURL(/#wallet$/, { timeout: 10_000 });
   await expect(page.getByLabel("Available balance")).toBeVisible();
 
@@ -169,7 +169,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
   await expect(page.locator(".profile-detail")).toBeVisible();
 
   await page.goto("/#");
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.waitForURL(/#settings$/, { timeout: 10_000 });
   await expect(page.getByRole("button", { name: /^Mint\b/ })).toBeVisible();
 
@@ -196,7 +196,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
 
   await page.waitForURL(/#(?:contacts)?$/, { timeout: 10_000 });
   await expect(
-    page.locator(".toast").filter({ hasText: "Contact saved" }),
+    page.locator('[aria-live="polite"]').getByText("Contact saved"),
   ).toBeVisible();
 
   const contactCards = page.locator("[data-guide='contact-card']");
@@ -231,7 +231,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
 
   await page.getByRole("banner").getByRole("button", { name: "Close" }).click();
   await page.waitForURL(/#(?:contacts)?$/, { timeout: 10_000 });
-  await page.getByRole("button", { name: "Wallet" }).click();
+  await page.getByRole("tab", { name: "Wallet" }).click();
   await page.waitForURL(/#wallet$/, { timeout: 10_000 });
   await expect(page.getByLabel("Available balance")).toBeVisible();
 
@@ -315,7 +315,7 @@ test("supports chat reply, edit, reaction toggle, and copy actions", async ({
   await editedBubble.locator(".chat-bubble").click({ button: "right" });
   await page.getByRole("button", { name: "Copy", exact: true }).click();
   await expect(
-    page.locator(".toast").filter({ hasText: "Copied to clipboard" }),
+    page.locator('[aria-live="polite"]').getByText("Copied to clipboard"),
   ).toBeVisible();
 
   await page.goto(`/#contact/${encodeURIComponent(contactId)}/edit`);
@@ -326,7 +326,7 @@ test("supports chat reply, edit, reaction toggle, and copy actions", async ({
   await archiveButton.click();
   await page.waitForURL(/#(?:contacts)?$/, { timeout: 10_000 });
   await expect(
-    page.locator(".toast").filter({ hasText: "Contact archived." }),
+    page.locator('[aria-live="polite"]').getByText("Contact archived."),
   ).toBeVisible();
 
   await expect(page.locator("[data-guide='contact-card']")).toHaveCount(0);
@@ -350,7 +350,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
   await setBaseStorage(page, "de");
   await setSeedLoginStorage(page, await createSeedIdentity());
   const banner = page.getByRole("banner");
-  const title = banner.locator(".topbar-title");
+  const title = banner.getByRole("heading");
   const close = banner.getByRole("button", { name: "Schließen", exact: true });
 
   await test.step("save a contact so diagnostic tables contain real changes", async () => {
@@ -361,11 +361,11 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     await page.goto("/#wallet");
     await expect(page.getByLabel("Verfügbares Guthaben")).toBeVisible();
     await page
-      .locator(".bottom-nav")
-      .getByRole("button", { name: "Einstellungen", exact: true })
+      .getByRole("tablist")
+      .getByRole("tab", { name: "Einstellungen", exact: true })
       .click();
     await expect(page).toHaveURL(/#settings$/);
-    await expect(title).toHaveText("Einstellungen");
+    await expect(title).toHaveAccessibleName("Einstellungen");
     for (const name of [
       "Allgemein",
       "Zahlungen",
@@ -379,7 +379,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     }
     await page.getByRole("button", { name: /^Mint\b/ }).click();
     await expect(page).toHaveURL(/#advanced\/mints$/);
-    await expect(title).toHaveText("Mints");
+    await expect(title).toHaveAccessibleName("Mints");
     await expect(
       page.getByRole("button", {
         name: `${new URL(mintUrl).host} Test`,
@@ -393,12 +393,12 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
   await test.step("open the local Nostr relay and return through its parent routes", async () => {
     await page.getByRole("button", { name: /^Nostr \d+\/\d+/ }).click();
     await expect(page).toHaveURL(/#nostr-relays$/);
-    await expect(title).toHaveText("Nostr-Relay");
+    await expect(title).toHaveAccessibleName("Nostr-Relay");
     await page.getByRole("button", { name: NOSTR_RELAY_URL }).click();
     await expect(page).toHaveURL(
       new RegExp(`#nostr-relay/${encodeURIComponent(NOSTR_RELAY_URL)}$`),
     );
-    await expect(title).toHaveText("Nostr-Relay");
+    await expect(title).toHaveAccessibleName("Nostr-Relay");
     await expect(page.getByText("Status", { exact: true })).toBeVisible();
     await expect(
       page.getByText("Von Linky empfohlen, daher bleibt es eingerichtet.", {
@@ -420,7 +420,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     ).toHaveCount(0);
     await page.getByRole("button", { name: /^Evolu \d+\/\d+/ }).click();
     await expect(page).toHaveURL(/#evolu-servers$/);
-    await expect(title).toHaveText("Evolu-Server");
+    await expect(title).toHaveAccessibleName("Evolu-Server");
     await page.getByRole("button", { name: EVOLU_RELAY_URL }).click();
     await expect(page).toHaveURL(
       new RegExp(`#evolu-server/${encodeURIComponent(EVOLU_RELAY_URL)}$`),
@@ -437,7 +437,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
       .getByRole("button", { name: "Chat-Speicher", exact: true })
       .click();
     await expect(page).toHaveURL(/#advanced\/chat-storage$/);
-    await expect(title).toHaveText("Chat-Speicher");
+    await expect(title).toHaveAccessibleName("Chat-Speicher");
     await expect(
       page.getByText("Erstellte Chat-Shards", { exact: true }),
     ).toBeVisible();
@@ -451,7 +451,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     await expect(page).toHaveURL(/#evolu-servers$/);
     await page.getByText("Daten", { exact: true }).click();
     await expect(page).toHaveURL(/#evolu-current-data$/);
-    await expect(title).toHaveText("Daten");
+    await expect(title).toHaveAccessibleName("Daten");
     await expect(
       page.getByText("Aktiver Shard", { exact: true }).first(),
     ).toBeVisible();
@@ -465,7 +465,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     await expect(page).toHaveURL(/#evolu-servers$/);
     await page.getByText("Verlauf", { exact: true }).click();
     await expect(page).toHaveURL(/#evolu-history-data$/);
-    await expect(title).toHaveText("Verlauf");
+    await expect(title).toHaveAccessibleName("Verlauf");
     for (const name of ["Tabelle", "Spalte", "Wert", "Zeitstempel"]) {
       await expect(
         page.getByRole("columnheader", { name, exact: true }),
@@ -474,18 +474,18 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     await close.click();
     await expect(page).toHaveURL(/#evolu-servers$/);
     await page.goto("/#evolu-data");
-    await expect(title).toHaveText("Daten");
+    await expect(title).toHaveAccessibleName("Daten");
     await expect(page.getByText(/^\d+\.\d % des 1-MiB-Limits$/)).toBeVisible();
   });
 
   await test.step("open and cancel profile editing through the topbar", async () => {
     await page.goto("/#profile");
-    await expect(title).toHaveText("Profil");
+    await expect(title).toHaveAccessibleName("Profil");
     await banner
       .getByRole("button", { name: "Bearbeiten", exact: true })
       .click();
     await expect(page).toHaveURL(/#profile\/edit$/);
-    await expect(title).toHaveText("Profil");
+    await expect(title).toHaveAccessibleName("Profil");
     await expect(page.locator("#profileName")).toBeVisible();
     await close.click();
     await expect(page).toHaveURL(/#profile$/);

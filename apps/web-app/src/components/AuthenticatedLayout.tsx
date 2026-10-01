@@ -11,7 +11,6 @@ import { LightningInvoiceConfirmModal } from "./LightningInvoiceConfirmModal";
 import { CashuPaymentRequestConfirmModal } from "./CashuPaymentRequestConfirmModal";
 import { LnurlAuthModal } from "./LnurlAuthModal";
 import { LnurlWithdrawConfirmModal } from "./LnurlWithdrawConfirmModal";
-import { MenuModal } from "./MenuModal";
 import { NfcWriteModal } from "./NfcWriteModal";
 import { PaidOverlay } from "./PaidOverlay";
 import { PaymentMintMeltConfirmModal } from "./PaymentMintMeltConfirmModal";
@@ -36,8 +35,8 @@ export function AuthenticatedLayout({
   // or Android back navigates under the open dialog.
   return (
     <>
-      <Topbar className="mobile-app-topbar" />
-      <EvoluRelayWaitBanner t={state.t} />
+      {isDesktopSplitView ? null : <Topbar />}
+      <EvoluRelayWaitBanner inset={isDesktopSplitView} t={state.t} />
 
       {state.contactsGuide && state.contactsGuideActiveStep?.step ? (
         <ContactsGuideOverlay
@@ -50,14 +49,6 @@ export function AuthenticatedLayout({
           stepTitleKey={state.contactsGuideActiveStep.step.titleKey}
           t={state.t}
           totalSteps={state.contactsGuideActiveStep.total}
-        />
-      ) : null}
-
-      {state.menuIsOpen ? (
-        <MenuModal
-          closeMenu={actions.closeMenu}
-          openFeedbackContact={actions.openFeedbackContact}
-          t={state.t}
         />
       ) : null}
 

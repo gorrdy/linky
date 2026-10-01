@@ -1,4 +1,6 @@
-import { Banknote, Euro, PencilLine, ScanLine } from "lucide-react";
+import { Icon, ListRow, Switch } from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
+import { PencilLine, ScanLine } from "lucide-react";
 import React from "react";
 import {
   useAppShellActions,
@@ -8,7 +10,6 @@ import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContext
 import { usePushNotificationsSetting } from "../app/hooks/usePushNotificationsSetting";
 import type { ProxyPaymentPayerContact } from "../app/types/appTypes";
 import { Avatar } from "../components/Avatar";
-import { SettingsToggleRow } from "../components/SettingsRows";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey } from "../i18n";
 import {
@@ -22,9 +23,9 @@ const CURRENCY_LABEL_KEYS: Record<ProfileStatusCurrency, I18nKey> = {
   EUR: "proxyPaymentsProvideEur",
 };
 
-const CURRENCY_ICONS: Record<ProfileStatusCurrency, React.ReactNode> = {
-  CZK: <Banknote size={18} />,
-  EUR: <Euro size={18} />,
+const CURRENCY_ICONS: Record<ProfileStatusCurrency, IconName> = {
+  CZK: "Banknote",
+  EUR: "Euro",
 };
 
 const MAX_PAYER_AVATARS = 5;
@@ -165,15 +166,22 @@ export function ProxyPaymentsPage(): React.ReactElement {
         <p>{t("proxyPaymentsEarnBody")}</p>
 
         {PROFILE_STATUS_CURRENCIES.map((currency) => (
-          <SettingsToggleRow
+          <ListRow
             key={currency}
-            icon={CURRENCY_ICONS[currency]}
-            label={t(CURRENCY_LABEL_KEYS[currency])}
-            checked={selectedProfileStatusCurrencies.includes(currency)}
-            disabled={
-              !currentNsec || profileStatusIsSaving || notifications.isBusy
+            leading={<Icon name={CURRENCY_ICONS[currency]} />}
+            title={t(CURRENCY_LABEL_KEYS[currency])}
+            trailing={
+              <Switch
+                accessibilityLabel={t(CURRENCY_LABEL_KEYS[currency])}
+                value={selectedProfileStatusCurrencies.includes(currency)}
+                disabled={
+                  !currentNsec || profileStatusIsSaving || notifications.isBusy
+                }
+                onValueChange={(checked) =>
+                  setCurrencyEnabled(currency, checked)
+                }
+              />
             }
-            onChange={(checked) => setCurrencyEnabled(currency, checked)}
           />
         ))}
 

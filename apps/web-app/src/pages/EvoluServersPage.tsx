@@ -1,9 +1,8 @@
-import { MessageCircle } from "lucide-react";
+import { Icon, ListRow } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
 import { deriveEvoluServerState } from "../app/lib/evoluServerState";
-import { SettingsLinkRow } from "../components/SettingsRows";
 import { navigateTo } from "../hooks/useRouting";
 import { EvoluReloadNotice } from "./EvoluReloadNotice";
 import { EvoluSyncErrorNotice } from "./EvoluSyncErrorNotice";
@@ -179,10 +178,10 @@ export function EvoluServersPage(): React.ReactElement {
         </div>
       </div>
 
-      <SettingsLinkRow
-        onClick={() => navigateTo({ route: "chatStorage" })}
-        icon={<MessageCircle size={18} />}
-        label={t("chatStorage")}
+      <ListRow
+        leading={<Icon name="MessageCircle" />}
+        title={t("chatStorage")}
+        onPress={() => navigateTo({ route: "chatStorage" })}
       />
     </section>
   );

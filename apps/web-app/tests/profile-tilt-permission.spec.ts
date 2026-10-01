@@ -57,11 +57,11 @@ test("only the tilt toggle requests permission and a new launch requires a new g
         new CustomEvent("test:motion-permission", { detail }),
       );
     }, result);
-  const toggle = page.getByRole("checkbox", { name: "Tilt to show profile" });
+  const toggle = page.getByRole("switch", { name: "Tilt to show profile" });
   const overlay = page.locator(".profile-share-overlay");
 
   await page.goto("/#");
-  await page.locator("[data-guide='profile-qr-button']").click();
+  await page.getByTestId("profile-qr-button").click();
   await expect(page.locator(".profile-detail")).toBeVisible();
   expect(await requests()).toBe(0);
   await page.goto("/#settings");
@@ -91,7 +91,7 @@ test("only the tilt toggle requests permission and a new launch requires a new g
   await expect(overlay).toBeVisible();
   await overlay.click();
   await page.goto("/#");
-  await page.locator("[data-guide='profile-qr-button']").click();
+  await page.getByTestId("profile-qr-button").click();
   await expect(page.locator(".profile-detail")).toBeVisible();
   expect(await requests()).toBe(3);
   await page.goto("/#settings");
@@ -137,7 +137,7 @@ test("browsers without a permission API retain the saved tilt preference", async
     });
   });
   await page.goto("/#settings");
-  const toggle = page.getByRole("checkbox", { name: "Tilt to show profile" });
+  const toggle = page.getByRole("switch", { name: "Tilt to show profile" });
   await expect(toggle).toBeChecked();
   await toggle.click();
   await expect(toggle).not.toBeChecked();
