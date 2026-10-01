@@ -1,5 +1,5 @@
 ---
-name: file-a-pr
+name: file-linky-pr
 description: Use when user asks you to fire a PR
 ---
 
