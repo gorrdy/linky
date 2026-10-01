@@ -1,6 +1,6 @@
 ---
 name: file-linky-pr
-description: Use when user asks you to fire a PR
+description: Always use when opening PR or when user asks you to file/open a PR.
 ---
 
 ## Scope
