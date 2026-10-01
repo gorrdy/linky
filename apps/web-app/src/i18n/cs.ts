@@ -969,6 +969,8 @@ export const cs = {
   paidSentTo: "Odesláno {amount} {unit} → {name}.",
   paidQueuedTo: "Odesláno {amount} {unit} → {name} (čeká).",
   paidReceived: "Přijato {amount} {unit}.",
+  paidHeadlineSent: "Odesláno",
+  paidHeadlineReceived: "Přijato",
   topupOverlay: "Dobito {amount} {unit}.",
 
   saveContactPromptTitle: "Uložit jako kontakt?",
