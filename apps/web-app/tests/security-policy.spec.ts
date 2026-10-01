@@ -44,12 +44,15 @@ test("built CSP covers every script, blocks injected code and allows local servi
 }) => {
   await setBaseStorage(page);
   await page.goto("/");
-  const { policy, firstTag, scripts } = await page.evaluate(() => ({
+  const { policy, firstTag, scripts } = await page.evaluate(async () => ({
     policy:
       document
         .querySelector('meta[http-equiv="Content-Security-Policy"]')
         ?.getAttribute("content") ?? "",
-    firstTag: document.head.firstElementChild?.getAttribute("http-equiv"),
+    // The served document, because Tamagui and react-native-web prepend style tags at runtime.
+    firstTag: new DOMParser()
+      .parseFromString(await (await fetch("/")).text(), "text/html")
+      .head.firstElementChild?.getAttribute("http-equiv"),
     scripts: Array.from(
       document.querySelectorAll("script:not([src])"),
       (script) => script.textContent,
