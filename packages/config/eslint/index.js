@@ -5,6 +5,8 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
+export { uiOnlyPlugin } from "./uiOnly.js";
+
 export const testHelperImportPatterns = [
   {
     group: [

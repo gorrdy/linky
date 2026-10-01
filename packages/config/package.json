@@ -15,7 +15,7 @@
   "scripts": {
     "eslint": "eslint .",
     "prettier": "prettier --check .",
-    "test": "bun test repo.test.js",
+    "test": "bun test repo.test.js eslint",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import webAppEslintConfig, {
   restrictedSyntax,
   testHelperImportPatterns,
   testHelperImportIgnores,
+  uiOnlyPlugin,
 } from "@linky-fit/config/eslint";
 import { defineConfig } from "eslint/config";
 
@@ -122,6 +123,13 @@ export default defineConfig([
         { patterns: [...testHelperImportPatterns, ...evoluImportPatterns] },
       ],
     },
+  },
+  {
+    files: ["src/**/*.tsx"],
+    ignores: testHelperImportIgnores,
+    plugins: { "linky-ui": uiOnlyPlugin },
+    // Warns until every area is migrated; the cleanup then makes it an error.
+    rules: { "linky-ui/ui-only": ["warn", { allow: ["video"] }] },
   },
   {
     files: ["src/devtools/e2e/**"],

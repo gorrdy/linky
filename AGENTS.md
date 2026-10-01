@@ -15,6 +15,7 @@ Read `GLOSSARY.md` before discussing domain concepts. When the user uses a term 
 ## Invariants
 
 - Owner ids, table names and shard indexes belong in `@linky-fit/linksync`, Nostr wire shapes in `@linky-fit/linkstr`, cashu state transitions in `@linky-fit/linkshu`
+- UI elements, icons and design tokens belong in `@linky-fit/ui`; a missing element is added there, with an entry in `apps/ui-book`
 - Funds move between mints only on an explicit user action; changing the default mint moves nothing, and one payment uses one mint
 - Quote ids and proofs go straight from the wallet to the mint, never through Linky infrastructure
 - The recovery seed stays out of every HTTP request; secrets stay out of every log
