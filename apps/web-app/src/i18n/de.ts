@@ -169,7 +169,6 @@ export const de = {
     "Ungültige oder abgelaufene Zahlungsrechnung",
   claimOwnLightningAddressPurchase: "Kaufen",
   claimOwnLightningAddressPurchaseFor: "Für {amount} kaufen",
-  claimOwnLightningAddressPurchasing: "Wird gekauft…",
   claimOwnLightningAddressTaken: "Diese Adresse ist bereits vergeben.",
   claimOwnLightningAddressAlreadySet:
     "Für dieses Konto ist bereits eine eigene Lightning-Adresse festgelegt.",

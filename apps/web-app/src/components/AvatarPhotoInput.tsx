@@ -134,8 +134,8 @@ export function AvatarPhotoInput({
       description={t("avatarCropHelp")}
       actions={
         <Row gap="$sm">
-          <Button flex={1} disabled={isSaving} onPress={() => void saveCrop()}>
-            {isSaving ? t("saving") : t("avatarCropConfirm")}
+          <Button flex={1} loading={isSaving} onPress={() => void saveCrop()}>
+            {t("avatarCropConfirm")}
           </Button>
           <Button
             flex={1}

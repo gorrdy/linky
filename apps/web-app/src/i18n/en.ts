@@ -164,7 +164,6 @@ export const en = {
   claimOwnLightningAddressInvoiceInvalid: "Invalid or expired payment invoice",
   claimOwnLightningAddressPurchase: "Purchase",
   claimOwnLightningAddressPurchaseFor: "Purchase for {amount}",
-  claimOwnLightningAddressPurchasing: "Purchasing...",
   claimOwnLightningAddressTaken: "This address is already taken.",
   claimOwnLightningAddressAlreadySet:
     "A custom lightning address is already set for this account.",

@@ -166,7 +166,6 @@ export const cs = {
     "Neplatná nebo vypršená platební faktura",
   claimOwnLightningAddressPurchase: "Koupit",
   claimOwnLightningAddressPurchaseFor: "Koupit za {amount}",
-  claimOwnLightningAddressPurchasing: "Kupuji...",
   claimOwnLightningAddressTaken: "Tato adresa je už zabraná.",
   claimOwnLightningAddressAlreadySet:
     "Vlastní lightning adresa už je pro tento účet nastavená.",

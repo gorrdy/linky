@@ -390,9 +390,7 @@ export function ProfilePage({
                 }
                 onPress={() => void purchaseInlineLightningAddress()}
               >
-                {inlineClaimIsConfirming
-                  ? t("claimOwnLightningAddressPurchasing")
-                  : inlineClaimButtonLabel}
+                {inlineClaimButtonLabel}
               </Button>
             ) : null
           }
