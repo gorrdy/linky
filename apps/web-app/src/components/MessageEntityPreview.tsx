@@ -72,12 +72,14 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
     const icon = getMintIconUrl(standaloneTokenInfo.mintUrl);
     segments.push(
       <CashuTokenPill
-        compact
+        size="sm"
         key="standalone-cashu"
-        icon={icon}
-        amountText={formatDisplayedAmountText(standaloneTokenInfo.amount ?? 0)}
-        isMuted={
+        mintIcon={icon}
+        label={formatDisplayedAmountText(standaloneTokenInfo.amount ?? 0)}
+        tone={
           !standaloneTokenInfo.isValid || standaloneTokenInfo.isHiddenTestMint
+            ? "neutral"
+            : "accent"
         }
       />,
     );
@@ -106,11 +108,15 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
       const icon = getMintIconUrl(tokenInfo.mintUrl);
       segments.push(
         <CashuTokenPill
-          compact
+          size="sm"
           key={`${start}-cashu`}
-          icon={icon}
-          amountText={formatDisplayedAmountText(tokenInfo.amount ?? 0)}
-          isMuted={!tokenInfo.isValid || tokenInfo.isHiddenTestMint}
+          mintIcon={icon}
+          label={formatDisplayedAmountText(tokenInfo.amount ?? 0)}
+          tone={
+            !tokenInfo.isValid || tokenInfo.isHiddenTestMint
+              ? "neutral"
+              : "accent"
+          }
         />,
       );
     } else {

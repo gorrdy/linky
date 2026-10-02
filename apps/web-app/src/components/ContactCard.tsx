@@ -147,11 +147,15 @@ const TokenPreview: React.FC<TokenPreviewProps> = ({
     <Row gap="$xs">
       {direction ? <MessageDirectionIcon direction={direction} /> : null}
       <CashuTokenPill
-        compact
-        icon={getMintIconUrl(tokenInfo.mintUrl)}
-        amountText={amountText}
-        ariaLabel={amountText}
-        isMuted={!tokenInfo.isValid || tokenInfo.isHiddenTestMint}
+        size="sm"
+        mintIcon={getMintIconUrl(tokenInfo.mintUrl)}
+        label={amountText}
+        accessibilityLabel={amountText}
+        tone={
+          !tokenInfo.isValid || tokenInfo.isHiddenTestMint
+            ? "neutral"
+            : "accent"
+        }
         onMintIconError={onIconError}
       />
     </Row>

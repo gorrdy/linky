@@ -380,9 +380,9 @@ function ChatMessageComponent({
       return (
         <CashuTokenPill
           key={key}
-          icon={getMintIconUrl(info.mintUrl)}
-          amountText={amountText}
-          ariaLabel={[
+          mintIcon={getMintIconUrl(info.mintUrl)}
+          label={amountText}
+          accessibilityLabel={[
             amountText,
             info.mintDisplay,
             info.isValid ? null : t("cashuInvalid"),
@@ -392,7 +392,7 @@ function ChatMessageComponent({
           {...(info.isHiddenTestMint
             ? { hint: t("cashuTestMintHiddenHint") }
             : {})}
-          isMuted={!info.isValid || info.isHiddenTestMint}
+          tone={!info.isValid || info.isHiddenTestMint ? "neutral" : "accent"}
           onMintIconError={onMintIconError}
         />
       );
