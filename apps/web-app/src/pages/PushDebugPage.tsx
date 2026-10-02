@@ -1,10 +1,11 @@
-import { Button, CodeBlock, Row, Stack, Text } from "@linky-fit/ui";
+import { Button, CodeBlock, Row, Stack } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
+import { useArmedAction } from "../hooks/useArmedAction";
 import { isNativePlatform } from "../platform/runtime";
 import {
   appendPushDebugLog,
@@ -119,13 +120,27 @@ async function loadPushDebugReport(): Promise<PushDebugReport> {
   }
   return report;
 }
+type PushDebugAction =
+  | "refresh"
+  | "permission"
+  | "register"
+  | "unregister"
+  | "reset"
+  | "clearLogs";
+
 export function PushDebugPage(): React.ReactElement {
   const { currentNsec, t } = useAppShellCore();
   const { copyText } = useAppShellActions();
   const { pushToast } = useAdvancedSettingsContext();
   const [report, setReport] = React.useState<PushDebugReport>(INITIAL_REPORT);
   const [messages, setMessages] = React.useState<PushDebugMessage[]>([]);
-  const [isBusy, setIsBusy] = React.useState(false);
+  const [busyAction, setBusyAction] = React.useState<PushDebugAction | null>(
+    null,
+  );
+  const resetAction = useArmedAction(() =>
+    pushToast(t("sensitiveActionArmedHint")),
+  );
+  const clearLogsAction = useArmedAction(() => pushToast(t("deleteArmedHint")));
   const refreshReport = React.useCallback(async () => {
     setReport(await loadPushDebugReport());
   }, []);
@@ -153,19 +168,22 @@ export function PushDebugPage(): React.ReactElement {
       navigator.serviceWorker.removeEventListener("message", onMessage);
     };
   }, []);
-  const handleRequestPermission = React.useCallback(async () => {
-    setIsBusy(true);
+  const run = async (action: PushDebugAction, task?: () => Promise<void>) => {
+    setBusyAction(action);
     try {
-      const granted = await requestNotificationPermission();
-      pushToast(
-        granted ? t("notificationsRegistered") : t("notificationsDenied"),
-      );
+      await task?.();
       await refreshReport();
     } finally {
-      setIsBusy(false);
+      setBusyAction(null);
     }
-  }, [refreshReport, pushToast, t]);
-  const handleRegister = React.useCallback(async () => {
+  };
+  const requestPermission = async () => {
+    const granted = await requestNotificationPermission();
+    pushToast(
+      granted ? t("notificationsRegistered") : t("notificationsDenied"),
+    );
+  };
+  const register = async () => {
     if (!currentNsec) {
       pushToast(t("notificationsNotLoggedIn"));
       return;
@@ -174,65 +192,41 @@ export function PushDebugPage(): React.ReactElement {
       pushToast(t("notificationsUnsupported"));
       return;
     }
-    setIsBusy(true);
-    try {
-      if (!isNativePlatform() && Notification.permission === "default") {
-        const granted = await requestNotificationPermission();
-        if (!granted) {
-          pushToast(t("notificationsDenied"));
-          await refreshReport();
-          return;
-        }
+    if (!isNativePlatform() && Notification.permission === "default") {
+      if (!(await requestNotificationPermission())) {
+        pushToast(t("notificationsDenied"));
+        return;
       }
-      const result = await registerPushNotifications(currentNsec);
-      pushToast(
-        result.success
-          ? t("notificationsRegistered")
-          : (result.error ?? t("notificationsError")),
-      );
-      await refreshReport();
-    } finally {
-      setIsBusy(false);
     }
-  }, [currentNsec, refreshReport, pushToast, t]);
-  const handleUnregister = React.useCallback(async () => {
+    const result = await registerPushNotifications(currentNsec);
+    pushToast(
+      result.success
+        ? t("notificationsRegistered")
+        : (result.error ?? t("notificationsError")),
+    );
+  };
+  const unregister = async () => {
     if (!currentNsec) {
       pushToast(t("notificationsNotLoggedIn"));
       return;
     }
-    setIsBusy(true);
-    try {
-      const ok = await unregisterPushNotifications(currentNsec);
-      pushToast(ok ? "Unregistered" : "Unregister failed");
-      await refreshReport();
-    } finally {
-      setIsBusy(false);
-    }
-  }, [currentNsec, refreshReport, pushToast, t]);
-  const handleReset = React.useCallback(async () => {
-    setIsBusy(true);
+    const ok = await unregisterPushNotifications(currentNsec);
+    pushToast(ok ? "Unregistered" : "Unregister failed");
+  };
+  const reset = async () => {
     try {
       await resetServiceWorkersAndCaches();
       await clearPushDebugLog();
       pushToast("Service workers and caches reset");
-      await refreshReport();
     } catch (error) {
       pushToast(`Reset failed: ${String(error ?? "")}`);
-    } finally {
-      setIsBusy(false);
     }
-  }, [refreshReport, pushToast]);
-  const handleClearLogs = React.useCallback(async () => {
-    setIsBusy(true);
-    try {
-      await clearPushDebugLog();
-      appendPushDebugLog("client", "debug log cleared from UI");
-      pushToast("Debug log cleared");
-      await refreshReport();
-    } finally {
-      setIsBusy(false);
-    }
-  }, [refreshReport, pushToast]);
+  };
+  const clearLogs = async () => {
+    await clearPushDebugLog();
+    appendPushDebugLog("client", "debug log cleared from UI");
+    pushToast("Debug log cleared");
+  };
   const reportText = JSON.stringify(
     {
       ...report,
@@ -248,72 +242,61 @@ export function PushDebugPage(): React.ReactElement {
     null,
     2,
   );
+  const actionButton = (
+    action: PushDebugAction,
+    label: string,
+    onPress: () => void,
+    armed = false,
+  ) => (
+    <Button
+      size="sm"
+      variant={armed ? "danger" : "secondary"}
+      loading={busyAction === action}
+      disabled={busyAction !== null}
+      onPress={onPress}
+    >
+      {label}
+    </Button>
+  );
   return (
     <Stack gap="$lg">
-      <Row
-        alignItems="flex-start"
-        justifyContent="space-between"
-        $compact={{ flexDirection: "column" }}
-      >
-        <Text variant="label">Push / SW debug</Text>
-        <Row
-          flexGrow={1}
-          flexShrink={1}
-          flexWrap="wrap"
-          justifyContent="flex-end"
-          gap="$sm"
-          $compact={{
-            justifyContent: "flex-start",
-            flexGrow: 0,
-            flexShrink: 0,
-          }}
+      <Row flexWrap="wrap" gap="$sm">
+        {actionButton("refresh", "Refresh", () => void run("refresh"))}
+        {actionButton(
+          "permission",
+          "Permission",
+          () => void run("permission", requestPermission),
+        )}
+        {actionButton(
+          "register",
+          "Register",
+          () => void run("register", register),
+        )}
+        {actionButton(
+          "unregister",
+          "Unregister",
+          () => void run("unregister", unregister),
+        )}
+        {actionButton(
+          "reset",
+          "Reset SW",
+          () => resetAction.confirm(() => void run("reset", reset)),
+          resetAction.armed,
+        )}
+        {actionButton(
+          "clearLogs",
+          "Clear logs",
+          () => clearLogsAction.confirm(() => void run("clearLogs", clearLogs)),
+          clearLogsAction.armed,
+        )}
+        <Button
+          size="sm"
+          variant="secondary"
+          icon="Copy"
+          onPress={() => void copyText(reportText)}
         >
-          <Button
-            onPress={() => void refreshReport()}
-            disabled={isBusy}
-            variant="ghost"
-          >
-            Refresh
-          </Button>
-          <Button
-            onPress={() => void handleRequestPermission()}
-            disabled={isBusy}
-            variant="ghost"
-          >
-            Permission
-          </Button>
-          <Button
-            onPress={() => void handleRegister()}
-            disabled={isBusy || !currentNsec}
-            variant="ghost"
-          >
-            Register
-          </Button>
-          <Button
-            onPress={() => void handleUnregister()}
-            disabled={isBusy}
-            variant="ghost"
-          >
-            Unregister
-          </Button>
-          <Button
-            onPress={() => void handleReset()}
-            disabled={isBusy}
-            variant="ghost"
-          >
-            Reset SW
-          </Button>
-          <Button
-            onPress={() => void handleClearLogs()}
-            disabled={isBusy}
-            variant="ghost"
-          >
-            Clear logs
-          </Button>
-          <Button onPress={() => void copyText(reportText)} variant="ghost">
-            Copy logs
-          </Button>
-        </Row>
+          Copy logs
+        </Button>
       </Row>
 
       <CodeBlock testID="push-debug-report">{reportText}</CodeBlock>

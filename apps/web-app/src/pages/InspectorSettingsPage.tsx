@@ -1,4 +1,4 @@
-import { ListRow, Switch, Stack, Section, Text } from "@linky-fit/ui";
+import { ListRow, Section, Spinner, Stack, Switch, Text } from "@linky-fit/ui";
 import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -9,6 +9,7 @@ import {
   useInspectorLogsEnabled,
 } from "../devtools/inspector/inspectorEnabled";
 import type { PersistentInspectorLogStats } from "../devtools/inspector/persistentInspectorLogBuffer";
+import { useArmedAction } from "../hooks/useArmedAction";
 import { navigateTo } from "../hooks/useRouting";
 import { formatBytes } from "../utils/formatting";
 
@@ -32,8 +33,10 @@ export function InspectorSettingsPage(): React.ReactElement {
 
   const [inspectorLogStats, setInspectorLogStats] =
     useState<PersistentInspectorLogStats | null>(null);
-  const [inspectorLogActionIsBusy, setInspectorLogActionIsBusy] =
-    useState(false);
+  const [busyLogAction, setBusyLogAction] = useState<
+    "download" | "clear" | null
+  >(null);
+  const clearLogsAction = useArmedAction(() => pushToast(t("deleteArmedHint")));
 
   const inspectorLogStatsLabel = inspectorLogStats
     ? t("nostrInspectorLogsStats")
@@ -78,7 +81,7 @@ export function InspectorSettingsPage(): React.ReactElement {
   }, [inspectorLogsEnabled, pushToast, t]);
 
   const downloadInspectorLogs = async (): Promise<void> => {
-    setInspectorLogActionIsBusy(true);
+    setBusyLogAction("download");
     try {
       const { downloadPersistentInspectorLogs } =
         await import("../devtools/inspector/persistentInspectorLogSink");
@@ -87,12 +90,12 @@ export function InspectorSettingsPage(): React.ReactElement {
     } catch {
       pushToast(t("nostrInspectorLogsError"));
     } finally {
-      setInspectorLogActionIsBusy(false);
+      setBusyLogAction(null);
     }
   };
 
   const clearInspectorLogs = async (): Promise<void> => {
-    setInspectorLogActionIsBusy(true);
+    setBusyLogAction("clear");
     try {
       const { clearPersistentInspectorLogs } =
         await import("../devtools/inspector/persistentInspectorLogSink");
@@ -101,9 +104,14 @@ export function InspectorSettingsPage(): React.ReactElement {
     } catch {
       pushToast(t("nostrInspectorLogsError"));
     } finally {
-      setInspectorLogActionIsBusy(false);
+      setBusyLogAction(null);
     }
   };
+
+  const logActionsDisabled =
+    !inspectorLogsEnabled ||
+    busyLogAction !== null ||
+    !inspectorLogStats?.rowCount;
 
   return (
     <Stack gap="$lg">
@@ -150,22 +158,19 @@ export function InspectorSettingsPage(): React.ReactElement {
           icon="Download"
           title={t("downloadNostrInspectorLogs")}
           onPress={() => void downloadInspectorLogs()}
-          disabled={
-            !inspectorLogsEnabled ||
-            inspectorLogActionIsBusy ||
-            !inspectorLogStats?.rowCount
-          }
+          trailing={busyLogAction === "download" ? <Spinner /> : null}
+          disabled={logActionsDisabled}
         />
 
         <ListRow
           icon="Trash2"
           title={t("clearNostrInspectorLogs")}
-          onPress={() => void clearInspectorLogs()}
-          disabled={
-            !inspectorLogsEnabled ||
-            inspectorLogActionIsBusy ||
-            !inspectorLogStats?.rowCount
+          destructive={clearLogsAction.armed}
+          onPress={() =>
+            clearLogsAction.confirm(() => void clearInspectorLogs())
           }
+          trailing={busyLogAction === "clear" ? <Spinner /> : null}
+          disabled={logActionsDisabled}
         />
       </Section>
 

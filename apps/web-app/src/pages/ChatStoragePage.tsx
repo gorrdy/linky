@@ -5,6 +5,7 @@ import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
 import { useShardSummaries } from "../app/hooks/useLinksync";
 import { forgetChatShards } from "../evolu";
+import { useArmedAction } from "../hooks/useArmedAction";
 
 export function ChatStoragePage(): React.ReactElement {
   const { t } = useAppShellCore();
@@ -13,6 +14,9 @@ export function ChatStoragePage(): React.ReactElement {
   const messages = summaries.find((shard) => shard.scope === "messages");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const forgetAction = useArmedAction(() =>
+    pushToast(t("sensitiveActionArmedHint")),
+  );
   const keep = keepNewest(linkyScopes.messages);
   const subscribed = messages?.visibleOwnerIds.length ?? 0;
   const forgettable = summaries.some(
@@ -47,9 +51,10 @@ export function ChatStoragePage(): React.ReactElement {
       />
       <Text color="$colorMuted">{t("chatStorageForgetHint")}</Text>
       <Button
-        variant="secondary"
-        disabled={busy || !forgettable}
-        onPress={() => void forget()}
+        variant={forgetAction.armed ? "danger" : "secondary"}
+        loading={busy}
+        disabled={!forgettable}
+        onPress={() => forgetAction.confirm(() => void forget())}
       >
         {t("chatStorageForget")}
       </Button>

@@ -15,6 +15,7 @@ import {
   Pill,
 } from "@linky-fit/ui";
 import type { Tone } from "@linky-fit/ui";
+import { useArmedAction } from "../../hooks/useArmedAction";
 import { pickFile } from "../../utils/pickFile";
 import { connectionStatus } from "../../utils/connectionStatus";
 import React from "react";
@@ -338,6 +339,7 @@ export function InspectorApp({
     React.useState<OfflineImport | null>(null);
   const [isImporting, setIsImporting] = React.useState(false);
   const [importMessage, setImportMessage] = React.useState<string | null>(null);
+  const clearAction = useArmedAction();
 
   const incomingRowsRef = React.useRef<CollectedInspectorRow[]>([]);
   // Ids are monotonic and SSE delivery is ordered (including replay), so a
@@ -649,10 +651,10 @@ export function InspectorApp({
             <Button
               variant="secondary"
               size="sm"
-              disabled={isImporting}
+              loading={isImporting}
               onPress={() => void handleImport()}
             >
-              {isImporting ? "Importing…" : "Import"}
+              Import
             </Button>
           )}
           {!offlineImport && (
@@ -661,12 +663,12 @@ export function InspectorApp({
                 {isPaused ? "Resume" : "Pause"}
               </Button>
               <Button
-                variant="secondary"
+                variant={clearAction.armed ? "danger" : "secondary"}
                 size="sm"
-                disabled={isClearing}
-                onPress={() => void handleClear()}
+                loading={isClearing}
+                onPress={() => clearAction.confirm(() => void handleClear())}
               >
-                {isClearing ? "Clearing…" : "Clear"}
+                Clear
               </Button>
             </>
           )}

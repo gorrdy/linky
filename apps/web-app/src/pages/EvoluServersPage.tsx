@@ -101,9 +101,8 @@ export function EvoluServersPage(): React.ReactElement {
           width="100%"
           type="button"
           onPress={requestClearDatabase}
-          disabled={
-            evoluWipeStorageIsBusy || evoluErrorType === "ProtocolQuotaError"
-          }
+          disabled={evoluErrorType === "ProtocolQuotaError"}
+          loading={evoluWipeStorageIsBusy}
           variant={clearDatabaseArmed ? "danger" : "secondary"}
         >
           {t("evoluClearDatabase")}

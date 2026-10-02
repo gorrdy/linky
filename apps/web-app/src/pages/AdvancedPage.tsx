@@ -3,6 +3,7 @@ import {
   ListRow,
   Row,
   Section,
+  Spinner,
   Stack,
   StatusDot,
   Switch,
@@ -308,6 +309,7 @@ export function AdvancedPage(): React.ReactElement {
           icon="BrushCleaning"
           title={t("dedupeContacts")}
           onPress={() => void dedupeContacts()}
+          trailing={dedupeContactsIsBusy ? <Spinner /> : null}
           disabled={dedupeContactsIsBusy}
         />
         {linkRow("RotateCw", t("reloadApp"), () => void handleReloadApp())}
