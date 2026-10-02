@@ -7,6 +7,7 @@ const defaultLabels = {
   copy: "Copy",
   edit: "Edit",
   menu: "Message actions",
+  moreEmojis: "More emojis",
   react: "React",
   reply: "Reply",
   save: "Save",

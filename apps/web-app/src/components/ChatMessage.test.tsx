@@ -89,6 +89,7 @@ const renderChatMessage = async (
         edit: "edit",
         edited: "edited",
         menu: "Message actions",
+        moreEmojis: "More emojis",
         react: "react",
         reply: "reply",
         save: "save",

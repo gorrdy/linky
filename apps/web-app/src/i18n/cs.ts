@@ -437,6 +437,7 @@ export const cs = {
   chatImageSave: "Uložit do fotek",
   chatReplyAction: "Odpovědět",
   chatReactAction: "Reagovat",
+  chatMoreEmojis: "Další emoji",
   chatMessageActions: "Akce zprávy",
   chatEditAction: "Upravit",
   chatSaveAction: "Uložit",

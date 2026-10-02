@@ -28,6 +28,7 @@ interface MessageActionsMenuProps {
     copy: string;
     edit: string;
     menu: string;
+    moreEmojis: string;
     react: string;
     reply: string;
     save: string;
@@ -107,7 +108,7 @@ export const MessageActionsMenu: FC<MessageActionsMenuProps> = ({
               ? {}
               : {
                   more: {
-                    label: "More emojis",
+                    label: labels.moreEmojis,
                     onPress: () => setEmojisExpanded(true),
                   },
                 })}

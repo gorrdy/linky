@@ -446,6 +446,7 @@ export const de = {
   chatImageSave: "In Fotos speichern",
   chatReplyAction: "Antworten",
   chatReactAction: "Reagieren",
+  chatMoreEmojis: "Weitere Emojis",
   chatMessageActions: "Nachrichtenaktionen",
   chatEditAction: "Bearbeiten",
   chatSaveAction: "Speichern",

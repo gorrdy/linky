@@ -86,6 +86,7 @@ interface ChatMessageProps {
     edit: string;
     edited: string;
     menu: string;
+    moreEmojis: string;
     react: string;
     reply: string;
     save: string;

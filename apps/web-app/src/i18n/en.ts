@@ -432,6 +432,7 @@ export const en = {
   chatImageSave: "Save to photos",
   chatReplyAction: "Reply",
   chatReactAction: "React",
+  chatMoreEmojis: "More emojis",
   chatMessageActions: "Message actions",
   chatEditAction: "Edit",
   chatSaveAction: "Save",

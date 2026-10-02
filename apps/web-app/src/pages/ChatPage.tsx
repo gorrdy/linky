@@ -326,6 +326,7 @@ const ChatMessageList = memo(function ChatMessageList({
       edit: t("chatEditAction"),
       edited: t("chatEdited"),
       menu: t("chatMessageActions"),
+      moreEmojis: t("chatMoreEmojis"),
       react: t("chatReactAction"),
       reply: t("chatReplyAction"),
       save: t("chatImageSave"),
