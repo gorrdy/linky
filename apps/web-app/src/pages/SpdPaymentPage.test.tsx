@@ -365,9 +365,10 @@ describe("SpdPaymentPage offer recipients", () => {
       setInputValue(fieldInput(container, "MSG"), "Oběd");
     });
 
-    expect(container.querySelector(".bank-payment-amount")?.textContent).toBe(
-      "10000 sat",
-    );
+    expect(
+      container.querySelector('[data-testid="bank-payment-amount"]')
+        ?.textContent,
+    ).toBe("10000 sat");
 
     await act(async () => {
       container

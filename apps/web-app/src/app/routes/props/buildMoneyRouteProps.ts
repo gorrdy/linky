@@ -88,7 +88,6 @@ interface BuildMoneyRoutePropsParams {
   topupInvoiceError: MoneyRoutesProps["topupInvoiceProps"]["topupInvoiceError"];
   topupInvoiceIsBusy: MoneyRoutesProps["topupInvoiceProps"]["topupInvoiceIsBusy"];
   topupMintUrl: MoneyRoutesProps["topupInvoiceProps"]["topupMintUrl"];
-  topupInvoiceQr: MoneyRoutesProps["topupInvoiceProps"]["topupInvoiceQr"];
   topupInvoiceQrPayload: MoneyRoutesProps["topupInvoiceProps"]["topupInvoiceQrPayload"];
   tokensRestoreProgress: MoneyRoutesProps["cashuTokensProps"]["tokensRestoreProgress"];
   tokensRestoreIsBusy: MoneyRoutesProps["cashuProofsProps"]["tokensRestoreIsBusy"];
@@ -160,7 +159,6 @@ export const buildMoneyRouteProps = ({
   topupInvoiceError,
   topupInvoiceIsBusy,
   topupMintUrl,
-  topupInvoiceQr,
   topupInvoiceQrPayload,
   receiveMethod,
   tokensRestoreIsBusy,
@@ -278,7 +276,6 @@ export const buildMoneyRouteProps = ({
       receiveMethod,
       topupAmount,
       topupInvoiceCashuRequest,
-      topupInvoiceQr,
       topupInvoiceQrPayload,
       topupInvoice,
       topupInvoiceError,

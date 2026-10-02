@@ -1,4 +1,4 @@
-import { Clock } from "lucide-react";
+import { Icon, Pill } from "@linky-fit/ui";
 import type React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -28,16 +28,15 @@ export const WalletPendingReceives = (): React.ReactElement | null => {
     );
 
   return (
-    <button
-      type="button"
-      className="wallet-pending mint-choice-pending"
-      onClick={openPending}
-    >
-      <Clock aria-hidden="true" />
-      {t("mintPendingAmount").replace(
+    <Pill
+      testID="wallet-pending"
+      tone="warning"
+      leading={<Icon name="Clock" size="sm" color="$warningText" />}
+      label={t("mintPendingAmount").replace(
         "{amount}",
         formatDisplayedAmountText(total),
       )}
-    </button>
+      onPress={openPending}
+    />
   );
 };

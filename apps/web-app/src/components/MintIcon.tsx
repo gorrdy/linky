@@ -1,3 +1,5 @@
+import { Avatar } from "@linky-fit/ui";
+import type { AvatarSize } from "@linky-fit/ui";
 import React from "react";
 import type { MintIcon as MintIconSource } from "../utils/mint";
 import { formatMintLabel, getNextMintIconUrl } from "../utils/mint";
@@ -5,12 +7,13 @@ import { formatMintLabel, getNextMintIconUrl } from "../utils/mint";
 interface MintIconProps {
   getMintIconUrl: (mint: string | null | undefined) => MintIconSource;
   mint: string;
+  size?: AvatarSize;
 }
 
 const fallbackLetterOf = (mint: string): string =>
   (formatMintLabel(mint).match(/[a-z]/i)?.[0] ?? "?").toUpperCase();
 
-export function MintIcon({ getMintIconUrl, mint }: MintIconProps) {
+export function MintIcon({ getMintIconUrl, mint, size = "xs" }: MintIconProps) {
   const icon = getMintIconUrl(mint);
   const [renderedIconUrl, setRenderedIconUrl] = React.useState(icon.url);
 
@@ -18,25 +21,14 @@ export function MintIcon({ getMintIconUrl, mint }: MintIconProps) {
     setRenderedIconUrl(icon.url);
   }, [icon.url]);
 
-  if (!renderedIconUrl) {
-    return (
-      <span aria-hidden="true" className="mint-icon-fallback">
-        {fallbackLetterOf(mint)}
-      </span>
-    );
-  }
-
   return (
-    <img
-      src={renderedIconUrl}
-      alt=""
-      width={14}
-      height={14}
-      className="mint-icon"
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() =>
-        setRenderedIconUrl(getNextMintIconUrl(renderedIconUrl, icon.origin))
+    <Avatar
+      name={formatMintLabel(mint)}
+      uri={renderedIconUrl ?? undefined}
+      size={size}
+      fallback={fallbackLetterOf(mint)}
+      onError={(failedUrl) =>
+        setRenderedIconUrl(getNextMintIconUrl(failedUrl, icon.origin))
       }
     />
   );

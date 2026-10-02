@@ -1,4 +1,5 @@
 import type { OperationId, TokenTransfer } from "@linky-fit/linkshu";
+import { Avatar, Pill, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { MintIcon } from "../utils/mint";
@@ -36,9 +37,8 @@ export const TransferPill = React.memo(function TransferPill({
 interface CashuTokenPillProps {
   amountText: string;
   ariaLabel?: string;
-  className?: string;
   compact?: boolean;
-  /** Short visible note after the amount, also the pill's tooltip. */
+  /** Short visible note after the amount. */
   hint?: string;
   icon: Pick<MintIcon, "url"> & Partial<Omit<MintIcon, "url">>;
   isError?: boolean;
@@ -50,7 +50,6 @@ interface CashuTokenPillProps {
 export function CashuTokenPill({
   amountText,
   ariaLabel,
-  className = "",
   compact = false,
   hint,
   icon,
@@ -59,42 +58,33 @@ export function CashuTokenPill({
   onClick,
   onMintIconError,
 }: CashuTokenPillProps) {
-  const pillClassName = `pill cashu-token-pill${isError ? " pill-error" : isMuted ? " pill-muted" : ""}${compact ? " cashu-token-pill-compact" : ""}${className ? ` ${className}` : ""}`;
-  const content = (
-    <>
-      {icon.url ? (
-        <img
-          src={icon.url}
-          alt=""
-          width={14}
-          height={14}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => {
-            if (icon.url) onMintIconError?.(icon.url);
-          }}
-        />
-      ) : null}
-      {(icon.failed || !icon.url) && icon.host ? (
-        <span className="muted chat-token-pill-fallback">{icon.host}</span>
-      ) : null}
-      <span className="chat-token-pill-label">{amountText}</span>
-      {hint ? <span className="cashu-token-pill-hint">{hint}</span> : null}
-    </>
-  );
-  return onClick ? (
-    <button
-      type="button"
-      className={pillClassName}
-      aria-label={ariaLabel}
-      title={hint}
-      onClick={onClick}
-    >
-      {content}
-    </button>
-  ) : (
-    <span className={pillClassName} aria-label={ariaLabel} title={hint}>
-      {content}
-    </span>
+  const host = icon.host ?? null;
+  return (
+    <Pill
+      testID="cashu-token-pill"
+      label={amountText}
+      {...(hint ? { hint } : {})}
+      size={compact ? "sm" : "md"}
+      tone={isError ? "danger" : isMuted ? "neutral" : "accent"}
+      accessibilityLabel={ariaLabel}
+      onPress={onClick}
+      leading={
+        <>
+          {icon.url ? (
+            <Avatar
+              name={host ?? amountText}
+              uri={icon.url}
+              size="xs"
+              onError={onMintIconError}
+            />
+          ) : null}
+          {(icon.failed || !icon.url) && host ? (
+            <Text variant="caption" color="$colorMuted">
+              {host}
+            </Text>
+          ) : null}
+        </>
+      }
+    />
   );
 }

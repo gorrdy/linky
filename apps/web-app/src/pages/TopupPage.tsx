@@ -1,7 +1,4 @@
-import {
-  CircleEllipsis as NoAmountIcon,
-  Copy as PasteIcon,
-} from "lucide-react";
+import { Button, Row, Stack } from "@linky-fit/ui";
 import type { FC } from "react";
 import { useAppShellActions } from "../app/context/AppShellContexts";
 import { AmountDisplay } from "../components/AmountDisplay";
@@ -46,7 +43,7 @@ export const TopupPage: FC<TopupPageProps> = ({
   };
 
   return (
-    <section className="panel">
+    <Stack gap="$md">
       <AmountDisplay
         amount={topupAmount}
         cycleOnClick
@@ -68,46 +65,35 @@ export const TopupPage: FC<TopupPageProps> = ({
         }}
       />
 
-      <div className="actions">
-        <button
-          className="btn-wide"
-          onClick={() => {
-            if (invalid) return;
-            navigateTo({ route: "topupInvoice" });
-          }}
-          disabled={invalid}
-          data-guide="topup-show-invoice"
-        >
-          {t("topupShowInvoice")}
-        </button>
+      <Button
+        onPress={() => {
+          if (invalid) return;
+          navigateTo({ route: "topupInvoice" });
+        }}
+        disabled={invalid}
+        data-guide="topup-show-invoice"
+      >
+        {t("topupShowInvoice")}
+      </Button>
 
-        <div className="topup-secondary-actions">
-          <button
-            type="button"
-            className="btn-wide secondary"
-            onClick={() => navigateTo({ route: "topupNoAmount" })}
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                <NoAmountIcon size={18} />
-              </span>
-              <span>{t("topupNoAmount")}</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="btn-wide secondary"
-            onClick={() => void pasteAmountOrScanValue()}
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                <PasteIcon size={18} />
-              </span>
-              <span>{t("paste")}</span>
-            </span>
-          </button>
-        </div>
-      </div>
-    </section>
+      <Row>
+        <Button
+          variant="secondary"
+          icon="CircleEllipsis"
+          flex={1}
+          onPress={() => navigateTo({ route: "topupNoAmount" })}
+        >
+          {t("topupNoAmount")}
+        </Button>
+        <Button
+          variant="secondary"
+          icon="Copy"
+          flex={1}
+          onPress={() => void pasteAmountOrScanValue()}
+        >
+          {t("paste")}
+        </Button>
+      </Row>
+    </Stack>
   );
 };

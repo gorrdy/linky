@@ -1,5 +1,6 @@
+import { Button, Dialog, Stack, Text } from "@linky-fit/ui";
 import type { ReactNode } from "react";
-import { ModalSheet } from "./ModalSheet";
+import { tooltip } from "../utils/tooltip";
 import { WalletBalance } from "./WalletBalance";
 
 interface PaymentConfirmDialogProps {
@@ -17,6 +18,15 @@ interface PaymentConfirmDialogProps {
   unknownAmountLabel?: string;
 }
 
+const caption = (content: ReactNode, bold = false) =>
+  typeof content === "string" ? (
+    <Text variant="caption" bold={bold} color="$colorMuted" textAlign="center">
+      {content}
+    </Text>
+  ) : (
+    content
+  );
+
 export function PaymentConfirmDialog({
   amountSat,
   cancelLabel,
@@ -32,49 +42,39 @@ export function PaymentConfirmDialog({
   unknownAmountLabel,
 }: PaymentConfirmDialogProps) {
   return (
-    <ModalSheet
-      aria-label={label}
-      onClick={onClose}
-      sheetClassName="modal-sheet lightning-invoice-confirm-sheet"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={label}
+      hideTitle
+      actions={
+        <>
+          <Button
+            onPress={() => void onConfirm()}
+            disabled={isBusy || disabled}
+            {...tooltip(disabledReason)}
+          >
+            {confirmLabel}
+          </Button>
+          <Button variant="secondary" onPress={onClose} disabled={isBusy}>
+            {cancelLabel}
+          </Button>
+        </>
+      }
     >
-      <div className="lightning-invoice-confirm-summary">
-        <div className="lightning-invoice-confirm-amount">
-          {amountSat === null ? (
-            <div className="lightning-invoice-confirm-unknown-amount">
-              {unknownAmountLabel}
-            </div>
-          ) : (
-            <WalletBalance ariaLabel={label} balance={amountSat} />
-          )}
-        </div>
-        <div className="lightning-invoice-confirm-meta">
-          {description ? (
-            <div className="lightning-invoice-confirm-description">
-              {description}
-            </div>
-          ) : null}
-          {meta ? (
-            <div className="lightning-invoice-confirm-expiry muted">{meta}</div>
-          ) : null}
-        </div>
-      </div>
-      <div className="modal-actions">
-        <button
-          className="btn-wide"
-          onClick={() => void onConfirm()}
-          disabled={isBusy || disabled}
-          title={disabledReason}
-        >
-          {confirmLabel}
-        </button>
-        <button
-          className="btn-wide secondary"
-          onClick={onClose}
-          disabled={isBusy}
-        >
-          {cancelLabel}
-        </button>
-      </div>
-    </ModalSheet>
+      <Stack alignItems="center" gap="$sm" paddingBottom="$lg">
+        {amountSat === null ? (
+          <Text variant="heading" color="$color" textAlign="center">
+            {unknownAmountLabel}
+          </Text>
+        ) : (
+          <WalletBalance ariaLabel={label} balance={amountSat} />
+        )}
+        {description ? caption(description) : null}
+        {meta ? caption(meta, true) : null}
+      </Stack>
+    </Dialog>
   );
 }

@@ -10,7 +10,6 @@ import { buildBip321PaymentUri } from "../../../utils/bip321";
 import type { DisplayAmountParts } from "../../../utils/displayAmounts";
 import { getLightningInvoicePreview } from "@linky-fit/linkshu";
 import { MAIN_MINT_URL, normalizeMintUrl } from "../../../utils/mint";
-import { optimizeCaseInsensitiveQrPayload } from "../../../utils/qrPayload";
 import { describeTaggedCashuError } from "../../lib/cashuStoredError";
 import { buildCashuPaymentRequestMessage } from "../../lib/paymentRequestMessage";
 import type { LoggedPaymentEventParams } from "../../types/appTypes";
@@ -76,9 +75,6 @@ export const useTopupFlow = ({
     string | null
   >(null);
   const [topupInvoiceIsBusy, setTopupInvoiceIsBusy] = React.useState(false);
-  const [topupInvoiceQr, setTopupInvoiceQr] = React.useState<string | null>(
-    null,
-  );
   const [topupInvoiceQrPayload, setTopupInvoiceQrPayload] = React.useState<
     string | null
   >(null);
@@ -297,7 +293,6 @@ export const useTopupFlow = ({
 
   React.useEffect(() => {
     if (routeKind !== "topupInvoice" || activeTopup === null) {
-      setTopupInvoiceQr(null);
       setTopupInvoiceQrPayload(null);
       setTopupInvoiceCashuRequest(null);
       return;
@@ -318,20 +313,6 @@ export const useTopupFlow = ({
       : invoice;
     setTopupInvoiceCashuRequest(cashuRequest);
     setTopupInvoiceQrPayload(payload);
-
-    let cancelled = false;
-    void (async () => {
-      const QRCode = await import("qrcode");
-      const qrPayload =
-        payload === invoice
-          ? optimizeCaseInsensitiveQrPayload(payload)
-          : payload;
-      const qr = await QRCode.toDataURL(qrPayload, { margin: 1, width: 320 });
-      if (!cancelled) setTopupInvoiceQr(qr);
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, [activeTopup, routeKind, topupRecipientNprofile]);
 
   React.useEffect(() => {
@@ -391,7 +372,6 @@ export const useTopupFlow = ({
     topupInvoiceCashuRequest,
     topupInvoiceError,
     topupInvoiceIsBusy,
-    topupInvoiceQr,
     topupInvoiceQrPayload,
     topupMintUrl: activeTopup?.mint ?? null,
   };

@@ -1,8 +1,9 @@
-import { HandCoins as PayIcon } from "lucide-react";
+import { Button, Stack } from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import type { FC, ReactNode } from "react";
-import { AmountDisplay } from "./AmountDisplay";
-
 import type { Translate } from "../i18n";
+import { tooltip } from "../utils/tooltip";
+import { AmountDisplay } from "./AmountDisplay";
 import { Keypad } from "./Keypad";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
 
@@ -18,7 +19,7 @@ interface PaymentAmountPanelProps {
   stepGuideId?: string | undefined;
   submitBusy?: boolean | undefined;
   submitDisabled: boolean;
-  submitIcon?: ReactNode | undefined;
+  submitIcon?: IconName | undefined;
   submitLabel?: string | undefined;
   submitTitle?: string | undefined;
   t: Translate;
@@ -48,11 +49,11 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
   });
 
   return (
-    <section className="panel">
+    <Stack gap="$md">
       {header}
       {notices}
 
-      <div {...(stepGuideId ? { "data-guide": stepGuideId } : {})}>
+      <Stack gap="$md" data-guide={stepGuideId}>
         <AmountDisplay
           amount={amount}
           cycleOnClick
@@ -74,29 +75,17 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
           }}
         />
 
-        <div className="actions">
-          <button
-            className="btn-wide"
-            onClick={onSubmit}
-            disabled={cashuIsBusy || submitDisabled}
-            title={submitTitle}
-            {...(sendGuideId ? { "data-guide": sendGuideId } : {})}
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                {isSubmitBusy ? (
-                  <span className="btn-spinner" />
-                ) : (
-                  (submitIcon ?? <PayIcon size={18} />)
-                )}
-              </span>
-              <span>
-                {isSubmitBusy ? t("payPaying") : (submitLabel ?? t("paySend"))}
-              </span>
-            </span>
-          </button>
-        </div>
-      </div>
-    </section>
+        <Button
+          icon={submitIcon ?? "HandCoins"}
+          loading={isSubmitBusy}
+          onPress={onSubmit}
+          disabled={cashuIsBusy || submitDisabled}
+          data-guide={sendGuideId}
+          {...tooltip(submitTitle)}
+        >
+          {isSubmitBusy ? t("payPaying") : (submitLabel ?? t("paySend"))}
+        </Button>
+      </Stack>
+    </Stack>
   );
 };

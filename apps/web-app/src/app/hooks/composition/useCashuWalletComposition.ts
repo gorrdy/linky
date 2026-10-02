@@ -718,7 +718,6 @@ export const useCashuWalletComposition = ({
     topupInvoiceCashuRequest,
     topupInvoiceError,
     topupInvoiceIsBusy,
-    topupInvoiceQr,
     topupInvoiceQrPayload,
     topupMintUrl,
   } = useTopupFlow({
@@ -2685,7 +2684,6 @@ export const useCashuWalletComposition = ({
     topupInvoiceCashuRequest,
     topupInvoiceError,
     topupInvoiceIsBusy,
-    topupInvoiceQr,
     topupInvoiceQrPayload,
     topupMintUrl,
     walletWarningApplies,

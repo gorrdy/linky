@@ -1,9 +1,16 @@
+import {
+  Button,
+  ContactRow,
+  Section,
+  Stack,
+  Text,
+  TextField,
+} from "@linky-fit/ui";
 import React, { type FC } from "react";
-import { Avatar } from "../components/Avatar";
 import type { ContactId } from "../evolu";
 import { navigateTo } from "../hooks/useRouting";
 import type { Translate } from "../i18n";
-import { formatMiddleDots, getInitials } from "../utils/formatting";
+import { formatMiddleDots } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 
 interface ManualPayContact {
@@ -79,7 +86,6 @@ export const ManualPayPage: FC<ManualPayPageProps> = ({
   onSubmitText,
   t,
 }) => {
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [value, setValue] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const query = value.trim();
@@ -87,10 +93,6 @@ export const ManualPayPage: FC<ManualPayPageProps> = ({
   const expandedAlias = shouldTryLinkyAlias(query)
     ? `${query}@linky.fit`
     : null;
-
-  React.useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
 
   const suggestions = React.useMemo(() => {
     if (!normalizedQuery) return [];
@@ -122,89 +124,54 @@ export const ManualPayPage: FC<ManualPayPageProps> = ({
   };
 
   return (
-    <section className="panel panel-plain manual-pay-page">
-      <form
-        className="manual-pay-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit();
-        }}
-      >
-        <label className="manual-pay-label" htmlFor="manual-pay-input">
-          {t("manualPayLabel")}
-        </label>
-        <input
+    <Stack gap="$xl">
+      <Stack gap="$md">
+        <TextField
           id="manual-pay-input"
-          ref={inputRef}
-          type="text"
+          label={t("manualPayLabel")}
+          autoFocus
           inputMode="text"
           autoCapitalize="none"
           autoComplete="off"
           spellCheck={false}
           placeholder={t("manualPayPlaceholder")}
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChangeText={setValue}
+          onSubmitEditing={() => void submit()}
         />
         {expandedAlias ? (
-          <p className="muted manual-pay-hint">
+          <Text variant="caption" color="$colorMuted">
             {t("manualPayLinkyAliasHint").replace("{address}", expandedAlias)}
-          </p>
+          </Text>
         ) : null}
-        <button
-          type="submit"
-          className="btn-wide manual-pay-submit"
-          disabled={!query || isSubmitting}
-        >
+        <Button disabled={!query || isSubmitting} onPress={() => void submit()}>
           {t("manualPayContinue")}
-        </button>
-      </form>
+        </Button>
+      </Stack>
 
       {suggestions.length > 0 ? (
-        <div className="manual-pay-suggestions">
-          <div className="muted manual-pay-suggestions-title">
-            {t("manualPaySuggestions")}
-          </div>
-          <div className="contact-list">
-            {suggestions.map((contact) => {
-              const npub = normalizeNpubIdentifier(contact.npub ?? "");
-              const pictureUrl = npub
-                ? (nostrPictureByNpub[npub] ?? null)
-                : null;
-              const name = (contact.name ?? "").trim();
-              const lnAddress = (contact.lnAddress ?? "").trim();
-              const subtitle = lnAddress || (contact.npub ?? "").trim();
+        <Section title={t("manualPaySuggestions")}>
+          {suggestions.map((contact) => {
+            const npub = normalizeNpubIdentifier(contact.npub ?? "");
+            const pictureUrl = npub ? nostrPictureByNpub[npub] : null;
+            const name = (contact.name ?? "").trim();
+            const subtitle =
+              (contact.lnAddress ?? "").trim() || (contact.npub ?? "").trim();
 
-              return (
-                <button
-                  key={contact.id}
-                  type="button"
-                  className="contact-card is-clickable manual-pay-contact"
-                  onClick={() =>
-                    navigateTo({ route: "contactPay", id: contact.id })
-                  }
-                >
-                  <div className="contact-avatar" aria-hidden="true">
-                    <Avatar
-                      pictureUrl={pictureUrl}
-                      fallback={getInitials(name)}
-                      fallbackClassName="contact-avatar-fallback"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="contact-main">
-                    <div className="contact-name">{name || t("contact")}</div>
-                    {subtitle ? (
-                      <div className="contact-meta">
-                        {formatMiddleDots(subtitle, 34)}
-                      </div>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+            return (
+              <ContactRow
+                key={contact.id}
+                name={name || t("contact")}
+                avatarUri={pictureUrl ?? undefined}
+                preview={subtitle ? formatMiddleDots(subtitle, 34) : undefined}
+                onPress={() =>
+                  navigateTo({ route: "contactPay", id: contact.id })
+                }
+              />
+            );
+          })}
+        </Section>
       ) : null}
-    </section>
+    </Stack>
   );
 };

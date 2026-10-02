@@ -307,7 +307,7 @@ describe("BankPaymentOfferDetailPage", () => {
     const container = await renderOffer({ status: "bank_details_sent" });
 
     const amountButton = container.querySelector<HTMLButtonElement>(
-      ".bank-payment-amount-button",
+      '[data-testid="bank-payment-amount-button"]',
     );
     expect(amountButton).not.toBeNull();
     await act(async () => {

@@ -1,49 +1,50 @@
+import { Amount, Pressable, Stack } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
+import { tooltip } from "../utils/tooltip";
 
 interface WalletBalanceProps {
   ariaLabel: string;
   balance: number;
+  size?: "md" | "lg";
 }
 
 export const WalletBalance: React.FC<WalletBalanceProps> = ({
   ariaLabel,
   balance,
+  size = "md",
 }) => {
   const { allowedDisplayCurrencies, formatDisplayedAmountParts, t } =
     useAppShellCore();
   const { cycleDisplayCurrency } = useAppShellActions();
   const displayAmount = formatDisplayedAmountParts(balance);
-  const canCycleCurrency = allowedDisplayCurrencies.length > 1;
+  const amount = (
+    <Amount
+      value={`${displayAmount.approxPrefix}${displayAmount.amountText}`}
+      unit={displayAmount.unitLabel}
+      size={size}
+    />
+  );
 
-  if (!canCycleCurrency) {
+  if (allowedDisplayCurrencies.length <= 1) {
     return (
-      <div className="balance-hero" aria-label={ariaLabel}>
-        <span className="balance-number">
-          {displayAmount.approxPrefix}
-          {displayAmount.amountText}
-        </span>
-        <span className="balance-unit">{displayAmount.unitLabel}</span>
-      </div>
+      <Stack alignSelf="center" aria-label={ariaLabel}>
+        {amount}
+      </Stack>
     );
   }
 
   return (
-    <button
-      type="button"
-      className="balance-hero balance-hero-button"
+    <Pressable
+      alignSelf="center"
       aria-label={ariaLabel}
-      title={t("unitCycleAction")}
-      onClick={cycleDisplayCurrency}
+      {...tooltip(t("unitCycleAction"))}
+      onPress={cycleDisplayCurrency}
     >
-      <span className="balance-number">
-        {displayAmount.approxPrefix}
-        {displayAmount.amountText}
-      </span>
-      <span className="balance-unit">{displayAmount.unitLabel}</span>
-    </button>
+      {amount}
+    </Pressable>
   );
 };

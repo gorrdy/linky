@@ -26,10 +26,6 @@ vi.mock("../../../hooks/useRouting", () => ({
   navigateTo: navigateToMock,
 }));
 
-vi.mock("qrcode", () => ({
-  toDataURL: vi.fn(async (payload: string) => `qr:${payload}`),
-}));
-
 import { useTopupFlow } from "./useTopupFlow";
 
 const MINT_URL = "https://mint.example";
@@ -182,7 +178,7 @@ describe("useTopupFlow", () => {
     await waitFor(() => {
       expect(harness.flow().topupInvoice).toBe(INVOICE);
       expect(harness.flow().topupMintUrl).toBe(MINT_URL);
-      expect(harness.flow().topupInvoiceQr).toBe(`qr:${INVOICE.toUpperCase()}`);
+      expect(harness.flow().topupInvoiceQrPayload).toBe(INVOICE);
     });
 
     await deferred.settle(Either.right(topupReceipt(quote)));

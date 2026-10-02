@@ -9,8 +9,9 @@ vi.mock("../components/WalletBalance", () => ({
   ),
 }));
 
-vi.mock("qrcode", () => ({
-  toDataURL: vi.fn(async (payload: string) => `qr:${payload}`),
+vi.mock("@linky-fit/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@linky-fit/ui")>()),
+  QRCode: ({ value }: { value: string }) => <div data-testid="qr">{value}</div>,
 }));
 
 const translate = (key: string): string => {
@@ -26,23 +27,16 @@ const translate = (key: string): string => {
   }
 };
 
-// The QR src updates asynchronously (qrcode.toDataURL + setState), so poll
-// until the assertion holds instead of racing it with a fixed delay.
-const waitFor = async (assertion: () => void): Promise<void> => {
-  const deadline = Date.now() + 2000;
-  for (;;) {
-    try {
-      assertion();
-      return;
-    } catch (error) {
-      if (Date.now() > deadline) throw error;
-      await act(async () => {
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, 10);
-        });
-      });
-    }
-  }
+const qrValue = (container: HTMLElement) =>
+  container.querySelector('[data-testid="qr"]')?.textContent ?? null;
+
+const pressCopy = async (container: HTMLElement) => {
+  await act(async () => {
+    container
+      .querySelector('[data-testid="topup-invoice-copy"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+  });
 };
 
 describe("TopupInvoicePage", () => {
@@ -61,20 +55,19 @@ describe("TopupInvoicePage", () => {
         topupInvoiceCashuRequest="creqAold"
         topupInvoiceError={null}
         topupInvoiceIsBusy={true}
-        topupInvoiceQr="data:image/png;base64,old"
         topupInvoiceQrPayload="bitcoin:?lightning=lnbc-old"
         topupMintUrl="https://mint.example"
       />,
     );
 
     expect(container.textContent).toContain("Loading invoice...");
-    expect(container.querySelector(".topup-invoice-qr")).toBeNull();
+    expect(qrValue(container)).toBeNull();
   });
 
   it("shows the universal QR and copies its payload by default", async () => {
     const copied: string[] = [];
 
-    const { container, root } = await renderIntoDocument(
+    const { container } = await renderIntoDocument(
       <TopupInvoicePage
         copyText={async (text) => {
           copied.push(text);
@@ -86,39 +79,26 @@ describe("TopupInvoicePage", () => {
         topupInvoiceCashuRequest="creqArequest"
         topupInvoiceError={null}
         topupInvoiceIsBusy={false}
-        topupInvoiceQr="data:image/png;base64,universal"
         topupInvoiceQrPayload="bitcoin:?lightning=lnbc-invoice&creq=creqArequest"
         topupMintUrl="https://mint.example"
       />,
     );
-    await act(async () => {
-      await Promise.resolve();
-    });
 
-    expect(
-      container.querySelector(".topup-invoice-qr")?.getAttribute("src"),
-    ).toBe("data:image/png;base64,universal");
+    expect(qrValue(container)).toBe(
+      "bitcoin:?lightning=lnbc-invoice&creq=creqArequest",
+    );
     expect(container.querySelector('[role="tab"]')).toBeNull();
 
-    await act(async () => {
-      container
-        .querySelector(".topup-invoice-copy")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
+    await pressCopy(container);
     expect(copied).toEqual([
       "bitcoin:?lightning=lnbc-invoice&creq=creqArequest",
     ]);
-
-    await act(async () => {
-      root.unmount();
-    });
   });
 
   it("renders the cashu request when cashu is the receive method", async () => {
     const copied: string[] = [];
 
-    const { container, root } = await renderIntoDocument(
+    const { container } = await renderIntoDocument(
       <TopupInvoicePage
         copyText={async (text) => {
           copied.push(text);
@@ -130,33 +110,18 @@ describe("TopupInvoicePage", () => {
         topupInvoiceCashuRequest="creqArequest"
         topupInvoiceError={null}
         topupInvoiceIsBusy={false}
-        topupInvoiceQr="data:image/png;base64,universal"
         topupInvoiceQrPayload="bitcoin:?lightning=lnbc-invoice&creq=creqArequest"
         topupMintUrl="https://mint.example"
       />,
     );
 
-    await waitFor(() => {
-      expect(
-        container.querySelector(".topup-invoice-qr")?.getAttribute("src"),
-      ).toBe("qr:creqArequest");
-    });
-
-    await act(async () => {
-      container
-        .querySelector(".topup-invoice-copy")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await Promise.resolve();
-    });
+    expect(qrValue(container)).toBe("creqArequest");
+    await pressCopy(container);
     expect(copied).toEqual(["creqArequest"]);
-
-    await act(async () => {
-      root.unmount();
-    });
   });
 
   it("falls back to the universal QR when the cashu request is missing", async () => {
-    const { container, root } = await renderIntoDocument(
+    const { container } = await renderIntoDocument(
       <TopupInvoicePage
         copyText={async () => {}}
         receiveMethod="cashu"
@@ -166,26 +131,16 @@ describe("TopupInvoicePage", () => {
         topupInvoiceCashuRequest={null}
         topupInvoiceError={null}
         topupInvoiceIsBusy={false}
-        topupInvoiceQr="data:image/png;base64,universal"
         topupInvoiceQrPayload="bitcoin:?lightning=lnbc-invoice"
         topupMintUrl="https://mint.example"
       />,
     );
-    await act(async () => {
-      await Promise.resolve();
-    });
 
-    expect(
-      container.querySelector(".topup-invoice-qr")?.getAttribute("src"),
-    ).toBe("data:image/png;base64,universal");
-
-    await act(async () => {
-      root.unmount();
-    });
+    expect(qrValue(container)).toBe("bitcoin:?lightning=lnbc-invoice");
   });
 
   it("renders the lightning invoice when lightning is the receive method", async () => {
-    const { container, root } = await renderIntoDocument(
+    const { container } = await renderIntoDocument(
       <TopupInvoicePage
         copyText={async () => {}}
         receiveMethod="lightning"
@@ -195,20 +150,11 @@ describe("TopupInvoicePage", () => {
         topupInvoiceCashuRequest="creqArequest"
         topupInvoiceError={null}
         topupInvoiceIsBusy={false}
-        topupInvoiceQr="data:image/png;base64,universal"
         topupInvoiceQrPayload="bitcoin:?lightning=lnbc-invoice&creq=creqArequest"
         topupMintUrl="https://mint.example"
       />,
     );
 
-    await waitFor(() => {
-      expect(
-        container.querySelector(".topup-invoice-qr")?.getAttribute("src"),
-      ).toBe("qr:LNBC-INVOICE");
-    });
-
-    await act(async () => {
-      root.unmount();
-    });
+    expect(qrValue(container)).toBe("LNBC-INVOICE");
   });
 });

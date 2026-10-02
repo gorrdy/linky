@@ -1,8 +1,10 @@
+import { Pressable, Text } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
+import { tooltip } from "../utils/tooltip";
 
 interface BankPaymentAmountProps {
   canCycle?: boolean;
@@ -18,19 +20,24 @@ export const BankPaymentAmount: React.FC<BankPaymentAmountProps> = ({
 }) => {
   const { allowedDisplayCurrencies, t } = useAppShellCore();
   const { cycleDisplayCurrency } = useAppShellActions();
+  const amount = (
+    <Text testID="bank-payment-amount" variant="display" color="$colorStrong">
+      {text}
+    </Text>
+  );
 
   if (!canCycle || allowedDisplayCurrencies.length <= 1) {
-    return <div className="bank-payment-amount">{text}</div>;
+    return amount;
   }
 
   return (
-    <button
-      type="button"
-      className="bank-payment-amount bank-payment-amount-button"
-      title={t("unitCycleAction")}
-      onClick={cycleDisplayCurrency}
+    <Pressable
+      testID="bank-payment-amount-button"
+      alignSelf="flex-start"
+      {...tooltip(t("unitCycleAction"))}
+      onPress={cycleDisplayCurrency}
     >
-      {text}
-    </button>
+      {amount}
+    </Pressable>
   );
 };

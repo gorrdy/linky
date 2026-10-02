@@ -787,7 +787,6 @@ export const useAppShellComposition = ({
     topupInvoiceCashuRequest,
     topupInvoiceError,
     topupInvoiceIsBusy,
-    topupInvoiceQr,
     topupInvoiceQrPayload,
     topupMintUrl,
     walletWarningApplies,
@@ -1333,7 +1332,6 @@ export const useAppShellComposition = ({
         topupMintUrl ??
         normalizeMintUrl(defaultMintUrl ?? MAIN_MINT_URL) ??
         MAIN_MINT_URL,
-      topupInvoiceQr,
       topupInvoiceQrPayload,
       receiveMethod,
       tokensRestoreIsBusy,

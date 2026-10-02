@@ -93,7 +93,7 @@ test("a token waiting for its mint shows on the wallet page and can be discarded
   await waitForNetworkReady(page);
 
   const token = await fundToken(TOKEN_SAT);
-  const pendingLine = page.locator("button.wallet-pending");
+  const pendingLine = page.getByTestId("wallet-pending");
 
   await test.step("a token pasted while the mint is unreachable shows as pending on the wallet page", async () => {
     await context.route(`${mintUrl}/**`, (route) =>
@@ -201,7 +201,7 @@ test("a token discarded on one device stays discarded when another device replay
     await device.page.goto("/#wallet");
     await waitForNetworkReady(device.page);
   }
-  const pendingLine = (page: Page) => page.locator("button.wallet-pending");
+  const pendingLine = (page: Page) => page.getByTestId("wallet-pending");
 
   await test.step("A pays B a chat token while B cannot reach the mint", async () => {
     await topUp(a.page, FUNDING_SAT);
@@ -261,7 +261,9 @@ test("a token discarded on one device stays discarded when another device replay
         .first()
         .click({ timeout: 60_000 });
       await expect(
-        restored.page.locator(".chat-token-pill.pill-muted"),
+        restored.page
+          .getByTestId("cashu-token-pill")
+          .and(restored.page.getByLabel(/already spent/)),
       ).toBeVisible({ timeout: 60_000 });
       await restored.page.waitForTimeout(SETTLE_MS);
       await restored.page.goto("/#wallet");

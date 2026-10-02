@@ -75,7 +75,9 @@ describe("ManualPayPage", () => {
     if (!(input instanceof HTMLInputElement)) {
       throw new Error("manual pay input missing");
     }
-    const button = container.querySelector('button[type="submit"]');
+    const button = Array.from(container.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent === "Continue",
+    );
     if (!(button instanceof HTMLButtonElement)) {
       throw new Error("manual pay submit missing");
     }
@@ -109,7 +111,9 @@ describe("ManualPayPage", () => {
     if (!(input instanceof HTMLInputElement)) {
       throw new Error("manual pay input missing");
     }
-    const button = container.querySelector('button[type="submit"]');
+    const button = Array.from(container.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent === "Continue",
+    );
     if (!(button instanceof HTMLButtonElement)) {
       throw new Error("manual pay submit missing");
     }

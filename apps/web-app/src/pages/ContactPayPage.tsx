@@ -1,8 +1,14 @@
-import { Bean, Zap } from "lucide-react";
+import {
+  Avatar,
+  EmptyState,
+  IconButton,
+  Pressable,
+  Row,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import { useEffect, type FC } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
-import { Avatar } from "../components/Avatar";
-import { RequestIcon } from "../components/icons";
 import { LnurlPayPreviewNotices } from "../components/LnurlPayPreviewNotices";
 import { PaymentAmountPanel } from "../components/PaymentAmountPanel";
 import type { ContactId } from "../evolu";
@@ -12,6 +18,7 @@ import {
 } from "../hooks/useLnurlPayPreview";
 import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
+import { tooltip } from "../utils/tooltip";
 
 interface Contact {
   id: ContactId;
@@ -85,20 +92,15 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
   }, [fixedAmountSat, setPayAmount]);
 
   if (!selectedContact) {
-    return (
-      <section className="panel">
-        <p className="muted">{t("contactNotFound")}</p>
-      </section>
-    );
+    return <EmptyState title={t("contactNotFound")} />;
   }
 
-  const methodIcon = isRequestFlow ? (
-    <RequestIcon size={18} />
-  ) : method === "lightning" ? (
-    <Zap size={18} />
-  ) : (
-    <Bean size={18} />
-  );
+  const methodIcon = isRequestFlow
+    ? "Request"
+    : method === "lightning"
+      ? "Zap"
+      : "Bean";
+  const methodLabel = method === "lightning" ? "Lightning" : "Cashu";
 
   const amountSat = Number.parseInt(payAmount.trim(), 10);
   const validAmount =
@@ -127,77 +129,60 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
       cashuIsBusy={cashuIsBusy}
       displayUnit={displayUnit}
       header={
-        <div className="contact-header">
-          <div className="contact-avatar is-large" aria-hidden="true">
-            <Avatar
-              pictureUrl={url}
-              fallback={getInitials(selectedContact.name ?? "")}
-              fallbackClassName="contact-avatar-fallback"
-              loading="lazy"
-            />
-          </div>
-          <div className="contact-header-text">
+        <Row>
+          <Avatar
+            name={selectedContact.name ?? ""}
+            uri={url ?? undefined}
+            fallback={getInitials(selectedContact.name ?? "")}
+            size="md"
+          />
+          <Stack flex={1} gap="$xxs">
             {selectedContact.name && (
-              <div className="contact-pay-heading-row">
-                <h3 className="unspaced">{selectedContact.name}</h3>
-                <button
-                  type="button"
-                  className={
-                    showToggle
-                      ? "pay-method-toggle"
-                      : "pay-method-toggle is-disabled"
-                  }
-                  onClick={() => {
-                    if (!showToggle) return;
+              <Row gap="$sm">
+                <Text variant="title" numberOfLines={1} flexShrink={1}>
+                  {selectedContact.name}
+                </Text>
+                <IconButton
+                  icon={methodIcon}
+                  accessibilityLabel={methodLabel}
+                  size="sm"
+                  variant="secondary"
+                  disabled={!showToggle}
+                  onPress={() =>
                     setContactPayMethod((prev) =>
                       prev === "lightning" ? "cashu" : "lightning",
-                    );
-                  }}
-                  aria-label={method === "lightning" ? "Lightning" : "Cashu"}
-                  title={
-                    showToggle
-                      ? method === "lightning"
-                        ? "Lightning"
-                        : "Cashu"
-                      : undefined
+                    )
                   }
-                >
-                  {methodIcon}
-                </button>
-              </div>
+                  {...tooltip(showToggle ? methodLabel : undefined)}
+                />
+              </Row>
             )}
-            <p className="muted">
-              {isRequestFlow ? (
-                t("requestPaymentHint")
-              ) : (
-                <button
-                  type="button"
-                  className="copyable available-amount-button muted"
-                  disabled={!canCoverAnything}
-                  onClick={() => {
-                    if (!canCoverAnything) return;
-                    setPayAmount(String(cashuBalance));
-                  }}
-                >
-                  {availableAmountText}
-                </button>
-              )}
-            </p>
-          </div>
-        </div>
+            {isRequestFlow ? (
+              <Text color="$colorMuted">{t("requestPaymentHint")}</Text>
+            ) : (
+              <Pressable
+                alignSelf="flex-start"
+                disabled={!canCoverAnything}
+                onPress={() => setPayAmount(String(cashuBalance))}
+              >
+                <Text color="$colorMuted">{availableAmountText}</Text>
+              </Pressable>
+            )}
+          </Stack>
+        </Row>
       }
       notices={
         <>
           {!isRequestFlow && method === "cashu" && !payWithCashuEnabled && (
-            <p className="muted">{t("payWithCashuDisabled")}</p>
+            <Text color="$colorMuted">{t("payWithCashuDisabled")}</Text>
           )}
 
           {method === "cashu" && !npub && (
-            <p className="muted">{t("chatMissingContactNpub")}</p>
+            <Text color="$colorMuted">{t("chatMissingContactNpub")}</Text>
           )}
 
           {method === "lightning" && !ln && (
-            <p className="muted">{t("payMissingLn")}</p>
+            <Text color="$colorMuted">{t("payMissingLn")}</Text>
           )}
 
           {lightningActive && (
@@ -222,7 +207,7 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
       stepGuideId="pay-step3"
       submitBusy={!isRequestFlow && cashuIsBusy}
       submitDisabled={invalid}
-      submitIcon={isRequestFlow ? <RequestIcon size={18} /> : undefined}
+      submitIcon={isRequestFlow ? "Request" : undefined}
       submitLabel={isRequestFlow ? t("requestPaymentSend") : undefined}
       submitTitle={
         !isRequestFlow &&

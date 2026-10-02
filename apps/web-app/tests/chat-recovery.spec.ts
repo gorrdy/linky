@@ -147,7 +147,7 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
       await a.page.getByRole("button", { name: "5", exact: true }).click();
       await a.page.getByRole("button", { name: "0", exact: true }).click();
       await a.page.locator('[data-guide="topup-show-invoice"]').click();
-      await expect(a.page.locator("img.qr")).toBeVisible();
+      await expect(a.page.getByTestId("topup-invoice-qr")).toBeVisible();
       // The pending topup is an operation row; wait for it to land in Evolu
       // before reloading, so the claim after reload resumes from storage.
       await a.page.goto("/#evolu-current-data");

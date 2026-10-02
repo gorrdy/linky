@@ -37,7 +37,9 @@ const deferral = (id: string, mint: string, amount: number) =>
 
 const renderLine = async () => {
   const rendered = await renderIntoDocument(<WalletPendingReceives />);
-  const button = rendered.container.querySelector("button.wallet-pending");
+  const button = rendered.container.querySelector(
+    '[data-testid="wallet-pending"]',
+  );
   return { ...rendered, button };
 };
 

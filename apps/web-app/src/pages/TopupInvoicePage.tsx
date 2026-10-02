@@ -1,5 +1,5 @@
-import { Copy } from "lucide-react";
-import React, { type FC } from "react";
+import { Button, LoadingState, QRCode, Stack, Text } from "@linky-fit/ui";
+import { type FC } from "react";
 import { WalletBalance } from "../components/WalletBalance";
 import type { Translate } from "../i18n";
 import { optimizeCaseInsensitiveQrPayload } from "../utils/qrPayload";
@@ -15,7 +15,6 @@ interface TopupInvoicePageProps {
   topupInvoiceError: string | null;
   topupInvoiceIsBusy: boolean;
   topupMintUrl: string | null;
-  topupInvoiceQr: string | null;
   topupInvoiceQrPayload: string | null;
 }
 
@@ -29,12 +28,8 @@ export const TopupInvoicePage: FC<TopupInvoicePageProps> = ({
   topupInvoiceError,
   topupInvoiceIsBusy,
   topupMintUrl,
-  topupInvoiceQr,
   topupInvoiceQrPayload,
 }) => {
-  const [selectedQr, setSelectedQr] = React.useState<string | null>(
-    topupInvoiceQr,
-  );
   const amountSat = Number.parseInt(topupAmount.trim(), 10);
   const mintDisplay = (topupMintUrl ?? "")
     .trim()
@@ -51,38 +46,10 @@ export const TopupInvoicePage: FC<TopupInvoicePageProps> = ({
         ? lightningPayload
         : universalPayload;
   const selectedPayload = preferredPayload ?? universalPayload;
-
-  React.useEffect(() => {
-    if (!selectedPayload) {
-      setSelectedQr(null);
-      return;
-    }
-
-    if (selectedPayload === universalPayload && topupInvoiceQr) {
-      setSelectedQr(topupInvoiceQr);
-      return;
-    }
-
-    let cancelled = false;
-    setSelectedQr(null);
-
-    void (async () => {
-      const QRCode = await import("qrcode");
-      const qrPayload =
-        selectedPayload === lightningPayload
-          ? optimizeCaseInsensitiveQrPayload(selectedPayload)
-          : selectedPayload;
-      const qr = await QRCode.toDataURL(qrPayload, {
-        margin: 1,
-        width: 320,
-      });
-      if (!cancelled) setSelectedQr(qr);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [lightningPayload, selectedPayload, topupInvoiceQr, universalPayload]);
+  const qrValue =
+    selectedPayload !== null && selectedPayload === lightningPayload
+      ? optimizeCaseInsensitiveQrPayload(selectedPayload)
+      : selectedPayload;
 
   const handleCopyInvoice = () => {
     const copyValue = (selectedPayload ?? "").trim();
@@ -90,78 +57,47 @@ export const TopupInvoicePage: FC<TopupInvoicePageProps> = ({
     void copyText(copyValue);
   };
 
-  const copyButton = (
-    <button
-      type="button"
-      className="btn-wide secondary topup-invoice-copy"
-      onClick={handleCopyInvoice}
-    >
-      <span className="btn-label-with-icon">
-        <span className="btn-label-icon" aria-hidden="true">
-          <Copy size={16} />
-        </span>
-        <span>{t("copy")}</span>
-      </span>
-    </button>
-  );
-
-  const loadingMessage = (
-    <p className="muted topup-invoice-loading">{t("topupFetchingInvoice")}</p>
-  );
-
   return (
-    <section className="panel topup-invoice-panel">
-      <div className="topup-invoice-head">
-        <div className="topup-invoice-balance">
-          <WalletBalance
-            ariaLabel={t("topupInvoiceTitle")}
-            balance={
-              Number.isFinite(amountSat) && amountSat > 0 ? amountSat : 0
-            }
-          />
-        </div>
-
+    <Stack gap="$lg">
+      <Stack alignItems="center" gap="$sm">
+        <WalletBalance
+          ariaLabel={t("topupInvoiceTitle")}
+          balance={Number.isFinite(amountSat) && amountSat > 0 ? amountSat : 0}
+        />
         {mintDisplay ? (
-          <p className="topup-invoice-mint-note">
+          <Text variant="caption" color="$colorMuted">
             Mint:{" "}
-            <span className="relay-url topup-invoice-mint-value">
+            <Text variant="caption" mono color="$colorSubtle">
               {mintDisplay}
-            </span>
-          </p>
+            </Text>
+          </Text>
         ) : null}
-      </div>
+      </Stack>
 
       {topupInvoiceIsBusy ? (
-        loadingMessage
-      ) : topupInvoiceQr ? (
-        <div className="topup-invoice-qr-shell">
-          <button
-            type="button"
-            className="topup-invoice-qr-button"
-            onClick={handleCopyInvoice}
-            title={t("copy")}
+        <LoadingState label={t("topupFetchingInvoice")} />
+      ) : qrValue ? (
+        <Stack gap="$lg">
+          <QRCode
+            testID="topup-invoice-qr"
+            value={qrValue}
+            accessibilityLabel={t("copy")}
+            onPress={handleCopyInvoice}
+          />
+          <Button
+            variant="secondary"
+            icon="Copy"
+            testID="topup-invoice-copy"
+            onPress={handleCopyInvoice}
           >
-            {selectedQr ? (
-              <img className="qr topup-invoice-qr" src={selectedQr} alt="" />
-            ) : (
-              <span className="muted topup-invoice-loading">
-                {t("topupFetchingInvoice")}
-              </span>
-            )}
-          </button>
-
-          {copyButton}
-        </div>
+            {t("copy")}
+          </Button>
+        </Stack>
       ) : topupInvoiceError ? (
-        <p className="muted">{topupInvoiceError}</p>
-      ) : topupInvoice ? (
-        <div className="topup-invoice-qr-shell">
-          <div className="mono-box mono-box-layout">{topupInvoice}</div>
-          {copyButton}
-        </div>
+        <Text color="$colorMuted">{topupInvoiceError}</Text>
       ) : (
-        loadingMessage
+        <LoadingState label={t("topupFetchingInvoice")} />
       )}
-    </section>
+    </Stack>
   );
 };

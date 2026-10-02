@@ -1,14 +1,25 @@
+import { Amount, Pressable, Stack } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
+import { tooltip } from "../utils/tooltip";
 
 interface AmountDisplayProps {
   amount: string;
   cycleOnClick?: boolean;
   inputDisplayValue?: string | null;
 }
+
+const frame = {
+  testID: "amount-display",
+  "aria-live": "polite",
+  justifyContent: "center",
+  padding: "$lg",
+  borderRadius: "$card",
+  backgroundColor: "$surface",
+} as const;
 
 export function AmountDisplay({
   amount,
@@ -33,33 +44,24 @@ export function AmountDisplay({
     Number(displayedInputValue.replace(",", ".")) > 0
       ? displayAmount.approxPrefix
       : "";
-  const canCycleCurrency = cycleOnClick && allowedDisplayCurrencies.length > 1;
+  const value = (
+    <Amount
+      value={`${approxPrefix}${amountText}`}
+      unit={displayAmount.unitLabel}
+    />
+  );
 
-  if (!canCycleCurrency) {
-    return (
-      <div className="amount-display" aria-live="polite">
-        <span className="amount-number">
-          {approxPrefix}
-          {amountText}
-        </span>
-        <span className="amount-unit">{displayAmount.unitLabel}</span>
-      </div>
-    );
+  if (!cycleOnClick || allowedDisplayCurrencies.length <= 1) {
+    return <Stack {...frame}>{value}</Stack>;
   }
 
   return (
-    <button
-      type="button"
-      className="amount-display amount-display-button"
-      aria-live="polite"
-      title={t("unitCycleAction")}
-      onClick={cycleDisplayCurrency}
+    <Pressable
+      {...frame}
+      {...tooltip(t("unitCycleAction"))}
+      onPress={cycleDisplayCurrency}
     >
-      <span className="amount-number">
-        {approxPrefix}
-        {amountText}
-      </span>
-      <span className="amount-unit">{displayAmount.unitLabel}</span>
-    </button>
+      {value}
+    </Pressable>
   );
 }

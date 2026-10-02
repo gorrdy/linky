@@ -1,6 +1,6 @@
+import { Avatar, Pressable, Row, Stack, Text } from "@linky-fit/ui";
 import { useEffect, type FC } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
-import { Avatar } from "../components/Avatar";
 import { LnurlPayPreviewNotices } from "../components/LnurlPayPreviewNotices";
 import { PaymentAmountPanel } from "../components/PaymentAmountPanel";
 import {
@@ -102,35 +102,31 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
       cashuIsBusy={cashuIsBusy || previewLoading}
       displayUnit={displayUnit}
       header={
-        <div className="contact-header">
+        <Row>
           {knownContact ? (
-            <div className="contact-avatar is-large" aria-hidden="true">
-              <Avatar
-                pictureUrl={knownContactPictureUrl}
-                fallback={getInitials(knownContact.name ?? "")}
-                fallbackClassName="contact-avatar-fallback"
-                loading="lazy"
-              />
-            </div>
+            <Avatar
+              name={knownContact.name ?? ""}
+              uri={knownContactPictureUrl ?? undefined}
+              fallback={getInitials(knownContact.name ?? "")}
+              size="md"
+            />
           ) : null}
-          <div className="contact-header-text">
-            {knownContact?.name ? <h3>{knownContact.name}</h3> : null}
-            <p className="muted">{displayAddress}</p>
-            <p className="muted">
-              <button
-                type="button"
-                className="copyable available-amount-button muted"
-                disabled={!canCoverAnything}
-                onClick={() => {
-                  if (!canCoverAnything) return;
-                  setLnAddressPayAmount(String(cashuBalance));
-                }}
-              >
-                {availableAmountText}
-              </button>
-            </p>
-          </div>
-        </div>
+          <Stack flex={1} gap="$xxs">
+            {knownContact?.name ? (
+              <Text variant="title" numberOfLines={1}>
+                {knownContact.name}
+              </Text>
+            ) : null}
+            <Text color="$colorMuted">{displayAddress}</Text>
+            <Pressable
+              alignSelf="flex-start"
+              disabled={!canCoverAnything}
+              onPress={() => setLnAddressPayAmount(String(cashuBalance))}
+            >
+              <Text color="$colorMuted">{availableAmountText}</Text>
+            </Pressable>
+          </Stack>
+        </Row>
       }
       notices={
         <LnurlPayPreviewNotices

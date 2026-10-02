@@ -1,7 +1,8 @@
+import { Button, Row, Stack } from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellActions } from "../app/context/AppShellContexts";
 import { BottomTabBar } from "../components/BottomTabBar";
-import { WalletActionButton } from "../components/WalletActionButton";
 import { WalletBalance } from "../components/WalletBalance";
 import { WalletPendingReceives } from "../components/WalletPendingReceives";
 import { WalletWarning } from "../components/WalletWarning";
@@ -19,6 +20,35 @@ interface WalletPageProps {
   t: Translate;
 }
 
+interface WalletActionProps {
+  dataGuide?: string;
+  disabled?: boolean;
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+}
+
+const WalletAction = ({
+  dataGuide,
+  disabled = false,
+  icon,
+  label,
+  onPress,
+}: WalletActionProps) => (
+  <Button
+    variant="secondary"
+    icon={icon}
+    flexDirection="column"
+    width="$column"
+    paddingVertical="$xl"
+    disabled={disabled}
+    onPress={onPress}
+    data-guide={dataGuide}
+  >
+    {label}
+  </Button>
+);
+
 export const WalletPage: React.FC<WalletPageProps> = React.memo(
   ({
     bottomTabActive,
@@ -32,45 +62,49 @@ export const WalletPage: React.FC<WalletPageProps> = React.memo(
   }) => {
     const { openFeedbackContact } = useAppShellActions();
     return (
-      <section className="panel panel-plain wallet-panel">
+      <Stack gap="$lg">
         <WalletWarning
           dismissed={!showWalletWarning}
           onContactSupport={openFeedbackContact}
           onDismiss={dismissWalletWarning}
           t={t}
         />
-        <div className="panel-header">
-          <div className="wallet-hero">
-            <div className="wallet-balance-block">
-              <WalletBalance
-                balance={cashuTotalBalance}
-                ariaLabel={t("cashuBalance")}
-              />
-              <WalletPendingReceives />
-            </div>
-            <div className="wallet-actions">
-              <WalletActionButton
-                icon="topup"
-                label={t("walletReceive")}
-                onClick={() => navigateTo({ route: "topup" })}
-                dataGuide="wallet-topup"
-              />
-              <WalletActionButton
-                icon="send"
-                label={t("walletSend")}
-                onClick={openScan}
-                disabled={scanIsOpen}
-              />
-            </div>
-            <button
-              type="button"
-              className="wallet-subtle-link"
-              onClick={() => navigateTo({ route: "transactions" })}
-            >
-              {t("showTransactions")}
-            </button>
-          </div>
-        </div>
+        <Stack
+          alignItems="center"
+          gap="$xxl"
+          paddingTop="$xxl"
+          paddingBottom="$xxxl"
+        >
+          <Stack alignItems="center" gap="$xs">
+            <WalletBalance
+              balance={cashuTotalBalance}
+              ariaLabel={t("cashuBalance")}
+              size="lg"
+            />
+            <WalletPendingReceives />
+          </Stack>
+          <Row marginTop="$xxl">
+            <WalletAction
+              icon="ArrowDownRight"
+              label={t("walletReceive")}
+              onPress={() => navigateTo({ route: "topup" })}
+              dataGuide="wallet-topup"
+            />
+            <WalletAction
+              icon="ArrowUpRight"
+              label={t("walletSend")}
+              onPress={openScan}
+              disabled={scanIsOpen}
+            />
+          </Row>
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => navigateTo({ route: "transactions" })}
+          >
+            {t("showTransactions")}
+          </Button>
+        </Stack>
         {showBottomTabBar ? (
           <BottomTabBar
             activeTab={bottomTabActive}
@@ -79,7 +113,7 @@ export const WalletPage: React.FC<WalletPageProps> = React.memo(
             walletLabel={t("wallet")}
           />
         ) : null}
-      </section>
+      </Stack>
     );
   },
 );

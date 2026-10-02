@@ -1,3 +1,4 @@
+import { Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import type { LnurlPayPreview } from "../lnurlPay";
 import type { Translate } from "../i18n";
@@ -17,13 +18,13 @@ export const LnurlPayPreviewNotices: FC<LnurlPayPreviewNoticesProps> = ({
   t,
 }) => {
   if (loading) {
-    return <p className="muted">{t("lnurlPayLoading")}</p>;
+    return <Text color="$colorMuted">{t("lnurlPayLoading")}</Text>;
   }
   if (error) {
     return (
-      <p className="muted">
+      <Text color="$colorMuted">
         {t("lnurlPayLoadFailed")}: {error}
-      </p>
+      </Text>
     );
   }
   if (!preview) return null;
@@ -33,9 +34,9 @@ export const LnurlPayPreviewNotices: FC<LnurlPayPreviewNoticesProps> = ({
   return (
     <>
       {preview.description ? (
-        <p className="muted">{preview.description}</p>
+        <Text color="$colorMuted">{preview.description}</Text>
       ) : null}
-      <p className="muted">
+      <Text color="$colorMuted">
         {isFixedAmount
           ? t("lnurlPayFixedHint").replace(
               "{amount}",
@@ -44,7 +45,7 @@ export const LnurlPayPreviewNotices: FC<LnurlPayPreviewNoticesProps> = ({
           : t("lnurlPayRangeHint")
               .replace("{min}", String(preview.minSendableSat))
               .replace("{max}", String(preview.maxSendableSat))}
-      </p>
+      </Text>
     </>
   );
 };

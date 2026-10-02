@@ -1,4 +1,5 @@
 import { encodeNpub, Pubkey } from "@linky-fit/linkstr";
+import { Stack, Text } from "@linky-fit/ui";
 import { Schema } from "effect";
 import type { CashuPaymentRequestMessageInfo } from "../app/lib/paymentRequestMessage";
 import type { Translate } from "../i18n";
@@ -57,24 +58,26 @@ export function CashuPaymentRequestConfirmModal({
   const insufficientBalance = confirmation.amount > cashuBalance;
 
   const meta = (
-    <>
+    <Stack alignItems="center" gap="$xxs">
       {recipient ? (
-        <div>
+        <Text variant="caption" bold color="$colorMuted" textAlign="center">
           {t("paymentRequestConfirmRecipient").replace(
             "{recipient}",
             recipient,
           )}
-        </div>
+        </Text>
       ) : null}
       {mintHost ? (
-        <div>{t("paymentRequestConfirmMint").replace("{mint}", mintHost)}</div>
+        <Text variant="caption" bold color="$colorMuted" textAlign="center">
+          {t("paymentRequestConfirmMint").replace("{mint}", mintHost)}
+        </Text>
       ) : null}
       {insecureTransport ? (
-        <div className="payment-request-confirm-warning">
+        <Text variant="caption" bold color="$dangerText" textAlign="center">
           {t("paymentRequestInsecureTransportWarning")}
-        </div>
+        </Text>
       ) : null}
-    </>
+    </Stack>
   );
 
   return (

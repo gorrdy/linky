@@ -38,7 +38,9 @@ describe("MessageEntityPreview", () => {
       />,
     );
 
-    expect(container.textContent).toBe("21 sat");
+    expect(
+      container.querySelector("[data-testid=cashu-token-pill]")?.textContent,
+    ).toBe("21 sat");
     expect(container.textContent).not.toContain("Wrong contact");
     expect(getNpubMessageContactInfo).not.toHaveBeenCalled();
   });
@@ -67,7 +69,9 @@ describe("MessageEntityPreview", () => {
       />,
     );
 
-    expect(container.textContent).toBe("2 sat");
+    expect(
+      container.querySelector("[data-testid=cashu-token-pill]")?.textContent,
+    ).toBe("2 sat");
     expect(container.textContent).not.toContain("proofs");
   });
 });

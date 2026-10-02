@@ -1,3 +1,4 @@
+import { Pill } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { I18nKey } from "../i18n";
 import type { MintBadgeKind } from "../utils/mint";
@@ -15,6 +16,10 @@ interface MintBadgeProps {
 export function MintBadge({ kind }: MintBadgeProps) {
   const { t } = useAppShellCore();
   return (
-    <span className={`mint-choice-badge is-${kind}`}>{t(LABEL_KEY[kind])}</span>
+    <Pill
+      size="sm"
+      label={t(LABEL_KEY[kind]).toUpperCase()}
+      tone={kind === "test" ? "warning" : "accent"}
+    />
   );
 }

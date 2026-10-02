@@ -380,11 +380,13 @@ function ChatMessageComponent({
           key={key}
           icon={getMintIconUrl(info.mintUrl)}
           amountText={amountText}
-          ariaLabel={
-            info.mintDisplay
-              ? `${amountText} · ${info.mintDisplay}`
-              : amountText
-          }
+          ariaLabel={[
+            amountText,
+            info.mintDisplay,
+            info.isValid ? null : t("cashuInvalid"),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
           {...(info.isHiddenTestMint
             ? { hint: t("cashuTestMintHiddenHint") }
             : {})}
