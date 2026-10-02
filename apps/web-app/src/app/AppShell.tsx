@@ -27,6 +27,23 @@ const AppFrame = ({ children }: { children: React.ReactNode }) => (
   </Stack>
 );
 
+/** Pins app-wide banners above the top bar, stacked when several show at once. */
+const TopBanners = ({ children }: { children: React.ReactNode }) => (
+  <Stack
+    position="fixed"
+    top="$none"
+    left="$none"
+    right="$none"
+    zIndex="$overlay"
+    pointerEvents="box-none"
+    data-safe-area="top"
+  >
+    <Stack padding="$sm" gap="$sm" pointerEvents="box-none">
+      {children}
+    </Stack>
+  </Stack>
+);
+
 interface AuthenticatedAppShellProps {
   currentNsec: string;
   setCurrentNsec: (currentNsec: string | null) => void;
@@ -69,18 +86,20 @@ const AuthenticatedAppShell = ({
 
   return (
     <AppFrame>
-      <PwaUpdateBanner t={t} />
-      <CashuContactSendBanner
-        amountText={
-          pendingCashuContactSend
-            ? formatDisplayedAmountText(pendingCashuContactSend.amountSat)
-            : null
-        }
-        onCancel={() => {
-          void cancelPendingCashuContactSend();
-        }}
-        t={t}
-      />
+      <TopBanners>
+        <PwaUpdateBanner t={t} />
+        <CashuContactSendBanner
+          amountText={
+            pendingCashuContactSend
+              ? formatDisplayedAmountText(pendingCashuContactSend.amountSat)
+              : null
+          }
+          onCancel={() => {
+            void cancelPendingCashuContactSend();
+          }}
+          t={t}
+        />
+      </TopBanners>
       <ToastNotifications toasts={toasts} dismissToast={dismissToast} />
       <InstallPwaBanner t={t} />
 
@@ -130,7 +149,9 @@ const UnauthenticatedAppShell = () => {
 
   return (
     <AppFrame>
-      <PwaUpdateBanner t={t} />
+      <TopBanners>
+        <PwaUpdateBanner t={t} />
+      </TopBanners>
       <ToastNotifications toasts={toasts} dismissToast={dismissToast} />
       <InstallPwaBanner t={t} />
       <Stack

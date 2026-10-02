@@ -1,7 +1,7 @@
+import { Notice } from "@linky-fit/ui";
 import React from "react";
 import { applyPwaUpdate, subscribePwaNeedRefresh } from "../utils/pwaUpdate";
 import type { Translate } from "../i18n";
-import { TopBanner } from "./TopBanner";
 
 interface PwaUpdateBannerProps {
   t: Translate;
@@ -15,7 +15,8 @@ export const PwaUpdateBanner: React.FC<PwaUpdateBannerProps> = ({ t }) => {
   if (!needRefresh) return null;
 
   return (
-    <TopBanner
+    <Notice
+      solid
       title={t("pwaUpdateAvailable")}
       icon="RefreshCcw"
       action={{
