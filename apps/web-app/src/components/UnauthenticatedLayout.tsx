@@ -90,10 +90,10 @@ const StepActions = ({ children }: { children: React.ReactNode }) => (
   <Stack
     position="sticky"
     bottom="$none"
-    paddingVertical="$xs"
     backgroundColor="$background"
+    data-safe-area="bottom"
   >
-    {children}
+    <Stack paddingVertical="$xs">{children}</Stack>
   </Stack>
 );
 
