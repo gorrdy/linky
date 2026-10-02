@@ -5,11 +5,8 @@
   --app-flat-bg: #020617;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --chat-keyboard-inset: 0px;
   --native-keyboard-inset: 0px;
   --floating-safe-area-bottom: var(--safe-area-bottom);
-  --topbar-content-height: 48px;
-  --topbar-height: calc(var(--topbar-content-height) + var(--safe-area-top));
   font-family:
     "Manrope",
     "Segoe UI",
@@ -103,4 +100,9 @@ body {
 
 [data-safe-area="bottom"] {
   padding-bottom: var(--floating-safe-area-bottom);
+}
+
+/* ChatPage writes the visible height above the keyboard to this variable, which Tamagui props cannot read. */
+[data-app-frame] {
+  height: var(--chat-viewport-height, 100%);
 }

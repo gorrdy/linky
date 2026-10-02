@@ -16,12 +16,7 @@ export function NostrRelayPage(): React.ReactElement {
   const { lang, t } = useAppShellCore();
   if (!selectedRelayUrl) {
     return (
-      <Stack
-        gap="$lg"
-        marginTop="$lg"
-        paddingVertical="$xxl"
-        $wide={{ marginTop: "$none" }}
-      >
+      <Stack gap="$lg">
         <Text variant="label" color="$colorMuted">
           {t("errorPrefix")}
         </Text>
@@ -38,12 +33,7 @@ export function NostrRelayPage(): React.ReactElement {
         : t("relayStateUnreachable");
   const lastPublish = health?.lastPublish ?? null;
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <ListRow
         title={
           <>

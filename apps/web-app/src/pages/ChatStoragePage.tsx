@@ -31,7 +31,7 @@ export function ChatStoragePage(): React.ReactElement {
     }
   };
   return (
-    <Stack marginTop="$sm" paddingBottom="$xxl" $wide={{ marginTop: "$none" }}>
+    <Stack>
       <Text>{t("chatStoragePolicy").replace("{count}", String(keep))}</Text>
       <ListRow
         testID="chat-storage-total"

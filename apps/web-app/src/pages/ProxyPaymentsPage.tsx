@@ -113,12 +113,7 @@ export function ProxyPaymentsPage(): React.ReactElement {
     await toggleProfileStatusCurrency(currency);
   };
   return (
-    <Stack
-      gap="$xxxl"
-      marginTop="$sm"
-      paddingBottom="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$xxxl">
       <Stack gap="$sm">
         <Text variant="heading" role="heading">
           {t("proxyPaymentsHeroTitle")}

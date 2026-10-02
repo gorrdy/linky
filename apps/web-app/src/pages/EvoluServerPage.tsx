@@ -24,12 +24,7 @@ export function EvoluServerPage(): React.ReactElement {
   const { route, t } = useAppShellCore();
   const selectedEvoluServerUrl = route.kind === "evoluServer" ? route.id : null;
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <EvoluSyncErrorNotice />
       <EvoluReloadNotice />
 

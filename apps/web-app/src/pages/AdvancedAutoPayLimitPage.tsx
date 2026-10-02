@@ -26,11 +26,7 @@ export const AdvancedAutoPayLimitPage: FC = () => {
   });
 
   return (
-    <Stack
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack>
       <AmountDisplay
         amount={amount}
         inputDisplayValue={amountInput.inputDisplayValue}

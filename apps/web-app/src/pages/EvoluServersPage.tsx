@@ -40,12 +40,7 @@ export function EvoluServersPage(): React.ReactElement {
     counts.length ? 0 : null,
   );
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <EvoluSyncErrorNotice />
       <EvoluReloadNotice />
       {evoluServerUrls.every(isEvoluServerOffline) && (

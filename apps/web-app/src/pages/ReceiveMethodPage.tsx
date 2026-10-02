@@ -12,11 +12,7 @@ export function ReceiveMethodPage(): React.ReactElement {
   const { receiveMethod, setReceiveMethod } = useAdvancedSettingsContext();
 
   return (
-    <Stack
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack>
       {RECEIVE_METHODS.map((method) => (
         <ListRow
           key={method}

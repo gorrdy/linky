@@ -106,12 +106,7 @@ export function InspectorSettingsPage(): React.ReactElement {
   };
 
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$sm"
-      paddingBottom="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <Section>
         <ListRow
           icon="Bug"

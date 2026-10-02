@@ -86,13 +86,7 @@ export function EvoluHistoryDataPage(): React.ReactElement {
   }, [isLoadingMore, hasMore, offset]);
   if (isLoading) {
     return (
-      <Stack
-        gap="$lg"
-        marginTop="$lg"
-        paddingTop="$sm"
-        paddingBottom="$xxl"
-        $wide={{ marginTop: "$none" }}
-      >
+      <Stack gap="$lg">
         <Text variant="label" color="$colorMuted">
           {t("loading")}...
         </Text>
@@ -100,13 +94,7 @@ export function EvoluHistoryDataPage(): React.ReactElement {
     );
   }
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingTop="$sm"
-      paddingBottom="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       {tableNames.length > 0 && (
         <Stack aria-label={t("filterByTable")}>
           <Row flexWrap="wrap" gap="$sm">

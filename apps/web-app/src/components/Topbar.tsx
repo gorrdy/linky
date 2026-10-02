@@ -1,4 +1,11 @@
-import { Avatar, IconButton, Pressable, Text, TopBar } from "@linky-fit/ui";
+import {
+  Avatar,
+  IconButton,
+  Pressable,
+  Stack,
+  Text,
+  TopBar,
+} from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
@@ -8,7 +15,6 @@ import {
 import type { TopbarButton } from "../app/types/appTypes";
 import { navigateTo } from "../hooks/useRouting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
-import { FixedTopBar } from "./FixedTopBar";
 
 interface TopbarProps {
   /** Renders the static header of the desktop detail pane. */
@@ -103,5 +109,11 @@ export function Topbar({
     ) : null,
   };
 
-  return desktopDetail ? <TopBar {...props} /> : <FixedTopBar {...props} />;
+  return desktopDetail ? (
+    <TopBar {...props} />
+  ) : (
+    <Stack data-safe-area="top" backgroundColor="$background">
+      <TopBar {...props} />
+    </Stack>
+  );
 }

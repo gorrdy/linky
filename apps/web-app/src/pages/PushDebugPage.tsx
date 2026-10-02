@@ -259,12 +259,7 @@ export function PushDebugPage(): React.ReactElement {
     }
   }, [reportText]);
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <Row
         alignItems="flex-start"
         justifyContent="space-between"

@@ -21,11 +21,7 @@ export function SettingsPage(): React.ReactElement {
     useAppShellActions();
 
   return (
-    <Stack
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack>
       <Text color="$colorMuted" variant="label">
         {t("unitManageInfo")}
       </Text>

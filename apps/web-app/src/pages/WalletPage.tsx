@@ -2,7 +2,6 @@ import { Button, Row, Stack } from "@linky-fit/ui";
 import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellActions } from "../app/context/AppShellContexts";
-import { BottomTabBar } from "../components/BottomTabBar";
 import { WalletBalance } from "../components/WalletBalance";
 import { WalletPendingReceives } from "../components/WalletPendingReceives";
 import { WalletWarning } from "../components/WalletWarning";
@@ -10,13 +9,11 @@ import { navigateTo } from "../hooks/useRouting";
 import type { Translate } from "../i18n";
 
 interface WalletPageProps {
-  bottomTabActive: "wallet" | "contacts" | null;
   cashuTotalBalance: number;
   dismissWalletWarning: () => void;
   openScan: () => void;
   scanIsOpen: boolean;
   showWalletWarning: boolean;
-  showBottomTabBar?: boolean;
   t: Translate;
 }
 
@@ -51,18 +48,16 @@ const WalletAction = ({
 
 export const WalletPage: React.FC<WalletPageProps> = React.memo(
   ({
-    bottomTabActive,
     cashuTotalBalance,
     dismissWalletWarning,
     openScan,
     scanIsOpen,
     showWalletWarning,
-    showBottomTabBar = true,
     t,
   }) => {
     const { openFeedbackContact } = useAppShellActions();
     return (
-      <Stack gap="$lg">
+      <Stack flex={1} gap="$lg">
         <WalletWarning
           dismissed={!showWalletWarning}
           onContactSupport={openFeedbackContact}
@@ -70,10 +65,11 @@ export const WalletPage: React.FC<WalletPageProps> = React.memo(
           t={t}
         />
         <Stack
+          flex={1}
+          justifyContent="center"
           alignItems="center"
           gap="$xxl"
-          paddingTop="$xxl"
-          paddingBottom="$xxxl"
+          paddingBottom="$huge"
         >
           <Stack alignItems="center" gap="$xs">
             <WalletBalance
@@ -105,14 +101,6 @@ export const WalletPage: React.FC<WalletPageProps> = React.memo(
             {t("showTransactions")}
           </Button>
         </Stack>
-        {showBottomTabBar ? (
-          <BottomTabBar
-            activeTab={bottomTabActive}
-            contactsLabel={t("contactsTitle")}
-            t={t}
-            walletLabel={t("wallet")}
-          />
-        ) : null}
       </Stack>
     );
   },

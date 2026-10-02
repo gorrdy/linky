@@ -8,11 +8,7 @@ export function NostrRelayNewPage(): React.ReactElement {
     useRelaySettingsContext();
   const { t } = useAppShellCore();
   return (
-    <Stack
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack>
       <TextField
         label={t("relayUrl")}
         id="relayUrl"

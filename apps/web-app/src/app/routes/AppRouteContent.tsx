@@ -1,6 +1,15 @@
+import {
+  Card,
+  Divider,
+  LoadingState,
+  Row,
+  size,
+  space,
+  Stack,
+} from "@linky-fit/ui";
 import React from "react";
+import { BottomTabBar } from "../../components/BottomTabBar";
 import { DesktopNavigation } from "../../components/DesktopNavigation";
-import { MobileBottomNav } from "../../components/MobileBottomNav";
 import { ScanModal } from "../../components/ScanModal";
 import { Topbar } from "../../components/Topbar";
 import { useDesktopSplitView } from "../../hooks/useDesktopSplitView";
@@ -99,7 +108,7 @@ const assertNever = (route: never): never => {
 };
 
 const RoutePage = (): React.ReactElement => {
-  const { route } = useAppShellCore();
+  const { route, t } = useAppShellCore();
   const peopleRoutes = usePeopleRoutes();
   const moneyRoutes = useMoneyRoutes();
 
@@ -108,12 +117,6 @@ const RoutePage = (): React.ReactElement => {
     case "wallet":
       return <MainSwipeContent />;
     case "settings":
-      return (
-        <>
-          <AdvancedPage />
-          <MobileBottomNav activeTab="settings" />
-        </>
-      );
     case "advanced":
       return <AdvancedPage />;
     case "settingsUnits":
@@ -132,7 +135,7 @@ const RoutePage = (): React.ReactElement => {
       return <InspectorSettingsPage />;
     case "advancedInspectorTimeline":
       return (
-        <React.Suspense fallback={<div className="muted">Loading…</div>}>
+        <React.Suspense fallback={<LoadingState label={t("loading")} />}>
           <InspectorPage />
         </React.Suspense>
       );
@@ -206,12 +209,6 @@ const RoutePage = (): React.ReactElement => {
     case "contactNew":
       return <ContactNewPage {...peopleRoutes.contactNewProps} />;
     case "profile":
-      return (
-        <>
-          <ProfilePage {...peopleRoutes.profileProps} />
-          <MobileBottomNav activeTab="profile" />
-        </>
-      );
     case "profileEdit":
       return <ProfilePage {...peopleRoutes.profileProps} />;
     default:
@@ -219,48 +216,144 @@ const RoutePage = (): React.ReactElement => {
   }
 };
 
+interface PageBodyProps {
+  children: React.ReactNode;
+  /** The page lays out and scrolls its own content, like the chat. */
+  fill: boolean;
+}
+
+const PageBody = ({ children, fill }: PageBodyProps): React.ReactElement =>
+  fill ? (
+    <Stack flex={1} minHeight={0} gap="$none">
+      {children}
+    </Stack>
+  ) : (
+    <Stack
+      flex={1}
+      minHeight={0}
+      overflowY="auto"
+      paddingHorizontal="$xl"
+      paddingTop="$xxxl"
+      paddingBottom="$huge"
+    >
+      {children}
+    </Stack>
+  );
+
+const PhoneRouteContent = (): React.ReactElement => {
+  const { route, t } = useAppShellCore();
+
+  if (route.kind === "contacts" || route.kind === "wallet") {
+    return <MainSwipeContent />;
+  }
+
+  const tab =
+    route.kind === "settings" || route.kind === "profile" ? route.kind : null;
+  return (
+    <>
+      <PageBody fill={route.kind === "chat"}>
+        <RoutePage />
+      </PageBody>
+      {tab ? (
+        <BottomTabBar
+          activeTab={tab}
+          contactsLabel={t("contactsTitle")}
+          t={t}
+          walletLabel={t("wallet")}
+        />
+      ) : null}
+    </>
+  );
+};
+
+// The panes keep the phone-era app width minus the rail, which stays pinned to the window edge.
+const desktopPanesWidth = size.appWidth - size.hero - space.lg;
+
 export const AppRouteContent = (): React.ReactElement => {
   const { route, scanIsOpen, t } = useAppShellCore();
   const isDesktopSplitView = useDesktopSplitView();
 
-  if (!isDesktopSplitView) return <RoutePage />;
+  if (!isDesktopSplitView) return <PhoneRouteContent />;
 
   const section = getDesktopRouteSection(route);
-  const detailIsEmpty = isDesktopSectionRoot(route);
-  const secondaryIsOpen = !detailIsEmpty || scanIsOpen;
+  const secondaryIsOpen = !isDesktopSectionRoot(route) || scanIsOpen;
 
   return (
-    <div
-      className={`desktop-app-layout${secondaryIsOpen ? "" : " is-primary-only"}`}
+    <Row
+      testID="desktop-layout"
+      flex={1}
+      minHeight={0}
+      width="100%"
+      alignItems="stretch"
+      gap="$lg"
+      padding="$lg"
     >
       <DesktopNavigation />
+      <Row flex={1} minWidth={0} alignItems="stretch" justifyContent="center">
+        <Row
+          flex={1}
+          maxWidth={desktopPanesWidth}
+          alignItems="stretch"
+          gap="$lg"
+        >
+          <Stack
+            role="main"
+            position="relative"
+            flex={secondaryIsOpen ? 0.88 : 1}
+            minHeight={0}
+            paddingVertical="$lg"
+            paddingHorizontal="$xl"
+            overflowY={section === "contacts" ? "hidden" : "auto"}
+          >
+            {section === "contacts" ? (
+              <DesktopContactsPane />
+            ) : section === "wallet" ? (
+              <DesktopWalletPane />
+            ) : (
+              <AdvancedPage />
+            )}
+          </Stack>
 
-      <main className="desktop-primary-pane">
-        {section === "contacts" ? (
-          <DesktopContactsPane />
-        ) : section === "wallet" ? (
-          <DesktopWalletPane />
-        ) : (
-          <div className="desktop-primary-content desktop-settings-pane">
-            <AdvancedPage />
-          </div>
-        )}
-      </main>
-
-      {secondaryIsOpen ? (
-        <section className="desktop-secondary-pane" aria-label={t("detail")}>
-          {scanIsOpen ? (
-            <ScanModal />
-          ) : (
-            <>
-              <Topbar desktopDetail />
-              <div className="desktop-secondary-content">
-                <RoutePage />
-              </div>
-            </>
-          )}
-        </section>
-      ) : null}
-    </div>
+          {secondaryIsOpen ? (
+            <Card
+              outlined
+              backgroundColor="$background"
+              role="region"
+              aria-label={t("detail")}
+              flex={1.12}
+              minHeight={0}
+              padding="$none"
+              gap="$none"
+              overflow="hidden"
+            >
+              {scanIsOpen ? (
+                <ScanModal />
+              ) : (
+                <>
+                  <Topbar desktopDetail />
+                  <Divider />
+                  {route.kind === "chat" ? (
+                    <PageBody fill>
+                      <RoutePage />
+                    </PageBody>
+                  ) : (
+                    <Stack
+                      flex={1}
+                      minHeight={0}
+                      overflowY="auto"
+                      paddingHorizontal="$xxl"
+                      paddingTop="$lg"
+                      paddingBottom="$xxl"
+                    >
+                      <RoutePage />
+                    </Stack>
+                  )}
+                </>
+              )}
+            </Card>
+          ) : null}
+        </Row>
+      </Row>
+    </Row>
   );
 };

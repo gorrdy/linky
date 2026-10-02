@@ -12,13 +12,11 @@ describe("ContactsPage", () => {
     const { container, root } = await renderIntoDocument(
       <ContactsPage
         activeGroup={null}
-        bottomTabActive="contacts"
         contactsSearch=""
         contactsSearchInputRef={{ current: null }}
         conversationsLabel="Conversations"
         filterOpen={false}
         filterOptions={[]}
-        openNewContactPage={() => undefined}
         otherContactsLabel="Other contacts"
         renderContactCard={(contact) => (
           <div key={contact.id ?? ""} data-contact-id={contact.id ?? ""}>
@@ -27,8 +25,6 @@ describe("ContactsPage", () => {
         )}
         setActiveGroup={() => undefined}
         setContactsSearch={() => undefined}
-        showBottomTabBar={false}
-        showFab={false}
         showGroupFilter={false}
         t={(key) => (key === "proxyPayments" ? "Proxy payments" : key)}
         visibleContacts={{
@@ -57,21 +53,17 @@ describe("ContactsPage", () => {
       renderIntoDocument(
         <ContactsPage
           activeGroup={null}
-          bottomTabActive="contacts"
           contactsSearch=""
           contactsSearchInputRef={{ current: null }}
           conversationsLabel="Conversations"
           filterOpen={filterOpen}
           filterOptions={[{ count: 1, label: "Friends", value: "friends" }]}
-          openNewContactPage={() => undefined}
           otherContactsLabel="Other contacts"
           renderContactCard={(contact) => (
             <div key={contact.id ?? ""}>{contact.name ?? ""}</div>
           )}
           setActiveGroup={() => undefined}
           setContactsSearch={() => undefined}
-          showBottomTabBar={false}
-          showFab={false}
           showGroupFilter={true}
           t={(key) => key}
           visibleContacts={{

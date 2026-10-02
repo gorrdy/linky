@@ -76,15 +76,7 @@ export function BottomTabBar({
   };
 
   return (
-    <Stack
-      position="fixed"
-      left="$none"
-      right="$none"
-      bottom="$none"
-      zIndex="$sticky"
-      backgroundColor="$surface"
-      data-safe-area="bottom"
-    >
+    <Stack backgroundColor="$surface" data-safe-area="bottom">
       <TabBar
         accessibilityLabel={t("list")}
         items={items}

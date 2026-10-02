@@ -5,6 +5,9 @@ interface FloatingActionButtonProps {
   icon: IconName;
   label: string;
   onPress: () => void;
+  /** Fades the button out, e.g. while the page it belongs to is swiped away. */
+  hidden?: boolean;
+  guide?: string;
 }
 
 /** The round page action: above the phone tab bar, in the corner of the desktop pane. */
@@ -12,6 +15,8 @@ export function FloatingActionButton({
   icon,
   label,
   onPress,
+  hidden = false,
+  guide,
 }: FloatingActionButtonProps) {
   const { wide } = useMedia();
   return (
@@ -20,6 +25,9 @@ export function FloatingActionButton({
       right={wide ? "$xxl" : "$xl"}
       bottom={wide ? "$xxl" : space.huge * 2}
       zIndex="$sticky"
+      opacity={hidden ? 0 : 1}
+      pointerEvents={hidden ? "none" : "auto"}
+      transition="base"
       data-safe-area={wide ? undefined : "bottom"}
     >
       <IconButton
@@ -28,6 +36,7 @@ export function FloatingActionButton({
         variant="primary"
         size="lg"
         onPress={onPress}
+        data-guide={guide}
         tooltip={label}
       />
     </Stack>

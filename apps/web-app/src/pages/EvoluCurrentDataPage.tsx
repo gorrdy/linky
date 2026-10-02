@@ -46,13 +46,7 @@ export function EvoluCurrentDataPage(): React.ReactElement {
   );
   if (isLoading) {
     return (
-      <Stack
-        gap="$lg"
-        marginTop="$lg"
-        paddingTop="$sm"
-        paddingBottom="$xxl"
-        $wide={{ marginTop: "$none" }}
-      >
+      <Stack gap="$lg">
         <Text variant="body" color="$colorMuted">
           {t("loading")}...
         </Text>
@@ -60,13 +54,7 @@ export function EvoluCurrentDataPage(): React.ReactElement {
     );
   }
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingTop="$sm"
-      paddingBottom="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <Stack maxHeight="$contentWidth" overflow="scroll">
         <Stack padding="$none" gap="$none">
           <Stack padding="$lg">

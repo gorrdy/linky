@@ -143,12 +143,7 @@ export function EvoluDataDetailPage(): React.ReactElement {
     [evoluShards, historyData, inScopeView],
   );
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       {evoluDatabaseBytes !== null ? (
         <>
           <ListRow

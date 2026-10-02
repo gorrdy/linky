@@ -1,5 +1,4 @@
 import type { MainSwipeRoutesProps } from "../../routes/AppRouteContent";
-import { useRouteDerivedShellState } from "../useRouteDerivedShellState";
 import { useMemoizedRouteBuilder } from "./useMemoizedRouteBundle";
 
 type MainSwipeRouteBuilderInput = Omit<
@@ -9,7 +8,6 @@ type MainSwipeRouteBuilderInput = Omit<
 
 interface UseRoutingViewCompositionParams {
   groupNamesCount: number;
-  isMainSwipeRoute: boolean;
   mainSwipeRouteBuilderInput: MainSwipeRouteBuilderInput;
   statusFilterCount: number;
   ungroupedCount: number;
@@ -17,27 +15,20 @@ interface UseRoutingViewCompositionParams {
 
 interface RoutingViewCompositionResult {
   mainSwipeRouteProps: MainSwipeRoutesProps;
-  pageClassNameWithSwipe: string;
 }
 
 export const useRoutingViewComposition = ({
   groupNamesCount,
-  isMainSwipeRoute,
   mainSwipeRouteBuilderInput,
   statusFilterCount,
   ungroupedCount,
 }: UseRoutingViewCompositionParams): RoutingViewCompositionResult => {
+  const routeKind = mainSwipeRouteBuilderInput.route.kind;
   const showGroupFilter =
-    mainSwipeRouteBuilderInput.route.kind === "contacts" &&
+    routeKind === "contacts" &&
     (groupNamesCount + statusFilterCount > 0 || ungroupedCount > 0);
-
-  const { bottomTabActive, pageClassNameWithSwipe } = useRouteDerivedShellState(
-    {
-      isMainSwipeRoute,
-      route: mainSwipeRouteBuilderInput.route,
-      showGroupFilter,
-    },
-  );
+  const bottomTabActive =
+    routeKind === "contacts" || routeKind === "wallet" ? routeKind : null;
 
   const routeBuilderInput = {
     ...mainSwipeRouteBuilderInput,
@@ -50,6 +41,5 @@ export const useRoutingViewComposition = ({
       routeBuilderInput,
       (mainSwipeProps) => ({ mainSwipeProps }),
     ),
-    pageClassNameWithSwipe,
   };
 };

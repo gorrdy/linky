@@ -20,11 +20,7 @@ export function EvoluServerNewPage(): React.ReactElement {
   const { pushToast } = useAdvancedSettingsContext();
 
   return (
-    <Stack
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack>
       <TextField
         label={t("evoluAddServerLabel")}
         id="evoluServerUrl"

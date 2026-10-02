@@ -9,12 +9,7 @@ export function NostrRelaysPage(): React.ReactElement {
   const relayHealth = useRelayHealth();
   const { t } = useAppShellCore();
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       {relayUrls.length === 0 ? (
         <Text variant="label" color="$colorMuted">
           {t("noContactsYet")}

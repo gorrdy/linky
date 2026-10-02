@@ -212,11 +212,9 @@ test("the Evolu wait status reserves space below the mobile navigation", async (
   expect(content!.y).toBeGreaterThanOrEqual(banner!.y + banner!.height);
   await expect(status.getByRole("progressbar")).toBeVisible();
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.locator(".desktop-app-layout")).toBeVisible();
+  await expect(page.getByTestId("desktop-layout")).toBeVisible();
   const desktopBanner = await status.boundingBox();
-  const desktopContent = await page
-    .locator(".desktop-app-layout")
-    .boundingBox();
+  const desktopContent = await page.getByTestId("desktop-layout").boundingBox();
   expect(desktopContent!.y).toBeGreaterThanOrEqual(
     desktopBanner!.y + desktopBanner!.height,
   );

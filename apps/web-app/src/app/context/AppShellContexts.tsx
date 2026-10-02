@@ -216,10 +216,8 @@ export interface AppShellActionsContextValue {
 }
 
 export interface AppShellRouteContextValue {
-  isMainSwipeRoute: boolean;
   mainSwipeRoutes: MainSwipeRoutesProps;
   moneyRoutes: MoneyRoutesProps;
-  pageClassNameWithSwipe: string;
   peopleRoutes: PeopleRoutesProps;
 }
 

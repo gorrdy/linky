@@ -1,9 +1,8 @@
-import { UserPlus as ContactAddIcon } from "lucide-react";
+import { Pager, Stack } from "@linky-fit/ui";
 import React from "react";
 import { BottomTabBar } from "../../components/BottomTabBar";
-
 import { ContactsChecklist } from "../../components/ContactsChecklist";
-import { useDesktopSplitView } from "../../hooks/useDesktopSplitView";
+import { FloatingActionButton } from "../../components/FloatingActionButton";
 import type { Translate } from "../../i18n";
 import { ContactsPage } from "../../pages/ContactsPage";
 import { WalletPage } from "../../pages/WalletPage";
@@ -150,40 +149,34 @@ const MainSwipeBottomTabBar = ({
 
 interface MainSwipeFabProps {
   label: string;
-  onClick: () => void;
+  onPress: () => void;
 }
 
 const MainSwipeFab = ({
   label,
-  onClick,
+  onPress,
 }: MainSwipeFabProps): React.ReactElement => {
   const { progress } = useMainSwipeProgress();
   return (
-    <button
-      type="button"
-      className="contacts-fab main-swipe-fab"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      data-guide="contact-add-button"
-      style={{
-        transform: `translateX(${-progress * 100}%)`,
-        opacity: Math.max(0, 1 - progress * 1.1),
-        pointerEvents: progress < 0.5 ? "auto" : "none",
-      }}
-    >
-      <ContactAddIcon className="contacts-fab-svgIcon" />
-    </button>
+    <FloatingActionButton
+      icon="UserPlus"
+      label={label}
+      onPress={onPress}
+      hidden={progress >= 0.5}
+      guide="contact-add-button"
+    />
   );
 };
 
-export const MainSwipeContent = (): React.ReactElement => {
+const ContactsPane = ({
+  filterAlwaysOpen,
+}: {
+  filterAlwaysOpen: boolean;
+}): React.ReactElement => {
   const { mainSwipeProps } = useMainSwipeRoutes();
   const {
-    activeGroup,
-    bottomTabActive,
-    cashuTotalBalance,
     activeBankPaymentOfferContacts,
+    activeGroup,
     contactsOnboardingCelebrating,
     contactsOnboardingTasks,
     contactsFilterOpen,
@@ -192,186 +185,60 @@ export const MainSwipeContent = (): React.ReactElement => {
     contactFilterOptions,
     conversationsLabel,
     dismissContactsOnboarding,
-    dismissWalletWarning,
-    handleMainSwipeTabChange,
-    mainSwipeRef,
-    openNewContactPage,
-    openWalletScan,
     otherContactsLabel,
     renderContactCard,
-    route,
-    scanIsOpen,
     setActiveGroup,
     setContactsSearch,
     showContactsOnboarding,
-    showWalletWarning,
     showGroupFilter,
     startContactsGuide,
     t,
     visibleContacts,
   } = mainSwipeProps;
-  const isDesktopSplitView = useDesktopSplitView();
   const visibleContactSections = useVisibleContactSections(
     activeBankPaymentOfferContacts,
     visibleContacts,
   );
 
   return (
-    <>
-      <div className="main-swipe" ref={mainSwipeRef}>
-        <div
-          className="main-swipe-page main-swipe-contacts-page"
-          aria-hidden={!isDesktopSplitView && route.kind !== "contacts"}
-        >
-          <h2 className="desktop-main-pane-title">{t("contactsTitle")}</h2>
-          <ContactsPage
-            onboardingContent={
-              showContactsOnboarding ? (
-                <ContactsChecklist
-                  contactsOnboardingCelebrating={contactsOnboardingCelebrating}
-                  dismissContactsOnboarding={dismissContactsOnboarding}
-                  onShowHow={(key) => {
-                    if (!isContactsGuideKey(key)) return;
-                    startContactsGuide(key);
-                  }}
-                  progressPercent={contactsOnboardingTasks.percent}
-                  t={t}
-                  tasks={contactsOnboardingTasks.tasks}
-                  tasksCompleted={contactsOnboardingTasks.done}
-                  tasksTotal={contactsOnboardingTasks.total}
-                />
-              ) : null
-            }
-            contactsSearchInputRef={contactsSearchInputRef}
-            contactsSearch={contactsSearch}
-            filterOpen={contactsFilterOpen || isDesktopSplitView}
-            setContactsSearch={setContactsSearch}
-            showGroupFilter={
-              showGroupFilter ||
-              (isDesktopSplitView && contactFilterOptions.length > 0)
-            }
-            activeGroup={activeGroup}
-            setActiveGroup={setActiveGroup}
-            filterOptions={contactFilterOptions}
-            visibleContacts={visibleContactSections}
-            conversationsLabel={conversationsLabel}
-            otherContactsLabel={otherContactsLabel}
-            renderContactCard={renderContactCard}
-            bottomTabActive={bottomTabActive}
-            openNewContactPage={openNewContactPage}
-            showBottomTabBar={false}
-            showFab={false}
+    <ContactsPage
+      onboardingContent={
+        showContactsOnboarding ? (
+          <ContactsChecklist
+            contactsOnboardingCelebrating={contactsOnboardingCelebrating}
+            dismissContactsOnboarding={dismissContactsOnboarding}
+            onShowHow={(key) => {
+              if (!isContactsGuideKey(key)) return;
+              startContactsGuide(key);
+            }}
+            progressPercent={contactsOnboardingTasks.percent}
             t={t}
+            tasks={contactsOnboardingTasks.tasks}
+            tasksCompleted={contactsOnboardingTasks.done}
+            tasksTotal={contactsOnboardingTasks.total}
           />
-        </div>
-        <div
-          className="main-swipe-page main-swipe-wallet-page"
-          aria-hidden={!isDesktopSplitView && route.kind !== "wallet"}
-        >
-          <h2 className="desktop-main-pane-title">{t("wallet")}</h2>
-          <WalletPage
-            cashuTotalBalance={cashuTotalBalance}
-            openScan={openWalletScan}
-            scanIsOpen={scanIsOpen}
-            bottomTabActive={bottomTabActive}
-            dismissWalletWarning={dismissWalletWarning}
-            showWalletWarning={showWalletWarning}
-            showBottomTabBar={false}
-            t={t}
-          />
-        </div>
-      </div>
-      <MainSwipeBottomTabBar
-        activeTab={bottomTabActive}
-        contactsLabel={t("contactsTitle")}
-        onTabChange={handleMainSwipeTabChange}
-        t={t}
-        walletLabel={t("wallet")}
-      />
-      <MainSwipeFab label={t("addContact")} onClick={openNewContactPage} />
-    </>
+        ) : null
+      }
+      contactsSearchInputRef={contactsSearchInputRef}
+      contactsSearch={contactsSearch}
+      filterOpen={contactsFilterOpen || filterAlwaysOpen}
+      setContactsSearch={setContactsSearch}
+      showGroupFilter={
+        showGroupFilter || (filterAlwaysOpen && contactFilterOptions.length > 0)
+      }
+      activeGroup={activeGroup}
+      setActiveGroup={setActiveGroup}
+      filterOptions={contactFilterOptions}
+      visibleContacts={visibleContactSections}
+      conversationsLabel={conversationsLabel}
+      otherContactsLabel={otherContactsLabel}
+      renderContactCard={renderContactCard}
+      t={t}
+    />
   );
 };
 
-export const DesktopContactsPane = (): React.ReactElement => {
-  const { mainSwipeProps } = useMainSwipeRoutes();
-  const {
-    activeBankPaymentOfferContacts,
-    activeGroup,
-    contactsOnboardingCelebrating,
-    contactsOnboardingTasks,
-    contactsSearch,
-    contactsSearchInputRef,
-    contactFilterOptions,
-    conversationsLabel,
-    dismissContactsOnboarding,
-    openNewContactPage,
-    otherContactsLabel,
-    renderContactCard,
-    setActiveGroup,
-    setContactsSearch,
-    showContactsOnboarding,
-    startContactsGuide,
-    t,
-    visibleContacts,
-  } = mainSwipeProps;
-  const visibleContactSections = useVisibleContactSections(
-    activeBankPaymentOfferContacts,
-    visibleContacts,
-  );
-
-  return (
-    <div className="desktop-primary-content desktop-contacts-pane">
-      <ContactsPage
-        onboardingContent={
-          showContactsOnboarding ? (
-            <ContactsChecklist
-              contactsOnboardingCelebrating={contactsOnboardingCelebrating}
-              dismissContactsOnboarding={dismissContactsOnboarding}
-              onShowHow={(key) => {
-                if (!isContactsGuideKey(key)) return;
-                startContactsGuide(key);
-              }}
-              progressPercent={contactsOnboardingTasks.percent}
-              t={t}
-              tasks={contactsOnboardingTasks.tasks}
-              tasksCompleted={contactsOnboardingTasks.done}
-              tasksTotal={contactsOnboardingTasks.total}
-            />
-          ) : null
-        }
-        contactsSearchInputRef={contactsSearchInputRef}
-        contactsSearch={contactsSearch}
-        filterOpen={true}
-        setContactsSearch={setContactsSearch}
-        showGroupFilter={contactFilterOptions.length > 0}
-        activeGroup={activeGroup}
-        setActiveGroup={setActiveGroup}
-        filterOptions={contactFilterOptions}
-        visibleContacts={visibleContactSections}
-        conversationsLabel={conversationsLabel}
-        otherContactsLabel={otherContactsLabel}
-        renderContactCard={renderContactCard}
-        bottomTabActive="contacts"
-        openNewContactPage={openNewContactPage}
-        showBottomTabBar={false}
-        showFab={false}
-        t={t}
-      />
-      <button
-        type="button"
-        className="contacts-fab desktop-contacts-fab"
-        onClick={openNewContactPage}
-        aria-label={t("addContact")}
-        title={t("addContact")}
-      >
-        <ContactAddIcon className="contacts-fab-svgIcon" />
-      </button>
-    </div>
-  );
-};
-
-export const DesktopWalletPane = (): React.ReactElement => {
+const WalletPane = (): React.ReactElement => {
   const { mainSwipeProps } = useMainSwipeRoutes();
   const {
     cashuTotalBalance,
@@ -383,17 +250,76 @@ export const DesktopWalletPane = (): React.ReactElement => {
   } = mainSwipeProps;
 
   return (
-    <div className="desktop-primary-content desktop-wallet-pane">
-      <WalletPage
-        cashuTotalBalance={cashuTotalBalance}
-        openScan={openWalletScan}
-        scanIsOpen={scanIsOpen}
-        bottomTabActive="wallet"
-        dismissWalletWarning={dismissWalletWarning}
-        showWalletWarning={showWalletWarning}
-        showBottomTabBar={false}
-        t={t}
-      />
-    </div>
+    <WalletPage
+      cashuTotalBalance={cashuTotalBalance}
+      openScan={openWalletScan}
+      scanIsOpen={scanIsOpen}
+      dismissWalletWarning={dismissWalletWarning}
+      showWalletWarning={showWalletWarning}
+      t={t}
+    />
   );
 };
+
+/** Phone: contacts and wallet side by side, swiped between above the tab bar. */
+export const MainSwipeContent = (): React.ReactElement => {
+  const { mainSwipeProps } = useMainSwipeRoutes();
+  const {
+    bottomTabActive,
+    handleMainSwipeTabChange,
+    mainSwipeRef,
+    openNewContactPage,
+    route,
+    t,
+  } = mainSwipeProps;
+
+  return (
+    <>
+      <Pager
+        scrollRef={mainSwipeRef}
+        activePage={route.kind === "wallet" ? 1 : 0}
+      >
+        <Stack
+          flex={1}
+          paddingHorizontal="$xl"
+          paddingTop="$xxxl"
+          paddingBottom="$huge"
+        >
+          <ContactsPane filterAlwaysOpen={false} />
+        </Stack>
+        <Stack
+          flex={1}
+          paddingHorizontal="$xl"
+          paddingTop="$xxxl"
+          paddingBottom="$huge"
+        >
+          <WalletPane />
+        </Stack>
+      </Pager>
+      <MainSwipeBottomTabBar
+        activeTab={bottomTabActive}
+        contactsLabel={t("contactsTitle")}
+        onTabChange={handleMainSwipeTabChange}
+        t={t}
+        walletLabel={t("wallet")}
+      />
+      <MainSwipeFab label={t("addContact")} onPress={openNewContactPage} />
+    </>
+  );
+};
+
+export const DesktopContactsPane = (): React.ReactElement => {
+  const { mainSwipeProps } = useMainSwipeRoutes();
+  return (
+    <>
+      <ContactsPane filterAlwaysOpen />
+      <FloatingActionButton
+        icon="UserPlus"
+        label={mainSwipeProps.t("addContact")}
+        onPress={mainSwipeProps.openNewContactPage}
+      />
+    </>
+  );
+};
+
+export const DesktopWalletPane = WalletPane;

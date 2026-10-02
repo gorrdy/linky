@@ -29,7 +29,7 @@ import { analyzeSlip39Input, SLIP39_WORD_COUNT } from "../utils/slip39Input";
 import { AvatarControlGrid } from "./AvatarControlGrid";
 import { AvatarPhotoInput } from "./AvatarPhotoInput";
 import type { FilePickerHandle } from "../utils/pickFile";
-import { FixedTopBar } from "./FixedTopBar";
+import { StickyTopBar } from "./StickyTopBar";
 import { SelfieCaptureModal } from "./SelfieCaptureModal";
 
 import type { Translate } from "../i18n";
@@ -259,7 +259,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
 
     return (
       <Stack gap="$md">
-        <FixedTopBar
+        <StickyTopBar
           leading={backButton(() => {
             setPickerMenuIsOpen(false);
             setOnboardingStep(null);
@@ -499,7 +499,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
 
     return (
       <Stack gap="$md">
-        <FixedTopBar leading={backButton(goBack)} trailing={menuButton()} />
+        <StickyTopBar leading={backButton(goBack)} trailing={menuButton()} />
 
         {profileStage === "name"
           ? renderProfileNameStep(profile)
@@ -509,10 +509,10 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
   };
 
   return (
-    <Stack gap="$md" paddingTop="$lg">
+    <Stack gap="$md">
       {showOnboardingHeader ? (
         <>
-          <FixedTopBar trailing={menuButton(onboardingIsBusy)} />
+          <StickyTopBar trailing={menuButton(onboardingIsBusy)} />
 
           <OnboardingLogo />
           <Stack gap="$xs" marginBottom="$lg">

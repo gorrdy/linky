@@ -1,5 +1,5 @@
+import { Stack } from "@linky-fit/ui";
 import React from "react";
-import "../App.css";
 import { AuthenticatedLayout } from "../components/AuthenticatedLayout";
 import { CashuContactSendBanner } from "../components/CashuContactSendBanner";
 import { InstallPwaBanner } from "../components/InstallPwaBanner";
@@ -20,6 +20,13 @@ import { AppRouteContent } from "./routes/AppRouteContent";
 import { useAppShellComposition } from "./useAppShellComposition";
 import { useUnauthenticatedAppShellComposition } from "./useUnauthenticatedAppShellComposition";
 
+/** Fills the viewport; index.css shrinks it above the keyboard while a chat is open. */
+const AppFrame = ({ children }: { children: React.ReactNode }) => (
+  <Stack data-app-frame gap="$none" backgroundColor="$background">
+    {children}
+  </Stack>
+);
+
 interface AuthenticatedAppShellProps {
   currentNsec: string;
   setCurrentNsec: (currentNsec: string | null) => void;
@@ -37,11 +44,9 @@ const AuthenticatedAppShell = ({
     dismissToast,
     evoluSettingsContext,
     formatDisplayedAmountText,
-    isMainSwipeRoute,
     mainSwipeRouteProps,
     mintSettingsContext,
     moneyRouteProps,
-    pageClassNameWithSwipe,
     peopleRouteProps,
     pendingCashuContactSend,
     relaySettingsContext,
@@ -55,23 +60,15 @@ const AuthenticatedAppShell = ({
 
   const routeContextValue = React.useMemo<AppShellRouteContextValue>(
     () => ({
-      isMainSwipeRoute,
       mainSwipeRoutes: mainSwipeRouteProps,
       moneyRoutes: moneyRouteProps,
-      pageClassNameWithSwipe,
       peopleRoutes: peopleRouteProps,
     }),
-    [
-      isMainSwipeRoute,
-      mainSwipeRouteProps,
-      moneyRouteProps,
-      pageClassNameWithSwipe,
-      peopleRouteProps,
-    ],
+    [mainSwipeRouteProps, moneyRouteProps, peopleRouteProps],
   );
 
   return (
-    <div className={`${pageClassNameWithSwipe} authenticated-page`}>
+    <AppFrame>
       <PwaUpdateBanner t={t} />
       <CashuContactSendBanner
         amountText={
@@ -100,7 +97,7 @@ const AuthenticatedAppShell = ({
           <AppRouteContent />
         </AuthenticatedLayout>
       </AppShellContextsProvider>
-    </div>
+    </AppFrame>
   );
 };
 
@@ -132,40 +129,50 @@ const UnauthenticatedAppShell = () => {
   } = useUnauthenticatedAppShellComposition();
 
   return (
-    <div className="page">
+    <AppFrame>
       <PwaUpdateBanner t={t} />
       <ToastNotifications toasts={toasts} dismissToast={dismissToast} />
       <InstallPwaBanner t={t} />
-      <UnauthenticatedLayout
-        confirmPendingOnboardingProfile={confirmPendingOnboardingProfile}
-        onboardingStep={onboardingStep}
-        onboardingIsBusy={onboardingIsBusy}
-        lang={lang}
-        onboardingPhotoInputRef={onboardingPhotoInputRef}
-        openReturningOnboarding={openReturningOnboarding}
-        onPendingOnboardingPhotoError={onPendingOnboardingPhotoError}
-        onPendingOnboardingPhotoSelected={onPendingOnboardingPhotoSelected}
-        setOnboardingStep={setOnboardingStep}
-        createNewAccount={createNewAccount}
-        cyclePendingOnboardingAvatarControl={
-          cyclePendingOnboardingAvatarControl
-        }
-        pasteReturningSlip39FromClipboard={pasteReturningSlip39FromClipboard}
-        pickPendingOnboardingPhoto={pickPendingOnboardingPhoto}
-        selectPendingOnboardingGeneratedAvatar={
-          selectPendingOnboardingGeneratedAvatar
-        }
-        selectReturningSlip39Suggestion={selectReturningSlip39Suggestion}
-        savePendingOnboardingBackupToPasswordManager={
-          savePendingOnboardingBackupToPasswordManager
-        }
-        setReturningSlip39Input={setReturningSlip39Input}
-        setLang={setLang}
-        setPendingOnboardingName={setPendingOnboardingName}
-        submitReturningSlip39={submitReturningSlip39}
-        t={t}
-      />
-    </div>
+      <Stack
+        flex={1}
+        minHeight={0}
+        width="100%"
+        maxWidth="$appWidth"
+        alignSelf="center"
+        overflowY="auto"
+        paddingHorizontal="$xl"
+      >
+        <UnauthenticatedLayout
+          confirmPendingOnboardingProfile={confirmPendingOnboardingProfile}
+          onboardingStep={onboardingStep}
+          onboardingIsBusy={onboardingIsBusy}
+          lang={lang}
+          onboardingPhotoInputRef={onboardingPhotoInputRef}
+          openReturningOnboarding={openReturningOnboarding}
+          onPendingOnboardingPhotoError={onPendingOnboardingPhotoError}
+          onPendingOnboardingPhotoSelected={onPendingOnboardingPhotoSelected}
+          setOnboardingStep={setOnboardingStep}
+          createNewAccount={createNewAccount}
+          cyclePendingOnboardingAvatarControl={
+            cyclePendingOnboardingAvatarControl
+          }
+          pasteReturningSlip39FromClipboard={pasteReturningSlip39FromClipboard}
+          pickPendingOnboardingPhoto={pickPendingOnboardingPhoto}
+          selectPendingOnboardingGeneratedAvatar={
+            selectPendingOnboardingGeneratedAvatar
+          }
+          selectReturningSlip39Suggestion={selectReturningSlip39Suggestion}
+          savePendingOnboardingBackupToPasswordManager={
+            savePendingOnboardingBackupToPasswordManager
+          }
+          setReturningSlip39Input={setReturningSlip39Input}
+          setLang={setLang}
+          setPendingOnboardingName={setPendingOnboardingName}
+          submitReturningSlip39={submitReturningSlip39}
+          t={t}
+        />
+      </Stack>
+    </AppFrame>
   );
 };
 
@@ -180,7 +187,7 @@ const AppShell = () => {
   const { currentNsec, isResolved, setCurrentNsec } = useCurrentNsec();
   usePersistentInspectorLogStartup();
 
-  if (!isResolved) return <div className="page" />;
+  if (!isResolved) return null;
   if (!currentNsec) return <UnauthenticatedAppShell />;
 
   return (

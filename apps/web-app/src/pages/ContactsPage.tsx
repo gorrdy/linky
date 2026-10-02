@@ -12,27 +12,21 @@ import {
 import type { FC } from "react";
 import React from "react";
 import type { ContactRowLike } from "../app/types/appTypes";
-import { BottomTabBar } from "../components/BottomTabBar";
-
 import type { Translate } from "../i18n";
 
 interface ContactsPageProps {
   activeGroup: string | null;
-  bottomTabActive: "contacts" | "wallet" | null;
   contactsSearch: string;
   contactsSearchInputRef: React.RefObject<HTMLInputElement | null>;
   conversationsLabel: string;
   filterOpen: boolean;
   filterOptions: Array<{ count: number; label: string; value: string }>;
-  openNewContactPage: () => void;
   onboardingContent?: React.ReactNode;
   otherContactsLabel: string;
   renderContactCard: (contact: ContactRowLike) => React.ReactNode;
   setActiveGroup: (value: string | null) => void;
   setContactsSearch: (value: string) => void;
   showGroupFilter: boolean;
-  showBottomTabBar?: boolean;
-  showFab?: boolean;
   t: Translate;
   visibleContacts: {
     conversations: ContactRowLike[];
@@ -52,21 +46,17 @@ const ContactRows = ({ children }: { children: React.ReactNode }) => (
 export const ContactsPage: FC<ContactsPageProps> = React.memo(
   ({
     activeGroup,
-    bottomTabActive,
     contactsSearch,
     contactsSearchInputRef,
     conversationsLabel,
     filterOpen,
     filterOptions,
-    openNewContactPage,
     onboardingContent,
     otherContactsLabel,
     renderContactCard,
     setActiveGroup,
     setContactsSearch,
     showGroupFilter,
-    showBottomTabBar = true,
-    showFab = true,
     t,
     visibleContacts,
   }) => {
@@ -172,35 +162,6 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
             </Stack>
           )}
         </ScrollView>
-
-        {showBottomTabBar ? (
-          <BottomTabBar
-            activeTab={bottomTabActive}
-            contactsLabel={t("contactsTitle")}
-            t={t}
-            walletLabel={t("wallet")}
-          />
-        ) : null}
-
-        {showFab ? (
-          <Stack
-            position="fixed"
-            right="$xl"
-            bottom="$huge"
-            zIndex="$raised"
-            data-safe-area="bottom"
-          >
-            <IconButton
-              marginBottom="$huge"
-              icon="UserPlus"
-              variant="primary"
-              size="lg"
-              accessibilityLabel={t("addContact")}
-              onPress={openNewContactPage}
-              data-guide="contact-add-button"
-            />
-          </Stack>
-        ) : null}
       </>
     );
   },

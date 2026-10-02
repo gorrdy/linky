@@ -41,12 +41,7 @@ export function MasterKeysPage(): React.ReactElement {
   }, [hasSeedMnemonic, pushToast, saveSeedToPasswordManager, t]);
 
   return (
-    <Stack
-      gap="$lg"
-      marginTop="$sm"
-      paddingBottom="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack gap="$lg">
       <Row flexWrap="wrap" gap="$sm" aria-live="polite">
         {hasSeedMnemonic ? (
           seedWords.map((word, index) => (

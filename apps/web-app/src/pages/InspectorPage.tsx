@@ -1,4 +1,4 @@
-import { Stack, space, size } from "@linky-fit/ui";
+import { Stack } from "@linky-fit/ui";
 import React from "react";
 
 import { clientInspectorStore } from "../devtools/inspector/clientInspectorStore";
@@ -18,18 +18,12 @@ export default function InspectorPage(): React.ReactElement {
     <Stack
       width="100%"
       minHeight={0}
-      height={
-        isFullscreen
-          ? "100%"
-          : `calc(100dvh - ${size.controlLg + space.huge + space.huge}px)`
-      }
+      height="100%"
       borderRadius={isFullscreen ? "$none" : "$control"}
       overflow="hidden"
-      marginTop={isFullscreen ? "$none" : "$sm"}
       position={isFullscreen ? "fixed" : "relative"}
       {...(isFullscreen ? { inset: 0 } : {})}
       zIndex={isFullscreen ? "$overlay" : "$base"}
-      $wide={{ height: "100%", marginTop: "$none" }}
     >
       <Stack data-safe-area={isFullscreen ? "top" : undefined} />
       <InspectorApp

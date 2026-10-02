@@ -20,11 +20,7 @@ export function LanguagePage(): React.ReactElement {
   const { setLang } = useAppShellActions();
 
   return (
-    <Stack
-      marginTop="$lg"
-      paddingVertical="$xxl"
-      $wide={{ marginTop: "$none" }}
-    >
+    <Stack>
       {LANGUAGES.map((language) => (
         <ListRow
           key={language.value}
