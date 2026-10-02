@@ -285,8 +285,15 @@ const runProxyPayment = async (
         await a.page.getByRole("button", { name: "Send" }).click();
 
         // A headless camera failure does not close the scanner (only closeScan
-        // does), so the hidden file input is still mounted and usable.
-        await a.page.locator(".scan-overlay input[type=file]").setInputFiles({
+        // does), so its Gallery button still picks an image.
+        const chooser = a.page.waitForEvent("filechooser");
+        await a.page
+          .getByRole("dialog", { name: "Send" })
+          .getByRole("button", { name: "Gallery" })
+          .click();
+        await (
+          await chooser
+        ).setFiles({
           buffer: Buffer.from(SPD_QR_PNG_BASE64, "base64"),
           mimeType: "image/png",
           name: "spd-qr.png",

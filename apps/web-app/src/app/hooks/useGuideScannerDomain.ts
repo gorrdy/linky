@@ -86,8 +86,8 @@ type UseGuideScannerDomainResult = ReturnType<typeof useContactsGuide> & {
 const MAX_QR_DECODE_SIDE = 640;
 
 const readNativeScanViewport = (): NativeScanViewport | null => {
-  const header = document.querySelector(".scan-header");
-  const footer = document.querySelector(".scan-footer");
+  const header = document.querySelector("[data-scan-region=header]");
+  const footer = document.querySelector("[data-scan-region=footer]");
   if (!(header instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
     return null;
   }
@@ -566,7 +566,7 @@ export const useGuideScannerDomain = ({
     const nativeScanHandle = nativeScanHandleRef.current;
     if (!scanIsOpen || !nativeScanHandle) return;
 
-    const controls = document.querySelectorAll(".scan-header, .scan-footer");
+    const controls = document.querySelectorAll("[data-scan-region]");
     if (controls.length === 0) return;
 
     const updateViewport = () => nativeScanHandle.updateViewport();

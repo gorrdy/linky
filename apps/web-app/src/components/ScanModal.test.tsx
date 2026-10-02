@@ -30,7 +30,6 @@ interface ScanModalProps {
   cycleScanCamera: () => void;
   onIssueToken: () => void;
   onPickScanImage: () => void;
-  onScanImageSelected: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onTypePayment: () => void;
   onTypeManually: () => void;
   pasteScanValue: () => Promise<void>;
@@ -38,7 +37,6 @@ interface ScanModalProps {
   scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;
-  scanImageInputRef: React.RefObject<HTMLInputElement | null>;
   scanVideoRef: React.RefObject<HTMLVideoElement | null>;
   showTypeAction: boolean;
   showWalletActions: boolean;
@@ -80,6 +78,19 @@ const translate = (key: string): string => {
   }
 };
 
+const buttonNamed = (name: string): HTMLElement | undefined =>
+  Array.from(document.querySelectorAll<HTMLElement>("button")).find(
+    (element) =>
+      (element.getAttribute("aria-label") ?? element.textContent) === name,
+  );
+
+const press = async (element: HTMLElement | undefined) => {
+  expect(element).toBeTruthy();
+  await act(async () => {
+    element?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+};
+
 describe("ScanModal", () => {
   afterEach(() => {
     document.body.innerHTML = "";
@@ -91,7 +102,6 @@ describe("ScanModal", () => {
     cycleScanCamera: () => {},
     onIssueToken: () => {},
     onPickScanImage: () => {},
-    onScanImageSelected: () => {},
     onTypePayment: () => {},
     onTypeManually: () => {},
     pasteScanValue: async () => {},
@@ -104,18 +114,30 @@ describe("ScanModal", () => {
     scanCameraLabel: null,
     scanCanSwitchCamera: false,
     scanEntryPoint: null,
-    scanImageInputRef: { current: null },
     scanVideoRef: { current: null },
     showTypeAction: false,
     showWalletActions: false,
     t: translate,
   } satisfies ScanModalProps;
 
-  it("shows animated QR progress in the footer outside the native camera viewport", async () => {
-    const { container, rerender, unmount } = await renderIntoDocument(
+  it("is a dialog named by its title", async () => {
+    await renderIntoDocument(
+      <TestScanModal {...baseProps} scanEntryPoint="contacts" />,
+    );
+
+    const labelId = document
+      .querySelector('[role="dialog"]')
+      ?.getAttribute("aria-labelledby");
+    expect(labelId && document.getElementById(labelId)?.textContent).toBe(
+      "contactsScanContactQr",
+    );
+  });
+
+  it("shows animated QR progress in the footer outside the camera preview", async () => {
+    const { rerender, unmount } = await renderIntoDocument(
       <TestScanModal {...baseProps} scanEntryPoint="receive" />,
     );
-    expect(container.querySelector(".scan-status")).toBeNull();
+    expect(document.querySelector('[role="status"]')).toBeNull();
 
     await rerender(
       <TestScanModal
@@ -129,48 +151,45 @@ describe("ScanModal", () => {
       />,
     );
 
+    const status = document.querySelector(
+      '[data-scan-region="footer"] [role="status"]',
+    );
+    expect(status?.textContent).toContain("Reading QR: 4/10 (40%)");
     expect(
-      container.querySelector(".scan-footer .scan-status")?.textContent,
-    ).toContain("Reading QR: 4/10 (40%)");
-    const bar = container.querySelector(".scan-status-bar");
-    expect(bar instanceof HTMLElement && bar.style.width).toBe("40%");
-    expect(container.querySelector(".scan-video-wrap .scan-status")).toBeNull();
-    expect(container.querySelector(".scan-status-detail")).toBeNull();
+      status
+        ?.querySelector('[role="progressbar"]')
+        ?.getAttribute("aria-valuenow"),
+    ).toBe("0.4");
+    expect(status?.textContent).not.toContain("scanDiagnosticsReads");
     await unmount();
   });
 
   it("shows the manual action only when allowed", async () => {
-    const { container, rerender } = await renderIntoDocument(
+    const { rerender } = await renderIntoDocument(
       <TestScanModal {...baseProps} showTypeAction={true} />,
     );
 
-    expect(container.textContent).toContain("Type");
-    expect(container.textContent).toContain("Paste");
+    expect(buttonNamed("Type")).toBeTruthy();
+    expect(buttonNamed("Paste")).toBeTruthy();
 
     await rerender(<TestScanModal {...baseProps} showTypeAction={false} />);
 
-    expect(container.textContent).not.toContain("Type");
-    expect(container.textContent).toContain("Paste");
+    expect(buttonNamed("Type")).toBeUndefined();
+    expect(buttonNamed("Paste")).toBeTruthy();
   });
 
   it("offers camera switching when multiple cameras are available", async () => {
     const cycleScanCamera = vi.fn();
 
-    const { container } = await renderIntoDocument(
+    await renderIntoDocument(
       <TestScanModal
         {...baseProps}
         cycleScanCamera={cycleScanCamera}
-        scanCameraLabel="Back Camera 2"
         scanCanSwitchCamera={true}
       />,
     );
 
-    const button = container.querySelector(".scan-camera-switch");
-    expect(button?.getAttribute("title")).toBe("Back Camera 2");
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await press(buttonNamed("scanSwitchCamera"));
 
     expect(cycleScanCamera).toHaveBeenCalledTimes(1);
   });
@@ -178,7 +197,7 @@ describe("ScanModal", () => {
   it("calls the manual handler when the type button is pressed", async () => {
     const onTypeManually = vi.fn();
 
-    const { container } = await renderIntoDocument(
+    await renderIntoDocument(
       <TestScanModal
         {...baseProps}
         onTypeManually={onTypeManually}
@@ -186,15 +205,7 @@ describe("ScanModal", () => {
       />,
     );
 
-    const button = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.textContent?.includes("Type"),
-    );
-
-    expect(button).toBeTruthy();
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await press(buttonNamed("Type"));
 
     expect(onTypeManually).toHaveBeenCalledTimes(1);
   });
@@ -202,7 +213,7 @@ describe("ScanModal", () => {
   it("returns receive scan close to wallet", async () => {
     const closeScan = vi.fn();
 
-    const { container } = await renderIntoDocument(
+    await renderIntoDocument(
       <TestScanModal
         {...baseProps}
         closeScan={closeScan}
@@ -210,13 +221,7 @@ describe("ScanModal", () => {
       />,
     );
 
-    const button = container.querySelector(".scan-header .topbar-btn");
-
-    expect(button).toBeTruthy();
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await press(buttonNamed("Close"));
 
     expect(closeScan).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith({ route: "wallet" });
@@ -225,7 +230,7 @@ describe("ScanModal", () => {
   it("shows issue action in send flow and calls it", async () => {
     const onIssueToken = vi.fn();
 
-    const { container } = await renderIntoDocument(
+    await renderIntoDocument(
       <TestScanModal
         {...baseProps}
         onIssueToken={onIssueToken}
@@ -234,16 +239,7 @@ describe("ScanModal", () => {
       />,
     );
 
-    const button = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.textContent?.includes("Issue"),
-    );
-
-    expect(container.querySelector(".scan-sheet--send")).toBeTruthy();
-    expect(button).toBeTruthy();
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await press(buttonNamed("Issue"));
 
     expect(onIssueToken).toHaveBeenCalledTimes(1);
   });
@@ -251,7 +247,7 @@ describe("ScanModal", () => {
   it("shows manual recipient action in send flow and calls it", async () => {
     const onTypePayment = vi.fn();
 
-    const { container } = await renderIntoDocument(
+    await renderIntoDocument(
       <TestScanModal
         {...baseProps}
         onTypePayment={onTypePayment}
@@ -260,15 +256,7 @@ describe("ScanModal", () => {
       />,
     );
 
-    const button = Array.from(container.querySelectorAll("button")).find(
-      (element) => element.textContent?.includes("Type recipient"),
-    );
-
-    expect(button).toBeTruthy();
-
-    await act(async () => {
-      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await press(buttonNamed("Type recipient"));
 
     expect(onTypePayment).toHaveBeenCalledTimes(1);
   });

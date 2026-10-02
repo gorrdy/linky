@@ -767,6 +767,7 @@ export const cs = {
     "Přístup ke kameře byl zamítnut. V Brave klikněte na zámek → Nastavení webu → Kamera → Povolit a stránku obnovte.",
   scanGallery: "Galerie",
   scanSwitchCamera: "Přepnout kameru",
+  scanCameraPreview: "Náhled kamery",
   scanImageUnsupported: "Ve vybraném obrázku jsem nenašel čitelný QR kód.",
   scanPastePrompt: "Vložte LN fakturu, Cashu token, LNURL nebo npub.",
   scanReceiveUnsupportedPayment:

@@ -22,6 +22,7 @@ import {
 import { readClipboardText } from "../../../platform/clipboard";
 import { isNativePlatform } from "../../../platform/runtime";
 import { PENDING_DEEP_LINK_TEXT_STORAGE_KEY } from "../../../utils/constants";
+import { pickFile } from "../../../utils/pickFile";
 import {
   buildCashuDeepLink,
   parseNativeDeepLinkUrl,
@@ -244,8 +245,6 @@ export const useScanNativeComposition = ({
     openNewContactPage();
   }, [closeScan, openNewContactPage, route.kind]);
 
-  const scanImageInputRef = React.useRef<HTMLInputElement | null>(null);
-
   const openIssueTokenFromScan = React.useCallback(() => {
     closeScan();
     if (route.kind === "cashuTokenEmit") return;
@@ -257,10 +256,6 @@ export const useScanNativeComposition = ({
     if (route.kind === "manualPay") return;
     navigateTo({ route: "manualPay" });
   }, [closeScan, route.kind]);
-
-  const onPickScanImage = React.useCallback(() => {
-    scanImageInputRef.current?.click();
-  }, []);
 
   const {
     contactsOnboardingCelebrating,
@@ -816,16 +811,8 @@ export const useScanNativeComposition = ({
     await handleScannedText(raw);
   }, [handleScannedText, pushToast, t]);
 
-  const onScanImageSelected = React.useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const input = event.currentTarget;
-      const file = input.files?.[0] ?? null;
-      input.value = "";
-
-      if (!file) {
-        return;
-      }
-
+  const scanImageFile = React.useCallback(
+    async (file: File) => {
       const loadImage = async (imageFile: File): Promise<HTMLImageElement> => {
         const objectUrl = URL.createObjectURL(imageFile);
 
@@ -905,6 +892,12 @@ export const useScanNativeComposition = ({
     [handleScannedText, pushToast, t],
   );
 
+  const onPickScanImage = React.useCallback(() => {
+    void pickFile("image/*").then((file) =>
+      file ? scanImageFile(file) : undefined,
+    );
+  }, [scanImageFile]);
+
   const onSubmitManualPayText = React.useCallback(
     async (text: string) => {
       await handleScannedText(text);
@@ -931,7 +924,6 @@ export const useScanNativeComposition = ({
     dismissContactsOnboarding,
     nfcWritePromptKind,
     onPickScanImage,
-    onScanImageSelected,
     onSubmitManualPayText,
     openIssueTokenFromScan,
     openManualContactFromScan,
@@ -945,7 +937,6 @@ export const useScanNativeComposition = ({
     scanCameraLabel,
     scanCanSwitchCamera,
     scanEntryPoint,
-    scanImageInputRef,
     scanIsOpen,
     scanVideoRef,
     shareCashuTokenText,

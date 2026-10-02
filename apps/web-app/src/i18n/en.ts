@@ -759,6 +759,7 @@ export const en = {
     "Camera permission denied. In Brave: click the lock icon → Site settings → Camera → Allow, then reload.",
   scanGallery: "Gallery",
   scanSwitchCamera: "Switch camera",
+  scanCameraPreview: "Camera preview",
   scanImageUnsupported: "No readable QR code found in the selected image.",
   scanPastePrompt: "Paste an LN invoice, Cashu token, LNURL, or npub.",
   scanReceiveUnsupportedPayment:

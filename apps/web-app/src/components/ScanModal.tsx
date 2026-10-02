@@ -1,18 +1,29 @@
 import {
-  Images as GalleryIcon,
-  BadgePlus as IssueTokenIcon,
-  Keyboard as KeyboardIcon,
-  Copy as PasteIcon,
-  SwitchCamera as SwitchCameraIcon,
-  ArrowDownToLine as TopupIcon,
-} from "lucide-react";
+  Button,
+  CameraPreview,
+  Dialog,
+  IconButton,
+  MediaFrame,
+  Progress,
+  Row,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
 import { useInspectorEmissionEnabled } from "../devtools/inspector/inspectorEnabled";
+import { useDesktopSplitView } from "../hooks/useDesktopSplitView";
 import { navigateTo } from "../hooks/useRouting";
+
+interface ScanAction {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+}
 
 export function ScanModal(): React.ReactElement {
   const {
@@ -20,30 +31,27 @@ export function ScanModal(): React.ReactElement {
     cycleScanCamera,
     openIssueTokenFromScan: onIssueToken,
     onPickScanImage,
-    onScanImageSelected,
     openManualPayFromScan: onTypePayment,
     openManualContactFromScan: onTypeManually,
     pasteScanValue,
   } = useAppShellActions();
   const {
     scanDiagnostics,
-    scanCameraLabel,
     scanCanSwitchCamera,
     scanEntryPoint,
-    scanImageInputRef,
     scanVideoRef,
     scanAllowsManualContact: showTypeAction,
     t,
   } = useAppShellCore();
-  const showWalletActions = !showTypeAction;
+  const isDesktopSplitView = useDesktopSplitView();
   // What the camera decodes is developer information; the progress of an
   // animation is not, so only the detail line waits for the inspector.
   const showScanDiagnostics = useInspectorEmissionEnabled();
   const animation = scanDiagnostics.animation;
-  const animationPercent =
+  const animationFraction =
     animation === null || animation.expected === null
       ? 0
-      : Math.round((animation.received / animation.expected) * 100);
+      : animation.received / animation.expected;
   const isReceiveScan = scanEntryPoint === "receive";
   const isSendScan = scanEntryPoint === "send";
   const handleClose = React.useCallback(() => {
@@ -51,7 +59,7 @@ export function ScanModal(): React.ReactElement {
     if (isReceiveScan) {
       navigateTo({ route: "wallet" });
     }
-  }, [closeScan, isReceiveScan, navigateTo]);
+  }, [closeScan, isReceiveScan]);
   const title =
     scanEntryPoint === "contacts"
       ? t("contactsScanContactQr")
@@ -61,184 +69,178 @@ export function ScanModal(): React.ReactElement {
           ? t("walletSend")
           : t("scan");
 
-  return (
-    <div className="scan-overlay" role="dialog" aria-label={title}>
-      <div className={`scan-sheet${isSendScan ? " scan-sheet--send" : ""}`}>
-        <div className="scan-header">
-          <div className="scan-title">{title}</div>
-          <button
-            className="topbar-btn"
-            onClick={handleClose}
-            aria-label={t("close")}
-            title={t("close")}
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
+  const animationHeadline =
+    animation === null
+      ? null
+      : animation.expected === null
+        ? t("scanAnimatedQrDetected")
+        : t("scanAnimatedQrProgress")
+            .replace("{received}", String(animation.received))
+            .replace("{expected}", String(animation.expected))
+            .replace("{percent}", String(Math.round(animationFraction * 100)));
 
-        <div className="scan-video-wrap">
-          <video ref={scanVideoRef} className="scan-video" />
-          {scanCanSwitchCamera ? (
-            <button
-              type="button"
-              className="scan-camera-switch"
-              onClick={cycleScanCamera}
-              aria-label={t("scanSwitchCamera")}
-              title={scanCameraLabel ?? t("scanSwitchCamera")}
-            >
-              <SwitchCameraIcon size={22} aria-hidden="true" />
-              <span>{t("scanSwitchCamera")}</span>
-            </button>
-          ) : null}
-        </div>
-        <input
-          ref={scanImageInputRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={onScanImageSelected}
+  const typeManually: ScanAction = {
+    icon: "Keyboard",
+    label: t("scanTypeManually"),
+    onPress: onTypeManually,
+  };
+  const paste: ScanAction = {
+    icon: "Copy",
+    label: t("paste"),
+    onPress: () => void pasteScanValue(),
+  };
+  const setAmount: ScanAction = {
+    icon: "ArrowDownToLine",
+    label: t("topupSetAmount"),
+    onPress: () => {
+      closeScan();
+      navigateTo({ route: "topup" });
+    },
+  };
+  const issueToken: ScanAction = {
+    icon: "BadgePlus",
+    label: t("cashuEmit"),
+    onPress: onIssueToken,
+  };
+  const gallery: ScanAction = {
+    icon: "Images",
+    label: t("scanGallery"),
+    onPress: onPickScanImage,
+  };
+  const actions = [
+    ...(showTypeAction ? [typeManually] : []),
+    paste,
+    ...(isReceiveScan
+      ? [setAmount, gallery]
+      : isSendScan
+        ? [issueToken, gallery]
+        : showTypeAction
+          ? []
+          : [gallery]),
+  ];
+
+  const content = (
+    <>
+      <Row justifyContent="space-between" data-scan-region="header">
+        <Text variant="label" bold>
+          {title}
+        </Text>
+        <IconButton
+          icon="X"
+          size="sm"
+          accessibilityLabel={t("close")}
+          onPress={handleClose}
         />
+      </Row>
 
-        <div className="scan-footer">
-          {scanDiagnostics.animation === null && !showScanDiagnostics ? null : (
-            <div className="scan-status" role="status">
-              {scanDiagnostics.animation === null ? null : (
-                <div
-                  className="scan-status-bar"
-                  style={{ width: `${animationPercent}%` }}
+      <MediaFrame accessibilityLabel={t("scanCameraPreview")} fill>
+        <CameraPreview videoRef={scanVideoRef} />
+        {scanCanSwitchCamera ? (
+          <Stack position="absolute" right="$md" bottom="$md">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="SwitchCamera"
+              onPress={cycleScanCamera}
+            >
+              {t("scanSwitchCamera")}
+            </Button>
+          </Stack>
+        ) : null}
+      </MediaFrame>
+
+      <Stack
+        gap="$sm"
+        width="100%"
+        maxWidth="$sheetWidth"
+        alignSelf="center"
+        data-scan-region="footer"
+      >
+        {animationHeadline === null && !showScanDiagnostics ? null : (
+          <Stack role="status" gap="$xs">
+            {animationHeadline === null ? null : (
+              <>
+                <Progress
+                  value={animationFraction}
+                  accessibilityLabel={animationHeadline}
                 />
-              )}
-              <div className="scan-status-lines">
-                {scanDiagnostics.animation === null ? null : (
-                  <div className="scan-status-headline">
-                    {scanDiagnostics.animation.expected === null
-                      ? t("scanAnimatedQrDetected")
-                      : t("scanAnimatedQrProgress")
-                          .replace(
-                            "{received}",
-                            String(scanDiagnostics.animation.received),
-                          )
-                          .replace(
-                            "{expected}",
-                            String(scanDiagnostics.animation.expected),
-                          )
-                          .replace("{percent}", String(animationPercent))}
-                  </div>
-                )}
-                {showScanDiagnostics ? (
-                  <div className="scan-status-detail">
-                    {t("scanDiagnosticsReads").replace(
-                      "{reads}",
-                      String(scanDiagnostics.reads),
-                    )}
-                    {scanDiagnostics.lastValue
-                      ? ` · ${scanDiagnostics.lastValue}…`
-                      : ""}
-                    {scanDiagnostics.lastRejection
-                      ? ` · ${scanDiagnostics.lastRejection}`
-                      : ""}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-          {isSendScan ? (
-            <button
-              type="button"
-              className="scan-manual-entry-btn"
-              onClick={onTypePayment}
-            >
-              {t("manualPayOpen")}
-            </button>
-          ) : null}
-          <div className="scan-footer-actions">
-            {showTypeAction ? (
-              <button
-                type="button"
-                className="scan-action-btn"
-                onClick={onTypeManually}
-                aria-label={t("scanTypeManually")}
-                title={t("scanTypeManually")}
+                <Text variant="label" textAlign="center">
+                  {animationHeadline}
+                </Text>
+              </>
+            )}
+            {showScanDiagnostics ? (
+              <Text
+                variant="caption"
+                mono
+                color="$colorMuted"
+                textAlign="center"
               >
-                <KeyboardIcon className="scan-action-btn-icon" />
-                <span className="scan-action-btn-label">
-                  {t("scanTypeManually")}
-                </span>
-              </button>
+                {t("scanDiagnosticsReads").replace(
+                  "{reads}",
+                  String(scanDiagnostics.reads),
+                )}
+                {scanDiagnostics.lastValue
+                  ? ` · ${scanDiagnostics.lastValue}…`
+                  : ""}
+                {scanDiagnostics.lastRejection
+                  ? ` · ${scanDiagnostics.lastRejection}`
+                  : ""}
+              </Text>
             ) : null}
-            <button
-              type="button"
-              className="scan-action-btn"
-              onClick={() => void pasteScanValue()}
-              aria-label={t("paste")}
-              title={t("paste")}
+          </Stack>
+        )}
+        {isSendScan ? (
+          <Button
+            variant="secondary"
+            justifyContent="flex-start"
+            onPress={onTypePayment}
+          >
+            {t("manualPayOpen")}
+          </Button>
+        ) : null}
+        <Row gap="$sm">
+          {actions.map((action) => (
+            <Button
+              key={action.label}
+              variant="secondary"
+              icon={action.icon}
+              flex={1}
+              onPress={action.onPress}
             >
-              <PasteIcon className="scan-action-btn-icon" />
-              <span className="scan-action-btn-label">{t("paste")}</span>
-            </button>
-            {isReceiveScan ? (
-              <>
-                <button
-                  type="button"
-                  className="scan-action-btn"
-                  onClick={() => {
-                    closeScan();
-                    navigateTo({ route: "topup" });
-                  }}
-                  aria-label={t("topupSetAmount")}
-                  title={t("topupSetAmount")}
-                >
-                  <TopupIcon className="scan-action-btn-icon" />
-                  <span className="scan-action-btn-label">
-                    {t("topupSetAmount")}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="scan-action-btn"
-                  onClick={onPickScanImage}
-                  aria-label={t("scanGallery")}
-                  title={t("scanGallery")}
-                >
-                  <GalleryIcon className="scan-action-btn-icon" />
-                  <span className="scan-action-btn-label">
-                    {t("scanGallery")}
-                  </span>
-                </button>
-              </>
-            ) : showWalletActions || isSendScan ? (
-              <>
-                {isSendScan ? (
-                  <button
-                    type="button"
-                    className="scan-action-btn"
-                    onClick={onIssueToken}
-                    aria-label={t("cashuEmit")}
-                    title={t("cashuEmit")}
-                  >
-                    <IssueTokenIcon className="scan-action-btn-icon" />
-                    <span className="scan-action-btn-label">
-                      {t("cashuEmit")}
-                    </span>
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="scan-action-btn"
-                  onClick={onPickScanImage}
-                  aria-label={t("scanGallery")}
-                  title={t("scanGallery")}
-                >
-                  <GalleryIcon className="scan-action-btn-icon" />
-                  <span className="scan-action-btn-label">
-                    {t("scanGallery")}
-                  </span>
-                </button>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </div>
+              {action.label}
+            </Button>
+          ))}
+        </Row>
+      </Stack>
+    </>
+  );
+
+  if (isDesktopSplitView) {
+    return (
+      <Stack
+        role="dialog"
+        aria-label={title}
+        flex={1}
+        padding="$xl"
+        backgroundColor="$background"
+      >
+        {content}
+      </Stack>
+    );
+  }
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+      title={title}
+      hideTitle
+      fullScreen
+    >
+      {content}
+    </Dialog>
   );
 }

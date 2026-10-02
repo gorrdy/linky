@@ -767,6 +767,7 @@ export const de = {
   scanPermissionDenied: "Der Kamerazugriff wurde abgelehnt.",
   scanGallery: "Galerie",
   scanSwitchCamera: "Kamera wechseln",
+  scanCameraPreview: "Kameravorschau",
   scanImageUnsupported:
     "Im ausgewählten Bild wurde kein lesbarer QR-Code gefunden.",
   scanPastePrompt:

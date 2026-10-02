@@ -131,7 +131,6 @@ export interface AppShellCoreContextValue {
   scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;
-  scanImageInputRef: React.RefObject<HTMLInputElement | null>;
   scanIsOpen: boolean;
   scanVideoRef: React.RefObject<HTMLVideoElement | null>;
   shareOptionsText: string | null;
@@ -174,7 +173,6 @@ export interface AppShellActionsContextValue {
   onProfilePhotoError: (error: unknown) => void;
   onProfilePhotoSelected: (dataUrl: string) => void;
   onPickScanImage: () => void;
-  onScanImageSelected: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openFeedbackContact: () => void;
   openIssueTokenFromScan: () => void;
   openManualContactFromScan: () => void;
