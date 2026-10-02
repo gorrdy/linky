@@ -9,27 +9,19 @@ interface PwaUpdateBannerProps {
 
 export const PwaUpdateBanner: React.FC<PwaUpdateBannerProps> = ({ t }) => {
   const [needRefresh, setNeedRefresh] = React.useState(false);
-  const [applying, setApplying] = React.useState(false);
 
-  React.useEffect(() => {
-    return subscribePwaNeedRefresh((value) => {
-      setNeedRefresh(value);
-    });
-  }, []);
+  React.useEffect(() => subscribePwaNeedRefresh(setNeedRefresh), []);
 
   if (!needRefresh) return null;
-
-  const onPress = () => {
-    if (applying) return;
-    setApplying(true);
-    void applyPwaUpdate();
-  };
 
   return (
     <TopBanner
       title={t("pwaUpdateAvailable")}
       icon="RefreshCcw"
-      action={{ label: t("pwaUpdateButton"), onPress }}
+      action={{
+        label: t("pwaUpdateButton"),
+        onPress: () => void applyPwaUpdate(),
+      }}
     />
   );
 };
