@@ -238,8 +238,6 @@ export const de = {
     "Warte auf das Evolu-Relay. Neue Nachrichten kommen an, sobald deine Daten synchronisiert sind.",
   evoluServersEmpty: "Keine Evolu-Server konfiguriert.",
   evoluServerOfflineLabel: "Offline",
-  evoluServerOfflineDisable: "Offline gehen",
-  evoluServerOfflineEnable: "Online gehen",
   evoluServerOfflineStatus: "Offline",
   evoluAddServerLabel: "Server hinzufügen",
   evoluAddServerButton: "Hinzufügen",

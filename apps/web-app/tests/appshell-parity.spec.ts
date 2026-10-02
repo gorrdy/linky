@@ -432,7 +432,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
       page.getByText("Synchronisierung", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Offline gehen", exact: true }),
+      page.getByRole("switch", { name: "Offline", exact: true }),
     ).toBeVisible();
     await close.click();
     await expect(page).toHaveURL(/#evolu-servers$/);

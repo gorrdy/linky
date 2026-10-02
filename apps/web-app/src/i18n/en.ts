@@ -230,8 +230,6 @@ export const en = {
     "Waiting for the Evolu relay. New messages arrive once your data has synced.",
   evoluServersEmpty: "No Evolu servers configured.",
   evoluServerOfflineLabel: "Offline",
-  evoluServerOfflineDisable: "Go offline",
-  evoluServerOfflineEnable: "Go online",
   evoluServerOfflineStatus: "Offline",
   evoluAddServerLabel: "Add server",
   evoluAddServerButton: "Add",

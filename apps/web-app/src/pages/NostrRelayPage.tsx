@@ -1,12 +1,4 @@
-import {
-  Button,
-  ListRow,
-  Notice,
-  Row,
-  Stack,
-  StatusDot,
-  Text,
-} from "@linky-fit/ui";
+import { Button, ListRow, Notice, Stack, StatusDot, Text } from "@linky-fit/ui";
 import { connectionStatus } from "../utils/connectionStatus";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -32,29 +24,21 @@ export function NostrRelayPage(): React.ReactElement {
   return (
     <Stack gap="$lg">
       <ListRow
-        title={
-          <>
-            <Text variant="label">{selectedRelayUrl}</Text>
-          </>
-        }
+        title={selectedRelayUrl}
         trailing={
-          <>
-            <StatusDot
-              tone={connectionStatus[dotState].tone}
-              accessibilityLabel={stateLabel}
-            />
-          </>
+          <StatusDot
+            tone={connectionStatus[dotState].tone}
+            accessibilityLabel={stateLabel}
+          />
         }
       />
 
       <ListRow
         title={t("relayStatusLabel")}
         trailing={
-          <>
-            <Text variant="label" color="$colorMuted">
-              {stateLabel}
-            </Text>
-          </>
+          <Text variant="label" color="$colorMuted">
+            {stateLabel}
+          </Text>
         }
         testID="relayStatusLabel"
       />
@@ -67,15 +51,13 @@ export function NostrRelayPage(): React.ReactElement {
         <ListRow
           title={t("relayLastPublish")}
           trailing={
-            <>
-              <Text variant="label" color="$colorMuted">
-                {lastPublish.accepted
-                  ? t("relayPublishAccepted")
-                  : t("relayPublishRejected")}
-                {" · "}
-                {formatRelativeTime(lastPublish.at, lang)}
-              </Text>
-            </>
+            <Text variant="label" color="$colorMuted">
+              {lastPublish.accepted
+                ? t("relayPublishAccepted")
+                : t("relayPublishRejected")}
+              {" · "}
+              {formatRelativeTime(lastPublish.at, lang)}
+            </Text>
           }
           testID="relayLastPublish"
         />
@@ -86,21 +68,14 @@ export function NostrRelayPage(): React.ReactElement {
           {t("relayRecommendedNote")}
         </Text>
       ) : (
-        <Row
-          justifyContent="space-between"
-          minHeight="$control"
-          paddingVertical="$sm"
+        <Button
+          onPress={requestDeleteSelectedRelay}
+          variant={
+            pendingRelayDeleteUrl === selectedRelayUrl ? "danger" : "secondary"
+          }
         >
-          <Button
-            width="100%"
-            onPress={requestDeleteSelectedRelay}
-            variant={
-              pendingRelayDeleteUrl === selectedRelayUrl ? "danger" : "primary"
-            }
-          >
-            {t("delete")}
-          </Button>
-        </Row>
+          {t("delete")}
+        </Button>
       )}
     </Stack>
   );

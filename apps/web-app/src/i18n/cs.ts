@@ -234,8 +234,6 @@ export const cs = {
     "Čekám na Evolu relay. Nové zprávy dorazí, jakmile se synchronizují tvoje data.",
   evoluServersEmpty: "Žádné Evolu servery nejsou nastavené.",
   evoluServerOfflineLabel: "Offline",
-  evoluServerOfflineDisable: "Přejít offline",
-  evoluServerOfflineEnable: "Přejít online",
   evoluServerOfflineStatus: "Offline",
   evoluAddServerLabel: "Přidat server",
   evoluAddServerButton: "Přidat",

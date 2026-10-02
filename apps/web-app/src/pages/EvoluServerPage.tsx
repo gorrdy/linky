@@ -2,9 +2,9 @@ import {
   Button,
   ListRow,
   Notice,
-  Row,
   Stack,
   StatusDot,
+  Switch,
   Text,
 } from "@linky-fit/ui";
 import { evoluSyncStatus } from "../utils/connectionStatus";
@@ -30,121 +30,81 @@ export function EvoluServerPage(): React.ReactElement {
     syncOwnerId,
   } = useEvoluSettingsContext();
   const { route, t } = useAppShellCore();
-  const selectedEvoluServerUrl = route.kind === "evoluServer" ? route.id : null;
+  const url = route.kind === "evoluServer" ? route.id : null;
+  if (!url) return <Notice tone="danger" title={t("errorPrefix")} />;
+
+  const offline = isEvoluServerOffline(url);
+  const status =
+    evoluSyncStatus[
+      deriveEvoluServerState({
+        evoluHasError,
+        isOffline: offline,
+        state: evoluServerStatusByUrl[url],
+        syncOwnerId,
+      })
+    ];
+  const deleteArmed = pendingEvoluServerDeleteUrl === url;
+  const requestRemove = () => {
+    if (!deleteArmed) {
+      setStatus(t("deleteArmedHint"));
+      setPendingEvoluServerDeleteUrl(url);
+      return;
+    }
+    setPendingEvoluServerDeleteUrl(null);
+    setEvoluServerOffline(url, false);
+    saveEvoluServerUrls(
+      evoluServerUrls.filter((u) => u.toLowerCase() !== url.toLowerCase()),
+    );
+    navigateTo({ route: "evoluServers" });
+  };
   return (
     <Stack gap="$lg">
       <EvoluSyncErrorNotice />
       <EvoluReloadNotice />
 
-      {selectedEvoluServerUrl ? (
-        <>
-          {(() => {
-            const offline = isEvoluServerOffline(selectedEvoluServerUrl);
-            const status =
-              evoluSyncStatus[
-                deriveEvoluServerState({
-                  evoluHasError,
-                  isOffline: offline,
-                  state: evoluServerStatusByUrl[selectedEvoluServerUrl],
-                  syncOwnerId,
-                })
-              ];
-            return (
-              <>
-                <ListRow
-                  title={
-                    <>
-                      <Text variant="label">{selectedEvoluServerUrl}</Text>
-                    </>
-                  }
-                  trailing={
-                    <>
-                      <StatusDot
-                        tone={status.tone}
-                        accessibilityLabel={t(status.labelKey)}
-                      />
-                    </>
-                  }
-                />
+      <ListRow
+        title={url}
+        trailing={
+          <StatusDot
+            tone={status.tone}
+            accessibilityLabel={t(status.labelKey)}
+          />
+        }
+      />
 
-                <ListRow
-                  title={t("evoluSyncLabel")}
-                  trailing={
-                    <>
-                      <Text variant="label" color="$colorMuted">
-                        {t(status.labelKey)}
-                      </Text>
-                    </>
-                  }
-                  testID="evoluSyncLabel"
-                />
+      <ListRow
+        title={t("evoluSyncLabel")}
+        trailing={
+          <Text variant="label" color="$colorMuted">
+            {t(status.labelKey)}
+          </Text>
+        }
+        testID="evoluSyncLabel"
+      />
 
-                <ListRow
-                  title={t("evoluServerOfflineLabel")}
-                  trailing={
-                    <>
-                      <Button
-                        type="button"
-                        onPress={() => {
-                          setEvoluServerOffline(
-                            selectedEvoluServerUrl,
-                            !offline,
-                          );
-                        }}
-                        variant="secondary"
-                      >
-                        {offline
-                          ? t("evoluServerOfflineEnable")
-                          : t("evoluServerOfflineDisable")}
-                      </Button>
-                    </>
-                  }
-                  testID="evoluServerOfflineLabel"
-                />
+      <ListRow
+        title={t("evoluServerOfflineLabel")}
+        trailing={
+          <Switch
+            accessibilityLabel={t("evoluServerOfflineLabel")}
+            value={offline}
+            onValueChange={(value) => setEvoluServerOffline(url, value)}
+          />
+        }
+        testID="evoluServerOfflineLabel"
+      />
 
-                {isEvoluServerRecommended(selectedEvoluServerUrl) ? (
-                  <Text variant="label" color="$colorMuted">
-                    {t("relayRecommendedNote")}
-                  </Text>
-                ) : (
-                  <Row
-                    justifyContent="space-between"
-                    minHeight="$control"
-                    paddingVertical="$sm"
-                  >
-                    <Button
-                      width="100%"
-                      type="button"
-                      onPress={() => {
-                        if (
-                          pendingEvoluServerDeleteUrl === selectedEvoluServerUrl
-                        ) {
-                          const selectedLower =
-                            selectedEvoluServerUrl.toLowerCase();
-                          const nextUrls = evoluServerUrls.filter(
-                            (u) => u.toLowerCase() !== selectedLower,
-                          );
-                          setPendingEvoluServerDeleteUrl(null);
-                          setEvoluServerOffline(selectedEvoluServerUrl, false);
-                          saveEvoluServerUrls(nextUrls);
-                          navigateTo({ route: "evoluServers" });
-                          return;
-                        }
-                        setStatus(t("deleteArmedHint"));
-                        setPendingEvoluServerDeleteUrl(selectedEvoluServerUrl);
-                      }}
-                      variant="danger"
-                    >
-                      {t("evoluServerRemove")}
-                    </Button>
-                  </Row>
-                )}
-              </>
-            );
-          })()}
-        </>
+      {isEvoluServerRecommended(url) ? (
+        <Text variant="label" color="$colorMuted">
+          {t("relayRecommendedNote")}
+        </Text>
       ) : (
-        <Notice tone="danger" title={t("errorPrefix")} />
+        <Button
+          onPress={requestRemove}
+          variant={deleteArmed ? "danger" : "secondary"}
+        >
+          {t("evoluServerRemove")}
+        </Button>
       )}
     </Stack>
   );

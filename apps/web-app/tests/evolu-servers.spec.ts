@@ -35,7 +35,7 @@ test("recommended relays stay configured while the user's own relays come and go
   await expect(
     page.getByRole("button", { name: "Remove server", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Go offline", exact: true }).click();
+  await page.getByRole("switch", { name: "Offline", exact: true }).click();
   await page.goto("/#evolu-servers");
   await expect(noBackupWarning).toBeVisible();
   await page.reload();
