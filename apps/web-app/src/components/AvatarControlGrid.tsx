@@ -4,10 +4,9 @@ import {
   Avatar,
   Icon,
   IconButton,
-  Pressable,
+  OptionTile,
   Row,
   Stack,
-  Text,
 } from "@linky-fit/ui";
 import type { AvatarEditorControlId } from "../derivedProfile";
 import { AVATAR_EDITOR_CONTROLS } from "../derivedProfile";
@@ -73,29 +72,23 @@ export function AvatarControlGrid({
 
       {custom ? (
         <Cell>
-          <Pressable
-            flexDirection="column"
-            gap="$xs"
-            padding="$sm"
-            borderRadius="$card"
-            backgroundColor={custom.isSelected ? "$accentSoft" : "$transparent"}
+          <OptionTile
+            label={t("profileUploadPhoto")}
+            leading={
+              custom.pictureUrl ? (
+                <Avatar
+                  name={t("profileUploadPhoto")}
+                  uri={custom.pictureUrl}
+                  size="sm"
+                />
+              ) : (
+                <Icon name="Plus" size="lg" />
+              )
+            }
+            selected={custom.isSelected}
             onPress={custom.onPick}
             disabled={disabled}
-            aria-pressed={custom.isSelected}
-          >
-            {custom.pictureUrl ? (
-              <Avatar
-                name={t("profileUploadPhoto")}
-                uri={custom.pictureUrl}
-                size="sm"
-              />
-            ) : (
-              <Icon name="Plus" size="lg" />
-            )}
-            <Text variant="caption" bold textAlign="center">
-              {t("profileUploadPhoto")}
-            </Text>
-          </Pressable>
+          />
         </Cell>
       ) : null}
     </Row>

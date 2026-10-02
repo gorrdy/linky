@@ -4,11 +4,10 @@ import {
   Button,
   Chip,
   Form,
-  Icon,
   IconButton,
   LoadingState,
   Notice,
-  Pressable,
+  OptionTile,
   Row,
   SelectField,
   Sheet,
@@ -17,7 +16,6 @@ import {
   Text,
   TextField,
 } from "@linky-fit/ui";
-import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import type {
   OnboardingStep,
@@ -96,40 +94,6 @@ const StepActions = ({ children }: { children: React.ReactNode }) => (
   >
     <Stack paddingVertical="$xs">{children}</Stack>
   </Stack>
-);
-
-interface PictureOptionProps {
-  icon: IconName;
-  label: string;
-  onPress: () => void;
-  disabled: boolean;
-  selected?: boolean;
-}
-
-const PictureOption = ({
-  icon,
-  label,
-  onPress,
-  disabled,
-  selected,
-}: PictureOptionProps) => (
-  <Pressable
-    flex={1}
-    flexDirection="column"
-    justifyContent="center"
-    gap="$xs"
-    padding="$lg"
-    borderRadius="$card"
-    backgroundColor={selected ? "$accentSoft" : "$surface"}
-    onPress={onPress}
-    disabled={disabled}
-    aria-pressed={selected}
-  >
-    <Icon name={icon} />
-    <Text variant="caption" bold color="$colorSubtle" textAlign="center">
-      {label}
-    </Text>
-  </Pressable>
 );
 
 export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
@@ -446,19 +410,22 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
         ) : null}
 
         <Row gap="$sm" alignItems="stretch">
-          <PictureOption
+          <OptionTile
+            flex={1}
             icon="ImageUp"
             label={t("profileUploadPhoto")}
             onPress={() => void pickPendingOnboardingPhoto()}
             disabled={onboardingIsBusy}
           />
-          <PictureOption
+          <OptionTile
+            flex={1}
             icon="Camera"
             label={t("onboardingTakePhoto")}
             onPress={() => setSelfieCaptureIsOpen(true)}
             disabled={onboardingIsBusy}
           />
-          <PictureOption
+          <OptionTile
+            flex={1}
             icon="Smile"
             label={t("onboardingCreateAvatar")}
             onPress={toggleAvatarEditor}

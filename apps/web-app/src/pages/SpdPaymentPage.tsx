@@ -2,14 +2,13 @@ import {
   Avatar,
   Button,
   Notice,
-  Pressable,
+  OptionTile,
   Row,
   SelectField,
   Stack,
   Stepper,
   Text,
   TextField,
-  border,
   ListRow,
 } from "@linky-fit/ui";
 import type { ContactRowLike } from "../app/types/appTypes";
@@ -624,54 +623,40 @@ const OfferContactTile = ({
   const responseSec = contact.lastBankPaymentResponseSec;
   const isSelected = order !== null;
   return (
-    <Pressable
+    <OptionTile
       testID="bank-payment-offer-contact"
       aria-label={name || npub || t("contact")}
-      aria-pressed={isSelected}
+      label={name || t("contact")}
+      selected={isSelected}
       onPress={onToggle}
       flex={1}
       minWidth="$hero"
-      flexDirection="column"
-      gap="$xs"
-      paddingVertical="$sm"
-      paddingHorizontal="$xs"
-      borderRadius="$control"
-      borderWidth={border.hairline}
-      borderColor={isSelected ? "$outlineColor" : "$transparent"}
-      backgroundColor={isSelected ? "$accentSoft" : "$transparent"}
+      leading={
+        // Side padding leaves room for the order badge to overhang the avatar.
+        <Stack position="relative" paddingHorizontal="$sm" paddingBottom="$xs">
+          <Avatar name={name} size="sm" uri={pictureUrl || undefined} />
+          {isSelected ? (
+            <Text
+              testID="bank-payment-offer-contact-order"
+              position="absolute"
+              right="$none"
+              bottom="$none"
+              minWidth="$iconSm"
+              paddingHorizontal="$xxs"
+              borderRadius="$pill"
+              overflow="hidden"
+              backgroundColor="$accent"
+              color="$onAccent"
+              variant="caption"
+              bold
+              textAlign="center"
+            >
+              {order}
+            </Text>
+          ) : null}
+        </Stack>
+      }
     >
-      {/* Side padding leaves room for the order badge to overhang the avatar. */}
-      <Stack position="relative" paddingHorizontal="$sm" paddingBottom="$xs">
-        <Avatar name={name} size="sm" uri={pictureUrl || undefined} />
-        {isSelected ? (
-          <Text
-            testID="bank-payment-offer-contact-order"
-            position="absolute"
-            right="$none"
-            bottom="$none"
-            minWidth="$iconSm"
-            paddingHorizontal="$xxs"
-            borderRadius="$pill"
-            overflow="hidden"
-            backgroundColor="$accent"
-            color="$onAccent"
-            variant="caption"
-            bold
-            textAlign="center"
-          >
-            {order}
-          </Text>
-        ) : null}
-      </Stack>
-      <Text
-        variant="label"
-        bold
-        width="100%"
-        textAlign="center"
-        numberOfLines={1}
-      >
-        {name || t("contact")}
-      </Text>
       {typeof responseSec === "number" &&
       Number.isFinite(responseSec) &&
       responseSec >= 0 ? (
@@ -682,6 +667,6 @@ const OfferContactTile = ({
           )}
         </Text>
       ) : null}
-    </Pressable>
+    </OptionTile>
   );
 };
