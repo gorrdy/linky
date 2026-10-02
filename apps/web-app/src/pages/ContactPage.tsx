@@ -1,12 +1,13 @@
 import {
-  ArchiveRestore,
-  HeartHandshake as DonateIcon,
-  MessageCircle as FeedbackIcon,
-  MessageCircleMore as MessagesIcon,
-  HandCoins as PayIcon,
-} from "lucide-react";
+  Avatar,
+  Button,
+  Pressable,
+  Row,
+  Stack,
+  Text,
+  Pill,
+} from "@linky-fit/ui";
 import { useEffect, useState, type FC } from "react";
-import { Avatar } from "../components/Avatar";
 
 import type { ContactId } from "../evolu";
 import { navigateTo } from "../hooks/useRouting";
@@ -14,9 +15,10 @@ import type { Translate } from "../i18n";
 import { formatDisplayGeneralStatus } from "../nostrStatus";
 import { loadCachedProfile } from "../profileCache";
 import { getContactGroups } from "../utils/contactGroups";
-import { formatShortLightningAddress, getInitials } from "../utils/formatting";
+import { formatShortLightningAddress } from "../utils/formatting";
 import { resolveVerifiedNip05Identifier } from "../utils/nostrNip05";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
+import { PageCard } from "../components/PageCard";
 
 interface Contact {
   archivedAtSec?: number | string | null;
@@ -41,43 +43,6 @@ interface ContactPageProps {
   statusText: string | null;
   t: Translate;
 }
-
-interface ContactActionButtonProps {
-  children: string;
-  className?: string;
-  dataGuide?: string;
-  disabled?: boolean;
-  icon: React.ReactNode;
-  onClick: () => void;
-  title?: string | undefined;
-}
-
-const ContactActionButton = ({
-  children,
-  className = "btn-wide",
-  dataGuide,
-  disabled = false,
-  icon,
-  onClick,
-  title,
-}: ContactActionButtonProps): React.ReactElement => {
-  return (
-    <button
-      className={className}
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      data-guide={dataGuide}
-    >
-      <span className="btn-label-with-icon">
-        <span className="btn-label-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <span>{children}</span>
-      </span>
-    </button>
-  );
-};
 
 const useVerifiedNip05 = (npub: string | null): string | null => {
   const [verifiedNip05, setVerifiedNip05] = useState<{
@@ -136,11 +101,7 @@ export const ContactPage: FC<ContactPageProps> = ({
     selectedLnAddress ? selectedNpub : null,
   );
   if (!selectedContact) {
-    return (
-      <section className="panel">
-        <p className="muted">{t("contactNotFound")}</p>
-      </section>
-    );
+    return <Text color="$colorMuted">{t("contactNotFound")}</Text>;
   }
 
   const contactId = selectedContact.id;
@@ -165,136 +126,87 @@ export const ContactPage: FC<ContactPageProps> = ({
     status: statusText,
     providesLabel: t("contactStatusProvides"),
   });
-  const avatarContent = (
-    <Avatar
-      pictureUrl={url}
-      fallback={getInitials(selectedContact.name ?? "")}
-      fallbackClassName="contact-avatar-fallback"
-      loading="lazy"
-    />
-  );
+  const avatar = <Avatar name={name} uri={url ?? undefined} size="lg" />;
 
   return (
-    <section className="panel contact-detail-card">
-      <div className="contact-detail">
-        <div className="contact-detail-header">
-          {npub ? (
-            <button
-              type="button"
-              className="contact-avatar is-xl contact-detail-avatar-button"
-              onClick={() => void copyText(npub)}
-              aria-label={`${t("copy")} ${t("npub")}`}
-              title={npub}
-            >
-              {avatarContent}
-            </button>
-          ) : (
-            <div className="contact-avatar is-xl" aria-hidden="true">
-              {avatarContent}
-            </div>
-          )}
-        </div>
-
-        <div className="contact-detail-copy-block">
-          <div className="contact-detail-title-row">
-            <h2 className="contact-detail-name" title={contactName}>
-              {contactName}
-            </h2>
-          </div>
-          {contactStatus ? (
-            <p className="contact-detail-status" title={contactStatus}>
-              {contactStatus}
-            </p>
-          ) : null}
-          {isArchivedContact ? (
-            <span className="contact-detail-archived-badge">
-              {t("archivedContactBadge")}
-            </span>
-          ) : null}
-          {groups.length > 0 ? (
-            <div className="contact-group-pills contact-detail-groups">
-              {groups.map((group) => (
-                <span
-                  className="group-filter-btn contact-group-pill"
-                  key={group}
-                >
-                  {group}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
+    <PageCard elevated>
+      <Stack alignItems="center" gap="$sm">
+        {npub ? (
+          <Pressable
+            borderRadius="$pill"
+            onPress={() => void copyText(npub)}
+            aria-label={`${t("copy")} ${t("npub")}`}
+          >
+            {avatar}
+          </Pressable>
+        ) : (
+          avatar
+        )}
+        <Text variant="display" textAlign="center" numberOfLines={2}>
+          {contactName}
+        </Text>
+        {contactStatus ? (
+          <Text variant="label" color="$colorMuted" textAlign="center">
+            {contactStatus}
+          </Text>
+        ) : null}
+        {isArchivedContact ? (
+          <Pill size="sm" label={t("archivedContactBadge")} tone="neutral" />
+        ) : null}
+        {groups.length > 0 ? (
+          <Row gap="$sm" flexWrap="wrap" justifyContent="center">
+            {groups.map((group) => (
+              <Pill size="sm" key={group} label={group} tone="neutral" />
+            ))}
+          </Row>
+        ) : null}
         {hasLightningAddress ? (
-          <button
-            type="button"
-            className="copyable contact-detail-ln contact-detail-copy"
-            onClick={() => void copyText(ln)}
-            title={
-              isLightningAddressNip05Verified
-                ? `${ln} · ${t("verifiedNip05")}`
-                : ln
-            }
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => void copyText(ln)}
             aria-label={
               isLightningAddressNip05Verified
                 ? `${t("verifiedNip05")}: ${ln}`
                 : t("lightningAddress")
             }
           >
-            {isLightningAddressNip05Verified ? (
-              <span className="contact-detail-nip05-check" aria-hidden="true">
-                ✓
-              </span>
-            ) : null}
-            {formatShortLightningAddress(ln)}
-          </button>
+            {`${isLightningAddressNip05Verified ? "✓ " : ""}${formatShortLightningAddress(ln)}`}
+          </Button>
         ) : null}
+      </Stack>
 
-        {isArchivedContact ? (
-          <ContactActionButton
-            className="btn-wide secondary"
-            icon={<ArchiveRestore size={18} />}
-            onClick={restoreArchivedContact}
-          >
-            {t("restoreArchivedContact")}
-          </ContactActionButton>
-        ) : null}
+      {isArchivedContact ? (
+        <Button
+          variant="secondary"
+          icon="ArchiveRestore"
+          onPress={restoreArchivedContact}
+        >
+          {t("restoreArchivedContact")}
+        </Button>
+      ) : null}
 
-        {canPayThisContact && (
-          <ContactActionButton
-            icon={
-              isFeedbackContact ? (
-                <DonateIcon size={18} />
-              ) : (
-                <PayIcon size={18} />
-              )
-            }
-            onClick={() => openContactPay(contactId)}
-            disabled={cashuIsBusy || !canStartPay}
-            title={!canStartPay ? t("payInsufficient") : undefined}
-            dataGuide="contact-pay"
-          >
-            {payLabel}
-          </ContactActionButton>
-        )}
+      {canPayThisContact && (
+        <Button
+          icon={isFeedbackContact ? "HeartHandshake" : "HandCoins"}
+          onPress={() => openContactPay(contactId)}
+          disabled={cashuIsBusy || !canStartPay}
+          data-guide="contact-pay"
+        >
+          {payLabel}
+        </Button>
+      )}
 
-        {canMessage && (
-          <ContactActionButton
-            className="btn-wide secondary"
-            icon={
-              isFeedbackContact ? (
-                <FeedbackIcon size={18} />
-              ) : (
-                <MessagesIcon size={18} />
-              )
-            }
-            onClick={() => navigateTo({ route: "chat", id: contactId })}
-            dataGuide="contact-message"
-          >
-            {messageLabel}
-          </ContactActionButton>
-        )}
-      </div>
-    </section>
+      {canMessage && (
+        <Button
+          variant="secondary"
+          icon={isFeedbackContact ? "MessageCircle" : "MessageCircleMore"}
+          onPress={() => navigateTo({ route: "chat", id: contactId })}
+          data-guide="contact-message"
+        >
+          {messageLabel}
+        </Button>
+      )}
+    </PageCard>
   );
 };

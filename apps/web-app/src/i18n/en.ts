@@ -603,6 +603,7 @@ export const en = {
   shareUnavailable: "Sharing is not available on this device.",
   shareOptionsTitle: "How do you want to share?",
   shareOptionsBody: "Choose an app or action for the prepared message.",
+  shareOptionsPreviewLabel: "Prepared message",
   shareViaWhatsApp: "Send via WhatsApp",
   shareViaSms: "Send as SMS",
   shareViaEmail: "Send by email",

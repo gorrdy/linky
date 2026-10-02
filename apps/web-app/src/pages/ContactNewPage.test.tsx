@@ -75,11 +75,13 @@ describe("ContactNewPage", () => {
       await vi.advanceTimersByTimeAsync(900);
     });
 
-    const rows = container.querySelectorAll(".contact-new-search-result");
+    const rows = container.querySelectorAll(
+      '[data-testid="contact-new-search-result"]',
+    );
     expect(rows).toHaveLength(2);
-    expect(rows[0]?.classList.contains("is-exact")).toBe(true);
+    expect(rows[0]?.getAttribute("aria-selected")).toBe("true");
     expect(rows[0]?.textContent).toContain("Alice");
-    expect(rows[1]?.classList.contains("is-exact")).toBe(false);
+    expect(rows[1]?.getAttribute("aria-selected")).toBe("false");
     expect(rows[1]?.textContent).toContain("Alice Cooper");
 
     await act(async () => root.unmount());

@@ -1,4 +1,14 @@
-import { UserPlus as ContactAddIcon } from "lucide-react";
+import {
+  Chip,
+  IconButton,
+  Row,
+  ScrollView,
+  Section,
+  space,
+  Stack,
+  Text,
+  TextField,
+} from "@linky-fit/ui";
 import type { FC } from "react";
 import React from "react";
 import type { ContactRowLike } from "../app/types/appTypes";
@@ -32,6 +42,13 @@ interface ContactsPageProps {
   };
 }
 
+/** Rows bleed into the gutter so their highlight frames content aligned with the titles. */
+const ContactRows = ({ children }: { children: React.ReactNode }) => (
+  <Stack gap="$xs" marginHorizontal={-space.md}>
+    {children}
+  </Stack>
+);
+
 export const ContactsPage: FC<ContactsPageProps> = React.memo(
   ({
     activeGroup,
@@ -59,107 +76,102 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
       visibleContacts.conversations.length +
       visibleContacts.others.length;
     const hasAnyContacts = totalVisible > 0;
+    const renderSection = (title: string, contacts: ContactRowLike[]) =>
+      contacts.length > 0 ? (
+        <Section title={title}>
+          <ContactRows>{contacts.map(renderContactCard)}</ContactRows>
+        </Section>
+      ) : null;
 
     return (
       <>
         {onboardingContent}
         {filterOpen && (
-          <div className="contacts-toolbar">
-            <div className="contacts-filter-panel">
-              <div className="contacts-search-bar" role="search">
-                <input
-                  ref={contactsSearchInputRef}
-                  type="search"
-                  placeholder={t("contactsSearchPlaceholder")}
-                  value={contactsSearch}
-                  onChange={(e) => setContactsSearch(e.target.value)}
-                  autoComplete="off"
-                />
-                {contactsSearch.trim() && (
-                  <button
-                    type="button"
-                    className="contacts-search-clear"
-                    aria-label={t("contactsSearchClear")}
+          <Stack
+            position="sticky"
+            top="$none"
+            zIndex="$sticky"
+            gap="$sm"
+            paddingVertical="$xs"
+            backgroundColor="$background"
+          >
+            <TextField
+              ref={(node) => {
+                contactsSearchInputRef.current =
+                  node instanceof HTMLInputElement ? node : null;
+              }}
+              label={t("contactsSearchPlaceholder")}
+              hideLabel
+              placeholder={t("contactsSearchPlaceholder")}
+              value={contactsSearch}
+              onChange={(event) => setContactsSearch(event.target.value)}
+              autoComplete="off"
+              enterKeyHint="search"
+              trailing={
+                contactsSearch.trim() ? (
+                  <IconButton
+                    icon="X"
+                    size="sm"
+                    variant="secondary"
+                    accessibilityLabel={t("contactsSearchClear")}
                     onPointerDown={(event) => event.preventDefault()}
-                    onClick={() => {
+                    onPress={() => {
                       setContactsSearch("");
                       requestAnimationFrame(() => {
                         contactsSearchInputRef.current?.focus();
                       });
                     }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
+                  />
+                ) : null
+              }
+            />
 
-              {showGroupFilter && (
-                <nav className="group-filter-bar" aria-label={t("group")}>
-                  <div className="group-filter-inner">
-                    {filterOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={
-                          activeGroup === option.value
-                            ? "group-filter-btn contact-group-pill is-active"
-                            : "group-filter-btn contact-group-pill"
-                        }
-                        onClick={() =>
-                          setActiveGroup(
-                            activeGroup === option.value ? null : option.value,
-                          )
-                        }
-                        title={option.label}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </nav>
-              )}
-            </div>
-          </div>
+            {showGroupFilter && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                role="navigation"
+                aria-label={t("group")}
+              >
+                <Row gap="$sm" paddingVertical="$xs">
+                  {filterOptions.map((option) => (
+                    <Chip
+                      key={option.value}
+                      label={option.label}
+                      selected={activeGroup === option.value}
+                      onPress={() =>
+                        setActiveGroup(
+                          activeGroup === option.value ? null : option.value,
+                        )
+                      }
+                    />
+                  ))}
+                </Row>
+              </ScrollView>
+            )}
+          </Stack>
         )}
 
-        <section className="panel panel-plain contacts-list-panel">
-          <div className="contact-list">
-            {!hasAnyContacts ? (
-              <p className="muted">{t("noContactsYet")}</p>
-            ) : (
-              <>
-                {visibleContacts.pinned.map(renderContactCard)}
-
-                {visibleContacts.proxyPayments.length > 0 && (
-                  <React.Fragment key="proxy-payments">
-                    <div className="settings-section-title contact-list-section-title">
-                      {t("proxyPayments")}
-                    </div>
-                    {visibleContacts.proxyPayments.map(renderContactCard)}
-                  </React.Fragment>
-                )}
-
-                {visibleContacts.conversations.length > 0 && (
-                  <React.Fragment key="conversations">
-                    <div className="settings-section-title contact-list-section-title">
-                      {conversationsLabel}
-                    </div>
-                    {visibleContacts.conversations.map(renderContactCard)}
-                  </React.Fragment>
-                )}
-
-                {visibleContacts.others.length > 0 && (
-                  <React.Fragment key="others">
-                    <div className="settings-section-title contact-list-section-title">
-                      {otherContactsLabel}
-                    </div>
-                    {visibleContacts.others.map(renderContactCard)}
-                  </React.Fragment>
-                )}
-              </>
-            )}
-          </div>
-        </section>
+        <ScrollView
+          flex={1}
+          marginHorizontal={-space.md}
+          contentContainerStyle={{ paddingHorizontal: space.md }}
+        >
+          {!hasAnyContacts ? (
+            <Text color="$colorMuted">{t("noContactsYet")}</Text>
+          ) : (
+            <Stack gap="$xs">
+              {visibleContacts.pinned.length > 0 && (
+                <ContactRows>
+                  {visibleContacts.pinned.map(renderContactCard)}
+                </ContactRows>
+              )}
+              {renderSection(t("proxyPayments"), visibleContacts.proxyPayments)}
+              {renderSection(conversationsLabel, visibleContacts.conversations)}
+              {renderSection(otherContactsLabel, visibleContacts.others)}
+            </Stack>
+          )}
+        </ScrollView>
 
         {showBottomTabBar ? (
           <BottomTabBar
@@ -171,16 +183,23 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
         ) : null}
 
         {showFab ? (
-          <button
-            type="button"
-            className="contacts-fab"
-            onClick={openNewContactPage}
-            aria-label={t("addContact")}
-            title={t("addContact")}
-            data-guide="contact-add-button"
+          <Stack
+            position="fixed"
+            right="$xl"
+            bottom="$huge"
+            zIndex="$raised"
+            data-safe-area="bottom"
           >
-            <ContactAddIcon className="contacts-fab-svgIcon" />
-          </button>
+            <IconButton
+              marginBottom="$huge"
+              icon="UserPlus"
+              variant="primary"
+              size="lg"
+              accessibilityLabel={t("addContact")}
+              onPress={openNewContactPage}
+              data-guide="contact-add-button"
+            />
+          </Stack>
         ) : null}
       </>
     );

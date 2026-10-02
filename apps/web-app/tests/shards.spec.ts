@@ -167,8 +167,7 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
     await test.step("an edit of a row born in shard 0 lands as a copy in shard 1 on the other device", async () => {
       await source.page.goto(`/#contact/${contactId}/edit`);
       await source.page
-        .locator(".form-grid input")
-        .first()
+        .getByRole("textbox", { name: "Name", exact: true })
         .fill("Updated after rotation");
       await source.page
         .getByRole("button", { name: "Save changes", exact: true })

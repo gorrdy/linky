@@ -28,16 +28,15 @@ describe("ContactsChecklist", () => {
       />,
     );
 
-    const items = container.querySelectorAll('[role="listitem"]');
-    expect(items).toHaveLength(1);
-    expect(items[0]?.textContent).toContain("Next task");
+    expect(container.textContent).toContain("Next task");
     expect(container.textContent).not.toContain("Completed task");
     expect(container.textContent).not.toContain("Later task");
 
+    const showHow = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "contactsOnboardingShowHow",
+    );
     await act(async () => {
-      items[0]
-        ?.querySelector("button")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      showHow?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(onShowHow).toHaveBeenCalledWith("next");
 

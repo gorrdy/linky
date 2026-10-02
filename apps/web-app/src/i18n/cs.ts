@@ -608,6 +608,7 @@ export const cs = {
   shareOptionsTitle: "Jak chcete sdílet?",
   shareOptionsBody:
     "Vyberte aplikaci nebo akci pro odeslání připravené zprávy.",
+  shareOptionsPreviewLabel: "Připravená zpráva",
   shareViaWhatsApp: "Poslat přes WhatsApp",
   shareViaSms: "Poslat SMS",
   shareViaEmail: "Poslat e-mailem",

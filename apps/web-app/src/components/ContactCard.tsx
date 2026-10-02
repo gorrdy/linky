@@ -1,3 +1,4 @@
+import { ContactRow, Row, Stack, Text } from "@linky-fit/ui";
 import type { MintIcon } from "../utils/mint";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -7,11 +8,7 @@ import type { CashuTokenMessageInfo } from "../app/lib/tokenMessageInfo";
 import type { ContactRowLike, LocalNostrMessage } from "../app/types/appTypes";
 import { parseProfileGeneralStatus } from "../nostrStatus";
 import { getContactName } from "../utils/contactName";
-import {
-  formatContactMessageTimestamp,
-  getInitials,
-} from "../utils/formatting";
-import { Avatar } from "./Avatar";
+import { formatContactMessageTimestamp } from "../utils/formatting";
 import { CashuTokenPill } from "./CashuTokenPill";
 import type { NpubMessageContactInfo } from "./ChatMessage";
 import { MessageEntityPreview } from "./MessageEntityPreview";
@@ -51,7 +48,6 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
     isUnknownContact = false,
   }) => {
     const { formatDisplayedAmountText, t } = useAppShellCore();
-    const initials = getInitials(getContactName(contact) || nameLabel);
     // The offered currencies belong on the contact's page, not in the list.
     const contactStatus = parseProfileGeneralStatus(statusText).text;
     const lastText = (lastMessage?.content ?? "").trim();
@@ -70,12 +66,8 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
       ? formatContactMessageTimestamp(lastMessage.createdAtSec)
       : "";
 
-    const directionSymbol = (() => {
-      const dir = (lastMessage?.direction ?? "").trim();
-      if (dir === "out") return "↗";
-      if (dir === "in") return "↘";
-      return "";
-    })();
+    const directionSymbol =
+      previewDirection === "out" ? "↗" : previewDirection === "in" ? "↘" : "";
 
     const previewText = preview
       ? directionSymbol
@@ -83,95 +75,47 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
         : preview
       : "";
 
-    const handleClick = () => onSelect(contact);
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        handleClick();
-      }
-    };
+    const previewContent = hasMessageEntityPreview(lastText) ? (
+      <MessageEntityPreview
+        content={lastText}
+        directionSymbol={directionSymbol}
+        getCashuTokenMessageInfo={() => tokenInfo}
+        getMintIconUrl={getMintIconUrl}
+        getNpubMessageContactInfo={getNpubMessageContactInfo}
+      />
+    ) : tokenInfo ? (
+      <TokenPreview
+        tokenInfo={tokenInfo}
+        directionSymbol={directionSymbol}
+        formatDisplayedAmountText={formatDisplayedAmountText}
+        getMintIconUrl={getMintIconUrl}
+        onIconError={onMintIconError}
+      />
+    ) : previewText ? (
+      <Text variant="caption" color="$colorMuted" numberOfLines={1}>
+        {previewText}
+      </Text>
+    ) : null;
 
     return (
-      <article
-        className={`contact-card is-clickable${isActive ? " is-active" : ""}`}
-        aria-current={isActive ? "page" : undefined}
+      <Stack
         data-guide="contact-card"
         data-guide-contact-id={String(contact.id)}
-        role="button"
-        tabIndex={0}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
+        data-unread={hasAttention || undefined}
       >
-        <div className="card-header">
-          <div className="contact-avatar with-badge" aria-hidden="true">
-            <span className="contact-avatar-inner">
-              <Avatar
-                pictureUrl={avatarUrl}
-                fallback={initials}
-                fallbackClassName="contact-avatar-fallback"
-                loading="lazy"
-              />
-            </span>
-            {hasAttention ? (
-              <span className="contact-unread-dot" aria-hidden="true" />
-            ) : null}
-            {isUnknownContact ? (
-              <span className="contact-unknown-badge" aria-hidden="true">
-                ?
-              </span>
-            ) : null}
-          </div>
-
-          <div className="card-main">
-            <div className="card-title-row">
-              {nameLabel ? (
-                <h4
-                  className={`contact-title${contactStatus ? " has-status" : ""}`}
-                >
-                  <span className="contact-title-text" title={nameLabel}>
-                    {nameLabel}
-                  </span>
-                  {contactStatus ? (
-                    <span className="contact-status-text" title={contactStatus}>
-                      <bdi dir="auto">{contactStatus}</bdi>
-                    </span>
-                  ) : null}
-                </h4>
-              ) : null}
-              {lastTime ? (
-                <span className="contact-card-trailing">
-                  {lastTime ? (
-                    <span className="muted contact-card-payment-method">
-                      {lastTime}
-                    </span>
-                  ) : null}
-                </span>
-              ) : null}
-            </div>
-
-            {hasMessageEntityPreview(lastText) ? (
-              <MessageEntityPreview
-                className="muted contact-message-entity-preview"
-                content={lastText}
-                directionSymbol={directionSymbol}
-                getCashuTokenMessageInfo={() => tokenInfo}
-                getMintIconUrl={getMintIconUrl}
-                getNpubMessageContactInfo={getNpubMessageContactInfo}
-              />
-            ) : tokenInfo ? (
-              <TokenPreview
-                tokenInfo={tokenInfo}
-                directionSymbol={directionSymbol}
-                formatDisplayedAmountText={formatDisplayedAmountText}
-                getMintIconUrl={getMintIconUrl}
-                onIconError={onMintIconError}
-              />
-            ) : previewText ? (
-              <div className="muted contact-card-preview">{previewText}</div>
-            ) : null}
-          </div>
-        </div>
-      </article>
+        <ContactRow
+          name={nameLabel}
+          avatarName={getContactName(contact) || nameLabel}
+          avatarUri={avatarUrl ?? undefined}
+          status={contactStatus || undefined}
+          preview={previewContent}
+          time={lastTime || undefined}
+          unread={hasAttention}
+          badge={isUnknownContact ? "?" : undefined}
+          selected={isActive}
+          onPress={() => onSelect(contact)}
+        />
+      </Stack>
     );
   },
 );
@@ -195,17 +139,20 @@ const TokenPreview: React.FC<TokenPreviewProps> = ({
 }) => {
   const amountText = formatDisplayedAmountText(tokenInfo.amount ?? 0);
   return (
-    <div className="muted contact-token-preview">
-      {directionSymbol ? <span>{directionSymbol}</span> : null}
+    <Row gap="$xs">
+      {directionSymbol ? (
+        <Text variant="caption" color="$colorMuted">
+          {directionSymbol}
+        </Text>
+      ) : null}
       <CashuTokenPill
         compact
         icon={getMintIconUrl(tokenInfo.mintUrl)}
         amountText={amountText}
         ariaLabel={amountText}
-        className="chat-token-pill"
         isMuted={!tokenInfo.isValid || tokenInfo.isHiddenTestMint}
         onMintIconError={onIconError}
       />
-    </div>
+    </Row>
   );
 };

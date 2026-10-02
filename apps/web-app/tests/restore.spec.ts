@@ -89,7 +89,7 @@ const contactArchivedAt = async (page: Page, contactId: string) =>
     (row) => row.id === contactId,
   )?.archivedAtSec ?? null;
 
-/** Whether each chat shows the unread dot; archived ones are read under the Archive filter. */
+/** Whether each chat is marked unread; archived ones are read under the Archive filter. */
 const unreadDots = async (
   page: Page,
   ids: { archived: string; listed: ReadonlyArray<string> },
@@ -98,8 +98,7 @@ const unreadDots = async (
   const dots: Record<string, boolean> = {};
   for (const id of ids.listed) {
     await expect(card(page, id)).toBeVisible();
-    dots[id] =
-      (await card(page, id).locator(".contact-unread-dot").count()) > 0;
+    dots[id] = (await card(page, id).getAttribute("data-unread")) === "true";
   }
   await expect(card(page, ids.archived)).toHaveCount(0);
   const archiveFilter = page.getByRole("button", {
@@ -113,7 +112,7 @@ const unreadDots = async (
   await archiveFilter.click();
   await expect(card(page, ids.archived)).toBeVisible();
   dots[ids.archived] =
-    (await card(page, ids.archived).locator(".contact-unread-dot").count()) > 0;
+    (await card(page, ids.archived).getAttribute("data-unread")) === "true";
   await archiveFilter.click();
   return dots;
 };
@@ -190,9 +189,7 @@ test("a seed restore keeps the account's archive, blocks and history intact", as
           .toBe(nowSec - 1);
         await a.page.goto("/#contacts");
         await sendDirectMessage(y.nsec, account.npub, Y_TEXTS[2], nowSec + 1);
-        await expect(
-          card(a.page, id).locator(".contact-unread-dot"),
-        ).toHaveCount(1);
+        await expect(card(a.page, id)).toHaveAttribute("data-unread", "true");
         return id;
       });
 

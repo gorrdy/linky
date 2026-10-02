@@ -1,8 +1,9 @@
-import { Archive, RefreshCcw, Save } from "lucide-react";
+import { Button, IconButton, Row, Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import type { ContactId } from "../evolu";
 import { ContactFields, type ContactFormData } from "./ContactNewPage";
 import type { Translate } from "../i18n";
+import { PageCard } from "../components/PageCard";
 
 interface Contact {
   archivedAtSec?: number | string | null;
@@ -56,118 +57,91 @@ export const ContactEditPage: FC<ContactEditPageProps> = ({
     form.lnAddress.trim().toLowerCase() !== publicLnAddress.toLowerCase(),
   );
 
+  const restoreButton = (field: "name" | "lnAddress") => (
+    <IconButton
+      icon="RefreshCcw"
+      size="sm"
+      accessibilityLabel={t("restore")}
+      onPress={() => void resetEditedContactFieldFromNostr(field)}
+    />
+  );
+
   return (
-    <section className="panel panel-plain">
-      {!selectedContact && <p className="muted">{t("contactNotFound")}</p>}
+    <PageCard gap="$lg">
+      {!selectedContact && (
+        <Text color="$colorMuted">{t("contactNotFound")}</Text>
+      )}
 
-      <div className="form-grid">
-        <div className="form-col">
-          <ContactFields
-            form={form}
-            groupNames={groupNames}
-            includeNpub
-            lightningPublicValue={showPublicLnAddress ? publicLnAddress : ""}
-            nameLabelAction={
-              form.npub.trim() && form.name.trim() ? (
-                <button
-                  type="button"
-                  className="icon-only-ghost"
-                  onClick={() => void resetEditedContactFieldFromNostr("name")}
-                  title={t("restore")}
-                  aria-label={t("restore")}
-                >
-                  <RefreshCcw size={18} aria-hidden="true" />
-                </button>
-              ) : null
-            }
-            namePlaceholder={publicName || t("namePlaceholder")}
-            namePublicValue={showPublicName ? publicName : ""}
-            lightningLabelAction={
-              form.npub.trim() && form.lnAddress.trim() ? (
-                <button
-                  type="button"
-                  className="icon-only-ghost"
-                  onClick={() =>
-                    void resetEditedContactFieldFromNostr("lnAddress")
-                  }
-                  title={t("restore")}
-                  aria-label={t("restore")}
-                >
-                  <RefreshCcw size={18} aria-hidden="true" />
-                </button>
-              ) : null
-            }
-            lightningPlaceholder={
-              publicLnAddress || t("lightningAddressPlaceholder")
-            }
-            setForm={setForm}
-            t={t}
-          />
+      <ContactFields
+        form={form}
+        groupNames={groupNames}
+        includeNpub
+        lightningPublicValue={showPublicLnAddress ? publicLnAddress : ""}
+        nameLabelAction={
+          form.npub.trim() && form.name.trim() ? restoreButton("name") : null
+        }
+        namePlaceholder={publicName || t("namePlaceholder")}
+        namePublicValue={showPublicName ? publicName : ""}
+        lightningLabelAction={
+          form.npub.trim() && form.lnAddress.trim()
+            ? restoreButton("lnAddress")
+            : null
+        }
+        lightningPlaceholder={
+          publicLnAddress || t("lightningAddressPlaceholder")
+        }
+        setForm={setForm}
+        t={t}
+      />
 
-          <div className="actions">
-            {editingId ? (
-              contactEditsSavable && (
-                <button onClick={handleSaveContact} disabled={isSavingContact}>
-                  <span className="btn-label-with-icon">
-                    <span className="btn-label-icon" aria-hidden="true">
-                      <Save size={18} />
-                    </span>
-                    <span>
-                      {isSavingContact ? t("saving") : t("saveChanges")}
-                    </span>
-                  </span>
-                </button>
-              )
-            ) : (
-              <button
-                onClick={handleSaveContact}
-                data-guide="contact-save"
-                disabled={isSavingContact}
-              >
-                {isSavingContact ? t("saving") : t("saveContact")}
-              </button>
-            )}
-            {isArchivedContact ? (
-              <>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={restoreArchivedContact}
-                  disabled={!editingId}
-                  title={t("restoreArchivedContact")}
-                >
-                  {t("restoreArchivedContact")}
-                </button>
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={() => {
-                    void blockArchivedContact();
-                  }}
-                  disabled={!editingId || !canBlockArchivedContact}
-                  title={t("blockContact")}
-                >
-                  {t("blockContact")}
-                </button>
-              </>
-            ) : (
-              <button
-                className="ghost"
-                onClick={archiveCurrentContact}
-                disabled={!editingId}
-                title={t("archiveContact")}
-              >
-                <span className="btn-label-with-icon">
-                  <span className="btn-label-icon" aria-hidden="true">
-                    <Archive size={18} />
-                  </span>
-                  <span>{t("archiveContact")}</span>
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
+      <Row gap="$sm" flexWrap="wrap">
+        {editingId ? (
+          contactEditsSavable && (
+            <Button
+              icon="Save"
+              onPress={handleSaveContact}
+              disabled={isSavingContact}
+            >
+              {isSavingContact ? t("saving") : t("saveChanges")}
+            </Button>
+          )
+        ) : (
+          <Button
+            onPress={handleSaveContact}
+            data-guide="contact-save"
+            disabled={isSavingContact}
+          >
+            {isSavingContact ? t("saving") : t("saveContact")}
+          </Button>
+        )}
+        {isArchivedContact ? (
+          <>
+            <Button
+              variant="secondary"
+              onPress={restoreArchivedContact}
+              disabled={!editingId}
+            >
+              {t("restoreArchivedContact")}
+            </Button>
+            <Button
+              variant="danger"
+              onPress={() => void blockArchivedContact()}
+              disabled={!editingId || !canBlockArchivedContact}
+            >
+              {t("blockContact")}
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="secondary"
+            icon="Archive"
+            onPress={archiveCurrentContact}
+            disabled={!editingId}
+          >
+            {t("archiveContact")}
+          </Button>
+        )}
+      </Row>
+    </PageCard>
   );
 };

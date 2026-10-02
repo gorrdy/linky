@@ -1,3 +1,12 @@
+import {
+  Button,
+  IconButton,
+  Notice,
+  Progress,
+  Row,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import React from "react";
 import type { Translate } from "../i18n";
 
@@ -31,79 +40,60 @@ export function ContactsChecklist({
   const isComplete =
     contactsOnboardingCelebrating || tasksCompleted === tasksTotal;
   const nextTask = tasks.find((task) => !task.done);
+  const progressText = t("contactsOnboardingProgress")
+    .replace(/\{done\}/g, String(tasksCompleted))
+    .replace(/\{total\}/g, String(tasksTotal));
 
   return (
-    <section className="panel panel-plain contacts-checklist">
-      <div className="contacts-checklist-header">
-        <div className="contacts-checklist-title">
+    <Stack gap="$sm" paddingVertical="$md">
+      <Row justifyContent="space-between">
+        <Text variant="label" bold color="$colorSubtle">
           {t("contactsOnboardingTitle")}
-        </div>
-        <button
-          type="button"
-          className="contacts-checklist-close"
-          onClick={dismissContactsOnboarding}
-          aria-label={t("contactsOnboardingDismiss")}
-          title={t("contactsOnboardingDismiss")}
-        >
-          ×
-        </button>
-      </div>
+        </Text>
+        <IconButton
+          icon="X"
+          size="sm"
+          accessibilityLabel={t("contactsOnboardingDismiss")}
+          onPress={dismissContactsOnboarding}
+        />
+      </Row>
 
-      <div className="contacts-checklist-progressRow">
-        <div className="contacts-checklist-progress" aria-hidden="true">
-          <div
-            className="contacts-checklist-progressFill"
-            style={{ width: `${progressPercent}%` }}
+      <Row gap="$sm">
+        <Stack flex={1}>
+          <Progress
+            value={progressPercent}
+            max={100}
+            accessibilityLabel={progressText}
           />
-        </div>
-        <div className="contacts-checklist-progressText">
-          {t("contactsOnboardingProgress")
-            .replace(/\{done\}/g, String(tasksCompleted))
-            .replace(/\{total\}/g, String(tasksTotal))}
-        </div>
-      </div>
+        </Stack>
+        <Text variant="caption" bold color="$colorMuted">
+          {progressText}
+        </Text>
+      </Row>
 
       {isComplete ? (
-        <div className="contacts-checklist-done" role="status">
-          <span className="contacts-checklist-doneIcon" aria-hidden="true">
-            ✓
-          </span>
-          <span>
-            <div className="contacts-checklist-doneTitle">
-              {t("contactsOnboardingCompletedTitle")}
-            </div>
-            <div className="contacts-checklist-doneBody">
-              {t("contactsOnboardingCompletedBody")}
-            </div>
-          </span>
-        </div>
-      ) : (
-        <div className="contacts-checklist-items" role="list">
-          {nextTask ? (
-            <div
-              key={nextTask.key}
-              className="contacts-checklist-item"
-              role="listitem"
-            >
-              <span
-                className="contacts-checklist-check is-bullet"
-                aria-hidden="true"
-              >
-                •
-              </span>
-              <span className="contacts-checklist-label">{nextTask.label}</span>
-
-              <button
-                type="button"
-                className="contacts-checklist-how"
-                onClick={() => onShowHow(nextTask.key)}
-              >
-                {t("contactsOnboardingShowHow")}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      )}
-    </section>
+        <Notice
+          tone="accent"
+          title={t("contactsOnboardingCompletedTitle")}
+          description={t("contactsOnboardingCompletedBody")}
+        />
+      ) : nextTask ? (
+        <Row gap="$sm">
+          <Text color="$colorMuted" aria-hidden>
+            •
+          </Text>
+          <Text flex={1} bold>
+            {nextTask.label}
+          </Text>
+          <Button
+            size="sm"
+            variant="ghost"
+            onPress={() => onShowHow(nextTask.key)}
+          >
+            {t("contactsOnboardingShowHow")}
+          </Button>
+        </Row>
+      ) : null}
+    </Stack>
   );
 }

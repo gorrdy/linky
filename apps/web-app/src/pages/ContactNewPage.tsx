@@ -1,14 +1,21 @@
 import {
-  ArrowLeft,
-  Copy as PasteIcon,
-  Save,
-  User,
-  UserPlus,
-} from "lucide-react";
+  Avatar,
+  Button,
+  Chip,
+  IconButton,
+  ListRow,
+  LoadingState,
+  Row,
+  ScrollView,
+  space,
+  Stack,
+  Text,
+  TextField,
+} from "@linky-fit/ui";
+import type { TextFieldProps } from "@linky-fit/ui";
 import type { FC } from "react";
 import React from "react";
 import { getContactQueryPrefill } from "../app/lib/contactQueryPrefill";
-import { Avatar } from "../components/Avatar";
 
 import type { Translate } from "../i18n";
 import { readClipboardText } from "../platform/clipboard";
@@ -16,7 +23,6 @@ import { normalizeContactGroups } from "../utils/contactGroups";
 import {
   formatShortLightningAddress,
   formatShortNpub,
-  getInitials,
 } from "../utils/formatting";
 
 export interface ContactFormData {
@@ -32,7 +38,7 @@ interface ContactFieldsProps {
   includeNpub?: boolean;
   lightningLabelAction?: React.ReactNode;
   lightningPlaceholder?: string;
-  /** Shown greyed inside the field next to a differing typed value. */
+  /** Shown under the field when the typed value differs from it. */
   lightningPublicValue?: string;
   nameLabelAction?: React.ReactNode;
   namePlaceholder?: string;
@@ -68,113 +74,94 @@ export function ContactFields({
       groups: form.groups.filter((group) => group !== value),
     });
   };
-  const renderLabel = (label: string, action: React.ReactNode | undefined) =>
+  const publicValueHint = (publicValue: string | undefined) =>
+    publicValue
+      ? `${t("contactPublicProfileValue")}: ${publicValue}`
+      : undefined;
+  const labelledField = (
+    action: React.ReactNode | undefined,
+    { label, ...props }: TextFieldProps,
+  ) =>
     action === undefined ? (
-      <label>{label}</label>
+      <TextField label={label} {...props} />
     ) : (
-      <div className="form-field-heading">
-        <label>{label}</label>
-        {action}
-      </div>
+      <Stack gap="$xs">
+        <Row justifyContent="space-between" minHeight="$controlSm">
+          <Text variant="label" color="$colorSubtle">
+            {label}
+          </Text>
+          {action}
+        </Row>
+        <TextField label={label} hideLabel {...props} />
+      </Stack>
     );
 
-  // The wrapper is always rendered: toggling it with the public value would
-  // remount the input mid-typing and drop its focus.
-  const renderInputWithPublicValue = (
-    input: React.ReactNode,
-    publicValue: string | undefined,
-  ) => (
-    <div
-      className={
-        publicValue
-          ? "input-with-public-value has-public-value"
-          : "input-with-public-value"
-      }
-    >
-      {input}
-      {publicValue ? (
-        <span
-          className="input-public-value"
-          title={t("contactPublicProfileValue")}
-        >
-          {publicValue}
-        </span>
-      ) : null}
-    </div>
-  );
-
   return (
-    <>
-      {renderLabel(t("name"), nameLabelAction)}
-      {renderInputWithPublicValue(
-        <input
-          value={form.name}
-          onChange={(event) => setForm({ ...form, name: event.target.value })}
-          placeholder={namePlaceholder ?? t("namePlaceholder")}
-        />,
-        namePublicValue,
-      )}
+    <Stack gap="$md">
+      {labelledField(nameLabelAction, {
+        label: t("name"),
+        value: form.name,
+        onChange: (event) => setForm({ ...form, name: event.target.value }),
+        placeholder: namePlaceholder ?? t("namePlaceholder"),
+        hint: publicValueHint(namePublicValue),
+      })}
 
       {includeNpub ? (
-        <>
-          <label>{t("npub")}</label>
-          <input
-            value={form.npub}
-            onChange={(event) => setForm({ ...form, npub: event.target.value })}
-            placeholder={t("npubPlaceholder")}
-          />
-        </>
+        <TextField
+          label={t("npub")}
+          value={form.npub}
+          onChange={(event) => setForm({ ...form, npub: event.target.value })}
+          placeholder={t("npubPlaceholder")}
+        />
       ) : null}
 
-      {renderLabel(t("lightningAddress"), lightningLabelAction)}
-      {renderInputWithPublicValue(
-        <input
-          value={form.lnAddress}
-          onChange={(event) =>
-            setForm({ ...form, lnAddress: event.target.value })
-          }
-          placeholder={lightningPlaceholder ?? t("lightningAddressPlaceholder")}
-        />,
-        lightningPublicValue,
-      )}
+      {labelledField(lightningLabelAction, {
+        label: t("lightningAddress"),
+        value: form.lnAddress,
+        onChange: (event) =>
+          setForm({ ...form, lnAddress: event.target.value }),
+        placeholder: lightningPlaceholder ?? t("lightningAddressPlaceholder"),
+        hint: publicValueHint(lightningPublicValue),
+      })}
 
-      <label>{t("group")}</label>
-      {allGroups.length > 0 ? (
-        <div className="contact-group-selector" aria-label={t("group")}>
-          {allGroups.map((group) => {
-            const isSelected = form.groups.includes(group);
-            return (
-              <button
-                className={
-                  isSelected
-                    ? "group-filter-btn contact-group-pill is-active"
-                    : "group-filter-btn contact-group-pill"
-                }
-                key={group}
-                type="button"
-                onClick={() =>
-                  isSelected ? removeGroup(group) : addGroup(group)
-                }
-                aria-pressed={isSelected}
-              >
-                {group}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-      <input
-        value={groupInput}
-        onChange={(event) => setGroupInput(event.target.value)}
-        onBlur={() => addGroup(groupInput)}
-        onKeyDown={(event) => {
-          if (event.key !== "Enter" && event.key !== ",") return;
-          event.preventDefault();
-          addGroup(groupInput);
-        }}
-        placeholder={t("groupPlaceholder")}
-      />
-    </>
+      <Stack gap="$xs">
+        <Text variant="label" color="$colorSubtle">
+          {t("group")}
+        </Text>
+        {allGroups.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <Row gap="$sm" role="group" aria-label={t("group")}>
+              {allGroups.map((group) => {
+                const isSelected = form.groups.includes(group);
+                return (
+                  <Chip
+                    key={group}
+                    label={group}
+                    selected={isSelected}
+                    onPress={() =>
+                      isSelected ? removeGroup(group) : addGroup(group)
+                    }
+                  />
+                );
+              })}
+            </Row>
+          </ScrollView>
+        ) : null}
+        <TextField
+          label={t("group")}
+          hideLabel
+          value={groupInput}
+          onChange={(event) => setGroupInput(event.target.value)}
+          onBlur={() => addGroup(groupInput)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== ",") return;
+            event.preventDefault();
+            addGroup(groupInput);
+          }}
+          placeholder={t("groupPlaceholder")}
+        />
+      </Stack>
+    </Stack>
   );
 }
 
@@ -384,260 +371,219 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
     (searchIsBusy ||
       (!searchResults && !searchError && manualCreateQuery !== searchQuery));
 
-  return (
-    <section className="panel panel-plain">
-      <div className="form-grid">
-        <div className="form-col contact-new-form-col">
-          {step === "search" ? (
-            <>
-              <label>{t("contactSearchLabel")}</label>
-              <p className="contact-new-step-hint">{t("contactSearchHint")}</p>
-              <div className="contact-new-identifier-input-row">
-                <input
-                  ref={searchInputRef}
-                  value={form.npub}
-                  onChange={(e) => {
-                    lastSearchedQueryRef.current = "";
-                    clearSearchFeedback();
-                    setForm({ ...form, npub: e.target.value });
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter") return;
-                    event.preventDefault();
-                    void runSearch();
-                  }}
-                  onPaste={(event) => {
-                    const pastedText = event.clipboardData.getData("text");
-                    const queryText = pastedText.trim();
-                    if (!queryText) return;
-                    event.preventDefault();
-                    searchQueryRef.current = queryText;
-                    setForm({ ...form, npub: queryText });
-                    void runSearch(queryText);
-                  }}
-                  placeholder={t("contactSearchPlaceholder")}
-                  autoComplete="off"
-                  autoFocus
-                  data-guide="contact-search-input"
-                />
-                <button
-                  type="button"
-                  className="icon-only-ghost"
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={() => void pasteSearch()}
-                  title={t("paste")}
-                  aria-label={t("paste")}
-                >
-                  <PasteIcon size={18} aria-hidden="true" />
-                </button>
-              </div>
+  const searchStep = (
+    <>
+      <Stack gap="$xs">
+        <Text variant="label" color="$colorSubtle">
+          {t("contactSearchLabel")}
+        </Text>
+        <Text variant="label" fontWeight="$regular" color="$colorMuted">
+          {t("contactSearchHint")}
+        </Text>
+      </Stack>
+      <TextField
+        ref={(node) => {
+          searchInputRef.current =
+            node instanceof HTMLInputElement ? node : null;
+        }}
+        label={t("contactSearchLabel")}
+        hideLabel
+        value={form.npub}
+        onChange={(event) => {
+          lastSearchedQueryRef.current = "";
+          clearSearchFeedback();
+          setForm({ ...form, npub: event.target.value });
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          void runSearch();
+        }}
+        onPaste={(event) => {
+          const queryText = event.clipboardData.getData("text").trim();
+          if (!queryText) return;
+          event.preventDefault();
+          searchQueryRef.current = queryText;
+          setForm({ ...form, npub: queryText });
+          void runSearch(queryText);
+        }}
+        placeholder={t("contactSearchPlaceholder")}
+        autoComplete="off"
+        autoFocus
+        data-guide="contact-search-input"
+        trailing={
+          <IconButton
+            icon="Copy"
+            accessibilityLabel={t("paste")}
+            onPointerDown={(event) => event.preventDefault()}
+            onPress={() => void pasteSearch()}
+          />
+        }
+      />
 
-              {searchResults ? (
-                <div className="contact-new-search-results">
-                  {searchResults.contacts.map((candidate) => {
-                    const displayName = (
-                      candidate.name ||
-                      candidate.query ||
-                      ""
-                    ).trim();
-                    return (
-                      <div
-                        className={
-                          candidate.isExactMatch
-                            ? "contact-new-search-result is-exact"
-                            : "contact-new-search-result"
-                        }
-                        key={candidate.npub}
+      {searchResults ? (
+        <Stack gap="$xs" marginHorizontal={-space.md}>
+          {searchResults.contacts.map((candidate) => {
+            const displayName =
+              (candidate.name || candidate.query || "").trim() || t("contact");
+            return (
+              <ListRow
+                key={candidate.npub}
+                testID="contact-new-search-result"
+                selected={candidate.isExactMatch}
+                leading={
+                  <Avatar
+                    name={displayName}
+                    uri={candidate.pictureUrl ?? undefined}
+                  />
+                }
+                title={
+                  <Text bold numberOfLines={1}>
+                    {displayName}
+                  </Text>
+                }
+                description={
+                  <Stack gap="$xxs">
+                    {candidate.lnAddress ? (
+                      <Text
+                        variant="caption"
+                        color="$colorMuted"
+                        numberOfLines={1}
                       >
-                        <div className="contact-new-search-result-main">
-                          <div
-                            className="contact-avatar is-large"
-                            aria-hidden="true"
-                          >
-                            <Avatar
-                              pictureUrl={candidate.pictureUrl}
-                              fallback={getInitials(displayName)}
-                              fallbackClassName="contact-avatar-fallback"
-                              loading="lazy"
-                            />
-                          </div>
-                          <div className="contact-new-search-result-body">
-                            <strong>{displayName || t("contact")}</strong>
-                            {candidate.lnAddress ? (
-                              <span title={candidate.lnAddress}>
-                                {formatShortLightningAddress(
-                                  candidate.lnAddress,
-                                )}
-                              </span>
-                            ) : null}
-                            <small title={candidate.npub}>
-                              {formatShortNpub(candidate.npub)}
-                            </small>
-                          </div>
-                        </div>
-                        <div className="contact-new-search-result-action">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void addNewContactFromSearchResult(candidate)
-                            }
-                            disabled={isSavingContact}
-                          >
-                            <span className="btn-label-with-icon">
-                              <span
-                                className="btn-label-icon"
-                                aria-hidden="true"
-                              >
-                                {candidate.existingContactId ? (
-                                  <User size={18} />
-                                ) : (
-                                  <UserPlus size={18} />
-                                )}
-                              </span>
-                              <span>
-                                {isSavingContact
-                                  ? t("saving")
-                                  : candidate.existingContactId
-                                    ? t("openContact")
-                                    : t("saveContact")}
-                              </span>
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {searchError ? (
-                <div className="contact-new-search-empty">
-                  <p className="contact-new-validation">{searchError}</p>
-                </div>
-              ) : null}
-
-              {showSearchLoader ? (
-                <div className="contact-new-search-loading" role="status">
-                  <span className="btn-spinner" aria-hidden="true" />
-                  <span>{t("contactSearching")}</span>
-                </div>
-              ) : null}
-
-              {canCreateContactFromSearch ? (
-                <div className="contact-new-search-empty">
-                  <button
-                    type="button"
-                    className="ghost"
-                    onClick={createManualFromSearch}
-                    disabled={searchIsBusy}
+                        {formatShortLightningAddress(candidate.lnAddress)}
+                      </Text>
+                    ) : null}
+                    <Text
+                      variant="caption"
+                      color="$colorMuted"
+                      numberOfLines={1}
+                    >
+                      {formatShortNpub(candidate.npub)}
+                    </Text>
+                  </Stack>
+                }
+                trailing={
+                  <Button
+                    icon={candidate.existingContactId ? "User" : "UserPlus"}
+                    onPress={() =>
+                      void addNewContactFromSearchResult(candidate)
+                    }
+                    disabled={isSavingContact}
                   >
-                    {t("contactSearchCreateFromQuery")}
-                  </button>
-                </div>
-              ) : null}
-              {showSuggestions ? (
-                <div className="contact-new-suggestions">
-                  <div className="contact-new-suggestions-title">
-                    {t("contactSuggestionsTitle")}
-                  </div>
-                  <div className="contact-new-suggestion-list">
-                    {contactSuggestions.map((suggestion) => {
-                      const displayName = (
-                        suggestion.name ||
-                        suggestion.query ||
-                        ""
-                      ).trim();
-                      const avatarUrl = suggestion.pictureUrl ?? null;
-
-                      return (
-                        <div
-                          className="contact-new-suggestion"
-                          key={suggestion.npub}
-                        >
-                          <div className="contact-new-suggestion-main">
-                            <span className="contact-avatar" aria-hidden="true">
-                              <Avatar
-                                pictureUrl={avatarUrl}
-                                fallback={getInitials(displayName)}
-                                fallbackClassName="contact-avatar-fallback"
-                                loading="lazy"
-                              />
-                            </span>
-                            <span className="contact-new-suggestion-body">
-                              <strong>{displayName || t("contact")}</strong>
-                              <span title={suggestion.displayLnAddress}>
-                                {formatShortLightningAddress(
-                                  suggestion.displayLnAddress,
-                                )}
-                              </span>
-                            </span>
-                          </div>
-                          <div className="contact-new-suggestion-action">
-                            <button
-                              type="button"
-                              onClick={() => void addSuggestion(suggestion)}
-                              disabled={isSavingContact}
-                            >
-                              <span className="btn-label-with-icon">
-                                <span
-                                  className="btn-label-icon"
-                                  aria-hidden="true"
-                                >
-                                  <UserPlus size={18} />
-                                </span>
-                                <span>
-                                  {isSavingContact
-                                    ? t("saving")
-                                    : t("saveContact")}
-                                </span>
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <ContactFields
-                form={form}
-                groupNames={groupNames}
-                setForm={setForm}
-                t={t}
+                    {isSavingContact
+                      ? t("saving")
+                      : candidate.existingContactId
+                        ? t("openContact")
+                        : t("saveContact")}
+                  </Button>
+                }
               />
+            );
+          })}
+        </Stack>
+      ) : null}
 
-              <div className="actions">
-                <button onClick={handleSaveContact} disabled={isSavingContact}>
-                  <span className="btn-label-with-icon">
-                    <span className="btn-label-icon" aria-hidden="true">
-                      <Save size={18} />
-                    </span>
-                    <span>
+      {searchError ? (
+        <Text variant="label" color="$dangerText">
+          {searchError}
+        </Text>
+      ) : null}
+
+      {showSearchLoader ? <LoadingState label={t("contactSearching")} /> : null}
+
+      {canCreateContactFromSearch ? (
+        <Button
+          variant="secondary"
+          alignSelf="flex-start"
+          onPress={createManualFromSearch}
+          disabled={searchIsBusy}
+        >
+          {t("contactSearchCreateFromQuery")}
+        </Button>
+      ) : null}
+
+      {showSuggestions ? (
+        <Stack
+          flexGrow={1}
+          justifyContent="flex-end"
+          gap="$sm"
+          paddingTop="$xxl"
+        >
+          <Text variant="caption" bold color="$colorSubtle">
+            {t("contactSuggestionsTitle")}
+          </Text>
+          <Stack gap="$xs" marginHorizontal={-space.md}>
+            {contactSuggestions.map((suggestion) => {
+              const displayName =
+                (suggestion.name || suggestion.query || "").trim() ||
+                t("contact");
+              return (
+                <ListRow
+                  key={suggestion.npub}
+                  leading={
+                    <Avatar
+                      name={displayName}
+                      uri={suggestion.pictureUrl ?? undefined}
+                    />
+                  }
+                  title={
+                    <Text bold numberOfLines={1}>
+                      {displayName}
+                    </Text>
+                  }
+                  description={formatShortLightningAddress(
+                    suggestion.displayLnAddress,
+                  )}
+                  trailing={
+                    <Button
+                      icon="UserPlus"
+                      onPress={() => void addSuggestion(suggestion)}
+                      disabled={isSavingContact}
+                    >
                       {isSavingContact ? t("saving") : t("saveContact")}
-                    </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  onClick={() => setStep("search")}
-                  disabled={isSavingContact}
-                >
-                  <span className="btn-label-with-icon">
-                    <span className="btn-label-icon" aria-hidden="true">
-                      <ArrowLeft size={18} />
-                    </span>
-                    <span>{t("back")}</span>
-                  </span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </section>
+                    </Button>
+                  }
+                />
+              );
+            })}
+          </Stack>
+        </Stack>
+      ) : null}
+    </>
+  );
+
+  return (
+    <Stack gap="$md" minHeight="100%">
+      {step === "search" ? (
+        searchStep
+      ) : (
+        <>
+          <ContactFields
+            form={form}
+            groupNames={groupNames}
+            setForm={setForm}
+            t={t}
+          />
+
+          <Row gap="$sm" flexWrap="wrap">
+            <Button
+              icon="Save"
+              onPress={handleSaveContact}
+              disabled={isSavingContact}
+            >
+              {isSavingContact ? t("saving") : t("saveContact")}
+            </Button>
+            <Button
+              variant="secondary"
+              icon="ArrowLeft"
+              onPress={() => setStep("search")}
+              disabled={isSavingContact}
+            >
+              {t("back")}
+            </Button>
+          </Row>
+        </>
+      )}
+    </Stack>
   );
 };

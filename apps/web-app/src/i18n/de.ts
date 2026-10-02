@@ -608,6 +608,7 @@ export const de = {
   shareOptionsTitle: "Wie möchtest du teilen?",
   shareOptionsBody:
     "Wähle eine App oder Aktion für die vorbereitete Nachricht.",
+  shareOptionsPreviewLabel: "Vorbereitete Nachricht",
   shareViaWhatsApp: "Über WhatsApp senden",
   shareViaSms: "Als SMS senden",
   shareViaEmail: "Per E-Mail senden",

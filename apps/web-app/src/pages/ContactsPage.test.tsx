@@ -41,7 +41,7 @@ describe("ContactsPage", () => {
     );
 
     expect(
-      [...container.querySelectorAll(".contact-list-section-title")].map(
+      [...container.querySelectorAll('[role="heading"]')].map(
         (element) => element.textContent,
       ),
     ).toEqual(["Proxy payments", "Conversations", "Other contacts"]);
@@ -84,13 +84,13 @@ describe("ContactsPage", () => {
       );
 
     const closed = await renderPage(false);
-    expect(closed.container.querySelector('input[type="search"]')).toBeNull();
-    expect(closed.container.querySelector(".group-filter-bar")).toBeNull();
+    expect(closed.container.querySelector("input")).toBeNull();
+    expect(closed.container.querySelector('[aria-label="group"]')).toBeNull();
     await act(async () => closed.root.unmount());
 
     const open = await renderPage(true);
-    expect(open.container.querySelector('input[type="search"]')).not.toBeNull();
-    expect(open.container.querySelector(".group-filter-bar")).not.toBeNull();
+    expect(open.container.querySelector("input")).not.toBeNull();
+    expect(open.container.querySelector('[aria-label="group"]')).not.toBeNull();
     await act(async () => open.root.unmount());
   });
 });

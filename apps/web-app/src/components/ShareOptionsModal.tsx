@@ -1,6 +1,6 @@
+import { Button, Dialog, TextField } from "@linky-fit/ui";
 import React from "react";
 import type { Translate } from "../i18n";
-import { ModalSheet } from "./ModalSheet";
 
 interface ShareOptionsModalProps {
   onClose: () => void;
@@ -22,45 +22,39 @@ export function ShareOptionsModal({
   t,
 }: ShareOptionsModalProps): React.ReactElement {
   return (
-    <ModalSheet
-      className="modal-overlay"
-      aria-label={t("shareOptionsTitle")}
-      onClick={onClose}
-      sheetClassName="modal-sheet share-options-sheet"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={t("shareOptionsTitle")}
+      description={t("shareOptionsBody")}
+      closeLabel={t("close")}
+      actions={
+        <>
+          <Button onPress={onWhatsApp}>{t("shareViaWhatsApp")}</Button>
+          <Button variant="secondary" onPress={onSms}>
+            {t("shareViaSms")}
+          </Button>
+          <Button variant="secondary" onPress={onEmail}>
+            {t("shareViaEmail")}
+          </Button>
+          <Button variant="secondary" onPress={onCopy}>
+            {t("copy")}
+          </Button>
+          <Button variant="secondary" onPress={onClose}>
+            {t("close")}
+          </Button>
+        </>
+      }
     >
-      <div className="modal-header">
-        <div className="modal-title">{t("shareOptionsTitle")}</div>
-        <button
-          type="button"
-          className="nfc-write-close"
-          onClick={onClose}
-          aria-label={t("close")}
-          title={t("close")}
-        >
-          <span aria-hidden="true">×</span>
-        </button>
-      </div>
-
-      <p className="modal-body">{t("shareOptionsBody")}</p>
-      <textarea className="share-options-preview" readOnly value={shareText} />
-
-      <div className="modal-actions share-options-actions">
-        <button type="button" className="btn-wide" onClick={onWhatsApp}>
-          {t("shareViaWhatsApp")}
-        </button>
-        <button type="button" className="btn-wide secondary" onClick={onSms}>
-          {t("shareViaSms")}
-        </button>
-        <button type="button" className="btn-wide secondary" onClick={onEmail}>
-          {t("shareViaEmail")}
-        </button>
-        <button type="button" className="btn-wide secondary" onClick={onCopy}>
-          {t("copy")}
-        </button>
-        <button type="button" className="btn-wide secondary" onClick={onClose}>
-          {t("close")}
-        </button>
-      </div>
-    </ModalSheet>
+      <TextField
+        multiline
+        label={t("shareOptionsPreviewLabel")}
+        hideLabel
+        readOnly
+        value={shareText}
+      />
+    </Dialog>
   );
 }
