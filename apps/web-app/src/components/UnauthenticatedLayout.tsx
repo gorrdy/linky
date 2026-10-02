@@ -382,9 +382,8 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           autoFocus
           textAlign="center"
           fontSize="$title"
+          error={nameError ?? undefined}
         />
-
-        {nameError ? <Notice tone="danger" title={nameError} /> : null}
 
         <StepActions>
           <SubmitButton disabled={onboardingIsBusy}>
