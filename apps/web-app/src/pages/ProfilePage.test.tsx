@@ -107,9 +107,9 @@ const setup = async (invoice: string, balance = 5000) => {
   return { ...rendered, fetcher };
 };
 const purchaseButton = (container: HTMLElement) =>
-  container.querySelector<HTMLButtonElement>(
-    ".profile-lightning-purchase-button",
-  );
+  Array.from(container.querySelectorAll("button")).find((button) =>
+    button.textContent?.includes("Purchase for"),
+  ) ?? null;
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -141,7 +141,7 @@ describe("username purchase approval", () => {
     const { container } = await setup(makeLightningInvoice(), 1999);
     const button = purchaseButton(container);
     expect(button?.textContent).toContain("2000 sat");
-    expect(button?.disabled).toBe(true);
+    expect(button?.getAttribute("aria-disabled")).toBe("true");
     await act(async () => {
       button?.click();
     });

@@ -166,7 +166,7 @@ test("preserves route parity and critical handlers", async ({ page }) => {
 
   await page.goto("/#profile");
   await page.waitForURL(/#profile$/, { timeout: 10_000 });
-  await expect(page.locator(".profile-detail")).toBeVisible();
+  await expect(page.getByTestId("profile-detail")).toBeVisible();
 
   await page.goto("/#");
   await page.getByRole("tab", { name: "Settings" }).click();

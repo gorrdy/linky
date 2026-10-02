@@ -1,18 +1,28 @@
 import { nowSeconds } from "../utils/time";
-import { Copy, Radio, RefreshCcw, Save } from "lucide-react";
+import {
+  Avatar,
+  Card,
+  Button,
+  Icon,
+  IconButton,
+  Pressable,
+  QRCode,
+  Row,
+  Stack,
+  Text,
+  TextField,
+} from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
-import { Avatar } from "../components/Avatar";
 import { ProfileAvatarEditor } from "../components/ProfileAvatarEditor";
-import { ProfileQrButton } from "../components/ProfileQrButton";
 import type { AvatarEditorControlId } from "../derivedProfile";
 import { parseProfileGeneralStatus } from "../nostrStatus";
 import type { FilePickerHandle } from "../utils/pickFile";
 import {
   formatShortLightningAddress,
   formatShortNpub,
-  getInitials,
 } from "../utils/formatting";
+import { optimizeCaseInsensitiveQrPayload } from "../utils/qrPayload";
 import {
   type Nip98AuthHeaderFactory,
   type OwnLightningAddressInputCandidate,
@@ -79,7 +89,6 @@ export function ProfilePage({
   effectiveProfileName,
   effectiveProfilePicture,
   isProfileEditing,
-  myProfileQr,
   onPickProfilePhoto,
   onProfilePhotoError,
   onProfilePhotoSelected,
@@ -261,209 +270,166 @@ export function ProfilePage({
     t,
   ]);
 
+  if (!currentNpub)
+    return <Text color="$colorMuted">{t("profileMissingNpub")}</Text>;
+
+  if (!isProfileEditing) {
+    const displayName = effectiveProfileName ?? formatShortNpub(currentNpub);
+    return (
+      <Card
+        testID="profile-detail"
+        alignItems="center"
+        gap="$sm"
+        marginTop="$lg"
+        $wide={{ backgroundColor: "$transparent" }}
+        paddingVertical="$xxl"
+      >
+        <Avatar
+          name={displayName}
+          uri={effectiveProfilePicture ?? undefined}
+          size="lg"
+        />
+        <Text variant="display" textAlign="center">
+          {displayName}
+        </Text>
+        <QRCode
+          value={optimizeCaseInsensitiveQrPayload(currentNpub)}
+          accessibilityLabel={t("copy")}
+          badge="Copy"
+          onPress={() => void copyText(currentNpub)}
+        />
+        {canWriteToNfc ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="Radio"
+            onPress={() => void writeCurrentNpubToNfc()}
+          >
+            {t("uploadProfileToNfc")}
+          </Button>
+        ) : null}
+        {effectiveMyLightningAddress ? (
+          <Pressable
+            gap="$sm"
+            aria-label={t("lightningAddress")}
+            onPress={() => void copyText(effectiveMyLightningAddress)}
+          >
+            <Text aria-hidden>⚡️</Text>
+            <Text color="$colorSubtle" numberOfLines={1} flexShrink={1}>
+              {formatShortLightningAddress(effectiveMyLightningAddress)}
+            </Text>
+            <Icon name="Copy" size="sm" color="$colorMuted" />
+          </Pressable>
+        ) : null}
+        {profileStatusText ? (
+          <Text color="$colorMuted" textAlign="center">
+            {profileStatusText}
+          </Text>
+        ) : null}
+      </Card>
+    );
+  }
+
+  const showPurchaseButton =
+    inlineClaimPreview !== null &&
+    inlineClaimPreview.username === unregisteredOwnLightningAddress?.username;
+
   return (
-    <section className="panel">
-      {!currentNpub ? (
-        <p className="muted">{t("profileMissingNpub")}</p>
-      ) : (
-        <>
-          {isProfileEditing ? (
-            <>
-              <ProfileAvatarEditor
-                currentNpub={currentNpub}
-                cycleProfileAvatarControl={cycleProfileAvatarControl}
-                effectiveProfileName={effectiveProfileName}
-                effectiveProfilePicture={effectiveProfilePicture}
-                onPickProfilePhoto={onPickProfilePhoto}
-                onProfilePhotoError={onProfilePhotoError}
-                onProfilePhotoSelected={onProfilePhotoSelected}
-                profileCustomPictureUrl={profileCustomPictureUrl}
-                profileEditName={profileEditName}
-                profileEditPicture={profileEditPicture}
-                profilePhotoInputRef={profilePhotoInputRef}
-                profileSelectedPictureKind={profileSelectedPictureKind}
-                t={t}
-              />
+    <Card
+      gap="$md"
+      marginTop="$lg"
+      $wide={{ backgroundColor: "$transparent" }}
+      paddingVertical="$xl"
+      paddingHorizontal="$none"
+    >
+      <ProfileAvatarEditor
+        currentNpub={currentNpub}
+        cycleProfileAvatarControl={cycleProfileAvatarControl}
+        effectiveProfileName={effectiveProfileName}
+        effectiveProfilePicture={effectiveProfilePicture}
+        onPickProfilePhoto={onPickProfilePhoto}
+        onProfilePhotoError={onProfilePhotoError}
+        onProfilePhotoSelected={onProfilePhotoSelected}
+        profileCustomPictureUrl={profileCustomPictureUrl}
+        profileEditName={profileEditName}
+        profileEditPicture={profileEditPicture}
+        profilePhotoInputRef={profilePhotoInputRef}
+        profileSelectedPictureKind={profileSelectedPictureKind}
+        t={t}
+      />
 
-              <div className="form-field-heading">
-                <label htmlFor="profileName">{t("name")}</label>
-              </div>
-              <input
-                id="profileName"
-                value={profileEditName}
-                onChange={(e) => setProfileEditName(e.target.value)}
-                placeholder={t("name")}
-              />
+      <TextField
+        id="profileName"
+        label={t("name")}
+        value={profileEditName}
+        onChangeText={setProfileEditName}
+        placeholder={t("name")}
+      />
 
-              <div className="form-field-heading">
-                <label htmlFor="profileLn">{t("lightningAddress")}</label>
-                <div className="profile-field-label">
-                  {canRestoreDefaultLightningAddress &&
-                  restoreLightningAddress ? (
-                    <button
-                      type="button"
-                      className="icon-only-ghost"
-                      onClick={() =>
-                        setProfileEditLnAddress(restoreLightningAddress)
-                      }
-                      title={t("restore")}
-                      aria-label={t("restore")}
-                    >
-                      <RefreshCcw size={18} aria-hidden="true" />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <div className="profile-lightning-input-row">
-                <input
-                  id="profileLn"
-                  value={profileEditLnAddress}
-                  onChange={(e) => setProfileEditLnAddress(e.target.value)}
-                  placeholder={t("lightningAddress")}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                />
-                {inlineClaimPreview?.username ===
-                  unregisteredOwnLightningAddress?.username &&
-                inlineClaimPreview ? (
-                  <button
-                    type="button"
-                    className="profile-lightning-purchase-button"
-                    disabled={
-                      cashuIsBusy ||
-                      inlineClaimInsufficientBalance ||
-                      inlineClaimIsChecking ||
-                      inlineClaimIsConfirming
-                    }
-                    onClick={() => {
-                      void purchaseInlineLightningAddress();
-                    }}
-                    title={
-                      inlineClaimInsufficientBalance
-                        ? t("payInsufficient")
-                        : undefined
-                    }
-                  >
-                    <span className="btn-label-with-icon">
-                      {inlineClaimIsConfirming ? (
-                        <span className="btn-spinner" aria-hidden="true" />
-                      ) : null}
-                      <span>
-                        {inlineClaimIsConfirming
-                          ? t("claimOwnLightningAddressPurchasing")
-                          : inlineClaimButtonLabel}
-                      </span>
-                    </span>
-                  </button>
-                ) : null}
-              </div>
-              {inlineClaimError ? (
-                <p className="muted section-note">{inlineClaimError}</p>
-              ) : null}
+      <Stack gap="$xs">
+        <Row justifyContent="space-between">
+          <Text variant="label" color="$colorSubtle">
+            {t("lightningAddress")}
+          </Text>
+          {canRestoreDefaultLightningAddress && restoreLightningAddress ? (
+            <IconButton
+              icon="RefreshCcw"
+              size="sm"
+              accessibilityLabel={t("restore")}
+              onPress={() => setProfileEditLnAddress(restoreLightningAddress)}
+            />
+          ) : null}
+        </Row>
+        <TextField
+          id="profileLn"
+          label={t("lightningAddress")}
+          hideLabel
+          value={profileEditLnAddress}
+          onChangeText={setProfileEditLnAddress}
+          placeholder={t("lightningAddress")}
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          trailing={
+            showPurchaseButton ? (
+              <Button
+                loading={inlineClaimIsConfirming}
+                disabled={
+                  cashuIsBusy ||
+                  inlineClaimInsufficientBalance ||
+                  inlineClaimIsChecking
+                }
+                onPress={() => void purchaseInlineLightningAddress()}
+              >
+                {inlineClaimIsConfirming
+                  ? t("claimOwnLightningAddressPurchasing")
+                  : inlineClaimButtonLabel}
+              </Button>
+            ) : null
+          }
+        />
+        {inlineClaimError ? (
+          <Text color="$colorMuted">{inlineClaimError}</Text>
+        ) : null}
+      </Stack>
 
-              <div className="form-field-heading">
-                <label htmlFor="profileStatus">{t("status")}</label>
-              </div>
-              <input
-                id="profileStatus"
-                value={profileEditStatus}
-                onChange={(e) => setProfileEditStatus(e.target.value)}
-                placeholder={t("status")}
-              />
+      <TextField
+        id="profileStatus"
+        label={t("status")}
+        value={profileEditStatus}
+        onChangeText={setProfileEditStatus}
+        placeholder={t("status")}
+      />
 
-              <div className="panel-header panel-header-layout">
-                {canSaveProfileEdits ? (
-                  <button onClick={() => void saveProfileEdits()}>
-                    <span className="btn-label-with-icon">
-                      <span className="btn-label-icon" aria-hidden="true">
-                        <Save size={18} />
-                      </span>
-                      <span>{t("saveChanges")}</span>
-                    </span>
-                  </button>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="profile-detail">
-                <div className="contact-avatar is-xl" aria-hidden="true">
-                  <Avatar
-                    pictureUrl={effectiveProfilePicture}
-                    fallback={getInitials(
-                      effectiveProfileName ?? formatShortNpub(currentNpub),
-                    )}
-                    fallbackClassName="contact-avatar-fallback"
-                    loading="lazy"
-                  />
-                </div>
-
-                <h2 className="contact-detail-name">
-                  {effectiveProfileName ?? formatShortNpub(currentNpub)}
-                </h2>
-
-                {myProfileQr ? (
-                  <ProfileQrButton
-                    qrSrc={myProfileQr}
-                    qrAlt={t("myNpubQr")}
-                    copyLabel={t("copy")}
-                    onCopy={() => {
-                      if (!currentNpub) return;
-                      void copyText(currentNpub);
-                    }}
-                  />
-                ) : (
-                  <p className="muted">{currentNpub}</p>
-                )}
-
-                {canWriteToNfc ? (
-                  <button
-                    type="button"
-                    className="secondary btn-small profile-nfc-write-button"
-                    onClick={() => void writeCurrentNpubToNfc()}
-                    aria-label={t("uploadProfileToNfc")}
-                    title={t("uploadProfileToNfc")}
-                    disabled={!currentNpub}
-                  >
-                    <span className="btn-label-with-icon">
-                      <span className="btn-label-icon" aria-hidden="true">
-                        <Radio size={16} />
-                      </span>
-                      <span>{t("uploadProfileToNfc")}</span>
-                    </span>
-                  </button>
-                ) : null}
-
-                {effectiveMyLightningAddress ? (
-                  <button
-                    type="button"
-                    className="copyable contact-detail-ln contact-detail-copy"
-                    onClick={() => void copyText(effectiveMyLightningAddress)}
-                    title={effectiveMyLightningAddress}
-                    aria-label={t("lightningAddress")}
-                  >
-                    <span aria-hidden="true">⚡️</span>
-                    <span className="contact-detail-copyText">
-                      {formatShortLightningAddress(effectiveMyLightningAddress)}
-                    </span>
-                    <span
-                      className="contact-detail-copyIcon"
-                      aria-hidden="true"
-                    >
-                      <Copy size={16} />
-                    </span>
-                  </button>
-                ) : null}
-
-                {profileStatusText ? (
-                  <p className="muted section-note">{profileStatusText}</p>
-                ) : null}
-              </div>
-            </>
-          )}
-        </>
-      )}
-    </section>
+      {canSaveProfileEdits ? (
+        <Button
+          icon="Save"
+          alignSelf="flex-start"
+          onPress={() => void saveProfileEdits()}
+        >
+          {t("saveChanges")}
+        </Button>
+      ) : null}
+    </Card>
   );
 }

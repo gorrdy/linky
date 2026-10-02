@@ -1,3 +1,12 @@
+import {
+  Button,
+  Dialog,
+  Icon,
+  Stack,
+  Text,
+  border,
+  enterScale,
+} from "@linky-fit/ui";
 import React from "react";
 import type { I18nKey, Translate } from "../i18n";
 import type { LnurlAuthAction, LnurlAuthPreview } from "../lnurlAuth";
@@ -19,40 +28,13 @@ interface LnurlAuthModalProps {
   t: Translate;
 }
 
-/** A closed padlock; the `is-done` sheet swings its shackle open and draws a check. */
-function LockIllustration(): React.ReactElement {
-  return (
-    <svg
-      className="lnurl-auth-lock"
-      viewBox="0 0 96 96"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path
-        className="lnurl-auth-lock-shackle"
-        d="M36 44V34a12 12 0 0 1 24 0v10"
-      />
-      <rect
-        className="lnurl-auth-lock-body"
-        x="28"
-        y="44"
-        width="40"
-        height="32"
-        rx="7"
-      />
-      <path className="lnurl-auth-lock-check" d="M40 60l6 6 12-12" />
-    </svg>
-  );
-}
+const pop = { opacity: 0, scale: enterScale.pop } as const;
+const ignoreDismiss = () => {};
 
 /**
- * One sheet for the whole login: it names the domain and asks for consent,
- * shows the request in flight, and then plays the unlock animation once the
- * domain confirmed. Tapping outside does nothing — the user either confirms or
+ * One dialog for the whole login: it names the domain and asks for consent,
+ * shows the request in flight, and then pops the padlock open once the domain
+ * confirmed. Tapping outside does nothing — the user either confirms or
  * cancels.
  */
 export function LnurlAuthModal({
@@ -69,61 +51,66 @@ export function LnurlAuthModal({
     : confirmation.domain;
 
   return (
-    <div
-      className="modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
+    <Dialog
+      open
+      onOpenChange={ignoreDismiss}
+      title={title}
+      hideTitle
+      actions={
+        isDone ? null : (
+          <>
+            <Button loading={isBusy} onPress={() => void onConfirm()}>
+              {t("lnurlAuthConfirm")}
+            </Button>
+            <Button variant="secondary" disabled={isBusy} onPress={onClose}>
+              {t("payCancel")}
+            </Button>
+          </>
+        )
+      }
     >
-      <div
-        className={`modal-sheet lnurl-auth-sheet${isDone ? " is-done" : ""}`}
+      <Stack
+        key={isDone ? "done" : "pending"}
+        alignItems="center"
+        gap="$sm"
+        transition="slow"
+        enterStyle={isDone ? pop : null}
       >
-        <div className="lnurl-auth-badge">
-          <LockIllustration />
-        </div>
-        <div
-          className={`modal-title${isDone ? " lnurl-auth-done-title" : ""}`}
-          {...(isDone ? { role: "status", "aria-live": "assertive" } : {})}
+        <Stack
+          width="$hero"
+          height="$hero"
+          alignItems="center"
+          justifyContent="center"
+          borderRadius="$pill"
+          borderWidth={border.emphasis}
+          borderColor="$accent"
+          marginBottom="$sm"
         >
-          {title}
-        </div>
+          <Icon name={isDone ? "LockOpen" : "Lock"} size="xl" color="$accent" />
+        </Stack>
         {isDone ? (
           <>
-            <div className="lnurl-auth-domain lnurl-auth-done-domain">
+            <Text
+              variant="heading"
+              textAlign="center"
+              role="status"
+              aria-live="assertive"
+            >
+              {title}
+            </Text>
+            <Text bold color="$accentText" textAlign="center">
               {confirmation.domain}
-            </div>
-            <div className="lnurl-auth-done-hint">{t("lnurlAuthDoneHint")}</div>
+            </Text>
+            <Text variant="caption" color="$colorMuted" textAlign="center">
+              {t("lnurlAuthDoneHint")}
+            </Text>
           </>
         ) : (
-          <>
-            <div className="modal-actions">
-              <button
-                className="btn-wide"
-                disabled={isBusy}
-                onClick={() => void onConfirm()}
-              >
-                {isBusy ? (
-                  <span className="btn-label-with-icon">
-                    <span className="btn-label-icon" aria-hidden="true">
-                      <span className="btn-spinner" />
-                    </span>
-                    {t("lnurlAuthConfirm")}
-                  </span>
-                ) : (
-                  t("lnurlAuthConfirm")
-                )}
-              </button>
-              <button
-                className="btn-wide secondary"
-                disabled={isBusy}
-                onClick={onClose}
-              >
-                {t("payCancel")}
-              </button>
-            </div>
-          </>
+          <Text bold textAlign="center">
+            {title}
+          </Text>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Dialog>
   );
 }
