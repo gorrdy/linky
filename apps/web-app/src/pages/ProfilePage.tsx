@@ -2,9 +2,7 @@ import { nowSeconds } from "../utils/time";
 import {
   Avatar,
   Button,
-  Icon,
   IconButton,
-  Pressable,
   QRCode,
   Row,
   Stack,
@@ -302,17 +300,15 @@ export function ProfilePage({
           </Button>
         ) : null}
         {effectiveMyLightningAddress ? (
-          <Pressable
-            gap="$sm"
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="Copy"
             aria-label={t("lightningAddress")}
             onPress={() => void copyText(effectiveMyLightningAddress)}
           >
-            <Text aria-hidden>⚡️</Text>
-            <Text color="$colorSubtle" numberOfLines={1} flexShrink={1}>
-              {formatShortLightningAddress(effectiveMyLightningAddress)}
-            </Text>
-            <Icon name="Copy" size="sm" color="$colorMuted" />
-          </Pressable>
+            {formatShortLightningAddress(effectiveMyLightningAddress)}
+          </Button>
         ) : null}
         {profileStatusText ? (
           <Text color="$colorMuted" textAlign="center">
