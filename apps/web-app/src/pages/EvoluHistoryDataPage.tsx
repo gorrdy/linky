@@ -1,4 +1,12 @@
-import { Button, Chip, Row, Stack, Text } from "@linky-fit/ui";
+import {
+  Button,
+  Chip,
+  EmptyState,
+  LoadingState,
+  Row,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import { EvoluHistoryTable } from "../components/EvoluHistoryTable";
 import { base64 } from "@scure/base";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -85,13 +93,7 @@ export function EvoluHistoryDataPage(): React.ReactElement {
     }
   }, [isLoadingMore, hasMore, offset]);
   if (isLoading) {
-    return (
-      <Stack gap="$lg">
-        <Text variant="label" color="$colorMuted">
-          {t("loading")}...
-        </Text>
-      </Stack>
-    );
+    return <LoadingState label={t("loading")} />;
   }
   return (
     <Stack gap="$lg">
@@ -119,9 +121,7 @@ export function EvoluHistoryDataPage(): React.ReactElement {
         {filteredData.length > 0 ? (
           <EvoluHistoryTable rows={filteredData} t={t} />
         ) : (
-          <Text variant="label" color="$colorMuted">
-            {t("evoluNoDataYet")}
-          </Text>
+          <EmptyState title={t("evoluNoDataYet")} />
         )}
 
         {hasMore && (

@@ -1,4 +1,4 @@
-import { Stack, Text } from "@linky-fit/ui";
+import { EmptyState, Stack } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useRelaySettingsContext } from "../app/context/SystemSettingsContexts";
@@ -11,9 +11,7 @@ export function NostrRelaysPage(): React.ReactElement {
   return (
     <Stack gap="$lg">
       {relayUrls.length === 0 ? (
-        <Text variant="label" color="$colorMuted">
-          {t("noContactsYet")}
-        </Text>
+        <EmptyState title={t("nostrRelaysEmpty")} />
       ) : (
         <Stack>
           {relayUrls.map((url) => {

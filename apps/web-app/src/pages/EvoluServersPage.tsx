@@ -1,8 +1,10 @@
 import {
   Button,
+  EmptyState,
   ListRow,
   Notice,
   Row,
+  Section,
   Stack,
   StatusDot,
   Text,
@@ -49,9 +51,7 @@ export function EvoluServersPage(): React.ReactElement {
       )}
       {/* Server list */}
       {evoluServerUrls.length === 0 ? (
-        <Text variant="label" color="$colorMuted">
-          {t("evoluServersEmpty")}
-        </Text>
+        <EmptyState title={t("evoluServersEmpty")} />
       ) : (
         <Stack testID="evolu-server-list" gap="$xs">
           {evoluServerUrls.map((url) => {
@@ -109,76 +109,72 @@ export function EvoluServersPage(): React.ReactElement {
         </Button>
       </Row>
 
-      <Text variant="title" role="heading" marginTop="$lg">
-        {t("evoluShards")}
-      </Text>
+      <Section title={t("evoluShards")}>
+        {evoluShards.map((shard) => (
+          <ListRow
+            key={shard.scope}
+            title={shard.scope}
+            trailing={
+              <>
+                <Text variant="label" color="$colorMuted">
+                  {shard.index} ({shard.visibleOwnerIds.length}{" "}
+                  {t("evoluShardVisibleCount").toLowerCase()})
+                </Text>
+              </>
+            }
+          />
+        ))}
 
-      {evoluShards.map((shard) => (
         <ListRow
-          key={shard.scope}
-          title={shard.scope}
+          title={t("evoluSyncedOwners")}
           trailing={
             <>
               <Text variant="label" color="$colorMuted">
-                {shard.index} ({shard.visibleOwnerIds.length}{" "}
-                {t("evoluShardVisibleCount").toLowerCase()})
+                {evoluSyncOwnerIds.length}
               </Text>
             </>
           }
+          testID="evoluSyncedOwners"
         />
-      ))}
+      </Section>
 
-      <ListRow
-        title={t("evoluSyncedOwners")}
-        trailing={
-          <>
-            <Text variant="label" color="$colorMuted">
-              {evoluSyncOwnerIds.length}
-            </Text>
-          </>
-        }
-        testID="evoluSyncedOwners"
-      />
+      <Section title={t("evoluRowCounts")}>
+        <ListRow
+          title={t("evoluData")}
+          trailing={
+            <>
+              <Text variant="label" color="$colorMuted">
+                {totalCurrentRows === null
+                  ? t("unknown")
+                  : `${totalCurrentRows} rows`}
+              </Text>
+            </>
+          }
+          testID="evoluData"
+          onPress={() => navigateTo({ route: "evoluCurrentData" })}
+        />
 
-      <Text variant="title" role="heading" marginTop="$lg">
-        {t("evoluRowCounts")}
-      </Text>
+        <ListRow
+          title={t("evoluHistory")}
+          trailing={
+            <>
+              <Text variant="label" color="$colorMuted">
+                {evoluHistoryCount === null
+                  ? t("unknown")
+                  : `${evoluHistoryCount} rows`}
+              </Text>
+            </>
+          }
+          testID="evoluHistory"
+          onPress={() => navigateTo({ route: "evoluHistoryData" })}
+        />
 
-      <ListRow
-        title={t("evoluData")}
-        trailing={
-          <>
-            <Text variant="label" color="$colorMuted">
-              {totalCurrentRows === null
-                ? t("unknown")
-                : `${totalCurrentRows} rows`}
-            </Text>
-          </>
-        }
-        testID="evoluData"
-        onPress={() => navigateTo({ route: "evoluCurrentData" })}
-      />
-
-      <ListRow
-        title={t("evoluHistory")}
-        trailing={
-          <>
-            <Text variant="label" color="$colorMuted">
-              {evoluHistoryCount === null
-                ? t("unknown")
-                : `${evoluHistoryCount} rows`}
-            </Text>
-          </>
-        }
-        testID="evoluHistory"
-        onPress={() => navigateTo({ route: "evoluHistoryData" })}
-      />
-
-      <ListRow
-        icon="MessageCircle"
-        title={t("chatStorage")}
-        onPress={() => navigateTo({ route: "chatStorage" })}
-      />
+        <ListRow
+          icon="MessageCircle"
+          title={t("chatStorage")}
+          onPress={() => navigateTo({ route: "chatStorage" })}
+        />
+      </Section>
     </Stack>
   );
 }

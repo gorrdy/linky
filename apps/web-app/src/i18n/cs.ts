@@ -210,6 +210,7 @@ export const cs = {
   nostrRelay: "Nostr relay",
   evoluServer: "Evolu server",
   addRelay: "Přidat relay",
+  nostrRelaysEmpty: "Žádné relaye nejsou nastavené.",
   invalidRelayUrl: "Zadejte zabezpečenou WebSocket adresu relay (wss://).",
   relayUrl: "Relay URL",
   relayStatusLabel: "Stav",
