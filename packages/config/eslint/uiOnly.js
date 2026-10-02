@@ -22,7 +22,7 @@ const uiOnly = {
     messages: {
       element: `Do not render <{{name}}>. ${fromLibrary}`,
       className: `Do not style with className. ${fromLibrary}`,
-      style: `Do not set style on <{{name}}>. ${fromLibrary}`,
+      style: `Do not set style on <{{name}}>; use token props. ${fromLibrary}`,
       icons: "Take icons from @linky-fit/ui (<Icon name=…>), not lucide-react.",
     },
   },
@@ -47,7 +47,7 @@ const uiOnly = {
       JSXAttribute(node) {
         if (node.name.name === "className") {
           context.report({ node, messageId: "className" });
-        } else if (node.name.name === "style" && intrinsic(node.parent)) {
+        } else if (node.name.name === "style") {
           context.report({
             node,
             messageId: "style",

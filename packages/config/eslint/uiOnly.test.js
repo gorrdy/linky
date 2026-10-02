@@ -13,7 +13,6 @@ tester.run("ui-only", uiOnlyPlugin.rules["ui-only"], {
   valid: [
     'import { Button, Icon } from "@linky-fit/ui"; <Button icon="Send" />;',
     'import { Camera } from "lucide-react-native";',
-    "<Stack style={{ flex: 1 }} />;",
     { code: "<video muted />;", options: [{ allow: ["video"] }] },
   ],
   invalid: [
@@ -25,6 +24,10 @@ tester.run("ui-only", uiOnlyPlugin.rules["ui-only"], {
     {
       code: "<video style={{ width: 1 }} />;",
       options: [{ allow: ["video"] }],
+      errors: [{ messageId: "style" }],
+    },
+    {
+      code: "<Stack style={{ flex: 1 }} />;",
       errors: [{ messageId: "style" }],
     },
     {
