@@ -117,6 +117,7 @@ export const ContactEditPage: FC<ContactEditPageProps> = ({
           <>
             <Button
               variant="secondary"
+              icon="ArchiveRestore"
               onPress={restoreArchivedContact}
               disabled={!editingId}
             >

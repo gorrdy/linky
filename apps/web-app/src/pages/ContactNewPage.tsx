@@ -406,7 +406,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
         data-guide="contact-search-input"
         trailing={
           <IconButton
-            icon="Copy"
+            icon="ClipboardPaste"
             accessibilityLabel={t("paste")}
             onPointerDown={(event) => event.preventDefault()}
             onPress={() => void pasteSearch()}

@@ -79,9 +79,6 @@ export function ContactsChecklist({
         />
       ) : nextTask ? (
         <Row gap="$sm">
-          <Text color="$colorMuted" aria-hidden>
-            •
-          </Text>
           <Text flex={1} bold>
             {nextTask.label}
           </Text>

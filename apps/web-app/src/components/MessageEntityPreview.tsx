@@ -1,4 +1,4 @@
-import { Row, Text } from "@linky-fit/ui";
+import { Icon, Row, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { CashuTokenMessageInfo } from "../app/lib/tokenMessageInfo";
@@ -11,9 +11,23 @@ import { ContactPill } from "./ContactPill";
 const ENTITY_PATTERN =
   /(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]+(?:@npub\.cash)?|cashu[0-9A-Za-z_-]+={0,2}/gi;
 
+export type MessageDirection = "in" | "out";
+
+export const MessageDirectionIcon = ({
+  direction,
+}: {
+  direction: MessageDirection;
+}) => (
+  <Icon
+    name={direction === "out" ? "ArrowUpRight" : "ArrowDownRight"}
+    size="sm"
+    color="$colorMuted"
+  />
+);
+
 interface MessageEntityPreviewProps {
   content: string;
-  directionSymbol?: string;
+  direction?: MessageDirection | null;
   getCashuTokenMessageInfo: (text: string) => CashuTokenMessageInfo | null;
   getMintIconUrl: (mint: string | null | undefined) => {
     url: string | null;
@@ -31,7 +45,7 @@ const PreviewText = ({ children }: { children: string }) => (
 /** One line of a message with its contacts and tokens shown as pills. */
 export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
   content,
-  directionSymbol,
+  direction,
   getCashuTokenMessageInfo,
   getMintIconUrl,
   getNpubMessageContactInfo,
@@ -48,7 +62,11 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
   const pushText = (text: string) =>
     segments.push(<PreviewText key={segments.length}>{text}</PreviewText>);
 
-  if (directionSymbol) pushText(directionSymbol);
+  if (direction) {
+    segments.push(
+      <MessageDirectionIcon key="direction" direction={direction} />,
+    );
+  }
 
   if (standaloneTokenInfo) {
     const icon = getMintIconUrl(standaloneTokenInfo.mintUrl);

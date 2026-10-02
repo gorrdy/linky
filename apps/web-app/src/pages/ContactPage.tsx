@@ -165,6 +165,7 @@ export const ContactPage: FC<ContactPageProps> = ({
           <Button
             variant="ghost"
             size="sm"
+            icon={isLightningAddressNip05Verified ? "Check" : "Copy"}
             onPress={() => void copyText(ln)}
             aria-label={
               isLightningAddressNip05Verified
@@ -172,7 +173,7 @@ export const ContactPage: FC<ContactPageProps> = ({
                 : t("lightningAddress")
             }
           >
-            {`${isLightningAddressNip05Verified ? "✓ " : ""}${formatShortLightningAddress(ln)}`}
+            {formatShortLightningAddress(ln)}
           </Button>
         ) : null}
       </Stack>

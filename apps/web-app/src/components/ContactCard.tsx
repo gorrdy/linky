@@ -11,7 +11,11 @@ import { getContactName } from "../utils/contactName";
 import { formatContactMessageTimestamp } from "../utils/formatting";
 import { CashuTokenPill } from "./CashuTokenPill";
 import type { NpubMessageContactInfo } from "./ChatMessage";
-import { MessageEntityPreview } from "./MessageEntityPreview";
+import {
+  type MessageDirection,
+  MessageDirectionIcon,
+  MessageEntityPreview,
+} from "./MessageEntityPreview";
 
 interface ContactCardProps {
   avatarUrl: string | null;
@@ -66,19 +70,10 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
       ? formatContactMessageTimestamp(lastMessage.createdAtSec)
       : "";
 
-    const directionSymbol =
-      previewDirection === "out" ? "↗" : previewDirection === "in" ? "↘" : "";
-
-    const previewText = preview
-      ? directionSymbol
-        ? `${directionSymbol} ${preview}`
-        : preview
-      : "";
-
     const previewContent = hasMessageEntityPreview(lastText) ? (
       <MessageEntityPreview
         content={lastText}
-        directionSymbol={directionSymbol}
+        direction={previewDirection}
         getCashuTokenMessageInfo={() => tokenInfo}
         getMintIconUrl={getMintIconUrl}
         getNpubMessageContactInfo={getNpubMessageContactInfo}
@@ -86,15 +81,25 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
     ) : tokenInfo ? (
       <TokenPreview
         tokenInfo={tokenInfo}
-        directionSymbol={directionSymbol}
+        direction={previewDirection}
         formatDisplayedAmountText={formatDisplayedAmountText}
         getMintIconUrl={getMintIconUrl}
         onIconError={onMintIconError}
       />
-    ) : previewText ? (
-      <Text variant="caption" color="$colorMuted" numberOfLines={1}>
-        {previewText}
-      </Text>
+    ) : preview ? (
+      <Row gap="$xs">
+        {previewDirection ? (
+          <MessageDirectionIcon direction={previewDirection} />
+        ) : null}
+        <Text
+          variant="caption"
+          color="$colorMuted"
+          numberOfLines={1}
+          flexShrink={1}
+        >
+          {preview}
+        </Text>
+      </Row>
     ) : null;
 
     return (
@@ -121,7 +126,7 @@ export const ContactCard: React.FC<ContactCardProps> = React.memo(
 );
 
 interface TokenPreviewProps {
-  directionSymbol: string;
+  direction: MessageDirection | null;
   formatDisplayedAmountText: (amountSat: number) => string;
   getMintIconUrl: (
     url: string | null | undefined,
@@ -131,7 +136,7 @@ interface TokenPreviewProps {
 }
 
 const TokenPreview: React.FC<TokenPreviewProps> = ({
-  directionSymbol,
+  direction,
   formatDisplayedAmountText,
   getMintIconUrl,
   onIconError,
@@ -140,11 +145,7 @@ const TokenPreview: React.FC<TokenPreviewProps> = ({
   const amountText = formatDisplayedAmountText(tokenInfo.amount ?? 0);
   return (
     <Row gap="$xs">
-      {directionSymbol ? (
-        <Text variant="caption" color="$colorMuted">
-          {directionSymbol}
-        </Text>
-      ) : null}
+      {direction ? <MessageDirectionIcon direction={direction} /> : null}
       <CashuTokenPill
         compact
         icon={getMintIconUrl(tokenInfo.mintUrl)}
