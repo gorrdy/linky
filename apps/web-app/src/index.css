@@ -1,8 +1,10 @@
 @import "./assets/manrope/manrope.css";
 
 :root {
-  /* Matches the dark theme background of @linky-fit/ui for the boot screen. */
+  /* Painted before the JS bundle loads, so these repeat themes.dark of @linky-fit/ui. */
   --app-flat-bg: #020617;
+  --app-color: #e2e8f0;
+  --app-accent: #2dd4bf;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --native-keyboard-inset: 0px;
@@ -17,7 +19,7 @@
   font-weight: 400;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  color: #e2e8f0;
+  color: var(--app-color);
   background-color: var(--app-flat-bg);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -44,7 +46,7 @@ body {
   margin: 0;
   padding-top: 0;
   background: var(--app-flat-bg);
-  color: #e2e8f0;
+  color: var(--app-color);
 }
 
 #root {
@@ -84,10 +86,10 @@ body {
   body::after {
     width: 42px;
     height: 70px;
-    border: 3px solid #2dd4bf;
+    border: 3px solid var(--app-accent);
     border-radius: 13px;
     box-shadow:
-      0 0 0 1px rgba(45, 212, 191, 0.2),
+      0 0 0 1px color-mix(in srgb, var(--app-accent) 20%, transparent),
       0 18px 42px rgba(0, 0, 0, 0.35);
     transform: translate(-50%, -50%) rotate(-90deg);
   }
