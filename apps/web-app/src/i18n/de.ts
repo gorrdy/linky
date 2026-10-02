@@ -466,6 +466,11 @@ export const de = {
   german: "Deutsch",
   portuguese: "Português (Brasil)",
 
+  appearance: "Darstellung",
+  appearanceAuto: "Automatisch",
+  appearanceLight: "Hell",
+  appearanceDark: "Dunkel",
+
   list: "Liste",
   contactsTitle: "Kontakte",
   contactsSearchPlaceholder: "Kontakte suchen",
