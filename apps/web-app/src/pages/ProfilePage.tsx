@@ -1,7 +1,6 @@
 import { nowSeconds } from "../utils/time";
 import {
   Avatar,
-  Card,
   Button,
   Icon,
   IconButton,
@@ -30,6 +29,7 @@ import {
   purchaseOwnLightningAddressClaim,
   requestOwnLightningAddressClaimPreview,
 } from "../utils/npubCashUsernameClaim";
+import { PageCard } from "../components/PageCard";
 
 interface DerivedProfile {
   lnAddress: string;
@@ -275,14 +275,7 @@ export function ProfilePage({
   if (!isProfileEditing) {
     const displayName = effectiveProfileName ?? formatShortNpub(currentNpub);
     return (
-      <Card
-        testID="profile-detail"
-        alignItems="center"
-        gap="$sm"
-        marginTop="$lg"
-        $wide={{ backgroundColor: "$transparent" }}
-        paddingVertical="$xxl"
-      >
+      <PageCard elevated testID="profile-detail" alignItems="center" gap="$sm">
         <Avatar
           name={displayName}
           uri={effectiveProfilePicture ?? undefined}
@@ -326,7 +319,7 @@ export function ProfilePage({
             {profileStatusText}
           </Text>
         ) : null}
-      </Card>
+      </PageCard>
     );
   }
 
@@ -335,13 +328,7 @@ export function ProfilePage({
     inlineClaimPreview.username === unregisteredOwnLightningAddress?.username;
 
   return (
-    <Card
-      gap="$md"
-      marginTop="$lg"
-      $wide={{ backgroundColor: "$transparent" }}
-      paddingVertical="$xl"
-      paddingHorizontal="$none"
-    >
+    <PageCard>
       <ProfileAvatarEditor
         currentNpub={currentNpub}
         cycleProfileAvatarControl={cycleProfileAvatarControl}
@@ -435,6 +422,6 @@ export function ProfilePage({
           {t("saveChanges")}
         </Button>
       ) : null}
-    </Card>
+    </PageCard>
   );
 }
