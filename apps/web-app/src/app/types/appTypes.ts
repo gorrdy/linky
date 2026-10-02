@@ -3,6 +3,7 @@ import type { ContactId } from "../../evolu";
 import type { ContactWithChatState } from "../lib/contactChatState";
 import type { WriteOutcome } from "../lib/storeWrite";
 import type { I18nKey } from "../../i18n";
+import type { ProfileStatusCurrency } from "../../nostrStatus";
 import type {
   Pubkey,
   PaymentTelemetryAppRuntime,
@@ -147,6 +148,12 @@ export type ContactRowLike = {
     ContactWithChatState[K]
   > | null;
 } & { isUnknownContact?: boolean };
+/** A contact whose status advertises the currencies they pay transfers in. */
+export interface ProxyPaymentPayerContact {
+  contact: ContactRowLike;
+  currencies: ProfileStatusCurrency[];
+  pictureUrl: string | null;
+}
 export type ContactIdentityRowLike = Pick<ContactRowLike, "id" | "npub"> & {
   unknownPubkeyHex?: string | null;
 };
