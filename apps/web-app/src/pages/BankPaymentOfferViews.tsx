@@ -415,7 +415,7 @@ export function OwnerOfferView({
           loading={isSettling}
           onPress={() => void settleOffer()}
         >
-          {isSettling ? t("chatPendingShort") : t("bankPaymentOfferSettle")}
+          {t("bankPaymentOfferSettle")}
         </Button>
       ) : null}
       {canCancel ? (
@@ -519,23 +519,23 @@ export function IncomingOfferView({
 
       <Stack gap="$sm" marginBottom="$huge">
         <Button
+          loading={responseStatus === "accepted"}
           disabled={responseStatus !== null}
           onPress={() => {
             void respond("accepted");
           }}
         >
-          {responseStatus === "accepted"
-            ? t("chatPendingShort")
-            : t("bankPaymentOfferAccept")}
+          {t("bankPaymentOfferAccept")}
         </Button>
         <Button
           variant="secondary"
+          loading={responseStatus === "declined"}
           disabled={responseStatus !== null}
           onPress={() => {
             void respond("declined");
           }}
         >
-          {responseStatus === "declined" ? t("chatPendingShort") : t("decline")}
+          {t("decline")}
         </Button>
       </Stack>
     </BankPaymentScreen>
@@ -605,9 +605,7 @@ export function WaitingForSatsOfferView({
             );
           }}
         >
-          {isAttachingConfirmation
-            ? t("chatPendingShort")
-            : t("bankPaymentOfferAttachConfirmation")}
+          {t("bankPaymentOfferAttachConfirmation")}
         </Button>
       )}
 
@@ -730,9 +728,7 @@ export function BankDetailsOfferView({
           void confirmPaid();
         }}
       >
-        {isConfirmingPaid
-          ? t("chatPendingShort")
-          : t("bankPaymentOfferMarkPaid")}
+        {t("bankPaymentOfferMarkPaid")}
       </Button>
 
       <Button
@@ -777,7 +773,7 @@ export function BankDetailsOfferView({
             void openInBank();
           }}
         >
-          {isOpening ? t("spdPaymentOpening") : t("spdPaymentOpenInBank")}
+          {t("spdPaymentOpenInBank")}
         </Button>
         <Button
           flex={1}
@@ -788,7 +784,7 @@ export function BankDetailsOfferView({
             void openWithJpeg();
           }}
         >
-          {isSharingJpeg ? t("spdPaymentOpening") : t("spdPaymentOpenWithJpg")}
+          {t("spdPaymentOpenWithJpg")}
         </Button>
       </Row>
 

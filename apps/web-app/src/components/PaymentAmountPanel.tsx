@@ -39,7 +39,6 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
   submitLabel,
   t,
 }) => {
-  const isSubmitBusy = submitBusy ?? cashuIsBusy;
   const amountInput = useAmountInputKeypad({ amount, onAmountChange });
 
   return (
@@ -64,13 +63,13 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
 
         <Button
           icon={submitIcon ?? "HandCoins"}
-          loading={isSubmitBusy}
+          loading={submitBusy ?? cashuIsBusy}
           onPress={onSubmit}
           disabled={cashuIsBusy || submitDisabled}
           data-guide={sendGuideId}
           tooltip={submitBlockedReason}
         >
-          {isSubmitBusy ? t("payPaying") : (submitLabel ?? t("paySend"))}
+          {submitLabel ?? t("paySend")}
         </Button>
       </Stack>
     </Stack>

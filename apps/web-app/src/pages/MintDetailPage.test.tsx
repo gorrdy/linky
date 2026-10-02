@@ -42,8 +42,8 @@ describe("MintDetailPage", () => {
       container.querySelector('[data-testid="mint-detail-name"]')?.textContent,
     ).toBe("cashu.cz");
     expect(badgeTexts(container)).toEqual([
-      "DEFAULTMINTBADGE",
-      "RECOMMENDEDMINTBADGE",
+      "defaultMintBadge",
+      "recommendedMintBadge",
     ]);
     expect(container.textContent).not.toContain("mintSetAsDefault");
     expect(container.querySelector('[data-testid="mint-fees"]')).not.toBeNull();

@@ -35,6 +35,7 @@ export function MintDeferredReceives({
     tokenText === null ? null : (
       <Button
         variant="secondary"
+        icon="Copy"
         flex={inRow ? 1 : undefined}
         disabled={isDiscardBusy}
         onPress={() => void copyText(tokenText)}
@@ -93,7 +94,7 @@ export function MintDeferredReceives({
               {copyTokenButton(discarding.tokenText, false)}
               <Button
                 variant="danger"
-                disabled={isDiscardBusy}
+                loading={isDiscardBusy}
                 onPress={() => void confirmDiscard(discarding)}
               >
                 {t("cashuDeferredDiscard")}

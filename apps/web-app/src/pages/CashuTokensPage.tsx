@@ -9,9 +9,9 @@ import {
   DataTable,
   EmptyState,
   ListRow,
+  LoadingState,
   Progress,
   Row,
-  Spinner,
   Stack,
   Text,
   Pill,
@@ -289,31 +289,25 @@ export const CashuTokensPage = ({
         </Stack>
         <Button
           variant="secondary"
+          loading={tokensRestoreIsBusy}
           onPress={() => void restoreMissingTokens()}
-          disabled={
-            !canRestoreTokens ||
-            tokensRestoreIsBusy ||
-            cashuIsBusy ||
-            cashuBulkCheckIsBusy
-          }
+          disabled={!canRestoreTokens || cashuIsBusy || cashuBulkCheckIsBusy}
         >
-          {tokensRestoreIsBusy ? t("restoring") : t("restoreTokens")}
+          {t("restoreTokens")}
         </Button>
-        {tokensRestoreIsBusy && (
+        {!tokensRestoreIsBusy ? null : scanProgress ? (
           <Stack gap="$sm">
-            {scanProgress ? (
-              <Progress
-                value={scanProgress.completedKeysets}
-                max={scanProgress.totalKeysets}
-                accessibilityLabel={t("restoring")}
-              />
-            ) : (
-              <Spinner accessibilityLabel={t("restoring")} />
-            )}
+            <Progress
+              value={scanProgress.completedKeysets}
+              max={scanProgress.totalKeysets}
+              accessibilityLabel={t("restoring")}
+            />
             <Text color="$colorMuted" role="status">
               {restoreStatusText}
             </Text>
           </Stack>
+        ) : (
+          <LoadingState label={restoreStatusText} />
         )}
         <Text color="$colorMuted">{t("cashuMissingRestoreHint")}</Text>
       </Stack>

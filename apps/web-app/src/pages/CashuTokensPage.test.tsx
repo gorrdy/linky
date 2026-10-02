@@ -174,13 +174,16 @@ describe("pending tokens", () => {
     await rerender(
       <CashuTokensPage {...pageProps} tokensRestoreIsBusy={true} />,
     );
-    expect(container.textContent).toContain("Looking for missing tokens");
-    const progress = container.querySelector('[role="progressbar"]');
-    expect(progress?.getAttribute("aria-label")).toBe(
-      "Looking for missing tokens…",
+    expect(
+      [...container.querySelectorAll("button")]
+        .find((button) =>
+          button.textContent?.includes("Look for missing tokens"),
+        )
+        ?.getAttribute("aria-busy"),
+    ).toBe("true");
+    expect(container.querySelector('[role="status"]')?.textContent).toBe(
+      "Loading mint keysets…",
     );
-    expect(progress?.hasAttribute("aria-valuenow")).toBe(false);
-    expect(container.textContent).toContain("Loading mint keysets…");
     await rerender(
       <CashuTokensPage
         {...pageProps}
@@ -196,16 +199,11 @@ describe("pending tokens", () => {
     expect(container.textContent).toContain(
       "Scanned 3 of 6 keysets across 2 mints.",
     );
-    expect(
-      container
-        .querySelector('[role="progressbar"]')
-        ?.getAttribute("aria-valuenow"),
-    ).toBe("3");
-    expect(
-      container
-        .querySelector('[role="progressbar"]')
-        ?.getAttribute("aria-valuemax"),
-    ).toBe("6");
+    const progress = container.querySelector(
+      '[role="progressbar"][aria-label="Looking for missing tokens…"]',
+    );
+    expect(progress?.getAttribute("aria-valuenow")).toBe("3");
+    expect(progress?.getAttribute("aria-valuemax")).toBe("6");
     await rerender(
       <CashuTokensPage
         {...pageProps}

@@ -217,10 +217,11 @@ export const CashuProofsPage: FC<CashuProofsPageProps> = ({
         ) : null}
         <Button
           variant="secondary"
+          loading={tokensRestoreIsBusy}
           onPress={() => void restoreMissingTokens()}
-          disabled={!canRestoreTokens || tokensRestoreIsBusy || cashuIsBusy}
+          disabled={!canRestoreTokens || cashuIsBusy}
         >
-          {tokensRestoreIsBusy ? t("restoring") : t("restoreTokens")}
+          {t("restoreTokens")}
         </Button>
       </ProofSection>
 

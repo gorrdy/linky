@@ -195,13 +195,15 @@ export function MintDetailPage() {
               />
               <Button
                 variant="secondary"
+                size="sm"
+                alignSelf="flex-start"
                 onPress={() => void refreshMintInfo(cleaned)}
               >
                 {t("mintRefresh")}
               </Button>
               <Button
                 variant={
-                  pendingMintDeleteUrl === cleaned ? "danger" : "primary"
+                  pendingMintDeleteUrl === cleaned ? "danger" : "secondary"
                 }
                 onPress={deleteMint}
               >

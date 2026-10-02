@@ -327,7 +327,7 @@ export const en = {
   mints: "Mints",
 
   defaultMint: "Default mint",
-  testMintBadge: "test",
+  testMintBadge: "Test",
   recommendedMintBadge: "Recommended",
   defaultMintBadge: "Default",
   mintFeeCashuPayments: "Cashu payments",

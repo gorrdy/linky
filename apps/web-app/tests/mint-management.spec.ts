@@ -163,7 +163,7 @@ test("test mints can be hidden and funds move between mints", async ({
 
     await page.waitForURL(/#advanced\/mint\//);
     await expect(
-      page.getByTestId("mint-detail-badges").getByText("DEFAULT", {
+      page.getByTestId("mint-detail-badges").getByText("Default", {
         exact: true,
       }),
     ).toBeVisible();

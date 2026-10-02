@@ -21,6 +21,7 @@ export function TopupNoAmountPage(): React.ReactElement {
           <QRCode
             value={target}
             accessibilityLabel={t("copy")}
+            badge="Copy"
             onPress={() => void copyText(target)}
           />
           <CodeBlock>{target}</CodeBlock>

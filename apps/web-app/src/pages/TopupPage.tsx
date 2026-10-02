@@ -69,7 +69,7 @@ export const TopupPage: FC<TopupPageProps> = ({
         </Button>
         <Button
           variant="secondary"
-          icon="Copy"
+          icon="ClipboardPaste"
           flex={1}
           onPress={() => void pasteAmountOrScanValue()}
         >

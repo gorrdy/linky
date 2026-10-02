@@ -51,8 +51,9 @@ export function PaymentConfirmDialog({
       actions={
         <>
           <Button
+            loading={isBusy}
             onPress={() => void onConfirm()}
-            disabled={isBusy || disabled}
+            disabled={disabled}
             tooltip={disabledReason}
           >
             {confirmLabel}

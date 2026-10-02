@@ -546,14 +546,13 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
             !hasEnoughCashuForProxy ||
             isRequestingOffer
           }
+          loading={isRequestingOffer}
           tooltip={!hasEnoughCashuForProxy ? t("payInsufficient") : undefined}
           onPress={() => {
             void requestReimbursement();
           }}
         >
-          {isRequestingOffer
-            ? t("spdPaymentOfferSending")
-            : requestReimbursementLabel}
+          {requestReimbursementLabel}
         </Button>
       )}
 

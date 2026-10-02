@@ -32,7 +32,7 @@ export function PaymentMintMeltConfirmModal({
         .replace("{toMint}", formatMintHost(toMint))}
       actions={
         <>
-          <Button disabled={isBusy} onPress={() => void onConfirm()}>
+          <Button loading={isBusy} onPress={() => void onConfirm()}>
             {t("cashuPaymentMeltConfirm")}
           </Button>
           <Button variant="secondary" disabled={isBusy} onPress={onClose}>

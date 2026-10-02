@@ -283,6 +283,9 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
 
       {isOpenSend || isFailedReceive ? (
         <Button
+          variant="secondary"
+          size="sm"
+          alignSelf="flex-start"
           onPress={() => void checkAndRefreshCashuToken(routeId)}
           disabled={cashuIsBusy}
         >
@@ -301,6 +304,7 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
 
       <Button
         variant="secondary"
+        icon="Copy"
         onPress={() => void copyText(tokenText)}
         disabled={!tokenText.trim()}
       >
@@ -310,6 +314,7 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
       {isOpenSend ? (
         <Button
           variant="secondary"
+          icon="Share2"
           onPress={() => void shareTokenText(routeId, shareMessage)}
           disabled={!shareMessage}
         >

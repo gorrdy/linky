@@ -60,7 +60,6 @@ export function MintNewPage(): React.ReactElement {
         spellCheck={false}
       />
       <Button
-        alignSelf="flex-start"
         onPress={() => void addMint()}
         disabled={!mintUrl.trim() || cashuIsBusy || isSaving}
       >

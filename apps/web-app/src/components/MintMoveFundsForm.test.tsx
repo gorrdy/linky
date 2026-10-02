@@ -180,7 +180,7 @@ describe("MintMoveFundsForm", () => {
       ]),
     ).toEqual([
       ["Kkashu.me", "true"],
-      ["Llocalhost:3339TESTMINTBADGE", "false"],
+      ["Llocalhost:3339testMintBadge", "false"],
     ]);
 
     await act(async () => {

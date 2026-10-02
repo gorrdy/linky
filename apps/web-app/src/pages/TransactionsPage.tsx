@@ -447,13 +447,13 @@ export function TransactionsPage(): React.ReactElement {
         item.pendingLabel === "pending"
       ) {
         return {
-          tone: "neutral",
+          tone: "warning",
           label: t("transactionPending"),
         };
       }
       if (requestStatus === "declined") {
         return {
-          tone: "danger",
+          tone: "neutral",
           label: t("paymentRequestStatusDeclined"),
         };
       }

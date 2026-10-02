@@ -332,7 +332,7 @@ export const cs = {
   mints: "Minty",
 
   defaultMint: "Výchozí mint",
-  testMintBadge: "test",
+  testMintBadge: "Test",
   recommendedMintBadge: "Doporučeno",
   defaultMintBadge: "Výchozí",
   mintFeeCashuPayments: "Cashu platby",

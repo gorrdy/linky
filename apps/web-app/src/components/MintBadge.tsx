@@ -18,7 +18,7 @@ export function MintBadge({ kind }: MintBadgeProps) {
   return (
     <Pill
       size="sm"
-      label={t(LABEL_KEY[kind]).toUpperCase()}
+      label={t(LABEL_KEY[kind])}
       tone={kind === "test" ? "warning" : "accent"}
     />
   );

@@ -183,10 +183,11 @@ export function MintMoveFundsForm({
       ) : (
         <Button
           variant="secondary"
-          disabled={busy || estimating || move === null}
+          loading={estimating}
+          disabled={busy || move === null}
           onPress={() => void runEstimate()}
         >
-          {estimating ? t("mintMoveEstimating") : t("mintMoveEstimate")}
+          {t("mintMoveEstimate")}
         </Button>
       )}
     </Stack>
