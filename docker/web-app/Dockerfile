@@ -26,6 +26,7 @@ COPY packages/linksync/package.json packages/linksync/
 COPY packages/linkstr/package.json packages/linkstr/
 COPY packages/linkstr-react/package.json packages/linkstr-react/
 COPY packages/proxy-payment/package.json packages/proxy-payment/
+COPY packages/ui/package.json packages/ui/
 COPY tools/nostr-error-tracker/package.json tools/nostr-error-tracker/
 RUN bun install --frozen-lockfile
 
