@@ -1344,9 +1344,6 @@ export const useContactsMessagingComposition = ({
       return;
     }
 
-    const confirmed = window.confirm(t("chatUnknownContactBlockConfirm"));
-    if (!confirmed) return;
-
     const blockedPubkey = decodeNpub(normalizedNpub);
 
     if (!blockedPubkey) {
@@ -1469,9 +1466,6 @@ export const useContactsMessagingComposition = ({
   const blockUnknownContactFromChat = React.useCallback(async () => {
     if (route.kind !== "chat") return;
     if (!selectedChatContact?.isUnknownContact) return;
-
-    const confirmed = window.confirm(t("chatUnknownContactBlockConfirm"));
-    if (!confirmed) return;
 
     const contactId = selectedChatContact.id.trim();
     if (!contactId) return;

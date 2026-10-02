@@ -201,8 +201,11 @@ test("a seed restore keeps the account's archive, blocks and history intact", as
     await test.step("A blocks W after W wrote, and publishes the mute list", async () => {
       await sendDirectMessage(w.nsec, account.npub, "Hi from W");
       await card(a.page, unknownId(w)).click();
-      a.page.once("dialog", (dialog) => void dialog.accept());
       await a.page.getByRole("button", { name: "Block", exact: true }).click();
+      await a.page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Block", exact: true })
+        .click();
       await expect(card(a.page, unknownId(w))).toHaveCount(0);
       await waitForMuteListOnRelay(account.npub, npubToHex(w.npub));
     });

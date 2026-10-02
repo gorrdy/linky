@@ -1,5 +1,6 @@
 import { Button, EmptyState, IconButton, Row } from "@linky-fit/ui";
 import type { FC } from "react";
+import { BlockContactButton } from "../components/BlockContactButton";
 import type { ContactId } from "../evolu";
 import { ContactFields, type ContactFormData } from "./ContactNewPage";
 import type { Translate } from "../i18n";
@@ -121,13 +122,11 @@ export const ContactEditPage: FC<ContactEditPageProps> = ({
             >
               {t("restoreArchivedContact")}
             </Button>
-            <Button
-              variant="danger"
-              onPress={() => void blockArchivedContact()}
+            <BlockContactButton
+              onConfirm={blockArchivedContact}
               disabled={!editingId || !canBlockArchivedContact}
-            >
-              {t("blockContact")}
-            </Button>
+              t={t}
+            />
           </>
         ) : (
           <Button

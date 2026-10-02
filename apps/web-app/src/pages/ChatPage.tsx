@@ -63,6 +63,7 @@ import type {
   LocalNostrMessage,
   LocalNostrReaction,
 } from "../app/types/appTypes";
+import { BlockContactButton } from "../components/BlockContactButton";
 import { ChatAttachmentPreview } from "../components/ChatAttachmentPreview";
 import {
   ChatMessage,
@@ -1110,9 +1111,7 @@ const UnknownContactWarning = memo(function UnknownContactWarning({
             <Button flex={1} onPress={() => void onAdd()}>
               {t("addContact")}
             </Button>
-            <Button flex={1} variant="secondary" onPress={() => void onBlock()}>
-              {t("blockContact")}
-            </Button>
+            <BlockContactButton flex={1} onConfirm={onBlock} t={t} />
           </Row>
         }
       />
