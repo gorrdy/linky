@@ -1,4 +1,4 @@
-import { Stack, Row, Text, Button } from "@linky-fit/ui";
+import { Button, EmptyState, Row, Stack, Text } from "@linky-fit/ui";
 import React, { useCallback, useMemo, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -42,13 +42,12 @@ export function MasterKeysPage(): React.ReactElement {
 
   return (
     <Stack gap="$lg">
-      <Row flexWrap="wrap" gap="$sm" aria-live="polite">
-        {hasSeedMnemonic ? (
-          seedWords.map((word, index) => (
+      {hasSeedMnemonic ? (
+        <Row flexWrap="wrap" gap="$sm" aria-live="polite">
+          {seedWords.map((word, index) => (
             <Row
               key={index}
-              width="$hero"
-              minWidth="$hero"
+              flexBasis="40%"
               flexGrow={1}
               paddingHorizontal="$md"
               paddingVertical="$sm"
@@ -67,29 +66,13 @@ export function MasterKeysPage(): React.ReactElement {
                 {isVisible ? word : "****"}
               </Text>
             </Row>
-          ))
-        ) : (
-          <Text color="$colorMuted">{t("seedMissing")}</Text>
-        )}
-      </Row>
-      <Row gap="$sm" flexWrap="wrap">
+          ))}
+        </Row>
+      ) : (
+        <EmptyState title={t("seedMissing")} />
+      )}
+      <Stack gap="$sm">
         <Button
-          width="48%"
-          minWidth="$column"
-          paddingHorizontal="$xs"
-          $wide={{ width: "30%", flexGrow: 1 }}
-          variant="secondary"
-          icon={isVisible ? "EyeOff" : "Eye"}
-          onPress={() => setIsVisible((current) => !current)}
-          disabled={!hasSeedMnemonic}
-        >
-          {isVisible ? t("masterKeysHide") : t("masterKeysShow")}
-        </Button>
-        <Button
-          width="48%"
-          minWidth="$column"
-          paddingHorizontal="$xs"
-          $wide={{ width: "30%", flexGrow: 1 }}
           icon="Copy"
           onPress={copySeed}
           disabled={!hasSeedMnemonic}
@@ -98,10 +81,14 @@ export function MasterKeysPage(): React.ReactElement {
           {t("copy")}
         </Button>
         <Button
-          width="48%"
-          minWidth="$column"
-          paddingHorizontal="$xs"
-          $wide={{ width: "30%", flexGrow: 1 }}
+          variant="secondary"
+          icon={isVisible ? "EyeOff" : "Eye"}
+          onPress={() => setIsVisible((current) => !current)}
+          disabled={!hasSeedMnemonic}
+        >
+          {isVisible ? t("masterKeysHide") : t("masterKeysShow")}
+        </Button>
+        <Button
           variant="secondary"
           icon="ShieldCheck"
           onPress={() => void handleSaveSeed()}
@@ -109,7 +96,7 @@ export function MasterKeysPage(): React.ReactElement {
         >
           {t("onboardingBackupSave")}
         </Button>
-      </Row>
+      </Stack>
     </Stack>
   );
 }
