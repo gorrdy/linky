@@ -647,8 +647,8 @@ const OfferContactTile = ({
           <Text
             testID="bank-payment-offer-contact-order"
             position="absolute"
-            right={0}
-            bottom={0}
+            right="$none"
+            bottom="$none"
             minWidth="$iconSm"
             paddingHorizontal="$xxs"
             borderRadius="$pill"

@@ -1,6 +1,7 @@
 import {
   Avatar,
   Button,
+  EmptyState,
   FileAttachment,
   ImageAttachment,
   ListRow,
@@ -549,7 +550,7 @@ interface InvalidOfferViewProps {
 export function InvalidOfferView({ t }: InvalidOfferViewProps) {
   return (
     <BankPaymentScreen>
-      <Text color="$colorMuted">{t("spdPaymentInvalid")}</Text>
+      <EmptyState title={t("spdPaymentInvalid")} />
     </BankPaymentScreen>
   );
 }

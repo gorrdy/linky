@@ -1,5 +1,5 @@
 import type { TokenTransfer } from "@linky-fit/linkshu";
-import { Pressable, Stack, Text } from "@linky-fit/ui";
+import { Button, Stack, Text } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { LocalNostrMessage } from "../app/types/appTypes";
 import type { ContactId } from "../evolu";
@@ -44,12 +44,15 @@ export const CashuTokenHandoff = ({
         <Text>{t(location)}</Text>
       ) : (
         chats.map((message) => (
-          <Pressable
+          <Button
             key={message.contactId}
+            variant="ghost"
+            size="sm"
+            icon="MessageCircle"
             onPress={() => navigateTo({ route: "chat", id: message.contactId })}
           >
-            <Text textDecorationLine="underline">{chatLabel(message)}</Text>
-          </Pressable>
+            {chatLabel(message)}
+          </Button>
         ))
       )}
       {chats.length > 0 && transfer.status === "externalized" ? (

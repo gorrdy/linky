@@ -1,5 +1,12 @@
 import type { AutoswapEstimate } from "@linky-fit/linkshu";
-import { Button, Notice, Stack, Text } from "@linky-fit/ui";
+import {
+  Button,
+  EmptyState,
+  Notice,
+  Section,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { MintMove } from "../app/hooks/mint/useMoveMintFunds";
@@ -95,7 +102,7 @@ export function MintMoveFundsForm({
     rows !== null && (rows.leaves > available || rows.arrives <= 0);
 
   if (targets.length === 0) {
-    return <Text color="$colorMuted">{t("mintMoveNoTarget")}</Text>;
+    return <EmptyState title={t("mintMoveNoTarget")} />;
   }
 
   const runEstimate = async () => {
@@ -119,24 +126,23 @@ export function MintMoveFundsForm({
 
   return (
     <Stack testID="mint-move-form" gap="$sm">
-      <Text variant="label" color="$colorSubtle" aria-hidden>
-        {t("mintMoveTarget")}
-      </Text>
-      <Stack role="group" aria-label={t("mintMoveTarget")} gap="$xs">
-        {targets.map((mint) => (
-          <MintButton
-            key={mint}
-            badge={mintKindBadge(mint)}
-            chevron={false}
-            disabled={busy}
-            getMintIconUrl={getMintIconUrl}
-            isSelected={mint === target}
-            label={formatMintLabel(mint)}
-            mint={mint}
-            onPress={() => setTargetMint(mint)}
-          />
-        ))}
-      </Stack>
+      <Section title={t("mintMoveTarget")}>
+        <Stack role="group" aria-label={t("mintMoveTarget")} gap="$xs">
+          {targets.map((mint) => (
+            <MintButton
+              key={mint}
+              badge={mintKindBadge(mint)}
+              chevron={false}
+              disabled={busy}
+              getMintIconUrl={getMintIconUrl}
+              isSelected={mint === target}
+              label={formatMintLabel(mint)}
+              mint={mint}
+              onPress={() => setTargetMint(mint)}
+            />
+          ))}
+        </Stack>
+      </Section>
 
       <Text variant="caption" color="$colorMuted" textAlign="center">
         {t("mintMoveMaximum").replace(

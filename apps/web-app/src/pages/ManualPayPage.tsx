@@ -1,11 +1,4 @@
-import {
-  Button,
-  ContactRow,
-  Section,
-  Stack,
-  Text,
-  TextField,
-} from "@linky-fit/ui";
+import { Button, ContactRow, Section, Stack, TextField } from "@linky-fit/ui";
 import React, { type FC } from "react";
 import type { ContactId } from "../evolu";
 import { navigateTo } from "../hooks/useRouting";
@@ -138,12 +131,12 @@ export const ManualPayPage: FC<ManualPayPageProps> = ({
           value={value}
           onChangeText={setValue}
           onSubmitEditing={() => void submit()}
+          hint={
+            expandedAlias
+              ? t("manualPayLinkyAliasHint").replace("{address}", expandedAlias)
+              : undefined
+          }
         />
-        {expandedAlias ? (
-          <Text variant="caption" color="$colorMuted">
-            {t("manualPayLinkyAliasHint").replace("{address}", expandedAlias)}
-          </Text>
-        ) : null}
         <Button disabled={!query || isSubmitting} onPress={() => void submit()}>
           {t("manualPayContinue")}
         </Button>

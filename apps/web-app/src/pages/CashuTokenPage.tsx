@@ -6,7 +6,7 @@ import { tokenChatMessages } from "../app/lib/pendingTokenTransfers";
 import type { LocalNostrMessage } from "../app/types/appTypes";
 import { useLatest } from "../hooks/useLatest";
 import type { StoredProof, TokenTransfer } from "@linky-fit/linkshu";
-import { Button, Notice, Stack, Text } from "@linky-fit/ui";
+import { Button, LoadingState, Notice, Stack, Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -227,7 +227,7 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
   }, [routeId, transferMissing]);
 
   if (transfer === undefined) {
-    if (!showMissingRecovery) return null;
+    if (!showMissingRecovery) return <LoadingState label={t("loading")} />;
 
     return <Notice tone="danger" title={t("cashuInvalid")} />;
   }

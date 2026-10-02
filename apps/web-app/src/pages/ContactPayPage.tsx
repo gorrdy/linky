@@ -1,9 +1,9 @@
 import {
   Avatar,
+  Button,
   EmptyState,
   IconButton,
   Notice,
-  Pressable,
   Row,
   Stack,
   Text,
@@ -17,7 +17,6 @@ import {
   getLnurlPayAmountRangeError,
   useLnurlPayPreview,
 } from "../hooks/useLnurlPayPreview";
-import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 
 interface Contact {
@@ -131,7 +130,6 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
           <Avatar
             name={selectedContact.name ?? ""}
             uri={url ?? undefined}
-            fallback={getInitials(selectedContact.name ?? "")}
             size="md"
           />
           <Stack flex={1} gap="$xxs">
@@ -158,13 +156,15 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
             {isRequestFlow ? (
               <Text color="$colorMuted">{t("requestPaymentHint")}</Text>
             ) : (
-              <Pressable
+              <Button
+                variant="ghost"
+                size="sm"
                 alignSelf="flex-start"
                 disabled={!canCoverAnything}
                 onPress={() => setPayAmount(String(cashuBalance))}
               >
-                <Text color="$colorMuted">{availableAmountText}</Text>
-              </Pressable>
+                {availableAmountText}
+              </Button>
             )}
           </Stack>
         </Row>

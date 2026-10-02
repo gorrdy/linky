@@ -11,6 +11,7 @@ import {
   normalizeMintUrl,
   PRODUCTION_MINTS,
 } from "../utils/mint";
+import { formatDisplayAmountText } from "../utils/displayAmounts";
 import { nowSeconds } from "../utils/time";
 import { ValueRow } from "./ValueRow";
 
@@ -26,9 +27,17 @@ const failedProbeAtByMint = new Map<string, number>();
 
 type LightningFeeState = LightningFeeProbeResult | "failed" | "pending";
 
-const formatCashuFee = (ppk: number): string => {
+// Fees are a few sats, which a fiat display unit would round to zero.
+const formatSat = (amountSat: number, lang: string) =>
+  formatDisplayAmountText(amountSat, {
+    displayCurrency: "sat",
+    fiatRates: null,
+    lang,
+  });
+
+const formatCashuFee = (ppk: number, lang: string): string => {
   const sats = Math.ceil((ppk * TYPICAL_PAYMENT_PROOF_COUNT) / 1000);
-  return sats === 0 ? "0 sat" : `~${sats} sat`;
+  return sats === 0 ? formatSat(0, lang) : `~${formatSat(sats, lang)}`;
 };
 
 const formatPercent = (percent: number): string =>
@@ -106,7 +115,7 @@ interface MintFeesProps {
 
 export function MintFees({ mint }: MintFeesProps) {
   const { probeLightningFee } = useMintSettingsContext();
-  const { t } = useAppShellCore();
+  const { lang, t } = useAppShellCore();
   const mintUrl = normalizeMintUrl(mint);
   const ppk = useKeysetFeePpk(mintUrl);
   const lightningFee = useLightningFeeProbe(probeLightningFee, mintUrl);
@@ -115,9 +124,9 @@ export function MintFees({ mint }: MintFeesProps) {
     <Stack testID="mint-fees" gap="$xs">
       <ValueRow
         label={t("mintFeeCashuPayments")}
-        value={ppk !== null ? formatCashuFee(ppk) : t("unknown")}
+        value={ppk !== null ? formatCashuFee(ppk, lang) : t("unknown")}
       />
-      <ValueRow label={t("mintFeeLightningTopup")} value="0 sat" />
+      <ValueRow label={t("mintFeeLightningTopup")} value={formatSat(0, lang)} />
       <ValueRow
         label={t("mintFeeLightningPayments")}
         value={

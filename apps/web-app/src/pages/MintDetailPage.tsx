@@ -1,6 +1,14 @@
 import { parseMintUrl } from "@linky-fit/linkshu";
 import { sqliteTrue } from "@linky-fit/linksync";
-import { Button, Divider, Row, Section, Stack, Text } from "@linky-fit/ui";
+import {
+  Button,
+  Divider,
+  EmptyState,
+  Row,
+  Section,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
@@ -72,11 +80,7 @@ export function MintDetailPage() {
     parseMintUrl(cleaned) === null ||
     isHiddenTestMint(cleaned, allowTestMints)
   ) {
-    return (
-      <Stack>
-        <Text color="$colorMuted">{t("mintNotFound")}</Text>
-      </Stack>
-    );
+    return <EmptyState title={t("mintNotFound")} />;
   }
 
   const fundedMints = [...holdings]

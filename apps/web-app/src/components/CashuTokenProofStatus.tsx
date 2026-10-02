@@ -1,5 +1,5 @@
 import type { ProofStateSnapshot, StoredProof } from "@linky-fit/linkshu";
-import { Button, Card, Row, Stack, Text } from "@linky-fit/ui";
+import { Button, Card, LoadingState, Section, Text } from "@linky-fit/ui";
 import { useMemo } from "react";
 import type { InspectCashuProofStates } from "../app/hooks/composition/useLinkshuComposition";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -51,50 +51,48 @@ export const CashuTokenProofStatus = ({
 
   return (
     <Card outlined aria-label={t("cashuProofStatus")}>
-      <Row justifyContent="space-between">
-        <Text variant="label" fontWeight="$regular">
-          {t("cashuProofStatus")}
-        </Text>
-        <Button
-          variant="secondary"
-          size="sm"
-          onPress={refresh}
-          disabled={loading || busy || inspect === null}
-        >
-          {t("cashuRefreshProofs")}
-        </Button>
-      </Row>
-      {loading ? (
-        <Text color="$colorMuted" role="status">
-          {t("cashuCheckingProofs")}
-        </Text>
-      ) : (
-        <Stack gap="$xs">
-          {amountRow(t("cashuUnspentProofs"), sums.unspent)}
-          {amountRow(t("cashuPendingAtMint"), sums.pending)}
-          {sums.spent > 0 ? amountRow(t("cashuSpentProofs"), sums.spent) : null}
-          {sums.unknown > 0
-            ? amountRow(t("cashuUnknownProofs"), sums.unknown)
-            : null}
-          {sums.pending > 0 ? (
-            <Text variant="label" fontWeight="$regular" color="$colorMuted">
-              {t("cashuPendingQuoteExpiryHint")}
-            </Text>
-          ) : null}
-          {sums.unknown > 0 ? (
-            <Text variant="label" fontWeight="$regular" color="$colorMuted">
-              {t("cashuUnknownProofsHint")}
-            </Text>
-          ) : null}
-          {checkedAt !== null ? (
-            <Text variant="caption" color="$colorMuted">
-              {`${t("cashuProofLastChecked")}: ${new Date(
-                checkedAt * 1000,
-              ).toLocaleString(normalizeLocale(lang))}`}
-            </Text>
-          ) : null}
-        </Stack>
-      )}
+      <Section title={t("cashuProofStatus")}>
+        {loading ? (
+          <LoadingState label={t("cashuCheckingProofs")} />
+        ) : (
+          <>
+            {amountRow(t("cashuUnspentProofs"), sums.unspent)}
+            {amountRow(t("cashuPendingAtMint"), sums.pending)}
+            {sums.spent > 0
+              ? amountRow(t("cashuSpentProofs"), sums.spent)
+              : null}
+            {sums.unknown > 0
+              ? amountRow(t("cashuUnknownProofs"), sums.unknown)
+              : null}
+            {sums.pending > 0 ? (
+              <Text variant="caption" color="$colorMuted">
+                {t("cashuPendingQuoteExpiryHint")}
+              </Text>
+            ) : null}
+            {sums.unknown > 0 ? (
+              <Text variant="caption" color="$colorMuted">
+                {t("cashuUnknownProofsHint")}
+              </Text>
+            ) : null}
+            {checkedAt !== null ? (
+              <Text variant="caption" color="$colorMuted">
+                {`${t("cashuProofLastChecked")}: ${new Date(
+                  checkedAt * 1000,
+                ).toLocaleString(normalizeLocale(lang))}`}
+              </Text>
+            ) : null}
+          </>
+        )}
+      </Section>
+      <Button
+        variant="secondary"
+        size="sm"
+        alignSelf="flex-start"
+        onPress={refresh}
+        disabled={loading || busy || inspect === null}
+      >
+        {t("cashuRefreshProofs")}
+      </Button>
     </Card>
   );
 };

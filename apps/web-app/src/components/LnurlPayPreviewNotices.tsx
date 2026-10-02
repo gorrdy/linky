@@ -1,4 +1,4 @@
-import { Notice, Text } from "@linky-fit/ui";
+import { LoadingState, Notice, Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import type { LnurlPayPreview } from "../lnurlPay";
 import type { Translate } from "../i18n";
@@ -18,7 +18,7 @@ export const LnurlPayPreviewNotices: FC<LnurlPayPreviewNoticesProps> = ({
   t,
 }) => {
   if (loading) {
-    return <Text color="$colorMuted">{t("lnurlPayLoading")}</Text>;
+    return <LoadingState label={t("lnurlPayLoading")} />;
   }
   if (error) {
     return (

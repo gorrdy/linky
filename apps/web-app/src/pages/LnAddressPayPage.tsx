@@ -1,4 +1,4 @@
-import { Avatar, Pressable, Row, Stack, Text } from "@linky-fit/ui";
+import { Avatar, Button, Row, Stack, Text } from "@linky-fit/ui";
 import { useEffect, type FC } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { LnurlPayPreviewNotices } from "../components/LnurlPayPreviewNotices";
@@ -11,7 +11,7 @@ import {
   getLnurlPayDisplayText,
   inferLightningAddressFromLnurlTarget,
 } from "../lnurlPay";
-import { formatMiddleDots, getInitials } from "../utils/formatting";
+import { formatMiddleDots } from "../utils/formatting";
 
 interface LnAddressPayKnownContact {
   lnAddress?: string | null;
@@ -103,7 +103,6 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
             <Avatar
               name={knownContact.name ?? ""}
               uri={knownContactPictureUrl ?? undefined}
-              fallback={getInitials(knownContact.name ?? "")}
               size="md"
             />
           ) : null}
@@ -114,13 +113,15 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
               </Text>
             ) : null}
             <Text color="$colorMuted">{displayAddress}</Text>
-            <Pressable
+            <Button
+              variant="ghost"
+              size="sm"
               alignSelf="flex-start"
               disabled={!canCoverAnything}
               onPress={() => setLnAddressPayAmount(String(cashuBalance))}
             >
-              <Text color="$colorMuted">{availableAmountText}</Text>
-            </Pressable>
+              {availableAmountText}
+            </Button>
           </Stack>
         </Row>
       }

@@ -12,7 +12,7 @@ import { MintFees } from "./MintFees";
 let mintSettings: MintSettingsContextValue;
 
 vi.mock("../app/context/AppShellContexts", () => ({
-  useAppShellCore: () => ({ t: (key: string) => key }),
+  useAppShellCore: () => ({ lang: "en", t: (key: string) => key }),
 }));
 
 vi.mock("../app/context/SystemSettingsContexts", () => ({

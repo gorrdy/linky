@@ -3,7 +3,15 @@ import type {
   ProofStateSnapshot,
   StoredProof,
 } from "@linky-fit/linkshu";
-import { Button, DataTable, Row, Stack, Text } from "@linky-fit/ui";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  LoadingState,
+  Row,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import type { FC, ReactNode } from "react";
 import { useEffect, useMemo, useRef } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -125,7 +133,7 @@ export const CashuProofsPage: FC<CashuProofsPageProps> = ({
 
   const renderProofTable = (proofs: readonly StoredProof[]) => {
     if (proofs.length === 0) {
-      return <Text color="$colorMuted">{t("cashuNoProofs")}</Text>;
+      return <EmptyState title={t("cashuNoProofs")} />;
     }
     return (
       <DataTable
@@ -163,9 +171,11 @@ export const CashuProofsPage: FC<CashuProofsPageProps> = ({
 
   return (
     <Stack gap="$xxl">
-      <Text color="$colorMuted" role="status">
-        {checkingProofs ? t("cashuCheckingProofs") : t("cashuInventoryHint")}
-      </Text>
+      {checkingProofs ? (
+        <LoadingState label={t("cashuCheckingProofs")} />
+      ) : (
+        <Text color="$colorMuted">{t("cashuInventoryHint")}</Text>
+      )}
 
       <ProofSection
         label={t("cashuProofStateAvailable")}

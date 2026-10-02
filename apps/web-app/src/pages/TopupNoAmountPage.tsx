@@ -1,4 +1,4 @@
-import { Button, CodeBlock, QRCode, Stack, Text } from "@linky-fit/ui";
+import { Button, CodeBlock, EmptyState, QRCode, Stack } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
@@ -12,10 +12,6 @@ export function TopupNoAmountPage(): React.ReactElement {
 
   return (
     <Stack gap="$lg">
-      <Text variant="title" textAlign="center">
-        {t("topupNoAmountTitle")}
-      </Text>
-
       {target ? (
         <Stack gap="$lg">
           <QRCode
@@ -35,7 +31,7 @@ export function TopupNoAmountPage(): React.ReactElement {
           </Button>
         </Stack>
       ) : (
-        <Text color="$colorMuted">{t("topupNoAmountMissingAddress")}</Text>
+        <EmptyState title={t("topupNoAmountMissingAddress")} />
       )}
     </Stack>
   );
