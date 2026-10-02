@@ -127,7 +127,6 @@ export interface AppShellCoreContextValue {
   route: Route;
   scanAllowsManualContact: boolean;
   scanDiagnostics: ScanDiagnostics;
-  scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;
   scanIsOpen: boolean;

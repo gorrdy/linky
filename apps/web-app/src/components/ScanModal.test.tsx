@@ -34,7 +34,6 @@ interface ScanModalProps {
   onTypeManually: () => void;
   pasteScanValue: () => Promise<void>;
   scanDiagnostics: ScanDiagnostics;
-  scanCameraLabel: string | null;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: "contacts" | "receive" | "send" | null;
   scanVideoRef: React.RefObject<HTMLVideoElement | null>;
@@ -111,7 +110,6 @@ describe("ScanModal", () => {
       lastValue: "",
       reads: 0,
     },
-    scanCameraLabel: null,
     scanCanSwitchCamera: false,
     scanEntryPoint: null,
     scanVideoRef: { current: null },

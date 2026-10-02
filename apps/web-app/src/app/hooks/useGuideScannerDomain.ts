@@ -75,7 +75,6 @@ type UseGuideScannerDomainResult = ReturnType<typeof useContactsGuide> & {
   openReceiveScan: () => void;
   openWalletScan: () => void;
   scanAllowsManualContact: boolean;
-  scanCameraLabel: string | null;
   scanDiagnostics: ScanDiagnostics;
   scanCanSwitchCamera: boolean;
   scanEntryPoint: ScanEntryPoint | null;
@@ -614,14 +613,6 @@ export const useGuideScannerDomain = ({
     scanEntryPoint,
   ]);
 
-  const scanCameraLabel = React.useMemo(() => {
-    if (!scanCameraDeviceId) return null;
-    const selectedDevice = scanCameraDevices.find(
-      (device) => device.deviceId === scanCameraDeviceId,
-    );
-    return selectedDevice?.label.trim() || null;
-  }, [scanCameraDeviceId, scanCameraDevices]);
-
   React.useEffect(() => {
     if (!scanIsOpen) return;
     if (!scanStream) return;
@@ -805,7 +796,6 @@ export const useGuideScannerDomain = ({
     openReceiveScan,
     openWalletScan,
     scanAllowsManualContact: scanEntryPoint === "contacts",
-    scanCameraLabel,
     scanCanSwitchCamera: scanCameraDevices.length > 1,
     scanEntryPoint,
     scanIsOpen,
