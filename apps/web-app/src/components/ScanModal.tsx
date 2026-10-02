@@ -86,7 +86,7 @@ export function ScanModal(): React.ReactElement {
     onPress: onTypeManually,
   };
   const paste: ScanAction = {
-    icon: "Copy",
+    icon: "ClipboardPaste",
     label: t("paste"),
     onPress: () => void pasteScanValue(),
   };

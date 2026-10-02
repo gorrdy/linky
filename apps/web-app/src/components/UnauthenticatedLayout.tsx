@@ -301,7 +301,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           autoFocus
           trailing={
             <IconButton
-              icon="Copy"
+              icon="ClipboardPaste"
               accessibilityLabel={t("onboardingReturnPasteButton")}
               onPointerDown={keepInputFocus}
               onPress={() => void pasteReturningSlip39FromClipboard()}
