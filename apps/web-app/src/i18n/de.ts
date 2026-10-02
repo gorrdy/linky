@@ -419,7 +419,7 @@ export const de = {
     "Diesen Kontakt blockieren? Die Unterhaltung wird gelöscht.",
   chatUnknownContactBlocked: "Kontakt blockiert.",
   chatUnknownContactLinkSuggestion:
-    "Das könnte {name} aus deinen Kontakten sein: Das Profil nennt dieselbe Lightning-Adresse, die aber jeder kopieren kann. Diese Unterhaltung mit dem Kontakt verknüpfen?",
+    "{npub} könnte {name} aus deinen Kontakten sein: Das Profil nennt {address}, die Lightning-Adresse, die du beim Kontakt gespeichert hast. Diese Adresse kann aber jeder kopieren, also frag zuerst auf anderem Weg nach. Diese Unterhaltung mit dem Kontakt verknüpfen?",
   chatUnknownContactLink: "Verknüpfen",
   chatUnknownContactLinkDismiss: "Nicht verknüpfen",
   chatUnknownContactLinked: "Unterhaltung mit dem Kontakt verknüpft.",

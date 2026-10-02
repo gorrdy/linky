@@ -407,7 +407,7 @@ export const en = {
     "Block this contact? The conversation will be removed.",
   chatUnknownContactBlocked: "Contact blocked.",
   chatUnknownContactLinkSuggestion:
-    "This may be {name} from your contacts: the profile shows the same lightning address, but anyone can copy it. Link this conversation to the contact?",
+    "{npub} may be {name} from your contacts: its profile shows {address}, the lightning address you saved for the contact. Anyone can copy that address, so check with them another way first. Link this conversation to the contact?",
   chatUnknownContactLink: "Link",
   chatUnknownContactLinkDismiss: "Don't link",
   chatUnknownContactLinked: "Conversation linked to the contact.",

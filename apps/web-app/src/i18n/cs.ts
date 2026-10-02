@@ -412,7 +412,7 @@ export const cs = {
     "Opravdu chcete tento kontakt zablokovat? Konverzace zmizí.",
   chatUnknownContactBlocked: "Kontakt byl zablokován.",
   chatUnknownContactLinkSuggestion:
-    "Může to být {name} z vašich kontaktů: profil uvádí stejnou lightning adresu, kterou ale může zkopírovat kdokoli. Propojit tuto konverzaci s kontaktem?",
+    "{npub} může být {name} z vašich kontaktů: profil uvádí {address}, stejnou lightning adresu, jakou máte u kontaktu uloženou. Tu ale může zkopírovat kdokoli, proto si to s ním nejdřív ověřte jinou cestou. Propojit tuto konverzaci s kontaktem?",
   chatUnknownContactLink: "Propojit",
   chatUnknownContactLinkDismiss: "Nepropojovat",
   chatUnknownContactLinked: "Konverzace je propojená s kontaktem.",

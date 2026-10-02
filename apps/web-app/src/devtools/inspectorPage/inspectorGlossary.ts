@@ -135,7 +135,7 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
   "contacts.unknownSenderLinked":
     "The user confirmed that an unknown sender whose profile lightning address matches a contact without an npub is that contact: the sender's npub was written to the contact and the conversation moved to it. The match itself is never applied without this confirmation, because anyone can copy a lightning address into their profile.",
   "contacts.unknownSenderLinkDismissed":
-    "The user rejected the suggestion to link an unknown sender to the contact with the same lightning address; this device stops offering that pair.",
+    "The user rejected the suggestion to link an unknown sender to the contact with the same lightning address; this device stops offering that pair, and offers that contact for no other sender for a week.",
   "contacts.dedupeFailed":
     "The contact dedupe the user started threw before finishing; the payload carries the error. Contacts already merged before the failure stay merged.",
   "contacts.ownerMigrated":

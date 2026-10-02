@@ -27,7 +27,7 @@ import {
   useAtomSet,
   useOutboxResults,
 } from "@linky-fit/linkstr-react";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import React, { useMemo, useState } from "react";
 import {
   deriveDefaultProfile,
@@ -67,6 +67,7 @@ import {
 import { formatShortNpub, getBestNostrName } from "../../../utils/formatting";
 import { normalizeNpubIdentifier } from "../../../utils/nostrNpub";
 import { setStoredPushContactNames } from "../../../utils/pushContactNamesStorage";
+import { nowSeconds } from "../../../utils/time";
 import { getBankPaymentOfferCurrency } from "@linky-fit/proxy-payment";
 import { mergeBankPaymentOffersIntoLastMessageByContactId } from "../../lib/bankPaymentOfferRows";
 import { useBankPaymentOffers } from "../useBankPaymentOffers";
@@ -74,7 +75,16 @@ import {
   collectUnreadNewestIncomingByContactId,
   contactsToUnarchive,
 } from "../../lib/chatUnread";
-import { findContactLinkSuggestion } from "../../lib/contactIdentity";
+import {
+  findContactLinkSuggestion,
+  normalizeContactLightningAddress,
+} from "../../lib/contactIdentity";
+import {
+  addContactLinkDismissal,
+  ContactLinkDismissals,
+  isContactLinkSuggestionDismissed,
+  type ContactLinkDismissal,
+} from "../../lib/contactLinkDismissals";
 import { buildLinkyPaymentRequestDeclineMessage } from "../../lib/paymentRequestMessage";
 import { getChatAttachmentRejection } from "../../lib/privateImageMessage";
 import {
@@ -884,10 +894,10 @@ export const useContactsMessagingComposition = ({
   }, [displayContactById, route, selectedContact]);
 
   const [dismissedContactLinkSuggestions, setDismissedContactLinkSuggestions] =
-    useState<readonly string[]>(() =>
+    useState<readonly ContactLinkDismissal[]>(() =>
       safeLocalStorageGetJson(
         DISMISSED_CONTACT_LINK_SUGGESTIONS_STORAGE_KEY,
-        Schema.Array(Schema.String),
+        ContactLinkDismissals,
         [],
       ),
     );
@@ -906,14 +916,22 @@ export const useContactsMessagingComposition = ({
     const contact = findContactLinkSuggestion(contacts, lightningAddress);
     if (!contact) return null;
 
-    const dismissalKey = `${unknownNpub} ${contact.id}`;
-    if (dismissedContactLinkSuggestions.includes(dismissalKey)) return null;
+    if (
+      isContactLinkSuggestionDismissed(
+        dismissedContactLinkSuggestions,
+        unknownNpub,
+        contact.id,
+        nowSeconds(),
+      )
+    ) {
+      return null;
+    }
 
     return {
       contactId: contact.id,
       contactName: (contact.name ?? "").trim() || lightningAddress,
-      dismissalKey,
       lightningAddress,
+      senderNpubShort: formatShortNpub(unknownNpub),
       unknownContactId: selectedChatContact.id,
       unknownNpub,
     };
@@ -1516,6 +1534,12 @@ export const useContactsMessagingComposition = ({
 
     const contact = contacts.find((row) => row.id === contactId);
     if (!contact || normalizeNpubIdentifier(contact.npub ?? "")) return;
+    if (
+      normalizeContactLightningAddress(contact.lnAddress) !==
+      normalizeContactLightningAddress(lightningAddress)
+    ) {
+      return;
+    }
     const parsedNpub = NonEmptyString1000.fromUnknown(unknownNpub);
     if (!parsedNpub.ok) return;
 
@@ -1566,10 +1590,14 @@ export const useContactsMessagingComposition = ({
 
   const dismissUnknownContactLink = React.useCallback(() => {
     if (!unknownContactLinkSuggestion) return;
-    const { contactId, dismissalKey, lightningAddress, unknownNpub } =
+    const { contactId, lightningAddress, unknownNpub } =
       unknownContactLinkSuggestion;
 
-    const next = [...dismissedContactLinkSuggestions, dismissalKey];
+    const next = addContactLinkDismissal(
+      dismissedContactLinkSuggestions,
+      { atSec: nowSeconds(), contactId, senderNpub: unknownNpub },
+      new Set(contacts.map((contact) => contact.id)),
+    );
     safeLocalStorageSetJson(
       DISMISSED_CONTACT_LINK_SUGGESTIONS_STORAGE_KEY,
       next,
@@ -1582,7 +1610,7 @@ export const useContactsMessagingComposition = ({
       links: { contact: contactId },
       payload: { npub: unknownNpub, lightningAddress },
     });
-  }, [dismissedContactLinkSuggestions, unknownContactLinkSuggestion]);
+  }, [contacts, dismissedContactLinkSuggestions, unknownContactLinkSuggestion]);
 
   const blockUnknownContactFromChat = React.useCallback(async () => {
     if (route.kind !== "chat") return;
