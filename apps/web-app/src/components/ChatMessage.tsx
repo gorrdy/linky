@@ -17,6 +17,7 @@ import type { Tone } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
+  bankPaymentOfferStatusTones,
   formatRemainingTime,
   getBankPaymentOfferStatusLabel,
 } from "../app/lib/bankPaymentOfferLabels";
@@ -146,20 +147,10 @@ const getChatTimeFormatter = (locale: string): Intl.DateTimeFormat => {
   return formatter;
 };
 
-const statusTones: Record<
-  BankOfferStatus | "declined" | "paid" | "requested",
-  Tone
-> = {
-  requested: "warning",
-  offered: "warning",
-  accepted: "warning",
+const statusTones: Record<BankOfferStatus | "paid" | "requested", Tone> = {
+  ...bankPaymentOfferStatusTones,
   paid: "accent",
-  bank_details_sent: "info",
-  bank_paid: "info",
-  settled: "accent",
-  declined: "neutral",
-  canceled: "neutral",
-  accepted_by_other: "neutral",
+  requested: "warning",
 };
 
 const getBankPaymentOfferDescriptionKey = (

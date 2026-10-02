@@ -16,7 +16,10 @@ import {
   Pill,
 } from "@linky-fit/ui";
 import React from "react";
-import { getBankPaymentOfferStatusLabel } from "../app/lib/bankPaymentOfferLabels";
+import {
+  bankPaymentOfferStatusTones,
+  getBankPaymentOfferStatusLabel,
+} from "../app/lib/bankPaymentOfferLabels";
 import type {
   BankOfferStatus,
   BankPaymentOfferInfo,
@@ -318,15 +321,8 @@ export function CanceledOfferView({
 }
 
 const STATUS_TONES: Record<BankOfferStatus | "queued", Tone> = {
-  accepted: "accent",
-  accepted_by_other: "neutral",
-  bank_details_sent: "info",
-  bank_paid: "accent",
-  canceled: "neutral",
-  declined: "neutral",
-  offered: "warning",
+  ...bankPaymentOfferStatusTones,
   queued: "neutral",
-  settled: "accent",
 };
 
 interface OwnerOfferViewProps {

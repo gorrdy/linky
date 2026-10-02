@@ -1,4 +1,5 @@
 import type { BankOfferStatus } from "@linky-fit/proxy-payment";
+import type { Tone } from "@linky-fit/ui";
 import type { Translate } from "../../i18n";
 
 export const formatRemainingTime = (
@@ -12,6 +13,17 @@ export const formatRemainingTime = (
   return t("bankPaymentOfferTimeRemainingClock")
     .replace("{minutes}", String(minutes))
     .replace("{seconds}", String(seconds).padStart(2, "0"));
+};
+
+export const bankPaymentOfferStatusTones: Record<BankOfferStatus, Tone> = {
+  accepted: "accent",
+  accepted_by_other: "neutral",
+  bank_details_sent: "info",
+  bank_paid: "accent",
+  canceled: "neutral",
+  declined: "neutral",
+  offered: "warning",
+  settled: "accent",
 };
 
 export const getBankPaymentOfferStatusLabel = (
