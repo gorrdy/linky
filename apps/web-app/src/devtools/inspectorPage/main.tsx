@@ -13,8 +13,11 @@ if (!root) {
 
 createRoot(root).render(
   <UIProvider mode="dark">
-    <Stack position="fixed" inset={0}>
-      <InspectorApp dataSource={createHttpInspectorDataSource()} />
+    <Stack position="fixed" inset="$none">
+      <InspectorApp
+        dataSource={createHttpInspectorDataSource()}
+        title="Linky Inspector"
+      />
     </Stack>
   </UIProvider>,
 );

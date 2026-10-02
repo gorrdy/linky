@@ -1,4 +1,4 @@
-import { Stack } from "@linky-fit/ui";
+import { Dialog, Stack } from "@linky-fit/ui";
 import React from "react";
 
 import { clientInspectorStore } from "../devtools/inspector/clientInspectorStore";
@@ -13,25 +13,34 @@ export default function InspectorPage(): React.ReactElement {
     () => createInMemoryInspectorDataSource(clientInspectorStore),
     [],
   );
+  const inspector = (
+    <InspectorApp
+      dataSource={dataSource}
+      isCollecting={isCollecting}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={() => setIsFullscreen((current) => !current)}
+    />
+  );
 
-  return (
+  return isFullscreen ? (
+    <Dialog
+      open
+      onOpenChange={setIsFullscreen}
+      title="Linky Inspector"
+      hideTitle
+      fullScreen
+    >
+      {inspector}
+    </Dialog>
+  ) : (
     <Stack
       width="100%"
       minHeight={0}
       height="100%"
-      borderRadius={isFullscreen ? "$none" : "$control"}
+      borderRadius="$control"
       overflow="hidden"
-      position={isFullscreen ? "fixed" : "relative"}
-      {...(isFullscreen ? { inset: 0 } : {})}
-      zIndex={isFullscreen ? "$overlay" : "$base"}
     >
-      <Stack data-safe-area={isFullscreen ? "top" : undefined} />
-      <InspectorApp
-        dataSource={dataSource}
-        isCollecting={isCollecting}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={() => setIsFullscreen((current) => !current)}
-      />
+      {inspector}
     </Stack>
   );
 }

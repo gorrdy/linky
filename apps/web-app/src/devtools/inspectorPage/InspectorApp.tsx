@@ -2,15 +2,19 @@ import {
   Button,
   Chip,
   CodeBlock,
+  EmptyState,
   IconButton,
   ListRow,
+  LoadingState,
   Row,
+  ScrollView,
+  Section,
   SelectField,
   Stack,
   StatusDot,
   Text,
   TextField,
-  TimelineRow as DiagnosticTimelineRow,
+  TimelineRow,
   border,
   Pill,
 } from "@linky-fit/ui";
@@ -46,7 +50,7 @@ interface AppClient {
   rowCount: number;
 }
 
-interface TimelineRowProps {
+interface InspectorTimelineRowProps {
   clientLabel: string | null;
   isRelated: boolean;
   isSelected: boolean;
@@ -67,6 +71,8 @@ interface InspectorAppProps {
   isCollecting?: boolean;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  /** Shown in the toolbar when no app top bar names the page. */
+  title?: string;
 }
 
 interface OfflineImport {
@@ -101,15 +107,15 @@ const rowSearchText = (row: CollectedInspectorRow): string => {
   return `${row.tag}\n${row.summary}\n${JSON.stringify(row.links)}\n${JSON.stringify(row.context)}\n${payloadText}`;
 };
 
-const TimelineRow = React.memo(function TimelineRow({
+const InspectorTimelineRow = React.memo(function InspectorTimelineRow({
   clientLabel,
   isRelated,
   isSelected,
   onSelect,
   row,
-}: TimelineRowProps): React.ReactElement {
+}: InspectorTimelineRowProps): React.ReactElement {
   return (
-    <DiagnosticTimelineRow
+    <TimelineRow
       time={formatTime(row.at)}
       clientLabel={clientLabel ?? undefined}
       channel={row.channel}
@@ -129,6 +135,12 @@ interface DetailEntry {
   label: string;
   value: string;
 }
+
+const detailValue = (value: string, testID?: string) => (
+  <Text mono variant="caption" userSelect="text" testID={testID}>
+    {value || "—"}
+  </Text>
+);
 
 const detailEntries = (
   record: Record<string, string | string[]>,
@@ -177,143 +189,119 @@ function DetailPane({
   }, [rowJson]);
 
   return (
-    <Stack
+    <ScrollView
       aria-label="Row detail"
       role="complementary"
       width="$sheetWidth"
       maxWidth="100%"
       flexShrink={0}
       minHeight={0}
-      gap="$md"
-      padding="$lg"
       backgroundColor="$surface"
       borderLeftWidth={border.hairline}
       borderColor="$borderColor"
-      overflow="scroll"
       $compact={{ width: "100%", flex: 1 }}
     >
-      <Row justifyContent="space-between">
-        <Stack gap="$xs">
-          <Text eyebrow>Row #{row.id}</Text>
-          <Text variant="title" role="heading">
-            {row.tag}
-          </Text>
-        </Stack>
-        <IconButton
-          icon="X"
-          accessibilityLabel="Close row detail"
-          onPress={onClose}
-          size="sm"
-        />
-      </Row>
-      <Stack gap="$xs">
-        <ListRow
-          title="time"
-          trailing={
-            <Text mono variant="caption">
-              {formatTime(row.at)}
+      <Stack gap="$lg" padding="$lg">
+        <Row justifyContent="space-between">
+          <Stack gap="$xs">
+            <Text eyebrow>Row #{row.id}</Text>
+            <Text variant="title" role="heading">
+              {row.tag}
             </Text>
-          }
-        />
-        <ListRow
-          title="channel"
-          trailing={
-            <Pill
-              size="sm"
-              label={row.channel}
-              tone={channelTone(row.channel)}
+          </Stack>
+          <IconButton
+            icon="X"
+            accessibilityLabel="Close row detail"
+            onPress={onClose}
+            size="sm"
+          />
+        </Row>
+        <Stack gap="$xs">
+          <ListRow title="time" trailing={detailValue(formatTime(row.at))} />
+          <ListRow
+            title="channel"
+            trailing={
+              <Pill
+                size="sm"
+                label={row.channel}
+                tone={channelTone(row.channel)}
+              />
+            }
+          />
+          <ListRow title="app" description={detailValue(row.client)} />
+          <ListRow title="summary" description={detailValue(row.summary)} />
+        </Stack>
+        {links.length > 0 && (
+          <Section title="Links">
+            {links.map((link, index) => (
+              <ListRow
+                key={`${link.label}-${index}`}
+                title={link.label}
+                description={detailValue(link.value, "link-value")}
+              />
+            ))}
+          </Section>
+        )}
+        {context.length > 0 && (
+          <Section title="Context">
+            {context.map((entry, index) => (
+              <ListRow
+                key={`${entry.label}-${index}`}
+                title={entry.label}
+                description={detailValue(entry.value)}
+              />
+            ))}
+          </Section>
+        )}
+        <Section title={`Related rows (${relatedRows.length})`}>
+          {relatedRows.length === 0 ? (
+            <EmptyState
+              title={
+                hasLinkIds
+                  ? "No other rows share this row's link ids."
+                  : "This row carries no link ids to correlate by."
+              }
             />
-          }
-        />
-        <Text eyebrow>app</Text>
-        <CodeBlock>{row.client}</CodeBlock>
-        <Text eyebrow>summary</Text>
-        <Text variant="label">{row.summary || "—"}</Text>
+          ) : (
+            <Stack testID="related-rows" gap="$none">
+              {relatedRows.map((relatedRow) => (
+                <TimelineRow
+                  key={relatedRow.id}
+                  testID="related-row"
+                  time={formatTime(relatedRow.at)}
+                  channel={relatedRow.channel}
+                  tag={relatedRow.tag}
+                  summary={relatedRow.summary}
+                  tone={channelTone(relatedRow.channel)}
+                  onPress={() => onJumpToRow(relatedRow)}
+                />
+              ))}
+            </Stack>
+          )}
+        </Section>
+        <Section title="What is this?">
+          <Text variant="caption" color="$colorMuted">
+            {describeInspectorRow(row)}
+          </Text>
+        </Section>
+        <Section title="Payload">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon="Copy"
+            alignSelf="flex-start"
+            onPress={handleCopy}
+          >
+            {copyStatus === "copied"
+              ? "Copied"
+              : copyStatus === "failed"
+                ? "Copy failed"
+                : "Copy row JSON"}
+          </Button>
+          <CodeBlock testID="inspector-payload">{payloadJson ?? "—"}</CodeBlock>
+        </Section>
       </Stack>
-      {links.length > 0 && (
-        <Stack gap="$sm">
-          <Text variant="label" bold>
-            Links
-          </Text>
-          {links.map((link, index) => (
-            <Stack key={`${link.label}-${index}`} gap="$xxs">
-              <Text variant="caption" color="$colorMuted">
-                {link.label}
-              </Text>
-              <Text
-                mono
-                variant="caption"
-                testID="link-value"
-                userSelect="text"
-              >
-                {link.value}
-              </Text>
-            </Stack>
-          ))}
-        </Stack>
-      )}
-      {context.length > 0 && (
-        <Stack gap="$sm">
-          <Text variant="label" bold>
-            Context
-          </Text>
-          {context.map((entry, index) => (
-            <Stack key={`${entry.label}-${index}`} gap="$xxs">
-              <Text variant="caption" color="$colorMuted">
-                {entry.label}
-              </Text>
-              <Text mono variant="caption" userSelect="text">
-                {entry.value}
-              </Text>
-            </Stack>
-          ))}
-        </Stack>
-      )}
-      <Text variant="label" bold>
-        Related rows ({relatedRows.length})
-      </Text>
-      {relatedRows.length === 0 ? (
-        <Text variant="caption" color="$colorMuted">
-          {hasLinkIds
-            ? "No other rows share this row's link ids."
-            : "This row carries no link ids to correlate by."}
-        </Text>
-      ) : (
-        <Stack testID="related-rows" gap="$none" overflow="scroll">
-          {relatedRows.map((relatedRow) => (
-            <DiagnosticTimelineRow
-              key={relatedRow.id}
-              testID="related-row"
-              time={formatTime(relatedRow.at)}
-              channel={relatedRow.channel}
-              tag={relatedRow.tag}
-              summary={relatedRow.summary}
-              tone={channelTone(relatedRow.channel)}
-              onPress={() => onJumpToRow(relatedRow)}
-            />
-          ))}
-        </Stack>
-      )}
-      <Text variant="label" bold>
-        What is this?
-      </Text>
-      <Text variant="caption" color="$colorMuted">
-        {describeInspectorRow(row)}
-      </Text>
-      <Row justifyContent="space-between">
-        <Text variant="label" bold>
-          Payload
-        </Text>
-        <Button variant="secondary" size="sm" onPress={handleCopy}>
-          {copyStatus === "copied"
-            ? "Copied"
-            : copyStatus === "failed"
-              ? "Copy failed"
-              : "Copy row JSON"}
-        </Button>
-      </Row>
-      <CodeBlock testID="inspector-payload">{payloadJson ?? "—"}</CodeBlock>
-    </Stack>
+    </ScrollView>
   );
 }
 
@@ -322,6 +310,7 @@ export function InspectorApp({
   isCollecting = true,
   isFullscreen = false,
   onToggleFullscreen,
+  title,
 }: InspectorAppProps): React.ReactElement {
   const [rows, setRows] = React.useState<CollectedInspectorRow[]>([]);
   const [isConnected, setIsConnected] = React.useState(false);
@@ -579,6 +568,25 @@ export function InspectorApp({
       ? "connected"
       : "reconnecting";
 
+  const timelinePlaceholder = (): React.ReactNode => {
+    if (rows.length > 0) {
+      return renderedRows.length === 0 ? (
+        <EmptyState title="No rows match the current filters." />
+      ) : null;
+    }
+    if (offlineImport) {
+      return <EmptyState title="No valid inspector rows were imported." />;
+    }
+    return isCollecting ? (
+      <LoadingState label="Waiting for inspector rows…" />
+    ) : (
+      <EmptyState
+        title="The inspector is off"
+        description="Enable it in Advanced settings, or use Import to view a log file."
+      />
+    );
+  };
+
   return (
     <Stack
       width="100%"
@@ -598,9 +606,11 @@ export function InspectorApp({
         borderColor="$borderColor"
       >
         <Row gap="$sm">
-          <Text variant="label" bold role="heading">
-            Linky Inspector
-          </Text>
+          {title ? (
+            <Text variant="label" bold role="heading">
+              {title}
+            </Text>
+          ) : null}
           <StatusDot
             tone={
               offlineImport
@@ -731,14 +741,13 @@ export function InspectorApp({
         $compact={{ flexDirection: "column" }}
       >
         <Stack flex={1} minHeight={0} gap="$none">
-          <Stack
+          <ScrollView
             aria-label="Inspector row timeline"
             testID="timeline"
-            overflow="scroll"
             flex={1}
             minHeight={0}
-            gap="$none"
             onScroll={handleTimelineScroll}
+            scrollEventThrottle={16}
             ref={(element) => {
               timelineRef.current =
                 element instanceof HTMLDivElement ? element : null;
@@ -749,41 +758,31 @@ export function InspectorApp({
                 …{hiddenRowCount.toLocaleString()} older rows hidden
               </Text>
             )}
-            {renderedRows.length === 0 ? (
-              <Text variant="label" color="$colorMuted" padding="$lg">
-                {rows.length === 0
-                  ? offlineImport
-                    ? "No valid inspector rows were imported."
-                    : isCollecting
-                      ? "Waiting for inspector rows…"
-                      : "The inspector is off — enable it in Advanced settings, or use Import to view a log file."
-                  : "No rows match the current filters."}
-              </Text>
-            ) : (
-              renderedRows.map((row) => (
-                <TimelineRow
-                  key={row.id}
-                  clientLabel={
-                    appClients.length > 1
-                      ? (clientLabelById.get(row.client) ?? null)
-                      : null
-                  }
-                  isRelated={relatedRowIds.has(row.id)}
-                  isSelected={selectedRow?.id === row.id}
-                  onSelect={setSelectedRow}
-                  row={row}
-                />
-              ))
-            )}
-          </Stack>
+            {timelinePlaceholder()}
+            {renderedRows.map((row) => (
+              <InspectorTimelineRow
+                key={row.id}
+                clientLabel={
+                  appClients.length > 1
+                    ? (clientLabelById.get(row.client) ?? null)
+                    : null
+                }
+                isRelated={relatedRowIds.has(row.id)}
+                isSelected={selectedRow?.id === row.id}
+                onSelect={setSelectedRow}
+                row={row}
+              />
+            ))}
+          </ScrollView>
           {!isFollowing && renderedRows.length > 0 && (
             <Button
               size="sm"
               variant="secondary"
+              icon="ArrowDown"
               alignSelf="center"
               onPress={handleFollow}
             >
-              Follow ↓
+              Follow
             </Button>
           )}
         </Stack>

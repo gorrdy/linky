@@ -1,4 +1,4 @@
-import { ListRow, Section, Spinner, Stack, Switch, Text } from "@linky-fit/ui";
+import { ListRow, Section, Spinner, Stack, Switch } from "@linky-fit/ui";
 import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -129,7 +129,7 @@ export function InspectorSettingsPage(): React.ReactElement {
         />
 
         <ListRow
-          icon="Bug"
+          icon="Eye"
           title={t("openNostrInspector")}
           onPress={() => navigateTo({ route: "advancedInspectorTimeline" })}
         />
@@ -137,8 +137,11 @@ export function InspectorSettingsPage(): React.ReactElement {
 
       <Section>
         <ListRow
-          icon="Bug"
+          icon="FileText"
           title={t("nostrInspectorLogs")}
+          description={
+            inspectorLogsEnabled ? inspectorLogStatsLabel : undefined
+          }
           trailing={
             <Switch
               accessibilityLabel={t("nostrInspectorLogs")}
@@ -147,12 +150,6 @@ export function InspectorSettingsPage(): React.ReactElement {
             />
           }
         />
-
-        {inspectorLogsEnabled ? (
-          <Text variant="caption" color="$colorMuted" aria-live="polite">
-            {inspectorLogStatsLabel}
-          </Text>
-        ) : null}
 
         <ListRow
           icon="Download"
