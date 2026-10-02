@@ -19,7 +19,7 @@ function NfcWriteIllustration(): React.ReactElement {
       alignItems="center"
       justifyContent="center"
       borderRadius="$pill"
-      borderWidth={border.focus}
+      borderWidth={border.emphasis}
       borderColor="$info"
       backgroundColor="$infoSoft"
     >
@@ -54,22 +54,13 @@ export function NfcWriteModal({
       open
       onOpenChange={onCancel}
       title={t("nfcWriteReadyTitle")}
-      hideTitle
-      closeLabel={t("close")}
+      description={t("nfcWriteReadySubtitle")}
       actions={
-        <Button variant="ghost" onPress={onCancel}>
+        <Button variant="secondary" onPress={onCancel}>
           {t("payCancel")}
         </Button>
       }
     >
-      <Stack alignItems="center" gap="$sm">
-        <Text variant="display" textAlign="center">
-          {t("nfcWriteReadyTitle")}
-        </Text>
-        <Text variant="title" fontWeight="$regular" textAlign="center">
-          {t("nfcWriteReadySubtitle")}
-        </Text>
-      </Stack>
       <Stack paddingVertical="$xxl">
         <NfcWriteIllustration />
       </Stack>
@@ -77,12 +68,7 @@ export function NfcWriteModal({
         <Text eyebrow color="$infoText" textAlign="center">
           {t(actionKey)}
         </Text>
-        <Text
-          variant="label"
-          fontWeight="$regular"
-          color="$colorMuted"
-          textAlign="center"
-        >
+        <Text color="$colorMuted" textAlign="center">
           {t(detailKey)}
         </Text>
       </Stack>
