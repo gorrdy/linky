@@ -141,6 +141,45 @@ test("chat reaches a peer, edit and reaction survive reload, pending topup resum
       }
       expect(removalErrors).toEqual([]);
     });
+    await test.step("a long unbroken message wraps and the newest message opens in view, scrolling up to the composer", async () => {
+      const unbroken = "x".repeat(300);
+      await a.page.locator('[data-guide="chat-input"]').fill(unbroken);
+      await a.page.locator('[data-guide="chat-send"]').click();
+      await expect(
+        b.page.getByTestId("chat-bubble").filter({ hasText: unbroken }),
+      ).toBeVisible();
+      const log = b.page.getByRole("log");
+      expect(
+        await log.evaluate((list) => list.scrollWidth - list.clientWidth),
+      ).toBeLessThanOrEqual(0);
+      await b.page.reload();
+      await expect(
+        b.page.getByTestId("chat-bubble").filter({ hasText: unbroken }),
+      ).toBeVisible();
+      await expect
+        .poll(() =>
+          log.evaluate((list) => {
+            const messages = list.querySelectorAll(
+              '[data-testid="chat-message"]',
+            );
+            const last = messages[messages.length - 1];
+            if (!last) return false;
+            const visible = list.getBoundingClientRect();
+            const message = last.getBoundingClientRect();
+            return (
+              message.top >= visible.top && message.bottom <= visible.bottom
+            );
+          }),
+        )
+        .toBe(true);
+      const composerTop = await b.page
+        .locator('[data-guide="chat-input"]')
+        .evaluate((input) => input.getBoundingClientRect().top);
+      const logBottom = await log.evaluate(
+        (list) => list.getBoundingClientRect().bottom,
+      );
+      expect(Math.abs(logBottom - composerTop)).toBeLessThanOrEqual(1);
+    });
     await test.step("an interrupted topup claims after reload exactly once", async () => {
       await a.page.route("**/v1/mint/bolt11", (route) => route.abort());
       await a.page.goto("/#wallet/topup");

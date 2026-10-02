@@ -37,6 +37,7 @@ import {
 import { formatChatMessagePreviewText } from "../app/lib/chatMessageDisplay";
 import {
   captureChatViewportAnchor,
+  pinChatToBottom,
   restoreChatViewportAnchor,
   type ChatViewportAnchor,
 } from "../app/lib/chatViewport";
@@ -342,6 +343,14 @@ const ChatMessageList = memo(function ChatMessageList({
     [lang, t],
   );
   const messagesNodeRef = useDivRef(chatMessagesRef);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const contentNodeRef = useDivRef(contentRef);
+  useEffect(() => {
+    const messages = chatMessagesRef.current;
+    const content = contentRef.current;
+    if (!messages || !content || typeof ResizeObserver === "undefined") return;
+    return pinChatToBottom(messages, content);
+  }, [chatMessagesRef]);
   const messageElRef = useCallback(
     (element: HTMLDivElement | null, messageId: string) => {
       const elements = chatMessageElByIdRef.current;
@@ -516,62 +525,66 @@ const ChatMessageList = memo(function ChatMessageList({
       flex={1}
       minHeight={0}
       overflowY="auto"
-      gap="$sm"
       paddingHorizontal="$xl"
-      paddingTop="$lg"
-      paddingBottom="$md"
     >
-      {viewModels.length === 0 ? (
-        <EmptyState title={t("chatEmpty")} />
-      ) : (
-        viewModels.map((viewModel) => (
-          <ChatMessage
-            key={viewModel.message.id}
-            message={viewModel.message}
-            previousMessage={viewModel.previousMessage}
-            nextMessage={viewModel.nextMessage}
-            locale={locale}
-            formatChatDayLabel={formatChatDayLabelForLang}
-            getCashuTokenMessageInfo={getCashuTokenMessageInfo}
-            getMintIconUrl={getMintIconUrl}
-            getNpubMessageContactInfo={getNpubMessageContactInfo}
-            onMintIconError={markMintIconFailed}
-            actionLabels={actionLabels}
-            canEdit={viewModel.canEdit}
-            canReplyOrReact={viewModel.canReplyOrReact}
-            reactions={viewModel.reactions}
-            paymentRequestInfo={viewModel.paymentRequestInfo}
-            paymentRequestStatus={viewModel.paymentRequestStatus}
-            declineInfo={viewModel.declineInfo}
-            bankPaymentOfferInfo={viewModel.bankPaymentOfferInfo}
-            bankPaymentOfferPeerNotice={viewModel.bankPaymentOfferPeerNotice}
-            canOpenBankPaymentOfferDetails={canOpenBankPaymentOfferDetails}
-            canSettleBankPaymentOffer={viewModel.canSettleBankPaymentOffer}
-            onOpenBankPaymentOfferDetails={
-              viewModel.onOpenBankPaymentOfferDetails
-            }
-            onDeclinePaymentRequest={viewModel.onDeclinePaymentRequest}
-            onPayPaymentRequest={viewModel.onPayPaymentRequest}
-            onSettleBankPaymentOffer={viewModel.onSettleBankPaymentOffer}
-            canActOnPaymentRequest={viewModel.canActOnPaymentRequest}
-            payPaymentRequestDisabled={viewModel.payPaymentRequestDisabled}
-            payPaymentRequestBusy={cashuIsBusy}
-            replyQuoteText={viewModel.replyQuoteText}
-            settleBankPaymentOfferBusy={cashuIsBusy}
-            onCopy={onCopy}
-            onAddNpubContacts={onAddNpubContacts}
-            contactsGroupAssignment={contactsGroupAssignment}
-            onEdit={onEdit}
-            onOpenNpubContact={onOpenNpubContact}
-            onReact={onReact}
-            onReply={onReply}
-            chatPendingLabel={chatPendingLabel}
-            chatSeenLabel={chatSeenLabel}
-            isSeen={viewModel.isSeen}
-            messageElRef={messageElRef}
-          />
-        ))
-      )}
+      <Stack
+        ref={contentNodeRef}
+        gap="$sm"
+        paddingTop="$lg"
+        paddingBottom="$md"
+      >
+        {viewModels.length === 0 ? (
+          <EmptyState title={t("chatEmpty")} />
+        ) : (
+          viewModels.map((viewModel) => (
+            <ChatMessage
+              key={viewModel.message.id}
+              message={viewModel.message}
+              previousMessage={viewModel.previousMessage}
+              nextMessage={viewModel.nextMessage}
+              locale={locale}
+              formatChatDayLabel={formatChatDayLabelForLang}
+              getCashuTokenMessageInfo={getCashuTokenMessageInfo}
+              getMintIconUrl={getMintIconUrl}
+              getNpubMessageContactInfo={getNpubMessageContactInfo}
+              onMintIconError={markMintIconFailed}
+              actionLabels={actionLabels}
+              canEdit={viewModel.canEdit}
+              canReplyOrReact={viewModel.canReplyOrReact}
+              reactions={viewModel.reactions}
+              paymentRequestInfo={viewModel.paymentRequestInfo}
+              paymentRequestStatus={viewModel.paymentRequestStatus}
+              declineInfo={viewModel.declineInfo}
+              bankPaymentOfferInfo={viewModel.bankPaymentOfferInfo}
+              bankPaymentOfferPeerNotice={viewModel.bankPaymentOfferPeerNotice}
+              canOpenBankPaymentOfferDetails={canOpenBankPaymentOfferDetails}
+              canSettleBankPaymentOffer={viewModel.canSettleBankPaymentOffer}
+              onOpenBankPaymentOfferDetails={
+                viewModel.onOpenBankPaymentOfferDetails
+              }
+              onDeclinePaymentRequest={viewModel.onDeclinePaymentRequest}
+              onPayPaymentRequest={viewModel.onPayPaymentRequest}
+              onSettleBankPaymentOffer={viewModel.onSettleBankPaymentOffer}
+              canActOnPaymentRequest={viewModel.canActOnPaymentRequest}
+              payPaymentRequestDisabled={viewModel.payPaymentRequestDisabled}
+              payPaymentRequestBusy={cashuIsBusy}
+              replyQuoteText={viewModel.replyQuoteText}
+              settleBankPaymentOfferBusy={cashuIsBusy}
+              onCopy={onCopy}
+              onAddNpubContacts={onAddNpubContacts}
+              contactsGroupAssignment={contactsGroupAssignment}
+              onEdit={onEdit}
+              onOpenNpubContact={onOpenNpubContact}
+              onReact={onReact}
+              onReply={onReply}
+              chatPendingLabel={chatPendingLabel}
+              chatSeenLabel={chatSeenLabel}
+              isSeen={viewModel.isSeen}
+              messageElRef={messageElRef}
+            />
+          ))
+        )}
+      </Stack>
     </Stack>
   );
 });

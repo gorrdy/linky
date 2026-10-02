@@ -1,4 +1,5 @@
 import React from "react";
+import { CHAT_NEAR_BOTTOM_PX } from "../../lib/chatViewport";
 import type { Route } from "../../../types/route";
 import {
   cashuAutoAcceptKey,
@@ -274,7 +275,7 @@ export const useChatMessageEffects = <TContact extends ContactRowLike>({
     // Keep pinned to bottom if already near bottom.
     const distanceFromBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight;
-    if (distanceFromBottom < 120) {
+    if (distanceFromBottom < CHAT_NEAR_BOTTOM_PX) {
       requestAnimationFrame(() => {
         const chatContainer = chatMessagesRef.current;
         if (!chatContainer) return;
