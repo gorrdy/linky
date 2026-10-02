@@ -27,7 +27,7 @@ const AppFrame = ({ children }: { children: React.ReactNode }) => (
   </Stack>
 );
 
-/** Pins app-wide banners above the top bar, stacked when several show at once. */
+/** Pins app-wide banners over the top edge as full-width strips, stacked when several show at once. */
 const TopBanners = ({ children }: { children: React.ReactNode }) => (
   <Stack
     position="fixed"
@@ -35,12 +35,11 @@ const TopBanners = ({ children }: { children: React.ReactNode }) => (
     left="$none"
     right="$none"
     zIndex="$overlay"
+    gap="$none"
     pointerEvents="box-none"
     data-safe-area="top"
   >
-    <Stack padding="$sm" gap="$sm" pointerEvents="box-none">
-      {children}
-    </Stack>
+    {children}
   </Stack>
 );
 
