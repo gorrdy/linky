@@ -888,8 +888,7 @@ export const useAppShellComposition = ({
     requestLnurlAuthConfirmation,
   } = useLnurlAuth({ currentNsec, setStatus, t });
 
-  const { closeMenu, menuIsOpen, navigateToMainReturn, toggleMenu } =
-    useMainMenuState({ route });
+  const { navigateToMainReturn, openMenu } = useMainMenuState({ route });
 
   const {
     cancelPendingNfcWrite,
@@ -1165,10 +1164,8 @@ export const useAppShellComposition = ({
   })();
 
   useNativeBackHandler({
-    closeMenu,
     closeScan,
     dismissTopModal,
-    menuIsOpen,
     navigateBack: resolveBackAction(route, {
       closeContactDetail,
       contactPayBackToChatId,
@@ -1201,7 +1198,7 @@ export const useAppShellComposition = ({
         t,
         toggleContactsFilter,
         toggleHiddenTransactions,
-        toggleMenu,
+        openMenu,
       }),
     [
       chatEditContactId,
@@ -1214,7 +1211,7 @@ export const useAppShellComposition = ({
       t,
       toggleContactsFilter,
       toggleHiddenTransactions,
-      toggleMenu,
+      openMenu,
     ],
   );
 
@@ -1676,7 +1673,6 @@ export const useAppShellComposition = ({
       formatDisplayedAmountText,
       isProfileEditing,
       lang,
-      menuIsOpen,
       nfcWritePromptKind,
       nostrPictureByNpub,
       paidOverlayDetails,
@@ -1753,7 +1749,6 @@ export const useAppShellComposition = ({
       lnurlAuthIsBusy,
       lnurlAuthIsDone,
       lnurlWithdrawIsBusy,
-      menuIsOpen,
       myProfileStatus,
       nfcWritePromptKind,
       nostrPictureByNpub,
@@ -1805,7 +1800,6 @@ export const useAppShellComposition = ({
       closeProfileShareOverlay,
       closeLnurlAuthConfirmation,
       closeLnurlWithdrawConfirmation,
-      closeMenu,
       closeShareOptions,
       closeLightningInvoiceConfirmation,
       closeScan,
@@ -1860,7 +1854,6 @@ export const useAppShellComposition = ({
       closeLightningInvoiceConfirmation,
       closeLnurlAuthConfirmation,
       closeLnurlWithdrawConfirmation,
-      closeMenu,
       closePaymentMintMeltConfirmation,
       closeProfileShareOverlay,
       closeScan,

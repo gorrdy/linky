@@ -173,7 +173,7 @@ describe("buildTopbarRight", () => {
       t: (key: string) => key,
       toggleContactsFilter: vi.fn(),
       toggleHiddenTransactions: vi.fn(),
-      toggleMenu: vi.fn(),
+      openMenu: vi.fn(),
     };
     const button = buildTopbarRight({
       ...args,
@@ -208,7 +208,7 @@ describe("buildTopbarRight", () => {
       t: (key) => key,
       toggleContactsFilter: vi.fn(),
       toggleHiddenTransactions: vi.fn(),
-      toggleMenu: vi.fn(),
+      openMenu: vi.fn(),
     });
 
     button?.onClick();
@@ -230,7 +230,7 @@ describe("buildTopbarRight", () => {
       t: (key) => key,
       toggleContactsFilter,
       toggleHiddenTransactions: vi.fn(),
-      toggleMenu: vi.fn(),
+      openMenu: vi.fn(),
     });
 
     button?.onClick();
@@ -253,7 +253,7 @@ describe("buildTopbarRight", () => {
       t: (key) => key,
       toggleContactsFilter: vi.fn(),
       toggleHiddenTransactions,
-      toggleMenu: vi.fn(),
+      openMenu: vi.fn(),
     });
 
     button?.onClick();

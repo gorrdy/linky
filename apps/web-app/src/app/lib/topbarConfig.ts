@@ -27,7 +27,7 @@ interface BuildTopbarRightArgs {
   t: Translate;
   toggleContactsFilter: () => void;
   toggleHiddenTransactions: () => void;
-  toggleMenu: () => void;
+  openMenu: () => void;
 }
 
 /**
@@ -252,7 +252,7 @@ export const buildTopbarRight = ({
   t,
   toggleContactsFilter,
   toggleHiddenTransactions,
-  toggleMenu,
+  openMenu,
 }: BuildTopbarRightArgs): TopbarButton | null => {
   if (route.kind === "contacts") {
     return {
@@ -349,7 +349,7 @@ export const buildTopbarRight = ({
   }
 
   return SHOWS_MENU_BUTTON[route.kind]
-    ? { icon: "Settings", label: t("menu"), onClick: toggleMenu }
+    ? { icon: "Settings", label: t("menu"), onClick: openMenu }
     : null;
 };
 

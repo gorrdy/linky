@@ -3,10 +3,8 @@ import React from "react";
 import { NATIVE_BACK_BUTTON_EVENT } from "../../../hooks/useRouting";
 
 interface NativeBackTargets {
-  closeMenu: () => void;
   closeScan: () => void;
   dismissTopModal: (() => void) | null;
-  menuIsOpen: boolean;
   navigateBack: (() => void) | null;
   scanIsOpen: boolean;
 }
@@ -15,22 +13,18 @@ interface NativeBackTargets {
  * Single source of truth for what the Android back press does right now.
  *
  * The order mirrors how `AuthenticatedLayout` stacks its surfaces: state-driven
- * modals render last and sit on top of the scan overlay, the scan overlay sits
- * on top of the menu, and only when nothing is layered over the page do we walk
- * the route up one level. Returning `null` means there is nothing to handle, so
+ * modals render last and sit on top of the scan overlay, and only when nothing
+ * is layered over the page do we walk the route up one level. Returning `null` means there is nothing to handle, so
  * the press stays uncancelled and the shell closes the app.
  */
 export const resolveNativeBackAction = ({
-  closeMenu,
   closeScan,
   dismissTopModal,
-  menuIsOpen,
   navigateBack,
   scanIsOpen,
 }: NativeBackTargets): (() => void) | null => {
   if (dismissTopModal) return dismissTopModal;
   if (scanIsOpen) return closeScan;
-  if (menuIsOpen) return closeMenu;
   return navigateBack;
 };
 

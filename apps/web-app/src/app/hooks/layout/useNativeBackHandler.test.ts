@@ -1,22 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveNativeBackAction } from "./useNativeBackHandler";
 
-const closeMenu = vi.fn();
 const closeScan = vi.fn();
 const dismissTopModal = vi.fn();
 const navigateBack = vi.fn();
 
 const targets = {
-  closeMenu,
   closeScan,
   dismissTopModal: null,
-  menuIsOpen: false,
   navigateBack: null,
   scanIsOpen: false,
 };
 
 beforeEach(() => {
-  closeMenu.mockClear();
   closeScan.mockClear();
   dismissTopModal.mockClear();
   navigateBack.mockClear();
@@ -51,21 +47,10 @@ describe("resolveNativeBackAction", () => {
     expect(closeScan).not.toHaveBeenCalled();
   });
 
-  it("closes the scan overlay before the menu", () => {
-    resolveNativeBackAction({
-      ...targets,
-      menuIsOpen: true,
-      scanIsOpen: true,
-    })?.();
+  it("closes the scan overlay before navigating the route", () => {
+    resolveNativeBackAction({ ...targets, navigateBack, scanIsOpen: true })?.();
 
     expect(closeScan).toHaveBeenCalledTimes(1);
-    expect(closeMenu).not.toHaveBeenCalled();
-  });
-
-  it("closes the menu before navigating the route", () => {
-    resolveNativeBackAction({ ...targets, menuIsOpen: true, navigateBack })?.();
-
-    expect(closeMenu).toHaveBeenCalledTimes(1);
     expect(navigateBack).not.toHaveBeenCalled();
   });
 

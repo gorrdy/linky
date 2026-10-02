@@ -86,7 +86,6 @@ export interface AppShellCoreContextValue {
   formatDisplayedAmountText: (amountSat: number) => string;
   isProfileEditing: boolean;
   lang: Lang;
-  menuIsOpen: boolean;
   nfcWritePromptKind: "profile" | "token" | null;
   nostrPictureByNpub: Record<string, string | null>;
   paidOverlayIsOpen: boolean;
@@ -147,7 +146,6 @@ export interface AppShellActionsContextValue {
   cancelPendingNfcWrite: () => void;
   closePaymentMintMeltConfirmation: () => void;
   closeProfileShareOverlay: () => void;
-  closeMenu: () => void;
   closeShareOptions: () => void;
   closeLnurlAuthConfirmation: () => void;
   closeLnurlWithdrawConfirmation: () => void;
