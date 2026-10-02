@@ -2,7 +2,7 @@ import { Button, Row, Stack } from "@linky-fit/ui";
 import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellActions } from "../app/context/AppShellContexts";
-import { WalletBalance } from "../components/WalletBalance";
+import { DisplayAmount } from "../components/DisplayAmount";
 import { WalletPendingReceives } from "../components/WalletPendingReceives";
 import { WalletWarning } from "../components/WalletWarning";
 import { navigateTo } from "../hooks/useRouting";
@@ -72,9 +72,9 @@ export const WalletPage: React.FC<WalletPageProps> = React.memo(
           paddingBottom="$huge"
         >
           <Stack alignItems="center" gap="$xs">
-            <WalletBalance
-              balance={cashuTotalBalance}
-              ariaLabel={t("cashuBalance")}
+            <DisplayAmount
+              amount={cashuTotalBalance}
+              accessibilityLabel={t("cashuBalance")}
               size="lg"
             />
             <WalletPendingReceives />

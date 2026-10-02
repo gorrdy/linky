@@ -51,7 +51,6 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
   cashuIsBusy,
   contactPaymentIntent,
   contactPayMethod,
-  displayUnit,
   nostrPictureByNpub,
   payAmount,
   paySelectedContact,
@@ -126,7 +125,6 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
     <PaymentAmountPanel
       amount={payAmount}
       cashuIsBusy={cashuIsBusy}
-      displayUnit={displayUnit}
       header={
         <Row>
           <Avatar

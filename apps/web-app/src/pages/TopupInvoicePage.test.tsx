@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderIntoDocument } from "../testUtils/renderIntoDocument";
 import { TopupInvoicePage } from "./TopupInvoicePage";
 
-vi.mock("../components/WalletBalance", () => ({
-  WalletBalance: ({ balance }: { balance: number }) => (
-    <div data-testid="wallet-balance">{balance}</div>
+vi.mock("../components/DisplayAmount", () => ({
+  DisplayAmount: ({ amount }: { amount: number }) => (
+    <div data-testid="wallet-balance">{amount}</div>
   ),
 }));
 

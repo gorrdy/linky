@@ -1,6 +1,6 @@
 import { Button, Dialog, Stack, Text } from "@linky-fit/ui";
 import type { ReactNode } from "react";
-import { WalletBalance } from "./WalletBalance";
+import { DisplayAmount } from "./DisplayAmount";
 
 interface PaymentConfirmDialogProps {
   amountSat: number | null;
@@ -69,7 +69,7 @@ export function PaymentConfirmDialog({
             {unknownAmountLabel}
           </Text>
         ) : (
-          <WalletBalance ariaLabel={label} balance={amountSat} />
+          <DisplayAmount amount={amountSat} accessibilityLabel={label} />
         )}
         {description ? caption(description) : null}
         {meta ? caption(meta, true) : null}

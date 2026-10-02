@@ -15,7 +15,7 @@ import { formatStoredCashuError } from "../app/lib/cashuStoredError";
 import { canReturnTransfer } from "../app/lib/cashuTransfers";
 
 import { getMintDisplay } from "../app/lib/tokenMessageInfo";
-import { WalletBalance } from "../components/WalletBalance";
+import { DisplayAmount } from "../components/DisplayAmount";
 import { CashuTokenProofStatus } from "../components/CashuTokenProofStatus";
 import type { InspectCashuProofStates } from "../app/hooks/composition/useLinkshuComposition";
 import type { CashuOperationId } from "../evolu";
@@ -251,17 +251,15 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
 
   return (
     <Stack gap="$lg">
-      <Stack alignItems="center" gap="$xs">
-        <WalletBalance ariaLabel={t("cashuToken")} balance={tokenAmount} />
-        {mintDisplay ? (
-          <Text variant="caption" color="$colorMuted">
-            Mint:{" "}
-            <Text variant="caption" mono color="$colorSubtle">
-              {mintDisplay}
-            </Text>
-          </Text>
-        ) : null}
-      </Stack>
+      <DisplayAmount
+        amount={tokenAmount}
+        accessibilityLabel={t("cashuToken")}
+        caption={
+          mintDisplay
+            ? `${t("transactionDetailMint")}: ${mintDisplay}`
+            : undefined
+        }
+      />
 
       <Stack gap="$sm">
         <CashuTokenHandoff

@@ -312,8 +312,8 @@ test("token recovery buttons find missing funds and reclaim handed-out proofs", 
     .getByRole("button", { name: "Look for missing tokens", exact: true })
     .click();
   await expect(page.getByTestId("cashu-token-balance")).toHaveText([
-    "62 sat",
-    "0 sat",
+    /^62\s*sat$/,
+    /^0\s*sat$/,
   ]);
   const available = page.locator('[aria-label="Available"]');
   await page.getByRole("button", { name: "Issue", exact: true }).click();

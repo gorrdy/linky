@@ -1,9 +1,7 @@
 import { Button, Row, Stack } from "@linky-fit/ui";
 import type { FC } from "react";
 import { useAppShellActions } from "../app/context/AppShellContexts";
-import { AmountDisplay } from "../components/AmountDisplay";
-
-import { Keypad } from "../components/Keypad";
+import { AmountKeypad } from "../components/AmountKeypad";
 import { useAmountInputKeypad } from "../components/useAmountInputKeypad";
 import { navigateTo } from "../hooks/useRouting";
 import type { Translate } from "../i18n";
@@ -19,7 +17,6 @@ interface TopupPageProps {
 
 export const TopupPage: FC<TopupPageProps> = ({
   currentNpub,
-  displayUnit,
   setTopupAmount,
   t,
   topupAmount,
@@ -44,25 +41,10 @@ export const TopupPage: FC<TopupPageProps> = ({
 
   return (
     <Stack gap="$md">
-      <AmountDisplay
+      <AmountKeypad
         amount={topupAmount}
-        cycleOnClick
-        inputDisplayValue={amountInput.inputDisplayValue}
-      />
-
-      <Keypad
-        ariaLabel={`${t("payAmount")} (${displayUnit})`}
-        decimalKeyEnabled={amountInput.decimalKeyEnabled}
+        input={amountInput}
         disabled={topupInvoiceIsBusy}
-        onKeyPress={(key: string) => {
-          if (topupInvoiceIsBusy) return;
-          amountInput.onKeyPress(key);
-        }}
-        translations={{
-          clearForm: t("clearForm"),
-          decimalPoint: t("decimalPoint"),
-          delete: t("delete"),
-        }}
       />
 
       <Button

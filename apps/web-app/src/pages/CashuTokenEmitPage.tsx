@@ -1,8 +1,7 @@
 import { Button, Notice, Pressable, Stack, Text } from "@linky-fit/ui";
 import { useState, type Dispatch, type FC, type SetStateAction } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
-import { AmountDisplay } from "../components/AmountDisplay";
-import { Keypad } from "../components/Keypad";
+import { AmountKeypad } from "../components/AmountKeypad";
 import { useAmountInputKeypad } from "../components/useAmountInputKeypad";
 
 interface CashuTokenEmitPageProps {
@@ -25,7 +24,6 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
   cashuIsBusy,
   cashuHasMultipleAcceptedMints,
   cashuMeltToMainMintButtonLabel,
-  displayUnit,
   emitCashuToken,
   meltLargestForeignMintToMainMint,
   setCashuEmitAmount,
@@ -95,25 +93,10 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
         </Pressable>
       </Stack>
 
-      <AmountDisplay
+      <AmountKeypad
         amount={cashuEmitAmount}
-        cycleOnClick
-        inputDisplayValue={amountInput.inputDisplayValue}
-      />
-
-      <Keypad
-        ariaLabel={`${t("payAmount")} (${displayUnit})`}
-        decimalKeyEnabled={amountInput.decimalKeyEnabled}
+        input={amountInput}
         disabled={cashuIsBusy}
-        onKeyPress={(key: string) => {
-          if (cashuIsBusy) return;
-          amountInput.onKeyPress(key);
-        }}
-        translations={{
-          clearForm: t("clearForm"),
-          decimalPoint: t("decimalPoint"),
-          delete: t("delete"),
-        }}
       />
 
       <Button

@@ -5,8 +5,7 @@ import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { MintMove } from "../app/hooks/mint/useMoveMintFunds";
 import type { MintIcon as MintIconSource } from "../utils/mint";
 import { formatMintLabel, mintKindBadge } from "../utils/mint";
-import { AmountDisplay } from "./AmountDisplay";
-import { Keypad } from "./Keypad";
+import { AmountKeypad } from "./AmountKeypad";
 import { MintButton } from "./MintButton";
 import { MintValueRow } from "./MintFees";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
@@ -61,7 +60,7 @@ export function MintMoveFundsForm({
   sourceMint,
   targets,
 }: MintMoveFundsFormProps) {
-  const { displayUnit, formatDisplayedAmountText, t } = useAppShellCore();
+  const { formatDisplayedAmountText, t } = useAppShellCore();
   const [targetMint, setTargetMint] = React.useState(targets[0] ?? "");
   // Sat, as every keypad-driven amount in the app; null until edited means the whole balance.
   const [editedAmount, setEditedAmount] = React.useState<string | null>(null);
@@ -147,28 +146,13 @@ export function MintMoveFundsForm({
         })}
       </Stack>
 
-      <AmountDisplay
-        amount={amount}
-        cycleOnClick
-        inputDisplayValue={amountInput.inputDisplayValue}
-      />
       <Text variant="caption" color="$colorMuted" textAlign="center">
         {t("mintMoveMaximum").replace(
           "{amount}",
           formatDisplayedAmountText(available),
         )}
       </Text>
-      <Keypad
-        ariaLabel={`${t("payAmount")} (${displayUnit})`}
-        decimalKeyEnabled={amountInput.decimalKeyEnabled}
-        disabled={busy}
-        onKeyPress={amountInput.onKeyPress}
-        translations={{
-          clearForm: t("clearForm"),
-          decimalPoint: t("decimalPoint"),
-          delete: t("delete"),
-        }}
-      />
+      <AmountKeypad amount={amount} input={amountInput} disabled={busy} />
 
       {rows !== null ? (
         <>

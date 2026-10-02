@@ -13,7 +13,7 @@ interface UseAmountInputKeypadParams {
   onAmountChange: (amount: string) => void;
 }
 
-interface UseAmountInputKeypadResult {
+export interface AmountInput {
   decimalKeyEnabled: boolean;
   inputDisplayValue: string | null;
   onKeyPress: (key: string) => void;
@@ -32,7 +32,7 @@ export const normalizePastedAmountInput = (
 export const useAmountInputKeypad = ({
   amount,
   onAmountChange,
-}: UseAmountInputKeypadParams): UseAmountInputKeypadResult => {
+}: UseAmountInputKeypadParams): AmountInput => {
   const {
     applyAmountInputKeyWithDraft,
     decimalAmountInputKeyVisible,

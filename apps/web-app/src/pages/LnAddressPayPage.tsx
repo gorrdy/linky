@@ -40,7 +40,6 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
   cashuBalance,
   cashuBalanceAfterMelt,
   cashuIsBusy,
-  displayUnit,
   knownContact,
   knownContactPictureUrl,
   lnAddress,
@@ -100,7 +99,6 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
     <PaymentAmountPanel
       amount={lnAddressPayAmount}
       cashuIsBusy={cashuIsBusy || previewLoading}
-      displayUnit={displayUnit}
       header={
         <Row>
           {knownContact ? (

@@ -25,6 +25,11 @@ vi.mock("../app/context/AppShellContexts", () => ({
   useAppShellCore: () => ({
     allowedDisplayCurrencies: appShellMock.allowedDisplayCurrencies,
     formatDisplayedAmountText: (amountSat: number) => `${amountSat} sat`,
+    formatDisplayedAmountParts: (amountSat: number) => ({
+      approxPrefix: "",
+      amountText: String(amountSat),
+      unitLabel: "sat",
+    }),
     nostrPictureByNpub: {
       npub1alice: "https://example.com/alice.jpg",
     },
@@ -314,7 +319,7 @@ describe("BankPaymentOfferDetailPage", () => {
     const container = await renderOffer({ status: "bank_details_sent" });
 
     const amountButton = container.querySelector<HTMLButtonElement>(
-      '[data-testid="bank-payment-amount-button"]',
+      '[data-testid="bank-payment-amount"]',
     );
     expect(amountButton).not.toBeNull();
     await act(async () => {

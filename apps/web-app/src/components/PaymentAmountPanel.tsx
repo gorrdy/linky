@@ -2,14 +2,12 @@ import { Button, Stack } from "@linky-fit/ui";
 import type { IconName } from "@linky-fit/ui";
 import type { FC, ReactNode } from "react";
 import type { Translate } from "../i18n";
-import { AmountDisplay } from "./AmountDisplay";
-import { Keypad } from "./Keypad";
+import { AmountKeypad } from "./AmountKeypad";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
 
 interface PaymentAmountPanelProps {
   amount: string;
   cashuIsBusy: boolean;
-  displayUnit: string;
   header: ReactNode;
   notices?: ReactNode | undefined;
   onAmountChange: React.Dispatch<React.SetStateAction<string>>;
@@ -27,7 +25,6 @@ interface PaymentAmountPanelProps {
 export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
   amount,
   cashuIsBusy,
-  displayUnit,
   header,
   notices,
   onAmountChange,
@@ -42,10 +39,7 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
   t,
 }) => {
   const isSubmitBusy = submitBusy ?? cashuIsBusy;
-  const amountInput = useAmountInputKeypad({
-    amount,
-    onAmountChange: (nextAmount) => onAmountChange(nextAmount),
-  });
+  const amountInput = useAmountInputKeypad({ amount, onAmountChange });
 
   return (
     <Stack gap="$md">
@@ -53,25 +47,10 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
       {notices}
 
       <Stack gap="$md" data-guide={stepGuideId}>
-        <AmountDisplay
+        <AmountKeypad
           amount={amount}
-          cycleOnClick
-          inputDisplayValue={amountInput.inputDisplayValue}
-        />
-
-        <Keypad
-          ariaLabel={`${t("payAmount")} (${displayUnit})`}
-          decimalKeyEnabled={amountInput.decimalKeyEnabled}
+          input={amountInput}
           disabled={cashuIsBusy}
-          onKeyPress={(key: string) => {
-            if (cashuIsBusy) return;
-            amountInput.onKeyPress(key);
-          }}
-          translations={{
-            clearForm: t("clearForm"),
-            decimalPoint: t("decimalPoint"),
-            delete: t("delete"),
-          }}
         />
 
         <Button

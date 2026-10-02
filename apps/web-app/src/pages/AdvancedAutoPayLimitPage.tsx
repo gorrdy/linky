@@ -3,15 +3,14 @@ import type { FC } from "react";
 import { useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
-import { AmountDisplay } from "../components/AmountDisplay";
-import { Keypad } from "../components/Keypad";
+import { AmountKeypad } from "../components/AmountKeypad";
 import { useAmountInputKeypad } from "../components/useAmountInputKeypad";
 import { navigateTo } from "../hooks/useRouting";
 
 export const AdvancedAutoPayLimitPage: FC = () => {
   const { lightningInvoiceAutoPayLimit, setLightningInvoiceAutoPayLimit } =
     useAdvancedSettingsContext();
-  const { displayUnit, t } = useAppShellCore();
+  const { t } = useAppShellCore();
 
   const [amount, setAmount] = useState<string>(() =>
     lightningInvoiceAutoPayLimit > 0
@@ -27,24 +26,7 @@ export const AdvancedAutoPayLimitPage: FC = () => {
 
   return (
     <Stack>
-      <AmountDisplay
-        amount={amount}
-        inputDisplayValue={amountInput.inputDisplayValue}
-      />
-
-      <Keypad
-        ariaLabel={`${t("payAmount")} (${displayUnit})`}
-        decimalKeyEnabled={amountInput.decimalKeyEnabled}
-        disabled={false}
-        onKeyPress={(key: string) => {
-          amountInput.onKeyPress(key);
-        }}
-        translations={{
-          clearForm: t("clearForm"),
-          decimalPoint: t("decimalPoint"),
-          delete: t("delete"),
-        }}
-      />
+      <AmountKeypad amount={amount} input={amountInput} />
 
       <Stack>
         <Button

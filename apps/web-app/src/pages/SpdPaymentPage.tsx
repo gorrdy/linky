@@ -28,7 +28,7 @@ import {
   tryParseBankPayment,
   updateBankPaymentFields,
 } from "@linky-fit/proxy-payment";
-import { BankPaymentAmount } from "../components/BankPaymentAmount";
+import { DisplayAmount } from "../components/DisplayAmount";
 import { BankPaymentScreen, InvalidOfferView } from "./BankPaymentOfferViews";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey, Translate } from "../i18n";
@@ -443,9 +443,10 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
   };
 
   const summary = (
-    <BankPaymentAmount
-      canCycle={Boolean(amountText)}
-      text={amountText || t("spdPaymentAmountUnknown")}
+    <DisplayAmount
+      amount={amountText || t("spdPaymentAmountUnknown")}
+      cycles={Boolean(amountText)}
+      testID="bank-payment-amount"
     />
   );
 

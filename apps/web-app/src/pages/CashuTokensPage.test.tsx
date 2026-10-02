@@ -15,8 +15,15 @@ vi.mock("../app/context/AppShellContexts", () => ({
   useAppShellCore: () => ({
     t: (key: I18nKey) => en[key],
     lang: "en",
+    allowedDisplayCurrencies: ["sat"],
     formatDisplayedAmountText: (amount: number) => `${amount} sat`,
+    formatDisplayedAmountParts: (amount: number) => ({
+      approxPrefix: "",
+      amountText: String(amount),
+      unitLabel: "sat",
+    }),
   }),
+  useAppShellActions: () => ({ cycleDisplayCurrency: vi.fn() }),
 }));
 vi.mock("../hooks/useRouting", () => ({ navigateTo: vi.fn() }));
 
@@ -83,7 +90,7 @@ describe("pending tokens", () => {
       [
         ...container.querySelectorAll('[data-testid="cashu-token-balance"]'),
       ].map((node) => node.textContent),
-    ).toEqual(["0 sat", "21 sat"]);
+    ).toEqual(["0sat", "21sat"]);
     await click(container, "21 sat");
     expect(navigateTo).toHaveBeenLastCalledWith({
       route: "cashuToken",

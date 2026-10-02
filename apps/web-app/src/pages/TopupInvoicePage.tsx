@@ -1,6 +1,6 @@
 import { Button, LoadingState, QRCode, Stack, Text } from "@linky-fit/ui";
 import { type FC } from "react";
-import { WalletBalance } from "../components/WalletBalance";
+import { DisplayAmount } from "../components/DisplayAmount";
 import type { Translate } from "../i18n";
 import { optimizeCaseInsensitiveQrPayload } from "../utils/qrPayload";
 import type { ReceiveMethod } from "../utils/receiveMethod";
@@ -59,20 +59,15 @@ export const TopupInvoicePage: FC<TopupInvoicePageProps> = ({
 
   return (
     <Stack gap="$lg">
-      <Stack alignItems="center" gap="$sm">
-        <WalletBalance
-          ariaLabel={t("topupInvoiceTitle")}
-          balance={Number.isFinite(amountSat) && amountSat > 0 ? amountSat : 0}
-        />
-        {mintDisplay ? (
-          <Text variant="caption" color="$colorMuted">
-            Mint:{" "}
-            <Text variant="caption" mono color="$colorSubtle">
-              {mintDisplay}
-            </Text>
-          </Text>
-        ) : null}
-      </Stack>
+      <DisplayAmount
+        amount={Number.isFinite(amountSat) && amountSat > 0 ? amountSat : 0}
+        accessibilityLabel={t("topupInvoiceTitle")}
+        caption={
+          mintDisplay
+            ? `${t("transactionDetailMint")}: ${mintDisplay}`
+            : undefined
+        }
+      />
 
       {topupInvoiceIsBusy ? (
         <LoadingState label={t("topupFetchingInvoice")} />

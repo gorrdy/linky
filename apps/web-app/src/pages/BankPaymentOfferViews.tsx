@@ -29,7 +29,7 @@ import {
   type PrivateImageMessagePayload,
 } from "../app/lib/privateImageMessage";
 import type { ContactRowLike, LocalNostrMessage } from "../app/types/appTypes";
-import { BankPaymentAmount } from "../components/BankPaymentAmount";
+import { DisplayAmount } from "../components/DisplayAmount";
 import { PrivateFileBubble } from "../components/PrivateFileBubble";
 import { PrivateImageBubble } from "../components/PrivateImageBubble";
 import type { Translate } from "../i18n";
@@ -225,17 +225,19 @@ const RecipientProgress = ({ status, t }: RecipientProgressProps) => {
   );
 };
 
+const OfferAmount = ({ amount }: { amount: number | string }) => (
+  <DisplayAmount amount={amount} testID="bank-payment-amount" />
+);
+
 interface RequesterIntroProps {
-  amountText: string;
-  canCycleAmount: boolean;
+  amount: number | string;
   requesterName: string;
   status: BankOfferStatus;
   t: Translate;
 }
 
 const RequesterIntro = ({
-  amountText,
-  canCycleAmount,
+  amount,
   requesterName,
   status,
   t,
@@ -250,7 +252,7 @@ const RequesterIntro = ({
     <Text variant="title" textAlign="center">
       {t("bankPaymentOfferRequestedBy").replace("{name}", requesterName)}
     </Text>
-    <BankPaymentAmount canCycle={canCycleAmount} text={amountText} />
+    <OfferAmount amount={amount} />
     <RecipientProgress status={status} t={t} />
   </Stack>
 );
@@ -374,10 +376,7 @@ export function OwnerOfferView({
   return (
     <BankPaymentScreen>
       <Stack alignItems="center" gap="$sm">
-        <BankPaymentAmount
-          canCycle={Boolean(activeEntry.info.amountSat)}
-          text={activeAmountText}
-        />
+        <OfferAmount amount={activeEntry.info.amountSat ?? activeAmountText} />
         <RecipientProgress status={activeEntry.info.status} t={t} />
         {remainingSec !== null
           ? timerWithExtension(activeEntry, remainingSec)
@@ -459,12 +458,7 @@ export function RejectedOfferView({
   return (
     <ClosedOfferState
       actionLabel={t("chatImageBackToChat")}
-      amount={
-        <BankPaymentAmount
-          canCycle={Boolean(entry.info.amountSat)}
-          text={amountText}
-        />
-      }
+      amount={<OfferAmount amount={entry.info.amountSat ?? amountText} />}
       closeOffer={closeOffer}
       description={t("bankPaymentOfferRejectedDescription").replace(
         "{name}",
@@ -521,8 +515,7 @@ export function IncomingOfferView({
     <BankPaymentScreen fill>
       <StateCopy>
         <RequesterIntro
-          amountText={amountText}
-          canCycleAmount={Boolean(entry.info.amountSat)}
+          amount={entry.info.amountSat ?? amountText}
           requesterName={requesterName}
           status={entry.info.status}
           t={t}
@@ -602,10 +595,7 @@ export function WaitingForSatsOfferView({
     <BankPaymentScreen fill>
       <StateCopy>
         <StateTitle>{t("bankPaymentOfferWaitingForSatsTitle")}</StateTitle>
-        <BankPaymentAmount
-          canCycle={Boolean(entry.info.amountSat)}
-          text={amountText}
-        />
+        <OfferAmount amount={entry.info.amountSat ?? amountText} />
         <RecipientProgress status={entry.info.status} t={t} />
       </StateCopy>
 
@@ -664,8 +654,7 @@ export function AwaitingBankDetailsOfferView({
     <BankPaymentScreen fill>
       <StateCopy>
         <RequesterIntro
-          amountText={amountText}
-          canCycleAmount={Boolean(entry.info.amountSat)}
+          amount={entry.info.amountSat ?? amountText}
           requesterName={requesterName}
           status={entry.info.status}
           t={t}
@@ -729,8 +718,7 @@ export function BankDetailsOfferView({
     <BankPaymentScreen>
       <Stack alignItems="center" gap="$xs">
         <RequesterIntro
-          amountText={amountText}
-          canCycleAmount={Boolean(entry.info.amountSat)}
+          amount={entry.info.amountSat ?? amountText}
           requesterName={requesterName}
           status={entry.info.status}
           t={t}

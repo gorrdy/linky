@@ -29,6 +29,7 @@ import {
   CashuTokenHandoff,
   type CashuTokenHandoffProps,
 } from "../components/CashuTokenHandoff";
+import { DisplayAmount } from "../components/DisplayAmount";
 import {
   FloatingActionButton,
   floatingActionButtonClearance,
@@ -146,13 +147,11 @@ export const CashuTokensPage = ({
         : t("cashuRestorePreparing");
 
   const balanceColumn = (label: string, amount: number) => (
-    <Stack flex={1} gap="$xs">
-      <Text variant="label" color="$colorMuted">
+    <Stack flex={1} gap="$xs" alignItems="center">
+      <Text variant="label" color="$colorMuted" textAlign="center">
         {label}
       </Text>
-      <Text variant="heading" testID="cashu-token-balance">
-        {formatDisplayedAmountText(amount)}
-      </Text>
+      <DisplayAmount amount={amount} testID="cashu-token-balance" />
     </Stack>
   );
 
