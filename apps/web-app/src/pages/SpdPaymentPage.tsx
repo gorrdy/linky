@@ -1,4 +1,16 @@
-import { Stepper } from "@linky-fit/ui";
+import {
+  Avatar,
+  Button,
+  Notice,
+  Pressable,
+  Row,
+  SelectField,
+  Stack,
+  Stepper,
+  Text,
+  TextField,
+  border,
+} from "@linky-fit/ui";
 import type { ContactRowLike } from "../app/types/appTypes";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -16,12 +28,12 @@ import {
   tryParseBankPayment,
   updateBankPaymentFields,
 } from "@linky-fit/proxy-payment";
-import { Avatar } from "../components/Avatar";
 import { BankPaymentAmount } from "../components/BankPaymentAmount";
+import { BankPaymentScreen, InvalidOfferView } from "./BankPaymentOfferViews";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey, Translate } from "../i18n";
 import type { FiatRates } from "../utils/displayAmounts";
-import { formatInteger, getInitials } from "../utils/formatting";
+import { formatInteger } from "../utils/formatting";
 
 interface SpdPaymentPageProps {
   cashuBalanceAfterMelt: number;
@@ -330,13 +342,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
     spdPayload,
   ]);
 
-  if (!payment) {
-    return (
-      <section className="panel panel-plain bank-payment-page">
-        <p className="muted bank-payment-hint">{t("spdPaymentInvalid")}</p>
-      </section>
-    );
-  }
+  if (!payment) return <InvalidOfferView t={t} />;
 
   const activePayment = editedPayment.payment;
   const amount = activePayment
@@ -436,149 +442,101 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
     }
   };
 
+  const summary = (
+    <BankPaymentAmount
+      canCycle={Boolean(amountText)}
+      text={amountText || t("spdPaymentAmountUnknown")}
+    />
+  );
+
   if (draftFields) {
     return (
-      <section className="panel panel-plain bank-payment-page">
-        <div className="bank-payment-summary">
-          <BankPaymentAmount
-            canCycle={Boolean(amountText)}
-            text={amountText || t("spdPaymentAmountUnknown")}
-          />
-        </div>
+      <BankPaymentScreen>
+        {summary}
 
-        <div className="bank-payment-fields bank-payment-edit">
+        <Stack gap="$md">
           {isManualEntry ? (
-            <div className="bank-payment-edit-row">
-              <label htmlFor="bank-payment-field-CC">
-                {t("spdPaymentCurrency")}
-              </label>
-              <select
-                id="bank-payment-field-CC"
-                className="select"
-                value={currencyCode}
-                onChange={(event) => updateDraftField("CC", event.target.value)}
-              >
-                {MANUAL_BANK_PAYMENT_CURRENCIES.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectField
+              label={t("spdPaymentCurrency")}
+              value={currencyCode}
+              options={MANUAL_BANK_PAYMENT_CURRENCIES.map((code) => ({
+                label: code,
+                value: code,
+              }))}
+              onValueChange={(code) => updateDraftField("CC", code)}
+            />
           ) : null}
           {["AM" as const, ...editableKeys].map((key) => {
-            const inputId = `bank-payment-field-${key}`;
             const isDate = key === "DT";
-            const suffix = key === "AM" ? currencyCode : "";
             const fieldError = editError?.field === key ? editError : null;
             return (
-              <div className="bank-payment-edit-row" key={key}>
-                <label htmlFor={inputId}>{t(FIELD_LABEL_KEYS[key])}</label>
-                <div
-                  className={
-                    suffix
-                      ? "input-with-public-value has-public-value"
-                      : "input-with-public-value"
-                  }
-                >
-                  <input
-                    id={inputId}
-                    aria-invalid={fieldError ? true : undefined}
-                    inputMode={key === "AM" ? "decimal" : undefined}
-                    type={isDate ? "date" : undefined}
-                    value={
-                      isDate
-                        ? toDateInputValue(draftFields[key] ?? "")
-                        : (draftFields[key] ?? "")
-                    }
-                    onChange={(event) =>
-                      updateDraftField(
-                        key,
-                        isDate
-                          ? fromDateInputValue(event.target.value)
-                          : event.target.value,
-                      )
-                    }
-                  />
-                  {suffix ? (
-                    <span className="input-public-value">{suffix}</span>
-                  ) : null}
-                </div>
-                {fieldError ? (
-                  <p className="bank-payment-error bank-payment-offer-status">
-                    {t(fieldError.key)}
-                  </p>
-                ) : null}
-              </div>
+              <TextField
+                key={key}
+                id={`bank-payment-field-${key}`}
+                label={t(FIELD_LABEL_KEYS[key])}
+                {...(fieldError ? { error: t(fieldError.key) } : {})}
+                inputMode={key === "AM" ? "decimal" : undefined}
+                type={isDate ? "date" : undefined}
+                value={
+                  isDate
+                    ? toDateInputValue(draftFields[key] ?? "")
+                    : (draftFields[key] ?? "")
+                }
+                onChangeText={(value) =>
+                  updateDraftField(
+                    key,
+                    isDate ? fromDateInputValue(value) : value,
+                  )
+                }
+                trailing={
+                  key === "AM" ? (
+                    <Text color="$colorMuted">{currencyCode}</Text>
+                  ) : undefined
+                }
+              />
             );
           })}
           {editError && editError.field === null ? (
-            <p className="bank-payment-error bank-payment-offer-status">
+            <Text variant="caption" color="$dangerText" role="alert">
               {t(editError.key)}
-            </p>
+            </Text>
           ) : null}
-        </div>
+        </Stack>
 
-        <button
-          type="button"
-          className="btn-wide bank-payment-edit-confirm"
-          disabled={!activePayment}
-          onClick={confirmEdits}
-        >
+        <Button disabled={!activePayment} onPress={confirmEdits}>
           {t("spdPaymentEditConfirm")}
-        </button>
-      </section>
+        </Button>
+      </BankPaymentScreen>
     );
   }
 
   return (
-    <section className="panel panel-plain bank-payment-page">
-      <div className="bank-payment-summary">
-        <BankPaymentAmount
-          canCycle={Boolean(amountText)}
-          text={amountText || t("spdPaymentAmountUnknown")}
-        />
-      </div>
+    <BankPaymentScreen>
+      {summary}
 
-      <div className="bank-payment-fields">
+      <Stack gap="$xl">
         {rows.map((row) => (
-          <div className="settings-row bank-payment-row" key={row.key}>
-            <div>
-              <strong>{row.label}</strong>
-              <span className="bank-payment-value">{row.value}</span>
-            </div>
-          </div>
+          <Stack gap="$xs" key={row.key} testID="bank-payment-row">
+            <Text bold>{row.label}</Text>
+            <Text color="$colorStrong">{row.value}</Text>
+          </Stack>
         ))}
-      </div>
+      </Stack>
 
       {needsSingleTabConsent ? (
-        <div
-          className="wallet-warning bank-payment-single-tab-warning"
-          role="alert"
-        >
-          <span className="wallet-warning-icon" aria-hidden="true">
-            !
-          </span>
-          <div className="wallet-warning-text">
-            <span className="wallet-warning-title">
-              {t("spdPaymentSingleTabWarningTitle")}
-            </span>
-            <span className="wallet-warning-body">
-              {t("spdPaymentSingleTabWarningBody")}
-            </span>
-            <button
-              type="button"
-              className="btn-wide secondary"
-              onClick={() => setSingleTabRiskAccepted(true)}
-            >
-              {t("spdPaymentSingleTabContinue")}
-            </button>
-          </div>
-        </div>
+        <Notice
+          tone="accent"
+          icon="CircleAlert"
+          title={t("spdPaymentSingleTabWarningTitle")}
+          description={t("spdPaymentSingleTabWarningBody")}
+          action={{
+            label: t("spdPaymentSingleTabContinue"),
+            onPress: () => setSingleTabRiskAccepted(true),
+          }}
+        />
       ) : (
-        <button
-          type="button"
-          className="btn-wide bank-payment-request"
+        <Button
+          testID="bank-payment-request"
           disabled={
             !activePayment ||
             selectedOfferContacts.length === 0 ||
@@ -586,21 +544,20 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
             !hasEnoughCashuForProxy ||
             isRequestingOffer
           }
-          title={!hasEnoughCashuForProxy ? t("payInsufficient") : undefined}
-          onClick={() => {
+          onPress={() => {
             void requestReimbursement();
           }}
         >
           {isRequestingOffer
             ? t("spdPaymentOfferSending")
             : requestReimbursementLabel}
-        </button>
+        </Button>
       )}
 
-      <div className="bank-payment-offer-delay">
-        <span className="bank-payment-offer-delay-label">
+      <Row gap="$sm">
+        <Text variant="caption" flex={1}>
           {t("bankPaymentOfferStaggerDelay")}
-        </span>
+        </Text>
         <Stepper
           accessibilityLabel={t("bankPaymentOfferStaggerDelay")}
           decreaseLabel={t("bankPaymentOfferStaggerDelayDecrease")}
@@ -612,36 +569,20 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
           value={offerDelaySec}
           valueText={`${offerDelaySec} s`}
         />
-      </div>
+      </Row>
 
       {offerContacts.length > 0 ? (
-        <div className="bank-payment-offer-contact-list">
+        <Row gap="$xs" flexWrap="wrap" alignItems="stretch">
           {offerContacts.map((contact) => {
             const key = getOfferContactKey(contact);
-            const lastBankPaymentResponseSec =
-              typeof contact.lastBankPaymentResponseSec === "number" &&
-              Number.isFinite(contact.lastBankPaymentResponseSec) &&
-              contact.lastBankPaymentResponseSec >= 0
-                ? contact.lastBankPaymentResponseSec
-                : null;
-            const name = (contact.name ?? "").trim();
-            const npub = (contact.npub ?? "").trim();
-            const pictureUrl = (contact.pictureUrl ?? "").trim();
             const orderIndex = selectedOfferContactKeys.indexOf(key);
-            const isSelected = orderIndex !== -1;
-
             return (
-              <button
-                type="button"
-                className={
-                  isSelected
-                    ? "bank-payment-offer-contact is-selected"
-                    : "bank-payment-offer-contact"
-                }
+              <OfferContactTile
+                contact={contact}
                 key={key}
-                aria-label={name || npub || t("contact")}
-                aria-pressed={isSelected}
-                onClick={() => {
+                order={orderIndex === -1 ? null : orderIndex + 1}
+                t={t}
+                onToggle={() => {
                   setHasEditedOfferContacts(true);
                   setSelectedOfferContactKeys((current) =>
                     // A re-added contact joins the end of the queue.
@@ -650,45 +591,95 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
                       : [...current, key],
                   );
                 }}
-              >
-                {/* The badge lives outside .contact-avatar, whose
-                    overflow:hidden would clip it. */}
-                <span
-                  className="bank-payment-offer-contact-avatar"
-                  aria-hidden="true"
-                >
-                  <span className="contact-avatar">
-                    <Avatar
-                      pictureUrl={pictureUrl}
-                      fallback={getInitials(name)}
-                      fallbackClassName="contact-avatar-fallback"
-                      loading="lazy"
-                    />
-                  </span>
-                  {isSelected ? (
-                    <span className="bank-payment-offer-contact-order">
-                      {orderIndex + 1}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="contact-name">{name || t("contact")}</span>
-                {lastBankPaymentResponseSec !== null ? (
-                  <span className="bank-payment-offer-contact-response">
-                    {t("spdPaymentLastResponseTime").replace(
-                      "{time}",
-                      formatResponseDuration(lastBankPaymentResponseSec),
-                    )}
-                  </span>
-                ) : null}
-              </button>
+              />
             );
           })}
-        </div>
+        </Row>
       ) : null}
 
-      {offerStatus ? (
-        <p className="muted bank-payment-offer-status">{offerStatus}</p>
+      {offerStatus ? <Text color="$colorMuted">{offerStatus}</Text> : null}
+    </BankPaymentScreen>
+  );
+};
+
+interface OfferContactTileProps {
+  contact: SpdPaymentPageProps["offerContacts"][number];
+  /** Position in the send queue, or null when the contact is not selected. */
+  order: number | null;
+  onToggle: () => void;
+  t: Translate;
+}
+
+const OfferContactTile = ({
+  contact,
+  order,
+  onToggle,
+  t,
+}: OfferContactTileProps) => {
+  const name = (contact.name ?? "").trim();
+  const npub = (contact.npub ?? "").trim();
+  const pictureUrl = (contact.pictureUrl ?? "").trim();
+  const responseSec = contact.lastBankPaymentResponseSec;
+  const isSelected = order !== null;
+  return (
+    <Pressable
+      testID="bank-payment-offer-contact"
+      aria-label={name || npub || t("contact")}
+      aria-pressed={isSelected}
+      onPress={onToggle}
+      flex={1}
+      minWidth="$hero"
+      flexDirection="column"
+      gap="$xs"
+      paddingVertical="$sm"
+      paddingHorizontal="$xs"
+      borderRadius="$control"
+      borderWidth={border.hairline}
+      borderColor={isSelected ? "$outlineColor" : "$transparent"}
+      backgroundColor={isSelected ? "$accentSoft" : "$transparent"}
+    >
+      {/* Side padding leaves room for the order badge to overhang the avatar. */}
+      <Stack position="relative" paddingHorizontal="$sm" paddingBottom="$xs">
+        <Avatar name={name} size="sm" uri={pictureUrl || undefined} />
+        {isSelected ? (
+          <Text
+            testID="bank-payment-offer-contact-order"
+            position="absolute"
+            right={0}
+            bottom={0}
+            minWidth="$iconSm"
+            paddingHorizontal="$xxs"
+            borderRadius="$pill"
+            overflow="hidden"
+            backgroundColor="$accent"
+            color="$onAccent"
+            variant="caption"
+            bold
+            textAlign="center"
+          >
+            {order}
+          </Text>
+        ) : null}
+      </Stack>
+      <Text
+        variant="label"
+        bold
+        width="100%"
+        textAlign="center"
+        numberOfLines={1}
+      >
+        {name || t("contact")}
+      </Text>
+      {typeof responseSec === "number" &&
+      Number.isFinite(responseSec) &&
+      responseSec >= 0 ? (
+        <Text variant="caption" color="$colorMuted" textAlign="center">
+          {t("spdPaymentLastResponseTime").replace(
+            "{time}",
+            formatResponseDuration(responseSec),
+          )}
+        </Text>
       ) : null}
-    </section>
+    </Pressable>
   );
 };

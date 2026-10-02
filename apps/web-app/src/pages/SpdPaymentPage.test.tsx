@@ -42,6 +42,27 @@ const setInputValue = (input: HTMLInputElement, value: string) => {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 };
 
+const byTestId = <T extends Element = HTMLElement>(
+  container: HTMLElement,
+  testId: string,
+) => Array.from(container.querySelectorAll<T>(`[data-testid="${testId}"]`));
+
+const buttonByText = (container: HTMLElement, text: string) =>
+  Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === text,
+  ) ?? null;
+
+const isDisabled = (button: Element | null | undefined) =>
+  button?.getAttribute("aria-disabled") === "true";
+
+const requestButton = (container: HTMLElement) =>
+  byTestId<HTMLButtonElement>(container, "bank-payment-request")[0] ?? null;
+
+const delayStepper = (container: HTMLElement) =>
+  container.querySelector(
+    '[role="group"][aria-label="bankPaymentOfferStaggerDelay"]',
+  );
+
 const translate = (key: string): string => {
   if (key === "spdPaymentRequestReimbursementCountOther") {
     return "Ask {count} contacts to pay";
@@ -84,24 +105,19 @@ describe("SpdPaymentPage offer recipients", () => {
       />,
     );
 
-    const contactButtons = Array.from(
-      container.querySelectorAll<HTMLButtonElement>(
-        ".bank-payment-offer-contact",
-      ),
+    const contactButtons = byTestId<HTMLButtonElement>(
+      container,
+      "bank-payment-offer-contact",
     );
     expect(
       contactButtons.map((button) => button.getAttribute("aria-pressed")),
     ).toEqual(["true", "true", "false"]);
-    const requestButton = container.querySelector<HTMLButtonElement>(
-      ".bank-payment-request",
-    );
-    const contactList = container.querySelector(
-      ".bank-payment-offer-contact-list",
-    );
+    const request = requestButton(container);
+    const firstContact = contactButtons[0];
     expect(
-      requestButton &&
-        contactList &&
-        Boolean(requestButton.compareDocumentPosition(contactList) & 4),
+      request &&
+        firstContact &&
+        Boolean(request.compareDocumentPosition(firstContact) & 4),
     ).toBe(true);
 
     await act(async () => {
@@ -113,13 +129,13 @@ describe("SpdPaymentPage offer recipients", () => {
     await act(async () => {
       container
         .querySelector<HTMLButtonElement>(
-          '.bank-payment-offer-delay [aria-label="bankPaymentOfferStaggerDelayIncrease"]',
+          '[aria-label="bankPaymentOfferStaggerDelayIncrease"]',
         )
         ?.click();
     });
 
     await act(async () => {
-      requestButton?.click();
+      request?.click();
     });
 
     expect(onRequestReimbursement).toHaveBeenCalledOnce();
@@ -153,21 +169,16 @@ describe("SpdPaymentPage offer recipients", () => {
     );
 
     const readOrders = () =>
-      Array.from(
-        container.querySelectorAll<HTMLButtonElement>(
-          ".bank-payment-offer-contact",
-        ),
-      ).map(
+      byTestId(container, "bank-payment-offer-contact").map(
         (button) =>
-          button.querySelector(".bank-payment-offer-contact-order")
-            ?.textContent ?? null,
+          button.querySelector(
+            '[data-testid="bank-payment-offer-contact-order"]',
+          )?.textContent ?? null,
       );
 
     expect(readOrders()).toEqual(["1", "2", "3"]);
 
-    const contactButtons = container.querySelectorAll<HTMLButtonElement>(
-      ".bank-payment-offer-contact",
-    );
+    const contactButtons = byTestId(container, "bank-payment-offer-contact");
 
     // Removing the second contact moves the third one up…
     await act(async () => {
@@ -181,10 +192,7 @@ describe("SpdPaymentPage offer recipients", () => {
     });
     expect(readOrders()).toEqual(["1", "3", "2"]);
 
-    const delay = container.querySelector(
-      '.bank-payment-offer-delay [role="group"]',
-    );
-    expect(delay?.textContent).toBe("5 s");
+    expect(delayStepper(container)?.textContent).toBe("5 s");
   });
 
   it("opens the newly created proxy payment", async () => {
@@ -207,9 +215,7 @@ describe("SpdPaymentPage offer recipients", () => {
     );
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(".bank-payment-request")
-        ?.click();
+      requestButton(container)?.click();
     });
 
     expect(navigateTo).toHaveBeenCalledWith({
@@ -236,29 +242,23 @@ describe("SpdPaymentPage offer recipients", () => {
       />,
     );
 
-    expect(container.querySelector(".bank-payment-request")).toBeNull();
-    expect(
-      container.querySelector(
-        ".bank-payment-single-tab-warning .wallet-warning-close",
-      ),
-    ).toBeNull();
+    const warning = () =>
+      Array.from(container.querySelectorAll('[role="status"]')).find(
+        (element) =>
+          element.textContent?.includes("spdPaymentSingleTabWarningTitle"),
+      );
+    expect(requestButton(container)).toBeNull();
+    // Accepting the risk is the only way past the warning.
+    expect(warning()?.querySelectorAll("button")).toHaveLength(1);
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(
-          ".bank-payment-single-tab-warning .btn-wide",
-        )
-        ?.click();
+      buttonByText(container, "spdPaymentSingleTabContinue")?.click();
     });
     expect(onRequestReimbursement).not.toHaveBeenCalled();
-    expect(
-      container.querySelector(".bank-payment-single-tab-warning"),
-    ).toBeNull();
+    expect(warning()).toBeUndefined();
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(".bank-payment-request")
-        ?.click();
+      requestButton(container)?.click();
     });
     expect(onRequestReimbursement).toHaveBeenCalledWith(
       expect.objectContaining({ singleTabRiskAccepted: true }),
@@ -287,9 +287,7 @@ describe("SpdPaymentPage offer recipients", () => {
       />,
     );
 
-    const candidates = container.querySelectorAll(
-      ".bank-payment-offer-contact",
-    );
+    const candidates = byTestId(container, "bank-payment-offer-contact");
     expect(candidates[0]?.textContent).toContain("Last time 02:05");
     expect(candidates[1]?.textContent).not.toContain("Last time");
   });
@@ -329,8 +327,8 @@ describe("SpdPaymentPage offer recipients", () => {
   };
 
   const rowValues = (container: HTMLElement) =>
-    Array.from(container.querySelectorAll(".bank-payment-value")).map(
-      (value) => value.textContent,
+    byTestId(container, "bank-payment-row").map(
+      (row) => row.lastElementChild?.textContent,
     );
 
   it("sends the confirmed edits instead of the scanned fields", async () => {
@@ -343,20 +341,17 @@ describe("SpdPaymentPage offer recipients", () => {
     );
 
     expect(rowValues(container)).toEqual(["1265098001/5500", "111"]);
-    expect(container.querySelector(".bank-payment-recipient")).toBeNull();
 
     await render(true);
 
-    expect(container.querySelector(".bank-payment-request")).toBeNull();
-    expect(container.querySelector(".bank-payment-offer-contact")).toBeNull();
-    expect(container.querySelector(".bank-payment-offer-delay")).toBeNull();
+    expect(requestButton(container)).toBeNull();
+    expect(byTestId(container, "bank-payment-offer-contact")).toHaveLength(0);
+    expect(delayStepper(container)).toBeNull();
     expect(fieldInput(container, "AM").value).toBe("480");
     expect(fieldInput(container, "ACC").value).toBe("1265098001/5500");
     expect(fieldInput(container, "X-VS").value).toBe("111");
     expect(fieldInput(container, "MSG").value).toBe("");
-    expect(container.querySelector(".input-public-value")?.textContent).toBe(
-      "CZK",
-    );
+    expect(fieldInput(container, "AM").parentElement?.textContent).toBe("CZK");
 
     await act(async () => {
       setInputValue(fieldInput(container, "AM"), "100");
@@ -371,9 +366,7 @@ describe("SpdPaymentPage offer recipients", () => {
     ).toBe("10000 sat");
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(".bank-payment-edit-confirm")
-        ?.click();
+      buttonByText(container, "spdPaymentEditConfirm")?.click();
     });
     expect(navigateTo).toHaveBeenLastCalledWith({
       route: "bankPayment",
@@ -383,9 +376,7 @@ describe("SpdPaymentPage offer recipients", () => {
     await render(false);
 
     expect(
-      Array.from(container.querySelectorAll(".bank-payment-row")).map(
-        (row) => row.textContent,
-      ),
+      byTestId(container, "bank-payment-row").map((row) => row.textContent),
     ).toEqual([
       "spdPaymentAccount19-2000145399/0800",
       "spdPaymentVariableSymbol222",
@@ -393,9 +384,7 @@ describe("SpdPaymentPage offer recipients", () => {
     ]);
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(".bank-payment-request")
-        ?.click();
+      requestButton(container)?.click();
     });
 
     expect(onRequestReimbursement).toHaveBeenCalledWith(
@@ -417,21 +406,19 @@ describe("SpdPaymentPage offer recipients", () => {
     await render(true);
 
     const confirmButton = () =>
-      container.querySelector<HTMLButtonElement>(".bank-payment-edit-confirm");
-    const errorText = () =>
-      container.querySelector(".bank-payment-error")?.textContent ?? null;
+      buttonByText(container, "spdPaymentEditConfirm");
+    const error = () => container.querySelector('[role="alert"]');
+    const errorText = () => error()?.textContent ?? null;
     const errorRowInputId = () =>
-      container
-        .querySelector(".bank-payment-error")
-        ?.closest(".bank-payment-edit-row")
-        ?.querySelector("input")?.id ?? null;
+      container.querySelector(`[aria-describedby="${error()?.id}"]`)?.id ??
+      null;
 
     await act(async () => {
       setInputValue(fieldInput(container, "ACC"), "");
     });
     expect(errorText()).toBe("spdPaymentMissingAccount");
     expect(errorRowInputId()).toBe("bank-payment-field-ACC");
-    expect(confirmButton()?.disabled).toBe(true);
+    expect(isDisabled(confirmButton())).toBe(true);
 
     await act(async () => {
       setInputValue(fieldInput(container, "ACC"), "1234/0800");
@@ -457,10 +444,7 @@ describe("SpdPaymentPage offer recipients", () => {
     await render(false);
 
     expect(rowValues(container)).toEqual(["1265098001/5500"]);
-    expect(
-      container.querySelector<HTMLButtonElement>(".bank-payment-request")
-        ?.disabled,
-    ).toBe(false);
+    expect(isDisabled(requestButton(container))).toBe(false);
 
     await render(true);
     expect(fieldInput(container, "AM").value).toBe("480");
@@ -468,9 +452,7 @@ describe("SpdPaymentPage offer recipients", () => {
     await render(false);
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(".bank-payment-request")
-        ?.click();
+      requestButton(container)?.click();
     });
     expect(onRequestReimbursement).toHaveBeenCalledWith(
       expect.objectContaining({ spdPayload }),
@@ -498,16 +480,14 @@ describe("SpdPaymentPage manual entry", () => {
       />,
     );
 
-    const confirm = container.querySelector<HTMLButtonElement>(
-      "button.bank-payment-edit-confirm",
-    );
+    const confirm = buttonByText(container, "spdPaymentEditConfirm");
     if (!confirm) throw new Error("confirm button missing");
-    expect(confirm.disabled).toBe(true);
+    expect(isDisabled(confirm)).toBe(true);
     // An empty form is not an error until the user starts typing.
-    expect(container.querySelector(".bank-payment-error")).toBeNull();
+    expect(container.querySelector('[role="alert"]')).toBeNull();
 
     const currency = container.querySelector<HTMLSelectElement>(
-      "#bank-payment-field-CC",
+      'select[aria-label="spdPaymentCurrency"]',
     );
     if (!currency) throw new Error("currency select missing");
     await act(async () => {
@@ -526,7 +506,7 @@ describe("SpdPaymentPage manual entry", () => {
     await act(async () => {
       setInputValue(amount, "12.50");
     });
-    expect(container.querySelector(".bank-payment-error")?.textContent).toBe(
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
       "spdPaymentMissingAccount",
     );
 
@@ -537,8 +517,8 @@ describe("SpdPaymentPage manual entry", () => {
     await act(async () => {
       setInputValue(account, "CZ5855000000001265098001");
     });
-    expect(container.querySelector(".bank-payment-error")).toBeNull();
-    expect(confirm.disabled).toBe(false);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(isDisabled(confirm)).toBe(false);
 
     await act(async () => {
       confirm.click();

@@ -296,9 +296,9 @@ const runProxyPayment = async (
 
         // buildSpdRows renders ACC, X-VS and MSG from this fixture as rows;
         // AM/CC feed the header.
-        await expect(a.page.locator(".bank-payment-row")).toHaveCount(3);
+        await expect(a.page.getByTestId("bank-payment-row")).toHaveCount(3);
 
-        const chips = a.page.locator("button.bank-payment-offer-contact");
+        const chips = a.page.getByTestId("bank-payment-offer-contact");
         await expect(chips).toHaveCount(2, { timeout: 60_000 });
         await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "true");
         await expect(chips.nth(1)).toHaveAttribute("aria-pressed", "true");
