@@ -4,6 +4,7 @@ import {
   Divider,
   Icon,
   Image,
+  ListRow,
   Row,
   Sheet,
   Stack,
@@ -275,7 +276,7 @@ export const InstallPwaBanner: React.FC<InstallPwaBannerProps> = ({ t }) => {
       }}
       title={t("installPwaTitle")}
     >
-      <Stack gap="$lg" paddingHorizontal="$md">
+      <Stack gap="$lg">
         <Card outlined>
           <Row>
             <Image
@@ -309,23 +310,24 @@ export const InstallPwaBanner: React.FC<InstallPwaBannerProps> = ({ t }) => {
         {canPromptNative ? null : (
           <>
             <Divider />
-            <Stack role="list" gap="$lg">
+            <Stack gap="$none">
               {steps.map((step) => (
-                <Row key={step.text} role="listitem">
-                  <Stack
-                    width="$iconXl"
-                    height="$iconXl"
-                    alignItems="center"
-                    justifyContent="center"
-                    borderRadius="$control"
-                    backgroundColor="$infoSoft"
-                  >
-                    <Icon name={step.icon} size="lg" color="$infoText" />
-                  </Stack>
-                  <Text variant="label" color="$colorSubtle" flex={1}>
-                    {step.text}
-                  </Text>
-                </Row>
+                <ListRow
+                  key={step.text}
+                  leading={
+                    <Stack
+                      width="$iconXl"
+                      height="$iconXl"
+                      alignItems="center"
+                      justifyContent="center"
+                      borderRadius="$control"
+                      backgroundColor="$infoSoft"
+                    >
+                      <Icon name={step.icon} size="lg" color="$infoText" />
+                    </Stack>
+                  }
+                  title={<Text>{step.text}</Text>}
+                />
               ))}
             </Stack>
           </>
