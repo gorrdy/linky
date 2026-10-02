@@ -360,7 +360,6 @@ export const cs = {
   mintMoveTarget: "Do mintu",
   mintMoveMaximum: "Nejvýše {amount}",
   mintMoveEstimate: "Odhadnout poplatky",
-  mintMoveEstimating: "Odhaduji…",
   mintMoveConfirm: "Přesunout",
   mintMoveArrives: "Dorazí do cílového mintu",
   mintMoveFeeLightning: "Lightning rezerva (nejvýše)",
@@ -645,7 +644,6 @@ export const cs = {
   spdPaymentRequestReimbursementCountOne: "Poptat proplacení u 1 kontaktu",
   spdPaymentRequestReimbursementCountOther:
     "Poptat proplacení u {count} kontaktů",
-  spdPaymentOfferSending: "Odesílám nabídku…",
   spdPaymentOfferFailed: "Nabídku se nepodařilo odeslat.",
   spdPaymentOfferMissingAmount: "Chybí částka nabídky.",
   spdPaymentSingleTabWarningTitle: "Zavřete ostatní panely Linky",
@@ -720,7 +718,6 @@ export const cs = {
     "Nabídka platby za {amount} byla odmítnuta",
   spdPaymentOpenInBank: "Otevřít v bance",
   spdPaymentOpenWithJpg: "Otevřít přes .jpg",
-  spdPaymentOpening: "Otevírám…",
   spdPaymentInvalid: "QR platbu se nepodařilo načíst.",
   spdPaymentMissingAccount: "Chybí účet příjemce.",
   spdPaymentShareUnavailable:
@@ -956,7 +953,6 @@ export const cs = {
   payInvalidAmount: "Neplatná částka",
   payInsufficient: "Nemáte dostatek Cashu tokenů.",
   lightningInvoiceConfirmUnknownAmount: "Neznámá částka",
-  payPaying: "Platím…",
   payQueuedMessage: "Platba čeká: {amount} {unit} → {name}.",
   payApprovalChanged:
     "Schválení platby již není platné. Zkontrolujte příjemce a zaplaťte znovu.",

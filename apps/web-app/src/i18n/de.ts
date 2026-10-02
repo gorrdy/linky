@@ -364,7 +364,6 @@ export const de = {
   mintMoveTarget: "Zum Mint",
   mintMoveMaximum: "Höchstens {amount}",
   mintMoveEstimate: "Gebühren schätzen",
-  mintMoveEstimating: "Schätze…",
   mintMoveConfirm: "Verschieben",
   mintMoveArrives: "Kommt beim Ziel-Mint an",
   mintMoveFeeLightning: "Lightning-Gebührenreserve (höchstens)",
@@ -643,7 +642,6 @@ export const de = {
   spdPaymentRequestReimbursementCountOne: "1 Kontakt um Zahlung bitten",
   spdPaymentRequestReimbursementCountOther:
     "{count} Kontakte um Zahlung bitten",
-  spdPaymentOfferSending: "Angebot wird gesendet…",
   spdPaymentOfferFailed: "Angebot konnte nicht gesendet werden.",
   spdPaymentOfferMissingAmount: "Der Angebotsbetrag fehlt.",
   spdPaymentSingleTabWarningTitle: "Andere Linky-Tabs schließen",
@@ -722,7 +720,6 @@ export const de = {
     "Zahlungsangebot über {amount} wurde abgelehnt",
   spdPaymentOpenInBank: "In Banking-App öffnen",
   spdPaymentOpenWithJpg: "Als .jpg öffnen",
-  spdPaymentOpening: "Wird geöffnet…",
   spdPaymentInvalid: "Die QR-Zahlung konnte nicht geladen werden.",
   spdPaymentMissingAccount: "Das Empfängerkonto fehlt.",
   spdPaymentShareUnavailable:
@@ -959,7 +956,6 @@ export const de = {
   payInvalidAmount: "Ungültiger Betrag",
   payInsufficient: "Nicht genügend Cashu-Token.",
   lightningInvoiceConfirmUnknownAmount: "Unbekannter Betrag",
-  payPaying: "Wird bezahlt…",
   payQueuedMessage: "Zahlung {amount} {unit} → {name} vorgemerkt.",
   payApprovalChanged:
     "Die Zahlungsfreigabe ist nicht mehr gültig. Prüfe den Empfänger und bezahle erneut.",
