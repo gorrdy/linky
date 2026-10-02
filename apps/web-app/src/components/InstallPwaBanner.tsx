@@ -1,9 +1,15 @@
 import {
-  SquarePlus as AddToHomeIcon,
-  EllipsisVertical as BrowserMenuIcon,
-  Compass as SafariIcon,
-  Share2 as ShareIcon,
-} from "lucide-react";
+  Button,
+  Card,
+  Divider,
+  Icon,
+  Image,
+  Row,
+  Sheet,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import {
   getTelemetryAppRuntime,
@@ -25,7 +31,7 @@ interface InstallPwaBannerProps {
 }
 
 interface InstallStep {
-  icon: React.ReactNode;
+  icon: IconName;
   text: string;
 }
 
@@ -248,103 +254,87 @@ export const InstallPwaBanner: React.FC<InstallPwaBannerProps> = ({ t }) => {
   const steps: InstallStep[] = isIos
     ? isSafariOnIos
       ? [
-          {
-            icon: <ShareIcon />,
-            text: t("installPwaStepIosShare"),
-          },
-          {
-            icon: <AddToHomeIcon />,
-            text: t("installPwaStepIosAdd"),
-          },
+          { icon: "Share2", text: t("installPwaStepIosShare") },
+          { icon: "SquarePlus", text: t("installPwaStepIosAdd") },
         ]
       : [
-          {
-            icon: <SafariIcon />,
-            text: t("installPwaStepIosOpenSafari"),
-          },
-          {
-            icon: <ShareIcon />,
-            text: t("installPwaStepIosShare"),
-          },
-          {
-            icon: <AddToHomeIcon />,
-            text: t("installPwaStepIosAdd"),
-          },
+          { icon: "Compass", text: t("installPwaStepIosOpenSafari") },
+          { icon: "Share2", text: t("installPwaStepIosShare") },
+          { icon: "SquarePlus", text: t("installPwaStepIosAdd") },
         ]
     : [
-        {
-          icon: <BrowserMenuIcon />,
-          text: t("installPwaStepAndroidMenu"),
-        },
-        {
-          icon: <AddToHomeIcon />,
-          text: t("installPwaStepAndroidAdd"),
-        },
+        { icon: "EllipsisVertical", text: t("installPwaStepAndroidMenu") },
+        { icon: "SquarePlus", text: t("installPwaStepAndroidAdd") },
       ];
 
   return (
-    <div className="install-pwa-overlay" role="presentation">
-      <section
-        className="install-pwa-sheet"
-        role="dialog"
-        aria-modal="false"
-        aria-labelledby="install-pwa-title"
-        aria-describedby="install-pwa-description"
-      >
-        <header className="install-pwa-header">
-          <h2 id="install-pwa-title">{t("installPwaTitle")}</h2>
-          <button
-            type="button"
-            className="install-pwa-cancel"
-            onClick={dismiss}
-          >
-            {t("installPwaDismiss")}
-          </button>
-        </header>
+    <Sheet
+      open
+      onOpenChange={(open) => {
+        if (!open) dismiss();
+      }}
+      title={t("installPwaTitle")}
+    >
+      <Stack gap="$lg" paddingHorizontal="$md">
+        <Card outlined>
+          <Row>
+            <Image
+              src="/pwa-192x192.png"
+              width="$row"
+              height="$row"
+              borderRadius="$card"
+              aria-hidden
+            />
+            <Stack flex={1} gap="$xxs">
+              <Text variant="title">Linky</Text>
+              <Text variant="caption" color="$colorMuted">
+                {appDomain}
+              </Text>
+            </Stack>
+            {canPromptNative ? (
+              <Button
+                onPress={() => {
+                  void install();
+                }}
+                loading={prompting}
+              >
+                {t("installPwaInstall")}
+              </Button>
+            ) : null}
+          </Row>
+        </Card>
 
-        <div
-          className={
-            canPromptNative
-              ? "install-pwa-app-card install-pwa-app-card-with-action"
-              : "install-pwa-app-card"
-          }
-        >
-          <img src="/pwa-192x192.png" alt="" className="install-pwa-app-icon" />
-          <div className="install-pwa-app-meta">
-            <strong>Linky</strong>
-            <span>{appDomain}</span>
-          </div>
-          {canPromptNative ? (
-            <button
-              type="button"
-              className="install-pwa-install install-pwa-install-inline"
-              onClick={() => {
-                void install();
-              }}
-              disabled={prompting}
-            >
-              {t("installPwaInstall")}
-            </button>
-          ) : null}
-        </div>
-
-        <p id="install-pwa-description" className="install-pwa-intro">
-          {intro}
-        </p>
+        <Text color="$colorMuted">{intro}</Text>
 
         {canPromptNative ? null : (
-          <ol className="install-pwa-steps">
-            {steps.map((step) => (
-              <li key={step.text}>
-                <span className="install-pwa-step-icon" aria-hidden="true">
-                  {step.icon}
-                </span>
-                <span>{step.text}</span>
-              </li>
-            ))}
-          </ol>
+          <>
+            <Divider />
+            <Stack role="list" gap="$lg">
+              {steps.map((step) => (
+                <Row key={step.text} role="listitem">
+                  <Stack
+                    width="$iconXl"
+                    height="$iconXl"
+                    alignItems="center"
+                    justifyContent="center"
+                    borderRadius="$control"
+                    backgroundColor="$infoSoft"
+                  >
+                    <Icon name={step.icon} size="lg" color="$infoText" />
+                  </Stack>
+                  <Text variant="label" color="$colorSubtle" flex={1}>
+                    {step.text}
+                  </Text>
+                </Row>
+              ))}
+            </Stack>
+          </>
         )}
-      </section>
-    </div>
+
+        <Button variant="ghost" onPress={dismiss}>
+          {t("installPwaDismiss")}
+        </Button>
+      </Stack>
+    </Sheet>
   );
 };

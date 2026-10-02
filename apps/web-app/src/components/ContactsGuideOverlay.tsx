@@ -1,14 +1,11 @@
+import { GuidedTour } from "@linky-fit/ui";
+import type { TourTarget } from "@linky-fit/ui";
 import React from "react";
 import type { I18nKey, Translate } from "../i18n";
 
 interface ContactsGuideOverlayProps {
   currentIdx: number;
-  highlightRect: {
-    height: number;
-    left: number;
-    top: number;
-    width: number;
-  } | null;
+  highlightRect: TourTarget | null;
   onBack: () => void;
   onNext: () => void;
   onSkip: () => void;
@@ -29,58 +26,20 @@ export function ContactsGuideOverlay({
   t,
   totalSteps,
 }: ContactsGuideOverlayProps): React.ReactElement {
-  const moveGuideTop =
-    highlightRect?.top != null &&
-    typeof window !== "undefined" &&
-    highlightRect.top > window.innerHeight * 0.55;
-
+  const step = currentIdx + 1;
   return (
-    <div className="guide-overlay" aria-live="polite">
-      {highlightRect ? (
-        <div
-          className="guide-highlight"
-          aria-hidden="true"
-          style={{
-            top: highlightRect.top,
-            left: highlightRect.left,
-            width: highlightRect.width,
-            height: highlightRect.height,
-          }}
-        />
-      ) : null}
-
-      <div
-        className="guide-card"
-        role="dialog"
-        aria-modal="false"
-        style={moveGuideTop ? { top: 64, bottom: "auto" } : undefined}
-      >
-        <div className="guide-step">
-          {currentIdx + 1} / {totalSteps}
-        </div>
-        <div className="guide-title">{t(stepTitleKey)}</div>
-        <div className="guide-body">{t(stepBodyKey)}</div>
-        <div className="guide-actions">
-          <button
-            type="button"
-            className="guide-btn secondary"
-            onClick={onSkip}
-          >
-            {t("guideSkip")}
-          </button>
-          <button
-            type="button"
-            className="guide-btn secondary"
-            onClick={onBack}
-            disabled={currentIdx === 0}
-          >
-            {t("guideBack")}
-          </button>
-          <button type="button" className="guide-btn primary" onClick={onNext}>
-            {currentIdx + 1 >= totalSteps ? t("guideDone") : t("guideNext")}
-          </button>
-        </div>
-      </div>
-    </div>
+    <GuidedTour
+      title={t(stepTitleKey)}
+      description={t(stepBodyKey)}
+      step={step}
+      total={totalSteps}
+      target={highlightRect}
+      back={{ label: t("guideBack"), onPress: onBack }}
+      next={{
+        label: step >= totalSteps ? t("guideDone") : t("guideNext"),
+        onPress: onNext,
+      }}
+      skip={{ label: t("guideSkip"), onPress: onSkip }}
+    />
   );
 }

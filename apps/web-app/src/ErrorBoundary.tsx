@@ -1,3 +1,12 @@
+import {
+  Button,
+  CodeBlock,
+  Row,
+  ScrollView,
+  Stack,
+  Text,
+  UIProvider,
+} from "@linky-fit/ui";
 import React, { type ReactNode } from "react";
 import { getInitialLang, translations } from "./i18n";
 import {
@@ -39,29 +48,29 @@ export class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       const text = translations[getInitialLang()];
       return (
-        <div className="error-boundary">
-          <h2>{text.appCrashed}</h2>
-          <pre className="error-boundary-details">
-            {formatBootError(this.state.error)}
-          </pre>
-          <div className="error-boundary-actions">
-            <button
-              type="button"
-              onClick={() => void downloadBootDiagnostics()}
-            >
-              {text.downloadBootDiagnostics}
-            </button>
-            <button
-              className="secondary"
-              type="button"
-              onClick={() =>
-                window.dispatchEvent(new Event("linky-clear-cache-and-reload"))
-              }
-            >
-              {text.reloadApp}
-            </button>
-          </div>
-        </div>
+        <UIProvider mode="dark">
+          <ScrollView height="100%">
+            <Stack padding="$xxxl">
+              <Text variant="heading">{text.appCrashed}</Text>
+              <CodeBlock>{formatBootError(this.state.error)}</CodeBlock>
+              <Row flexWrap="wrap" gap="$sm">
+                <Button onPress={() => void downloadBootDiagnostics()}>
+                  {text.downloadBootDiagnostics}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onPress={() =>
+                    window.dispatchEvent(
+                      new Event("linky-clear-cache-and-reload"),
+                    )
+                  }
+                >
+                  {text.reloadApp}
+                </Button>
+              </Row>
+            </Stack>
+          </ScrollView>
+        </UIProvider>
       );
     }
 

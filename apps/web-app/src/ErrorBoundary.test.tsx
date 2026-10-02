@@ -1,6 +1,12 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ErrorBoundary } from "./ErrorBoundary";
+
+vi.hoisted(() => {
+  vi.stubGlobal("__APP_VERSION__", "test-version");
+  vi.stubGlobal("__APP_COMMIT_SHA__", "test-commit");
+});
 
 const BrokenApp = (): React.ReactElement => {
   throw new Error("original render failure");
@@ -17,9 +23,6 @@ describe("ErrorBoundary", () => {
   });
 
   it("keeps the original render error visible and reports the failed commit", async () => {
-    vi.stubGlobal("__APP_VERSION__", "test-version");
-    vi.stubGlobal("__APP_COMMIT_SHA__", "test-commit");
-    const { ErrorBoundary } = await import("./ErrorBoundary");
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     const container = document.createElement("div");
     containers.push(container);
