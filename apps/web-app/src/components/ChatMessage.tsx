@@ -931,7 +931,7 @@ function ChatMessageComponent({
           {unsavedMessageContactNpubs.length > 1 ? (
             <Button
               size="sm"
-              variant="secondary"
+              variant="accent"
               icon="Plus"
               onPress={() =>
                 onAddNpubContacts(unsavedMessageContactNpubs, message.id)

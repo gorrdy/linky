@@ -87,7 +87,7 @@ export function ContactsChecklist({
           </Text>
           <Button
             size="sm"
-            variant="ghost"
+            variant="accent"
             onPress={() => onShowHow(nextTask.key)}
           >
             {t("contactsOnboardingShowHow")}
