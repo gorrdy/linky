@@ -1,6 +1,5 @@
 import {
   Button,
-  Icon,
   ListRow,
   Row,
   Stack,
@@ -179,7 +178,7 @@ export function EvoluServersPage(): React.ReactElement {
       />
 
       <ListRow
-        leading={<Icon name="MessageCircle" />}
+        icon="MessageCircle"
         title={t("chatStorage")}
         onPress={() => navigateTo({ route: "chatStorage" })}
       />

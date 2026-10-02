@@ -1,7 +1,6 @@
 import {
   Divider,
   EmojiPicker,
-  Icon,
   ListRow,
   ScrollView,
   Sheet,
@@ -120,7 +119,7 @@ export const MessageActionsMenu: FC<MessageActionsMenuProps> = ({
         <ListRow
           key={action.label}
           testID="message-action"
-          leading={<Icon name={action.icon} />}
+          icon={action.icon}
           title={action.label}
           chevron={false}
           onPress={() => {

@@ -3,7 +3,6 @@ import { sqliteTrue } from "@linky-fit/linksync";
 import {
   Button,
   Divider,
-  Icon,
   ListRow,
   Row,
   Section,
@@ -58,7 +57,7 @@ interface InfoRowProps {
 function InfoRow({ icon, label, value, muted = false }: InfoRowProps) {
   return (
     <ListRow
-      leading={<Icon name={icon} />}
+      icon={icon}
       title={label}
       trailing={
         <Text

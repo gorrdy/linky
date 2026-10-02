@@ -1,6 +1,5 @@
 import {
   Divider,
-  Icon,
   ListRow,
   Row,
   Section,
@@ -152,12 +151,7 @@ export function AdvancedPage(): React.ReactElement {
     onPress: () => void,
     trailing?: React.ReactNode,
   ) => (
-    <ListRow
-      leading={<Icon name={icon} />}
-      title={title}
-      onPress={onPress}
-      trailing={trailing}
-    />
+    <ListRow icon={icon} title={title} onPress={onPress} trailing={trailing} />
   );
   const toggleRow = (
     icon: IconName,
@@ -167,7 +161,7 @@ export function AdvancedPage(): React.ReactElement {
     disabled?: boolean,
   ) => (
     <ListRow
-      leading={<Icon name={icon} />}
+      icon={icon}
       title={title}
       trailing={
         <Switch
@@ -311,7 +305,7 @@ export function AdvancedPage(): React.ReactElement {
           );
         })}
         <ListRow
-          leading={<Icon name="BrushCleaning" />}
+          icon="BrushCleaning"
           title={t("dedupeContacts")}
           onPress={() => void dedupeContacts()}
           disabled={dedupeContactsIsBusy}
@@ -326,14 +320,14 @@ export function AdvancedPage(): React.ReactElement {
 
       <Section title={t("settingsSecurity")}>
         <ListRow
-          leading={<Icon name="ShieldCheck" />}
+          icon="ShieldCheck"
           title={t("masterKeys")}
           testID="open-master-keys"
           onPress={() => navigateTo({ route: "settingsMasterKeys" })}
           disabled={!hasSeedMnemonic}
         />
         <ListRow
-          leading={<Icon name="Copy" />}
+          icon="Copy"
           title={t("copyNostrKeys")}
           testID="copy-nostr-keys"
           destructive={armedSecurityAction === "copyNostr"}
@@ -341,7 +335,7 @@ export function AdvancedPage(): React.ReactElement {
           disabled={!hasCurrentNsec}
         />
         <ListRow
-          leading={<Icon name="UserRound" />}
+          icon="UserRound"
           title={t("pasteCustomNostrKeys")}
           destructive={armedSecurityAction === "pasteNostr"}
           onPress={() =>
@@ -354,7 +348,7 @@ export function AdvancedPage(): React.ReactElement {
           disabled={!hasCurrentNsec || !hasSeedMnemonic}
         />
         <ListRow
-          leading={<Icon name="LogOut" />}
+          icon="LogOut"
           title={t("logout")}
           destructive={logoutArmed}
           onPress={() =>

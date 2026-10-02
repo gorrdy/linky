@@ -1,4 +1,4 @@
-import { Icon, ListRow, Switch, Stack, Section, Text } from "@linky-fit/ui";
+import { ListRow, Switch, Stack, Section, Text } from "@linky-fit/ui";
 import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -114,7 +114,7 @@ export function InspectorSettingsPage(): React.ReactElement {
     >
       <Section>
         <ListRow
-          leading={<Icon name="Bug" />}
+          icon="Bug"
           title={t("nostrInspector")}
           trailing={
             <Switch
@@ -126,7 +126,7 @@ export function InspectorSettingsPage(): React.ReactElement {
         />
 
         <ListRow
-          leading={<Icon name="Bug" />}
+          icon="Bug"
           title={t("openNostrInspector")}
           onPress={() => navigateTo({ route: "advancedInspectorTimeline" })}
         />
@@ -134,7 +134,7 @@ export function InspectorSettingsPage(): React.ReactElement {
 
       <Section>
         <ListRow
-          leading={<Icon name="Bug" />}
+          icon="Bug"
           title={t("nostrInspectorLogs")}
           trailing={
             <Switch
@@ -152,7 +152,7 @@ export function InspectorSettingsPage(): React.ReactElement {
         ) : null}
 
         <ListRow
-          leading={<Icon name="Download" />}
+          icon="Download"
           title={t("downloadNostrInspectorLogs")}
           onPress={() => void downloadInspectorLogs()}
           disabled={
@@ -163,7 +163,7 @@ export function InspectorSettingsPage(): React.ReactElement {
         />
 
         <ListRow
-          leading={<Icon name="Trash2" />}
+          icon="Trash2"
           title={t("clearNostrInspectorLogs")}
           onPress={() => void clearInspectorLogs()}
           disabled={
@@ -176,7 +176,7 @@ export function InspectorSettingsPage(): React.ReactElement {
 
       <Section>
         <ListRow
-          leading={<Icon name="FlaskConical" />}
+          icon="FlaskConical"
           title="Push / SW Debug (log)"
           onPress={() => navigateTo({ route: "advancedPushDebug" })}
         />

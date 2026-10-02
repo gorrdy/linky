@@ -3,7 +3,6 @@ import {
   Button,
   Dialog,
   Divider,
-  Icon,
   ListRow,
   Pill,
   Row,
@@ -173,7 +172,7 @@ export function ProxyPaymentsPage(): React.ReactElement {
         {PROFILE_STATUS_CURRENCIES.map((currency) => (
           <ListRow
             key={currency}
-            leading={<Icon name={CURRENCY_ICONS[currency]} />}
+            icon={CURRENCY_ICONS[currency]}
             title={t(CURRENCY_LABEL_KEYS[currency])}
             trailing={
               <Switch
