@@ -3,9 +3,9 @@ import {
   EmptyState,
   IconButton,
   Row,
+  ScrollList,
   ScrollView,
   Section,
-  space,
   Stack,
   TextField,
 } from "@linky-fit/ui";
@@ -135,11 +135,7 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
           </Stack>
         )}
 
-        <ScrollView
-          flex={1}
-          marginHorizontal={-space.md}
-          contentContainerStyle={{ paddingHorizontal: space.md }}
-        >
+        <ScrollList flex={1}>
           {!hasAnyContacts ? (
             <EmptyState title={t("noContactsYet")} />
           ) : (
@@ -154,7 +150,7 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
               {renderSection(otherContactsLabel, visibleContacts.others)}
             </Stack>
           )}
-        </ScrollView>
+        </ScrollList>
       </>
     );
   },
