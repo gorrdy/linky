@@ -603,8 +603,7 @@ export function InspectorApp({
             tone={
               offlineImport
                 ? "info"
-                : connectionStatus[isConnected ? "connected" : "disconnected"]
-                    .tone
+                : connectionStatus[isConnected ? "connected" : "checking"].tone
             }
             accessibilityLabel={statusLabel}
           />

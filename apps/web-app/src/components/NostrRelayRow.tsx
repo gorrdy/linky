@@ -1,4 +1,5 @@
-import { ListRow, Stack, Text, StatusDot, Pill } from "@linky-fit/ui";
+import { Badge, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
+import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { RelayDotState } from "../app/hooks/useRelayHealth";
 import { navigateTo } from "../hooks/useRouting";
 
@@ -17,6 +18,8 @@ export function NostrRelayRow({
   state,
   url,
 }: NostrRelayRowProps) {
+  const { t } = useAppShellCore();
+  const stateLabel = t(connectionStatus[state].labelKey);
   return (
     <ListRow
       title={url}
@@ -31,10 +34,15 @@ export function NostrRelayRow({
         </Stack>
       }
       trailing={
-        <StatusDot
-          tone={connectionStatus[state].tone}
-          accessibilityLabel={state}
-        />
+        <Row gap="$sm">
+          <StatusDot
+            tone={connectionStatus[state].tone}
+            accessibilityLabel={stateLabel}
+          />
+          <Text variant="label" color="$colorMuted">
+            {stateLabel}
+          </Text>
+        </Row>
       }
       onPress={() => navigateTo({ route: "nostrRelay", id: url })}
     />

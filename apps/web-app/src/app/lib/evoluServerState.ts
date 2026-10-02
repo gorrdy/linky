@@ -1,9 +1,12 @@
-type EvoluServerConnectionState = "connected" | "checking" | "disconnected";
+import type {
+  ConnectionState,
+  EvoluSyncState,
+} from "../../utils/connectionStatus";
 
 interface DeriveEvoluServerStateOptions {
   evoluHasError: boolean;
   isOffline: boolean;
-  state: EvoluServerConnectionState | undefined;
+  state: ConnectionState | undefined;
   /** The app owner the store syncs; null before the session has one. */
   syncOwnerId: string | null;
 }
@@ -13,28 +16,10 @@ export function deriveEvoluServerState({
   isOffline,
   state,
   syncOwnerId,
-}: DeriveEvoluServerStateOptions): {
-  state: EvoluServerConnectionState;
-  isSynced: boolean;
-  labelKey:
-    | "evoluNotSynced"
-    | "evoluServerOfflineStatus"
-    | "evoluSyncing"
-    | "evoluSyncOk";
-} {
-  const resolvedState = isOffline ? "disconnected" : (state ?? "checking");
-  const isSynced =
-    Boolean(syncOwnerId) &&
-    !evoluHasError &&
-    !isOffline &&
-    resolvedState === "connected";
-  const labelKey = isOffline
-    ? "evoluServerOfflineStatus"
-    : isSynced
-      ? "evoluSyncOk"
-      : resolvedState === "checking"
-        ? "evoluSyncing"
-        : "evoluNotSynced";
-
-  return { state: resolvedState, isSynced, labelKey };
+}: DeriveEvoluServerStateOptions): EvoluSyncState {
+  if (isOffline) return "offline";
+  if (state === "connected") {
+    return syncOwnerId && !evoluHasError ? "synced" : "notSynced";
+  }
+  return state === "disconnected" ? "unreachable" : "syncing";
 }

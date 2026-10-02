@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { deriveEvoluServerState } from "../app/lib/evoluServerState";
 
 describe("Evolu relay reachability", () => {
-  it("keeps a reachable relay connected when an owner has a sync error", () => {
+  it("keeps a reachable relay apart from an unreachable one when an owner has a sync error", () => {
     expect(
       deriveEvoluServerState({
         evoluHasError: true,
@@ -10,11 +10,7 @@ describe("Evolu relay reachability", () => {
         state: "connected",
         syncOwnerId: null,
       }),
-    ).toMatchObject({
-      state: "connected",
-      isSynced: false,
-      labelKey: "evoluNotSynced",
-    });
+    ).toBe("notSynced");
   });
 
   it("keeps explicitly disabled relays offline", () => {
@@ -25,9 +21,6 @@ describe("Evolu relay reachability", () => {
         state: "connected",
         syncOwnerId: null,
       }),
-    ).toMatchObject({
-      state: "disconnected",
-      labelKey: "evoluServerOfflineStatus",
-    });
+    ).toBe("offline");
   });
 });

@@ -1,5 +1,5 @@
 import { Button, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
-import { connectionStatus } from "../utils/connectionStatus";
+import { evoluSyncStatus } from "../utils/connectionStatus";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -32,12 +32,15 @@ export function EvoluServerPage(): React.ReactElement {
         <>
           {(() => {
             const offline = isEvoluServerOffline(selectedEvoluServerUrl);
-            const { state, labelKey } = deriveEvoluServerState({
-              evoluHasError,
-              isOffline: offline,
-              state: evoluServerStatusByUrl[selectedEvoluServerUrl],
-              syncOwnerId,
-            });
+            const status =
+              evoluSyncStatus[
+                deriveEvoluServerState({
+                  evoluHasError,
+                  isOffline: offline,
+                  state: evoluServerStatusByUrl[selectedEvoluServerUrl],
+                  syncOwnerId,
+                })
+              ];
             return (
               <>
                 <ListRow
@@ -49,8 +52,8 @@ export function EvoluServerPage(): React.ReactElement {
                   trailing={
                     <>
                       <StatusDot
-                        tone={connectionStatus[state].tone}
-                        accessibilityLabel={state}
+                        tone={status.tone}
+                        accessibilityLabel={t(status.labelKey)}
                       />
                     </>
                   }
@@ -61,7 +64,7 @@ export function EvoluServerPage(): React.ReactElement {
                   trailing={
                     <>
                       <Text variant="label" color="$colorMuted">
-                        {t(labelKey)}
+                        {t(status.labelKey)}
                       </Text>
                     </>
                   }

@@ -39,7 +39,7 @@ test("a second device receives a new contact and updates Evolu row counts withou
     await expect(
       page.getByRole("heading", { name: "Row counts" }),
     ).toBeVisible();
-    await expect(page.getByLabel("connected", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Connected", { exact: true })).toBeVisible();
     devices.push({ context, page, errors, label });
   }
   const [source, restored] = devices;

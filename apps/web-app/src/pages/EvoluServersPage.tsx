@@ -7,7 +7,7 @@ import {
   Text,
   Pill,
 } from "@linky-fit/ui";
-import { connectionStatus } from "../utils/connectionStatus";
+import { evoluSyncStatus } from "../utils/connectionStatus";
 
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -56,12 +56,15 @@ export function EvoluServersPage(): React.ReactElement {
       ) : (
         <Stack testID="evolu-server-list" gap="$xs">
           {evoluServerUrls.map((url) => {
-            const { state, labelKey } = deriveEvoluServerState({
-              evoluHasError,
-              isOffline: isEvoluServerOffline(url),
-              state: evoluServerStatusByUrl[url],
-              syncOwnerId,
-            });
+            const status =
+              evoluSyncStatus[
+                deriveEvoluServerState({
+                  evoluHasError,
+                  isOffline: isEvoluServerOffline(url),
+                  state: evoluServerStatusByUrl[url],
+                  syncOwnerId,
+                })
+              ];
             return (
               <ListRow
                 key={url}
@@ -74,11 +77,11 @@ export function EvoluServersPage(): React.ReactElement {
                 trailing={
                   <Row gap="$sm">
                     <StatusDot
-                      tone={connectionStatus[state].tone}
-                      accessibilityLabel={state}
+                      tone={status.tone}
+                      accessibilityLabel={t(status.labelKey)}
                     />
                     <Text variant="label" color="$colorMuted">
-                      {t(labelKey)}
+                      {t(status.labelKey)}
                     </Text>
                   </Row>
                 }

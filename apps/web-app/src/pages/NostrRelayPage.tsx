@@ -25,12 +25,7 @@ export function NostrRelayPage(): React.ReactElement {
   }
   const health = relayHealth.get(selectedRelayUrl);
   const dotState = relayDotState(health);
-  const stateLabel =
-    dotState === "connected"
-      ? t("relayStateConnected")
-      : dotState === "checking"
-        ? t("relayStateConnecting")
-        : t("relayStateUnreachable");
+  const stateLabel = t(connectionStatus[dotState].labelKey);
   const lastPublish = health?.lastPublish ?? null;
   return (
     <Stack gap="$lg">
@@ -44,7 +39,7 @@ export function NostrRelayPage(): React.ReactElement {
           <>
             <StatusDot
               tone={connectionStatus[dotState].tone}
-              accessibilityLabel={dotState}
+              accessibilityLabel={stateLabel}
             />
           </>
         }
