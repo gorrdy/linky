@@ -10,6 +10,7 @@ import {
 import React from "react";
 import { BottomTabBar } from "../../components/BottomTabBar";
 import { DesktopNavigation } from "../../components/DesktopNavigation";
+import { PageBody } from "../../components/PageBody";
 import { ScanModal } from "../../components/ScanModal";
 import { Topbar } from "../../components/Topbar";
 import { useDesktopSplitView } from "../../hooks/useDesktopSplitView";
@@ -216,28 +217,21 @@ const RoutePage = (): React.ReactElement => {
   }
 };
 
-interface PageBodyProps {
+interface PageFrameProps {
   children: React.ReactNode;
   /** The page lays out and scrolls its own content, like the chat. */
   fill: boolean;
 }
 
 /** Positioned so a floating action button stays in its corner while the page scrolls. */
-const PageBody = ({ children, fill }: PageBodyProps): React.ReactElement => (
+const PageFrame = ({ children, fill }: PageFrameProps): React.ReactElement => (
   <Stack flex={1} minHeight={0} gap="$none" position="relative">
     {fill ? (
       children
     ) : (
-      <Stack
-        flex={1}
-        minHeight={0}
-        overflowY="auto"
-        paddingHorizontal="$xl"
-        paddingTop="$xxxl"
-        paddingBottom="$huge"
-      >
+      <PageBody minHeight={0} overflowY="auto">
         {children}
-      </Stack>
+      </PageBody>
     )}
   </Stack>
 );
@@ -253,9 +247,9 @@ const PhoneRouteContent = (): React.ReactElement => {
     route.kind === "settings" || route.kind === "profile" ? route.kind : null;
   return (
     <>
-      <PageBody fill={route.kind === "chat"}>
+      <PageFrame fill={route.kind === "chat"}>
         <RoutePage />
-      </PageBody>
+      </PageFrame>
       {tab ? (
         <BottomTabBar
           activeTab={tab}
@@ -336,20 +330,13 @@ export const AppRouteContent = (): React.ReactElement => {
                   <Topbar desktopDetail />
                   <Divider />
                   {route.kind === "chat" ? (
-                    <PageBody fill>
+                    <PageFrame fill>
+                      <RoutePage />
+                    </PageFrame>
+                  ) : (
+                    <PageBody gutter="detail" minHeight={0} overflowY="auto">
                       <RoutePage />
                     </PageBody>
-                  ) : (
-                    <Stack
-                      flex={1}
-                      minHeight={0}
-                      overflowY="auto"
-                      paddingHorizontal="$xxl"
-                      paddingTop="$lg"
-                      paddingBottom="$xxl"
-                    >
-                      <RoutePage />
-                    </Stack>
                   )}
                 </>
               )}

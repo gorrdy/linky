@@ -2,6 +2,7 @@ import { Pager, Stack } from "@linky-fit/ui";
 import React from "react";
 import { BottomTabBar } from "../../components/BottomTabBar";
 import { ContactsChecklist } from "../../components/ContactsChecklist";
+import { PageBody } from "../../components/PageBody";
 import {
   FloatingActionButton,
   floatingActionButtonClearance,
@@ -119,9 +120,7 @@ const useVisibleContactSections = (
   }, [activeOffers.contactIds, visibleContacts]);
 };
 
-// Per-frame swipe progress subscribers are isolated in these two small
-// components so drag updates re-render only the tab bar and the FAB, not the
-// whole swipe content with both pages.
+// Read swipe progress here, so a drag re-renders only the tab bar and the FAB.
 interface MainSwipeBottomTabBarProps {
   activeTab: "contacts" | "wallet" | null;
   contactsLabel: string;
@@ -289,22 +288,12 @@ export const MainSwipeContent = (): React.ReactElement => {
           scrollRef={mainSwipeRef}
           activePage={route.kind === "wallet" ? 1 : 0}
         >
-          <Stack
-            flex={1}
-            paddingHorizontal="$xl"
-            paddingTop="$xxxl"
-            paddingBottom={floatingActionButtonClearance}
-          >
+          <PageBody paddingBottom={floatingActionButtonClearance}>
             <ContactsPane filterAlwaysOpen={false} />
-          </Stack>
-          <Stack
-            flex={1}
-            paddingHorizontal="$xl"
-            paddingTop="$xxxl"
-            paddingBottom="$huge"
-          >
+          </PageBody>
+          <PageBody>
             <WalletPane />
-          </Stack>
+          </PageBody>
         </Pager>
         <MainSwipeFab label={t("addContact")} onPress={openNewContactPage} />
       </Stack>
