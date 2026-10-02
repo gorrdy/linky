@@ -36,6 +36,7 @@ import {
   type RelaySettingsContextValue,
 } from "./SystemSettingsContexts";
 import type { Translate } from "../../i18n";
+import type { FilePickerHandle } from "../../utils/pickFile";
 
 interface ChatContact {
   contactId: ContactId | null;
@@ -120,7 +121,7 @@ export interface AppShellCoreContextValue {
   profileStatusCurrencies: readonly ProfileStatusCurrency[];
   proxyPaymentPayerContacts: readonly ProxyPaymentPayerContact[];
   profileStatusIsSaving: boolean;
-  profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
+  profilePhotoInputRef: React.RefObject<FilePickerHandle | null>;
   selectedProfileStatusCurrencies: readonly ProfileStatusCurrency[];
   profileSelectedPictureKind: "custom" | "generated";
   profileShareOverlayIsOpen: boolean;

@@ -1,8 +1,9 @@
+import { Avatar, Stack } from "@linky-fit/ui";
 import React from "react";
 import type { AvatarEditorControlId } from "../derivedProfile";
 import type { Translate } from "../i18n";
-import { formatShortNpub, getInitials } from "../utils/formatting";
-import { Avatar } from "./Avatar";
+import { formatShortNpub } from "../utils/formatting";
+import type { FilePickerHandle } from "../utils/pickFile";
 import { AvatarControlGrid } from "./AvatarControlGrid";
 import { AvatarPhotoInput } from "./AvatarPhotoInput";
 
@@ -17,7 +18,7 @@ interface ProfileAvatarEditorProps {
   profileCustomPictureUrl: string;
   profileEditName: string;
   profileEditPicture: string;
-  profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
+  profilePhotoInputRef: React.RefObject<FilePickerHandle | null>;
   profileSelectedPictureKind: "custom" | "generated";
   t: Translate;
 }
@@ -44,20 +45,14 @@ export function ProfileAvatarEditor({
     formatShortNpub(currentNpub);
 
   return (
-    <div className="profile-avatar-editor">
-      <div className="onboarding-avatar-preview">
-        <div
-          className="contact-avatar is-xl onboarding-avatar-previewImage"
-          aria-hidden="true"
-        >
-          <Avatar
-            pictureUrl={previewPicture}
-            fallback={getInitials(previewName)}
-            fallbackClassName="contact-avatar-fallback"
-            loading="lazy"
-          />
-        </div>
-      </div>
+    <Stack gap="$md" marginBottom="$md">
+      <Stack alignItems="center">
+        <Avatar
+          name={previewName}
+          uri={previewPicture || undefined}
+          size="lg"
+        />
+      </Stack>
 
       <AvatarPhotoInput
         inputRef={profilePhotoInputRef}
@@ -75,6 +70,6 @@ export function ProfileAvatarEditor({
         onCycle={cycleProfileAvatarControl}
         t={t}
       />
-    </div>
+    </Stack>
   );
 }

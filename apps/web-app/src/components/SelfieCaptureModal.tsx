@@ -1,6 +1,6 @@
+import { Button, CameraPreview, Dialog, MediaFrame, Row } from "@linky-fit/ui";
 import React from "react";
 import type { Translate } from "../i18n";
-import { ModalSheet } from "./ModalSheet";
 
 interface SelfieCaptureModalProps {
   onCancel: () => void;
@@ -99,36 +99,26 @@ export function SelfieCaptureModal({
   };
 
   return (
-    <ModalSheet
-      className="modal-overlay avatar-crop-overlay"
-      aria-label={t("onboardingTakePhoto")}
-      onClick={onCancel}
-      sheetClassName="modal-sheet avatar-crop-sheet"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+      title={t("onboardingTakePhoto")}
+      actions={
+        <Row gap="$sm">
+          <Button flex={1} disabled={!isReady} onPress={capture}>
+            {t("onboardingCapturePhoto")}
+          </Button>
+          <Button flex={1} variant="secondary" onPress={onCancel}>
+            {t("cancel")}
+          </Button>
+        </Row>
+      }
     >
-      <div className="modal-title">{t("onboardingTakePhoto")}</div>
-      <div className="avatar-crop-viewport selfie-viewport">
-        <video
-          ref={videoRef}
-          className="selfie-video"
-          autoPlay
-          muted
-          playsInline
-        />
-        <span className="avatar-crop-frame" aria-hidden="true" />
-      </div>
-      <div className="modal-actions avatar-crop-actions">
-        <button
-          type="button"
-          className="btn-wide"
-          disabled={!isReady}
-          onClick={capture}
-        >
-          {t("onboardingCapturePhoto")}
-        </button>
-        <button type="button" className="btn-wide secondary" onClick={onCancel}>
-          {t("cancel")}
-        </button>
-      </div>
-    </ModalSheet>
+      <MediaFrame accessibilityLabel={t("onboardingTakePhoto")}>
+        <CameraPreview videoRef={videoRef} mirrored />
+      </MediaFrame>
+    </Dialog>
   );
 }

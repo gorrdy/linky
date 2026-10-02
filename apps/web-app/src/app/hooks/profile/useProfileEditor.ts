@@ -32,6 +32,7 @@ import {
 } from "../../../utils/npubCashUsernameClaim";
 import { isHttpUrl } from "../../../utils/validation";
 import { applyLightningAddressToProfileMetadata } from "../../lib/profileMetadata";
+import type { FilePickerHandle } from "../../../utils/pickFile";
 import { nowSeconds } from "../../../utils/time";
 import type { Translate } from "../../../i18n";
 
@@ -97,7 +98,7 @@ export const useProfileEditor = ({
   const [profileSelectedPictureKind, setProfileSelectedPictureKind] =
     React.useState<"custom" | "generated">("generated");
 
-  const profilePhotoInputRef = React.useRef<HTMLInputElement | null>(null);
+  const profilePhotoInputRef = React.useRef<FilePickerHandle | null>(null);
   const profileEditInitialRef = React.useRef<{
     lnAddress: string;
     name: string;
@@ -455,7 +456,7 @@ export const useProfileEditor = ({
   );
 
   const onPickProfilePhoto = React.useCallback(async () => {
-    profilePhotoInputRef.current?.click();
+    profilePhotoInputRef.current?.pick();
   }, []);
 
   const cycleProfileAvatarControl = React.useCallback(

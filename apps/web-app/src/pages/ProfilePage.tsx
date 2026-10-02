@@ -7,6 +7,7 @@ import { ProfileAvatarEditor } from "../components/ProfileAvatarEditor";
 import { ProfileQrButton } from "../components/ProfileQrButton";
 import type { AvatarEditorControlId } from "../derivedProfile";
 import { parseProfileGeneralStatus } from "../nostrStatus";
+import type { FilePickerHandle } from "../utils/pickFile";
 import {
   formatShortLightningAddress,
   formatShortNpub,
@@ -52,7 +53,7 @@ interface ProfilePageProps {
   profileEditsSavable: boolean;
   unregisteredOwnLightningAddress: OwnLightningAddressInputCandidate | null;
   profileStatus: string | null;
-  profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
+  profilePhotoInputRef: React.RefObject<FilePickerHandle | null>;
   profileSelectedPictureKind: "custom" | "generated";
   makeNip98AuthHeader: Nip98AuthHeaderFactory;
   payLightningInvoiceWithCashu: (invoice: string) => Promise<boolean>;

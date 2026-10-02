@@ -69,6 +69,7 @@ import {
   getInitialNostrIdentitySource,
   safeLocalStorageSet,
 } from "../../utils/storage";
+import type { FilePickerHandle } from "../../utils/pickFile";
 import { nowSeconds } from "../../utils/time";
 import type { I18nKey, Translate } from "../../i18n";
 
@@ -140,7 +141,7 @@ interface UseProfileAuthDomainResult {
   isSeedLogin: boolean;
   logoutArmed: boolean;
   onboardingIsBusy: boolean;
-  onboardingPhotoInputRef: React.RefObject<HTMLInputElement | null>;
+  onboardingPhotoInputRef: React.RefObject<FilePickerHandle | null>;
   onboardingStep: OnboardingStep;
   openReturningOnboarding: () => void;
   onPendingOnboardingPhotoError: (error: unknown) => void;
@@ -186,7 +187,7 @@ export const useProfileAuthDomain = ({
   const [activeNostrIdentitySource, setActiveNostrIdentitySource] =
     React.useState<NostrIdentitySource>(() => getInitialNostrIdentitySource());
   const [logoutArmed, setLogoutArmed] = React.useState(false);
-  const onboardingPhotoInputRef = React.useRef<HTMLInputElement | null>(null);
+  const onboardingPhotoInputRef = React.useRef<FilePickerHandle | null>(null);
   const [isSeedLogin, setIsSeedLogin] = React.useState(false);
   const setLinkstrConfig = useAtomSet(linkstrConfigAtom);
   const publishProfile = useAtomSet(publishProfileAtom, {
@@ -724,7 +725,7 @@ export const useProfileAuthDomain = ({
   }, [updatePendingOnboardingProfile]);
 
   const pickPendingOnboardingPhoto = React.useCallback(async () => {
-    onboardingPhotoInputRef.current?.click();
+    onboardingPhotoInputRef.current?.pick();
   }, []);
 
   const onPendingOnboardingPhotoSelected = React.useCallback(

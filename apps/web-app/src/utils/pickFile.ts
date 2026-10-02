@@ -15,3 +15,8 @@ export const pickFile = (accept: string): Promise<File | null> =>
     document.body.append(input);
     input.click();
   });
+
+/** Lets a hook open the file picker of a mounted component. */
+export interface FilePickerHandle {
+  pick: () => void;
+}
