@@ -1,4 +1,4 @@
-import { Text, Stack, Button } from "@linky-fit/ui";
+import { Notice } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -12,37 +12,31 @@ export function EvoluReloadNotice(): React.ReactElement | null {
     return null;
   }
   return (
-    <>
-      <Text color="$colorMuted" variant="label">
-        {t(
+    <Notice
+      tone="accent"
+      title={t(
+        evoluServersReloadRequired
+          ? "evoluServersReloadHint"
+          : "evoluQuotaRecoveryHint",
+      )}
+      action={{
+        label: t(
           evoluServersReloadRequired
-            ? "evoluServersReloadHint"
-            : "evoluQuotaRecoveryHint",
-        )}
-      </Text>
-      <Stack>
-        <Button
-          type="button"
-          variant="secondary"
-          onPress={() => {
-            reportAppLog({
-              tag: "EvoluSyncRetry",
-              summary: "Reloading to retry Evolu synchronization",
-              payload: {
-                errorType: evoluErrorType,
-                settingsChanged: evoluServersReloadRequired,
-              },
-            });
-            window.location.reload();
-          }}
-        >
-          {t(
-            evoluServersReloadRequired
-              ? "evoluServersReloadButton"
-              : "evoluRetrySync",
-          )}
-        </Button>
-      </Stack>
-    </>
+            ? "evoluServersReloadButton"
+            : "evoluRetrySync",
+        ),
+        onPress: () => {
+          reportAppLog({
+            tag: "EvoluSyncRetry",
+            summary: "Reloading to retry Evolu synchronization",
+            payload: {
+              errorType: evoluErrorType,
+              settingsChanged: evoluServersReloadRequired,
+            },
+          });
+          window.location.reload();
+        },
+      }}
+    />
   );
 }

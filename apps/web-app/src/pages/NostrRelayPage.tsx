@@ -1,4 +1,12 @@
-import { Button, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
+import {
+  Button,
+  ListRow,
+  Notice,
+  Row,
+  Stack,
+  StatusDot,
+  Text,
+} from "@linky-fit/ui";
 import { connectionStatus } from "../utils/connectionStatus";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -15,13 +23,7 @@ export function NostrRelayPage(): React.ReactElement {
   const relayHealth = useRelayHealth();
   const { lang, t } = useAppShellCore();
   if (!selectedRelayUrl) {
-    return (
-      <Stack gap="$lg">
-        <Text variant="label" color="$colorMuted">
-          {t("errorPrefix")}
-        </Text>
-      </Stack>
-    );
+    return <Notice tone="danger" title={t("errorPrefix")} />;
   }
   const health = relayHealth.get(selectedRelayUrl);
   const dotState = relayDotState(health);
@@ -58,9 +60,7 @@ export function NostrRelayPage(): React.ReactElement {
       />
 
       {health?.state === "unreachable" && health.detail ? (
-        <Text variant="label" color="$colorMuted">
-          {health.detail}
-        </Text>
+        <Notice tone="danger" title={health.detail} />
       ) : null}
 
       {lastPublish ? (

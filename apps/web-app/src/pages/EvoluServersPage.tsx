@@ -1,6 +1,7 @@
 import {
   Button,
   ListRow,
+  Notice,
   Row,
   Stack,
   StatusDot,
@@ -44,9 +45,7 @@ export function EvoluServersPage(): React.ReactElement {
       <EvoluSyncErrorNotice />
       <EvoluReloadNotice />
       {evoluServerUrls.every(isEvoluServerOffline) && (
-        <Text role="status" variant="label" color="$colorMuted">
-          {t("evoluNoBackupWarning")}
-        </Text>
+        <Notice tone="accent" title={t("evoluNoBackupWarning")} />
       )}
       {/* Server list */}
       {evoluServerUrls.length === 0 ? (

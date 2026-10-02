@@ -5,17 +5,19 @@ import { LOCAL_NPUB_CASH_CLAIM_INBOX_STORAGE_KEY_PREFIX } from "../utils/constan
 import { addToClaimInbox } from "../utils/npubCashClaimInbox";
 import { PushDebugPage } from "./PushDebugPage";
 
+const copyText = vi.hoisted(() => vi.fn<(text: string) => Promise<void>>());
+
 vi.mock("../app/context/AppShellContexts", () => ({
   useAppShellCore: () => ({ currentNsec: null, t: (key: string) => key }),
+  useAppShellActions: () => ({ copyText }),
+}));
+vi.mock("../app/context/SystemSettingsContexts", () => ({
+  useAdvancedSettingsContext: () => ({ pushToast: vi.fn() }),
 }));
 
 describe("PushDebugPage", () => {
   afterEach(() => {
     localStorage.clear();
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: undefined,
-    });
   });
 
   it("copies a report that lists a queued npub.cash claim but not its token", async () => {
@@ -23,11 +25,6 @@ describe("PushDebugPage", () => {
     addToClaimInbox(`${LOCAL_NPUB_CASH_CLAIM_INBOX_STORAGE_KEY_PREFIX}.owner`, [
       token,
     ]);
-    const writeText = vi.fn<(text: string) => Promise<void>>();
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
     const { container, unmount } = await renderIntoDocument(<PushDebugPage />);
     await vi.waitFor(() =>
       expect(
@@ -41,7 +38,7 @@ describe("PushDebugPage", () => {
     );
     await act(async () => copyLogs?.click());
 
-    const [report] = writeText.mock.calls[0] ?? [];
+    const [report] = copyText.mock.calls[0] ?? [];
     expect(report).toContain(LOCAL_NPUB_CASH_CLAIM_INBOX_STORAGE_KEY_PREFIX);
     expect(report).not.toContain(token);
     await unmount();

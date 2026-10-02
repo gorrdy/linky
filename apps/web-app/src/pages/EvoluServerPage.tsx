@@ -1,4 +1,12 @@
-import { Button, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
+import {
+  Button,
+  ListRow,
+  Notice,
+  Row,
+  Stack,
+  StatusDot,
+  Text,
+} from "@linky-fit/ui";
 import { evoluSyncStatus } from "../utils/connectionStatus";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -136,9 +144,7 @@ export function EvoluServerPage(): React.ReactElement {
           })()}
         </>
       ) : (
-        <Text variant="label" color="$colorMuted">
-          {t("errorPrefix")}
-        </Text>
+        <Notice tone="danger" title={t("errorPrefix")} />
       )}
     </Stack>
   );

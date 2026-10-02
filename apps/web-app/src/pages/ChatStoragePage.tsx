@@ -1,16 +1,18 @@
-import { Stack, Text, ListRow, Button } from "@linky-fit/ui";
+import { Button, ListRow, Notice, Stack, Text } from "@linky-fit/ui";
 import { useState } from "react";
 import { keepNewest, linkyScopes, messageScopes } from "@linky-fit/linksync";
 import { useAppShellCore } from "../app/context/AppShellContexts";
+import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
 import { useShardSummaries } from "../app/hooks/useLinksync";
 import { forgetChatShards } from "../evolu";
 
 export function ChatStoragePage(): React.ReactElement {
   const { t } = useAppShellCore();
+  const { pushToast } = useAdvancedSettingsContext();
   const summaries = useShardSummaries();
   const messages = summaries.find((shard) => shard.scope === "messages");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("");
+  const [failed, setFailed] = useState(false);
   const keep = keepNewest(linkyScopes.messages);
   const subscribed = messages?.visibleOwnerIds.length ?? 0;
   const forgettable = summaries.some(
@@ -20,12 +22,12 @@ export function ChatStoragePage(): React.ReactElement {
   );
   const forget = async () => {
     setBusy(true);
-    setStatus("");
+    setFailed(false);
     try {
       await forgetChatShards();
-      setStatus(t("chatStorageForgotten"));
+      pushToast(t("chatStorageForgotten"));
     } catch {
-      setStatus(t("chatStorageFailed"));
+      setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -51,7 +53,7 @@ export function ChatStoragePage(): React.ReactElement {
       >
         {t("chatStorageForget")}
       </Button>
-      <Text role="status">{status}</Text>
+      {failed ? <Notice tone="danger" title={t("chatStorageFailed")} /> : null}
     </Stack>
   );
 }

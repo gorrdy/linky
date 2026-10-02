@@ -1,6 +1,10 @@
 import { Button, CodeBlock, Row, Stack, Text } from "@linky-fit/ui";
 import React from "react";
-import { useAppShellCore } from "../app/context/AppShellContexts";
+import {
+  useAppShellActions,
+  useAppShellCore,
+} from "../app/context/AppShellContexts";
+import { useAdvancedSettingsContext } from "../app/context/SystemSettingsContexts";
 import { isNativePlatform } from "../platform/runtime";
 import {
   appendPushDebugLog,
@@ -117,10 +121,11 @@ async function loadPushDebugReport(): Promise<PushDebugReport> {
 }
 export function PushDebugPage(): React.ReactElement {
   const { currentNsec, t } = useAppShellCore();
+  const { copyText } = useAppShellActions();
+  const { pushToast } = useAdvancedSettingsContext();
   const [report, setReport] = React.useState<PushDebugReport>(INITIAL_REPORT);
   const [messages, setMessages] = React.useState<PushDebugMessage[]>([]);
   const [isBusy, setIsBusy] = React.useState(false);
-  const [status, setStatus] = React.useState<string>("");
   const refreshReport = React.useCallback(async () => {
     setReport(await loadPushDebugReport());
   }, []);
@@ -152,21 +157,21 @@ export function PushDebugPage(): React.ReactElement {
     setIsBusy(true);
     try {
       const granted = await requestNotificationPermission();
-      setStatus(
+      pushToast(
         granted ? t("notificationsRegistered") : t("notificationsDenied"),
       );
       await refreshReport();
     } finally {
       setIsBusy(false);
     }
-  }, [refreshReport, t]);
+  }, [refreshReport, pushToast, t]);
   const handleRegister = React.useCallback(async () => {
     if (!currentNsec) {
-      setStatus(t("notificationsNotLoggedIn"));
+      pushToast(t("notificationsNotLoggedIn"));
       return;
     }
     if (!isNativePlatform() && !("Notification" in window)) {
-      setStatus(t("notificationsUnsupported"));
+      pushToast(t("notificationsUnsupported"));
       return;
     }
     setIsBusy(true);
@@ -174,13 +179,13 @@ export function PushDebugPage(): React.ReactElement {
       if (!isNativePlatform() && Notification.permission === "default") {
         const granted = await requestNotificationPermission();
         if (!granted) {
-          setStatus(t("notificationsDenied"));
+          pushToast(t("notificationsDenied"));
           await refreshReport();
           return;
         }
       }
       const result = await registerPushNotifications(currentNsec);
-      setStatus(
+      pushToast(
         result.success
           ? t("notificationsRegistered")
           : (result.error ?? t("notificationsError")),
@@ -189,45 +194,45 @@ export function PushDebugPage(): React.ReactElement {
     } finally {
       setIsBusy(false);
     }
-  }, [currentNsec, refreshReport, t]);
+  }, [currentNsec, refreshReport, pushToast, t]);
   const handleUnregister = React.useCallback(async () => {
     if (!currentNsec) {
-      setStatus(t("notificationsNotLoggedIn"));
+      pushToast(t("notificationsNotLoggedIn"));
       return;
     }
     setIsBusy(true);
     try {
       const ok = await unregisterPushNotifications(currentNsec);
-      setStatus(ok ? "Unregistered" : "Unregister failed");
+      pushToast(ok ? "Unregistered" : "Unregister failed");
       await refreshReport();
     } finally {
       setIsBusy(false);
     }
-  }, [currentNsec, refreshReport, t]);
+  }, [currentNsec, refreshReport, pushToast, t]);
   const handleReset = React.useCallback(async () => {
     setIsBusy(true);
     try {
       await resetServiceWorkersAndCaches();
       await clearPushDebugLog();
-      setStatus("Service workers and caches reset");
+      pushToast("Service workers and caches reset");
       await refreshReport();
     } catch (error) {
-      setStatus(`Reset failed: ${String(error ?? "")}`);
+      pushToast(`Reset failed: ${String(error ?? "")}`);
     } finally {
       setIsBusy(false);
     }
-  }, [refreshReport]);
+  }, [refreshReport, pushToast]);
   const handleClearLogs = React.useCallback(async () => {
     setIsBusy(true);
     try {
       await clearPushDebugLog();
       appendPushDebugLog("client", "debug log cleared from UI");
-      setStatus("Debug log cleared");
+      pushToast("Debug log cleared");
       await refreshReport();
     } finally {
       setIsBusy(false);
     }
-  }, [refreshReport]);
+  }, [refreshReport, pushToast]);
   const reportText = JSON.stringify(
     {
       ...report,
@@ -243,21 +248,6 @@ export function PushDebugPage(): React.ReactElement {
     null,
     2,
   );
-  const handleCopyLogs = React.useCallback(async () => {
-    setIsBusy(true);
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(reportText);
-        setStatus("Copied debug report");
-      } else {
-        setStatus("Clipboard API unavailable");
-      }
-    } catch (error) {
-      setStatus(`Copy failed: ${String(error ?? "")}`);
-    } finally {
-      setIsBusy(false);
-    }
-  }, [reportText]);
   return (
     <Stack gap="$lg">
       <Row
@@ -320,27 +310,11 @@ export function PushDebugPage(): React.ReactElement {
           >
             Clear logs
           </Button>
-          <Button
-            onPress={() => void handleCopyLogs()}
-            disabled={isBusy}
-            variant="ghost"
-          >
+          <Button onPress={() => void copyText(reportText)} variant="ghost">
             Copy logs
           </Button>
         </Row>
       </Row>
-
-      {status ? (
-        <Row
-          justifyContent="space-between"
-          minHeight="$control"
-          paddingVertical="$sm"
-        >
-          <Text color="$colorMuted" variant="label">
-            {status}
-          </Text>
-        </Row>
-      ) : null}
 
       <CodeBlock testID="push-debug-report">{reportText}</CodeBlock>
     </Stack>
