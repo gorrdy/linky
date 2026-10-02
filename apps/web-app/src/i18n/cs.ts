@@ -173,8 +173,6 @@ export const cs = {
   claimOwnLightningAddressCheckFailed: "Nepodařilo se ověřit dostupnost.",
   claimOwnLightningAddressUnpaid: "Platba ještě nebyla potvrzena.",
   restoreTokens: "Hledat chybějící tokeny",
-  restoreIncomplete:
-    "Obnoveno {amount} sat. Některé minty se nepodařilo prohledat; zkuste to později.",
   cashuReclaimHandedOut: "Vrátit všechny předané tokeny",
   cashuRestoreAndReclaimAll: "Obnovit a vrátit všechny tokeny",
   cashuReclaimHint:
@@ -190,7 +188,6 @@ export const cs = {
   cashuRestoreRefreshing: "Obnovování nalezených tokenů…",
   restoring: "Hledám chybějící tokeny…",
   restoreNothing: "Žádné chybějící tokeny nenalezeny.",
-  restoreDone: "Obnoveno {amount} sat jako {tokens} důkazů.",
   restoreFailed: "Obnova selhala",
   cashuMeltToMainMint: "Směnit na {mint}",
   cashuMeltToMainMintUnavailable:
@@ -235,9 +232,6 @@ export const cs = {
   evoluNotSynced: "Nesynchronizuje se",
   evoluRelayWaiting:
     "Čekám na Evolu relay. Nové zprávy dorazí, jakmile se synchronizují tvoje data.",
-  evoluCapacityMeasuring: "Měřím…",
-  evoluWipeStorage: "Vyčistit Evolu storage",
-  evoluWipeStorageBusy: "Čistím Evolu storage…",
   evoluServersEmpty: "Žádné Evolu servery nejsou nastavené.",
   evoluServerOfflineLabel: "Offline",
   evoluServerOfflineDisable: "Přejít offline",
@@ -559,7 +553,6 @@ export const cs = {
   contactEditTitle: "Úprava kontaktu",
   contactPayTitle: "Platba na kontakt",
   messagesTitle: "Zprávy",
-  reactionsTitle: "Reakce",
   newContact: "Přidat nový kontakt",
   close: "Zavřít",
   continue: "Pokračovat",
@@ -831,7 +824,6 @@ export const cs = {
   cashuCheckFailed: "Kontrola selhala",
   cashuInvalid: "Token je neplatný nebo už byl použit.",
   cashuDeleted: "Token byl smazán.",
-  cashuEmpty: "Zatím žádné Cashu tokeny.",
   cashuToken: "Token",
   cashuOnNfc:
     "Token je nahraný na NFC a dokud ho znovu nezkontrolujete, není dostupný pro platby.",
@@ -852,11 +844,9 @@ export const cs = {
   cashuInventoryHint:
     "Sloupec „U mincovny“ je aktuální odpověď mincovny; peněženka jedná podle uloženého stavu.",
   cashuProofsTable: "Důkazy",
-  cashuOperationsTable: "Operace",
   cashuProofStateAvailable: "Dostupné",
   cashuProofStateHeld: "Zadržené",
   cashuProofStateHandedOut: "Předané",
-  cashuProofStateExternalized: "Předané mimo aplikaci",
   cashuMintStateUnspent: "neutracený",
   cashuMintStatePending: "čekající",
   cashuMintStateSpent: "utracený",
@@ -878,31 +868,18 @@ export const cs = {
   cashuReceivePending: "Přijímání nebylo dokončeno.",
   cashuReceiveFailed: "Přijetí selhalo.",
   cashuNoProofs: "Žádné důkazy.",
-  cashuAvailableProofs: "Dostupné",
   cashuPendingAtMint: "Čekající v mincovně",
   cashuProofStatus: "Stav proofs v mincovně",
   cashuUnspentProofs: "Neutracené v mincovně",
   cashuProofLastChecked: "Poslední kontrola",
-  cashuPendingOutcome:
-    "Mincovna tyto prostředky právě používá ve zpracovávané transakci. Při úspěchu budou utracené, při neúspěchu opět neutracené.",
-  cashuPendingRelease: "Znovu k dispozici",
-  cashuPendingReleaseUnknown: "Mincovna datum neposkytuje",
-  cashuPendingSince: "Čekající od",
-  cashuPendingNotRecorded: "Není zaznamenáno",
-  cashuPendingOperation: "Blokující operace",
-  cashuPendingOperationUnknown: "K tokenu není přiřazena žádná operace",
   cashuPendingQuoteExpiryHint:
     "Vypršení platební nabídky neurčuje termín uvolnění čekajících prostředků.",
-  cashuPendingAtMintHint:
-    "Tyto prostředky mincovna blokuje během probíhající transakce.",
-  cashuNoPendingProofs: "Žádné čekající tokeny.",
   cashuUnknownProofs: "Neznámý stav",
   cashuUnknownProofsHint:
     "Mincovna nepotvrdila stav těchto prostředků. Zkuste kontrolu obnovit.",
   cashuCheckingProofs: "Kontroluji stav v mincovně…",
   cashuRefreshProofs: "Obnovit",
   cashuSpentProofs: "Utracené tokeny",
-  cashuIssued: "emitované",
   cashuPasteManualHint: "Vložte sem Cashu token",
   cashuSave: "Uložit token",
   cashuExists: "Tento Cashu token už máte uložený.",
