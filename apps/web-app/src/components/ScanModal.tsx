@@ -3,6 +3,7 @@ import {
   CameraPreview,
   Dialog,
   IconButton,
+  ListRow,
   MediaFrame,
   Progress,
   Row,
@@ -181,13 +182,11 @@ export function ScanModal(): React.ReactElement {
           </Stack>
         )}
         {isSendScan ? (
-          <Button
-            variant="secondary"
-            justifyContent="flex-start"
+          <ListRow
+            icon="Keyboard"
+            title={t("manualPayOpen")}
             onPress={onTypePayment}
-          >
-            {t("manualPayOpen")}
-          </Button>
+          />
         ) : null}
         <Row gap="$sm">
           {actions.map((action) => (
