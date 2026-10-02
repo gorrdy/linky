@@ -1,6 +1,7 @@
 import {
   Avatar,
   Button,
+  EmptyState,
   Pressable,
   Row,
   Stack,
@@ -101,7 +102,7 @@ export const ContactPage: FC<ContactPageProps> = ({
     selectedLnAddress ? selectedNpub : null,
   );
   if (!selectedContact) {
-    return <Text color="$colorMuted">{t("contactNotFound")}</Text>;
+    return <EmptyState title={t("contactNotFound")} />;
   }
 
   const contactId = selectedContact.id;

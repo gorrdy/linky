@@ -1,6 +1,7 @@
 import {
   Avatar,
   Button,
+  EmptyState,
   IconButton,
   ListRow,
   MessageComposerFrame,
@@ -8,7 +9,6 @@ import {
   ReplyPreview,
   Row,
   Stack,
-  Text,
 } from "@linky-fit/ui";
 import { useDivRef } from "../hooks/useDivRef";
 import { useLatest } from "../hooks/useLatest";
@@ -520,7 +520,7 @@ const ChatMessageList = memo(function ChatMessageList({
       paddingBottom="$md"
     >
       {viewModels.length === 0 ? (
-        <Text color="$colorMuted">{t("chatEmpty")}</Text>
+        <EmptyState title={t("chatEmpty")} />
       ) : (
         viewModels.map((viewModel) => (
           <ChatMessage
@@ -1238,11 +1238,7 @@ export const ChatPage: FC<ChatPageProps> = ({
   }, [chatMessages, formatDisplayedAmountText, replyContext, t]);
 
   if (!selectedContact) {
-    return (
-      <Stack padding="$xl">
-        <Text color="$colorMuted">{t("contactNotFound")}</Text>
-      </Stack>
-    );
+    return <EmptyState title={t("contactNotFound")} />;
   }
 
   const ln = (selectedContact.lnAddress ?? "").trim();

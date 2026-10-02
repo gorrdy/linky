@@ -1,4 +1,4 @@
-import { Button, IconButton, Row, Text } from "@linky-fit/ui";
+import { Button, EmptyState, IconButton, Row } from "@linky-fit/ui";
 import type { FC } from "react";
 import type { ContactId } from "../evolu";
 import { ContactFields, type ContactFormData } from "./ContactNewPage";
@@ -68,9 +68,7 @@ export const ContactEditPage: FC<ContactEditPageProps> = ({
 
   return (
     <PageCard gap="$lg">
-      {!selectedContact && (
-        <Text color="$colorMuted">{t("contactNotFound")}</Text>
-      )}
+      {!selectedContact && <EmptyState title={t("contactNotFound")} />}
 
       <ContactFields
         form={form}

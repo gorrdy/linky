@@ -1,12 +1,12 @@
 import {
   Chip,
+  EmptyState,
   IconButton,
   Row,
   ScrollView,
   Section,
   space,
   Stack,
-  Text,
   TextField,
 } from "@linky-fit/ui";
 import type { FC } from "react";
@@ -141,7 +141,7 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
           contentContainerStyle={{ paddingHorizontal: space.md }}
         >
           {!hasAnyContacts ? (
-            <Text color="$colorMuted">{t("noContactsYet")}</Text>
+            <EmptyState title={t("noContactsYet")} />
           ) : (
             <Stack gap="$xs">
               {visibleContacts.pinned.length > 0 && (
