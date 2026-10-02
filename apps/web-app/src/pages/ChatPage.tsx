@@ -847,7 +847,7 @@ export const ChatComposer = memo(function ChatComposer({
                               getNpubMessageContactInfo(suggestion.contact.npub)
                                 ?.pictureUrl ?? undefined
                             }
-                            size="xs"
+                            size="sm"
                           />
                         }
                         title={suggestion.contact.name}

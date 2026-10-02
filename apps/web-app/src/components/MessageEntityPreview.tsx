@@ -72,6 +72,7 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
     const icon = getMintIconUrl(standaloneTokenInfo.mintUrl);
     segments.push(
       <CashuTokenPill
+        compact
         key="standalone-cashu"
         icon={icon}
         amountText={formatDisplayedAmountText(standaloneTokenInfo.amount ?? 0)}
@@ -105,6 +106,7 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
       const icon = getMintIconUrl(tokenInfo.mintUrl);
       segments.push(
         <CashuTokenPill
+          compact
           key={`${start}-cashu`}
           icon={icon}
           amountText={formatDisplayedAmountText(tokenInfo.amount ?? 0)}
