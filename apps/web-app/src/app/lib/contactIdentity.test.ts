@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  findContactForScannedLightningAddress,
   findContactLinkSuggestion,
   findUniqueContactByLightningAddress,
   normalizeContactLightningAddress,
@@ -53,5 +54,47 @@ describe("contact identity", () => {
         "alice@linky.fit",
       ),
     ).toBeNull();
+  });
+
+  it("treats an archived contact with an npub as a competing claim", () => {
+    const alice = { id: "alice", lnAddress: "alice@linky.fit", npub: null };
+    const archived = {
+      id: "archived",
+      lnAddress: "alice@linky.fit",
+      npub: "npub1old",
+      archivedAtSec: 10,
+    };
+
+    expect(
+      findContactLinkSuggestion([alice, archived], "alice@linky.fit"),
+    ).toBeNull();
+  });
+
+  it("matches a scanned address only to a contact whose address the user entered", () => {
+    const mallory = {
+      id: "mallory",
+      lnAddress: "alice@linky.fit",
+      npub: "npub1mallory",
+    };
+    const alice = { id: "alice", lnAddress: "alice@linky.fit", npub: null };
+    const bob = {
+      id: "bob",
+      lnAddress: "bob@linky.fit",
+      npub: "npub1bob",
+      lnAddressSetByUser: 1,
+    };
+
+    expect(
+      findContactForScannedLightningAddress([mallory], "alice@linky.fit"),
+    ).toBeNull();
+    expect(
+      findContactForScannedLightningAddress(
+        [mallory, alice],
+        "alice@linky.fit",
+      ),
+    ).toBe(alice);
+    expect(findContactForScannedLightningAddress([bob], "BOB@linky.fit")).toBe(
+      bob,
+    );
   });
 });

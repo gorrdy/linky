@@ -1,5 +1,11 @@
+import { sqliteTrue } from "@linky-fit/linksync";
+
 interface DedupeContact {
+  readonly createdAt?: string | null;
+  readonly groupName?: string | null;
+  readonly name?: string | null;
   readonly lnAddress?: string | null;
+  readonly lnAddressSetByUser?: number | null;
   readonly npub?: string | null;
 }
 
@@ -46,11 +52,18 @@ export const groupDuplicateContacts = (
   }
 
   for (const indexes of indexesByKey((c) => normalize(c.lnAddress)).values()) {
-    const npubs = new Set(
-      indexes.flatMap((index) => npubByRoot.get(find(index)) ?? []),
-    );
+    const withNpub = indexes.filter((index) => npubByRoot.has(find(index)));
+    const npubs = new Set(withNpub.map((index) => npubByRoot.get(find(index))));
     if (npubs.size > 1) continue;
-    for (const index of indexes) union(indexes[0], index);
+    const withoutNpub = indexes.filter((index) => !npubByRoot.has(find(index)));
+    for (const index of withoutNpub) union(withoutNpub[0], index);
+
+    const userSetAddressOwner = withNpub.find(
+      (index) => contacts[index].lnAddressSetByUser === sqliteTrue,
+    );
+    if (userSetAddressOwner !== undefined && withoutNpub.length > 0) {
+      union(userSetAddressOwner, withoutNpub[0]);
+    }
   }
 
   const groups = new Map<number, number[]>();
@@ -61,6 +74,29 @@ export const groupDuplicateContacts = (
     else groups.set(root, [index]);
   });
   return [...groups.values()].filter((group) => group.length > 1);
+};
+
+const keepScore = (contact: DedupeContact): number =>
+  [contact.name, contact.lnAddress, contact.groupName].filter((value) =>
+    normalize(value),
+  ).length + (normalize(contact.npub) ? 10 : 0);
+
+export const pickContactToKeep = <TContact extends DedupeContact>(
+  group: readonly TContact[],
+): TContact => {
+  let keep = group[0];
+  for (const contact of group.slice(1)) {
+    const score = keepScore(contact);
+    const bestScore = keepScore(keep);
+    if (
+      score > bestScore ||
+      (score === bestScore &&
+        Number(contact.createdAt ?? 0) > Number(keep.createdAt ?? 0))
+    ) {
+      keep = contact;
+    }
+  }
+  return keep;
 };
 
 export const canMergeContactNpubs = (

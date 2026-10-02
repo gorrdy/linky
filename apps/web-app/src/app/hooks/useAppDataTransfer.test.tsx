@@ -208,4 +208,34 @@ describe("useAppDataTransfer", () => {
       expect.objectContaining({ npub: "npub1eve" }),
     ]);
   });
+
+  it("does not let a second imported npub overwrite one the import just merged", async () => {
+    const alice = {
+      id: createId<"Contact">(),
+      lnAddress: NonEmptyString1000.orThrow("alice@linky.fit"),
+      name: NonEmptyString1000.orThrow("Alice"),
+    };
+    const { transfer, insert, update } = await mount(walletUnavailable, [
+      alice,
+    ]);
+    const file = Object.assign(new File([], "backup.txt"), {
+      text: async () =>
+        JSON.stringify({
+          contacts: [
+            { npub: "npub1alice", lnAddress: "alice@linky.fit" },
+            { npub: "npub1mallory", lnAddress: "alice@linky.fit" },
+          ],
+        }),
+    });
+    await act(() => transfer.handleImportAppDataFilePicked(file));
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(
+      alice.id,
+      expect.objectContaining({ npub: "npub1alice" }),
+    );
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ npub: "npub1mallory" }),
+    );
+  });
 });

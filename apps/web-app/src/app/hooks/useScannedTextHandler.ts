@@ -27,6 +27,7 @@ import {
   parseCashuPaymentRequestMessage,
   type CashuPaymentRequestMessageInfo,
 } from "../lib/paymentRequestMessage";
+import { findContactForScannedLightningAddress } from "../lib/contactIdentity";
 import { runWrite } from "../lib/storeWrite";
 import type { ContactRowLike } from "../types/appTypes";
 import type { Translate } from "../../i18n";
@@ -235,10 +236,9 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
           return;
         }
 
-        const needle = maybeLnAddress.toLowerCase();
-        const existing = contacts.find(
-          (contact) =>
-            (contact.lnAddress ?? "").trim().toLowerCase() === needle,
+        const existing = findContactForScannedLightningAddress(
+          contacts,
+          maybeLnAddress,
         );
 
         closeScan();
@@ -291,13 +291,10 @@ export const useScannedTextHandler = <TContact extends ContactRowLike>({
 
         const inferredLnAddress =
           inferLightningAddressFromLnurlTarget(maybeLnAddress);
-        const existing = inferredLnAddress
-          ? contacts.find(
-              (contact) =>
-                (contact.lnAddress ?? "").trim().toLowerCase() ===
-                inferredLnAddress.toLowerCase(),
-            )
-          : null;
+        const existing = findContactForScannedLightningAddress(
+          contacts,
+          inferredLnAddress,
+        );
 
         closeScan();
         if (existing?.id) {

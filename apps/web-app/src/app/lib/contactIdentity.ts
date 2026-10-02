@@ -1,3 +1,5 @@
+import { sqliteTrue } from "@linky-fit/linksync";
+
 interface LightningAddressContact {
   readonly lnAddress?: unknown;
 }
@@ -30,8 +32,17 @@ export const findUniqueContactByLightningAddress = <
 
 interface LinkCandidateContact extends LightningAddressContact {
   readonly archivedAtSec?: number | null;
+  readonly lnAddressSetByUser?: number | null;
   readonly npub?: string | null;
 }
+
+const isArchived = (contact: LinkCandidateContact): boolean => {
+  const archivedAtSec = contact.archivedAtSec ?? 0;
+  return Number.isFinite(archivedAtSec) && archivedAtSec > 0;
+};
+
+const hasNpub = (contact: LinkCandidateContact): boolean =>
+  Boolean((contact.npub ?? "").trim());
 
 export const findContactLinkSuggestion = <
   TContact extends LinkCandidateContact,
@@ -39,14 +50,24 @@ export const findContactLinkSuggestion = <
   contacts: readonly TContact[],
   senderLightningAddress: unknown,
 ): TContact | null => {
-  const activeContacts = contacts.filter((contact) => {
-    const archivedAtSec = contact.archivedAtSec ?? 0;
-    return !Number.isFinite(archivedAtSec) || archivedAtSec <= 0;
-  });
   const match = findUniqueContactByLightningAddress(
-    activeContacts,
+    contacts.filter((contact) => hasNpub(contact) || !isArchived(contact)),
     senderLightningAddress,
   );
-  if (!match || (match.npub ?? "").trim()) return null;
+  if (!match || hasNpub(match)) return null;
   return match;
 };
+
+export const findContactForScannedLightningAddress = <
+  TContact extends LinkCandidateContact,
+>(
+  contacts: readonly TContact[],
+  scannedLightningAddress: unknown,
+): TContact | null =>
+  findUniqueContactByLightningAddress(
+    contacts.filter(
+      (contact) =>
+        !hasNpub(contact) || contact.lnAddressSetByUser === sqliteTrue,
+    ),
+    scannedLightningAddress,
+  );

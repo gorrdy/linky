@@ -20,7 +20,10 @@ import {
   joinContactChatState,
   type ContactWithChatState,
 } from "../lib/contactChatState";
-import { groupDuplicateContacts } from "../lib/contactDedupe";
+import {
+  groupDuplicateContacts,
+  pickContactToKeep,
+} from "../lib/contactDedupe";
 import { runWrite } from "../lib/storeWrite";
 import { useConversationArchiveMigration } from "../migrations/useConversationArchiveMigration";
 import type { Translate } from "../../i18n";
@@ -110,9 +113,6 @@ export const useContactsDomain = ({
       return (value ?? "").trim().toLowerCase();
     };
 
-    const fieldScore = (value: string | null | undefined): number =>
-      normalize(value) ? 1 : 0;
-
     try {
       if (contacts.length === 0) {
         pushToast(t("dedupeContactsNone"));
@@ -131,31 +131,7 @@ export const useContactsDomain = ({
       for (const idxs of dupGroups) {
         const group = idxs.map((i) => contacts[i]);
 
-        let keep = group[0];
-        let keepScore =
-          fieldScore(keep.name) +
-          fieldScore(keep.npub) +
-          fieldScore(keep.lnAddress) +
-          fieldScore(keep.groupName);
-        let keepCreated = Number(keep.createdAt ?? 0);
-
-        for (const contact of group.slice(1)) {
-          const score =
-            fieldScore(contact.name) +
-            fieldScore(contact.npub) +
-            fieldScore(contact.lnAddress) +
-            fieldScore(contact.groupName);
-          const created = Number(contact.createdAt ?? 0);
-
-          if (
-            score > keepScore ||
-            (score === keepScore && created > keepCreated)
-          ) {
-            keep = contact;
-            keepScore = score;
-            keepCreated = created;
-          }
-        }
+        const keep = pickContactToKeep(group);
 
         const keepId = keep.id;
         let mergedName = normalize(keep.name) ? keep.name : null;

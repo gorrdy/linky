@@ -2,6 +2,7 @@ import { encodeNprofile, encodeNpub } from "@linky-fit/linkstr";
 import { makeIdentity } from "@linky-fit/linkstr/testing";
 import { encode } from "cbor-x";
 import { bech32 } from "@scure/base";
+import { createId } from "@linky-fit/linksync";
 import { Effect } from "effect";
 import React, { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,12 +36,18 @@ afterEach(async () => {
 
 const translateToKey: Translate = (key) => key;
 
+type ScanContact = Parameters<
+  typeof useScannedTextHandler
+>[0]["contacts"][number];
+
 const setup = async ({
   autoPayLimit = 0,
+  contacts = [],
   currentNpub = null,
   cashuIsBusy = false,
 }: {
   autoPayLimit?: number;
+  contacts?: readonly ScanContact[];
   currentNpub?: string | null;
   cashuIsBusy?: boolean;
 } = {}) => {
@@ -67,7 +74,7 @@ const setup = async ({
     });
     const handle = useScannedTextHandler({
       closeScan: () => undefined,
-      contacts: [],
+      contacts,
       contactsRepository: { insert: () => Effect.void },
       currentNpub,
       extractCashuTokenFromText: () => null,
@@ -301,4 +308,32 @@ describe("scanned Lightning auto-pay", () => {
       expect(scan.runCashuPaymentRequest).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("scanned lightning addresses", () => {
+  const mallory = {
+    id: createId<"Contact">(),
+    lnAddress: "alice@linky.fit",
+    npub: encodeNpub(makeIdentity().pubkey),
+  };
+  const alice = { id: createId<"Contact">(), lnAddress: "alice@linky.fit" };
+
+  it("pays the scanned address instead of a contact whose address only mirrors its profile", async () => {
+    window.location.hash = "";
+    const scan = await setup({ contacts: [mallory] });
+
+    await scan.handle("alice@linky.fit");
+
+    expect(window.location.hash).not.toContain(mallory.id);
+    expect(window.location.hash).toContain("#payln/");
+  });
+
+  it("opens the contact that holds the address the user entered", async () => {
+    window.location.hash = "";
+    const scan = await setup({ contacts: [mallory, alice] });
+
+    await scan.handle("alice@linky.fit");
+
+    expect(window.location.hash).toContain(alice.id);
+  });
 });
