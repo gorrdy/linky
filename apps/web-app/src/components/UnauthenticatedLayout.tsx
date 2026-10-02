@@ -276,75 +276,74 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           </Text>
         </Stack>
 
-        <TextField
-          id="onboarding-return-seed"
-          label={t("seed")}
-          name="password"
-          type="password"
-          value={step.input}
-          onChangeText={setReturningSlip39Input}
-          onPaste={(event) => {
-            const text = event.clipboardData?.getData("text") ?? "";
-            if (!text) return;
+        <Form onSubmit={() => void submitReturningSlip39()}>
+          <TextField
+            id="onboarding-return-seed"
+            label={t("seed")}
+            name="password"
+            type="password"
+            value={step.input}
+            onChangeText={setReturningSlip39Input}
+            onPaste={(event) => {
+              const text = event.clipboardData?.getData("text") ?? "";
+              if (!text) return;
 
-            event.preventDefault();
-            setReturningSlip39Input(text);
+              event.preventDefault();
+              setReturningSlip39Input(text);
 
-            const pastedAnalysis = analyzeSlip39Input(text);
-            if (pastedAnalysis.isCompleteCandidate) {
-              void submitReturningSlip39(text);
-            }
-          }}
-          placeholder={t("onboardingReturnPlaceholder")}
-          autoCapitalize="none"
-          autoCorrect="off"
-          autoComplete="current-password"
-          autoFocus
-          trailing={
-            <IconButton
-              icon="ClipboardPaste"
-              accessibilityLabel={t("onboardingReturnPasteButton")}
-              onPointerDown={keepInputFocus}
-              onPress={() => void pasteReturningSlip39FromClipboard()}
-              disabled={onboardingIsBusy}
-            />
-          }
-        />
-
-        <Text
-          variant="caption"
-          color={helperColor}
-          role={step.error ? "status" : undefined}
-        >
-          {helperMessage}
-        </Text>
-
-        {analysis.suggestions.length > 0 ? (
-          <Row
-            flexWrap="wrap"
-            gap="$sm"
-            aria-label={t("onboardingReturnSuggestions")}
-            onPointerDown={keepInputFocus}
-          >
-            {analysis.suggestions.map((word) => (
-              <Chip
-                key={word}
-                label={word}
-                onPress={() => selectReturningSlip39Suggestion(word)}
+              const pastedAnalysis = analyzeSlip39Input(text);
+              if (pastedAnalysis.isCompleteCandidate) {
+                void submitReturningSlip39(text);
+              }
+            }}
+            placeholder={t("onboardingReturnPlaceholder")}
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="current-password"
+            autoFocus
+            trailing={
+              <IconButton
+                icon="ClipboardPaste"
+                accessibilityLabel={t("onboardingReturnPasteButton")}
+                onPointerDown={keepInputFocus}
+                onPress={() => void pasteReturningSlip39FromClipboard()}
                 disabled={onboardingIsBusy}
               />
-            ))}
-          </Row>
-        ) : null}
+            }
+          />
 
-        <StepActions>
-          <Button
-            onPress={() => void submitReturningSlip39()}
-            disabled={onboardingIsBusy || !canSubmit}
+          <Text
+            variant="caption"
+            color={helperColor}
+            role={step.error ? "status" : undefined}
           >
-            {t("onboardingReturnConfirm")}
-          </Button>
-        </StepActions>
+            {helperMessage}
+          </Text>
+
+          {analysis.suggestions.length > 0 ? (
+            <Row
+              flexWrap="wrap"
+              gap="$sm"
+              aria-label={t("onboardingReturnSuggestions")}
+              onPointerDown={keepInputFocus}
+            >
+              {analysis.suggestions.map((word) => (
+                <Chip
+                  key={word}
+                  label={word}
+                  onPress={() => selectReturningSlip39Suggestion(word)}
+                  disabled={onboardingIsBusy}
+                />
+              ))}
+            </Row>
+          ) : null}
+
+          <StepActions>
+            <SubmitButton disabled={onboardingIsBusy || !canSubmit}>
+              {t("onboardingReturnConfirm")}
+            </SubmitButton>
+          </StepActions>
+        </Form>
       </Stack>
     );
   };
