@@ -2,6 +2,7 @@ import { nowSeconds } from "../utils/time";
 import {
   Avatar,
   Button,
+  EmptyState,
   IconButton,
   QRCode,
   Row,
@@ -267,8 +268,7 @@ export function ProfilePage({
     t,
   ]);
 
-  if (!currentNpub)
-    return <Text color="$colorMuted">{t("profileMissingNpub")}</Text>;
+  if (!currentNpub) return <EmptyState title={t("profileMissingNpub")} />;
 
   if (!isProfileEditing) {
     const displayName = effectiveProfileName ?? formatShortNpub(currentNpub);
