@@ -1,4 +1,5 @@
-import { Button, Dialog, TextField } from "@linky-fit/ui";
+import { ListRow, Sheet, Text, TextField } from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import React from "react";
 import type { Translate } from "../i18n";
 
@@ -21,33 +22,27 @@ export function ShareOptionsModal({
   shareText,
   t,
 }: ShareOptionsModalProps): React.ReactElement {
+  const shareActions: { icon: IconName; label: string; onPress: () => void }[] =
+    [
+      {
+        icon: "MessageCircle",
+        label: t("shareViaWhatsApp"),
+        onPress: onWhatsApp,
+      },
+      { icon: "MessageCircleMore", label: t("shareViaSms"), onPress: onSms },
+      { icon: "Send", label: t("shareViaEmail"), onPress: onEmail },
+      { icon: "Copy", label: t("copy"), onPress: onCopy },
+    ];
+
   return (
-    <Dialog
+    <Sheet
       open
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
       title={t("shareOptionsTitle")}
-      description={t("shareOptionsBody")}
-      closeLabel={t("close")}
-      actions={
-        <>
-          <Button onPress={onWhatsApp}>{t("shareViaWhatsApp")}</Button>
-          <Button variant="secondary" onPress={onSms}>
-            {t("shareViaSms")}
-          </Button>
-          <Button variant="secondary" onPress={onEmail}>
-            {t("shareViaEmail")}
-          </Button>
-          <Button variant="secondary" onPress={onCopy}>
-            {t("copy")}
-          </Button>
-          <Button variant="secondary" onPress={onClose}>
-            {t("close")}
-          </Button>
-        </>
-      }
     >
+      <Text color="$colorMuted">{t("shareOptionsBody")}</Text>
       <TextField
         multiline
         label={t("shareOptionsPreviewLabel")}
@@ -55,6 +50,15 @@ export function ShareOptionsModal({
         readOnly
         value={shareText}
       />
-    </Dialog>
+      {shareActions.map((action) => (
+        <ListRow
+          key={action.label}
+          icon={action.icon}
+          title={action.label}
+          chevron={false}
+          onPress={action.onPress}
+        />
+      ))}
+    </Sheet>
   );
 }

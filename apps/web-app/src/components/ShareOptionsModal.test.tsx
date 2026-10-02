@@ -35,7 +35,7 @@ describe("ShareOptionsModal", () => {
     await act(async () => button("shareViaWhatsApp")?.click());
     expect(onWhatsApp).toHaveBeenCalledOnce();
     await act(async () =>
-      document.querySelector<HTMLElement>('[aria-label="close"]')?.click(),
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })),
     );
     expect(onClose).toHaveBeenCalled();
 
