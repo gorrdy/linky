@@ -87,7 +87,6 @@ export interface AppShellCoreContextValue {
   isProfileEditing: boolean;
   lang: Lang;
   menuIsOpen: boolean;
-  myProfileQr: string | null;
   nfcWritePromptKind: "profile" | "token" | null;
   nostrPictureByNpub: Record<string, string | null>;
   paidOverlayIsOpen: boolean;

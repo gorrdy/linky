@@ -6,7 +6,6 @@ import {
   isNpubCashDisabled,
   NPUB_CASH_SERVER_BASE_URL,
 } from "../../utils/npubCashServer";
-import { renderNpubQr } from "../../utils/npubQr";
 import { asRecord } from "../../utils/validation";
 
 interface UseProfileNpubCashEffectsParams {
@@ -23,7 +22,6 @@ interface UseProfileNpubCashEffectsParams {
   routeKind: string;
   setDefaultMintUrl: React.Dispatch<React.SetStateAction<string | null>>;
   setIsProfileEditing: React.Dispatch<React.SetStateAction<boolean>>;
-  setMyProfileQr: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export const useProfileNpubCashEffects = ({
@@ -40,7 +38,6 @@ export const useProfileNpubCashEffects = ({
   routeKind,
   setDefaultMintUrl,
   setIsProfileEditing,
-  setMyProfileQr,
 }: UseProfileNpubCashEffectsParams) => {
   React.useEffect(() => {
     // Leave edit mode unless the dedicated edit route is active.
@@ -48,33 +45,6 @@ export const useProfileNpubCashEffects = ({
       setIsProfileEditing(false);
     }
   }, [routeKind, setIsProfileEditing]);
-
-  const showProfileQr = routeKind === "profile";
-
-  React.useEffect(() => {
-    // Generate QR code for the current npub when profile QR is visible.
-    if (!showProfileQr) {
-      setMyProfileQr(null);
-      return;
-    }
-    if (!currentNpub) {
-      setMyProfileQr(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    void renderNpubQr(currentNpub, { cutout: true })
-      .then((url) => {
-        if (!cancelled) setMyProfileQr(url);
-      })
-      .catch(() => {
-        if (!cancelled) setMyProfileQr(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [showProfileQr, currentNpub, setMyProfileQr]);
 
   React.useEffect(() => {
     // Hosted npub.cash-compatible integration:

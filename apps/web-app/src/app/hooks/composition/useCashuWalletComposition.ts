@@ -226,7 +226,6 @@ interface UseCashuWalletCompositionParams {
     | "npubCashInfoLoadedAtMsRef"
     | "npubCashInfoLoadedForNpubRef"
     | "setIsProfileEditing"
-    | "setMyProfileQr"
     | "setOwnedProfileLightningAddresses"
     | "setOwnedProfileLightningAddressesLoading"
   >;
@@ -297,7 +296,6 @@ export const useCashuWalletComposition = ({
     npubCashInfoLoadedAtMsRef,
     npubCashInfoLoadedForNpubRef,
     setIsProfileEditing,
-    setMyProfileQr,
     setOwnedProfileLightningAddresses,
     setOwnedProfileLightningAddressesLoading,
   } = profile;
@@ -874,7 +872,6 @@ export const useCashuWalletComposition = ({
     routeKind: route.kind,
     setDefaultMintUrl,
     setIsProfileEditing,
-    setMyProfileQr,
   });
 
   const [contactPayMethod, setContactPayMethod] = useState<

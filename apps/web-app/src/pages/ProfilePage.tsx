@@ -50,7 +50,6 @@ interface ProfilePageProps {
   effectiveProfileName: string | null;
   effectiveProfilePicture: string | null;
   isProfileEditing: boolean;
-  myProfileQr: string | null;
   onPickProfilePhoto: () => Promise<void>;
   onProfilePhotoError: (error: unknown) => void;
   onProfilePhotoSelected: (dataUrl: string) => void;

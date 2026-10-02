@@ -47,7 +47,6 @@ const props: React.ComponentProps<typeof ProfilePage> = {
   effectiveProfileName: null,
   effectiveProfilePicture: null,
   isProfileEditing: true,
-  myProfileQr: null,
   onPickProfilePhoto: async () => {},
   onProfilePhotoError: () => {},
   onProfilePhotoSelected: () => {},

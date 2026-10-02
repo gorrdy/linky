@@ -40,7 +40,6 @@ export const useProfileComposition = ({
   const [myProfilePicture, setMyProfilePicture] = React.useState<string | null>(
     null,
   );
-  const [myProfileQr, setMyProfileQr] = React.useState<string | null>(null);
   const [myProfileLnAddress, setMyProfileLnAddress] = React.useState<
     string | null
   >(null);
@@ -200,7 +199,6 @@ export const useProfileComposition = ({
     effectiveProfilePicture,
     isProfileEditing,
     myProfileMetadata,
-    myProfileQr,
     myProfileStatus,
     npubCashInfoInFlightRef,
     npubCashInfoLoadedAtMsRef,
@@ -226,7 +224,6 @@ export const useProfileComposition = ({
     saveProfileEdits,
     selectedProfileStatusCurrencies,
     setIsProfileEditing,
-    setMyProfileQr,
     setOwnedProfileLightningAddresses,
     setOwnedProfileLightningAddressesLoading,
     setProfileEditLnAddress,

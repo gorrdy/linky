@@ -49,7 +49,6 @@ interface BuildPeopleRoutePropsParams {
   lang: PeopleRoutesProps["chatProps"]["lang"];
   mentionContacts: PeopleRoutesProps["chatProps"]["mentionContacts"];
   makeNip98AuthHeader: PeopleRoutesProps["profileProps"]["makeNip98AuthHeader"];
-  myProfileQr: PeopleRoutesProps["profileProps"]["myProfileQr"];
   nostrPictureByNpub: PeopleRoutesProps["contactProps"]["nostrPictureByNpub"];
   onBlockUnknownContact: PeopleRoutesProps["chatProps"]["onBlockUnknownContact"];
   onCancelEdit: PeopleRoutesProps["chatProps"]["onCancelEdit"];
@@ -163,7 +162,6 @@ export const buildPeopleRouteProps = ({
   lang,
   mentionContacts,
   makeNip98AuthHeader,
-  myProfileQr,
   nostrPictureByNpub,
   onBlockUnknownContact,
   onCancelEdit,
@@ -367,7 +365,6 @@ export const buildPeopleRouteProps = ({
       profileEditsSavable,
       unregisteredOwnLightningAddress,
       profileStatus,
-      myProfileQr,
       effectiveMyLightningAddress,
       makeNip98AuthHeader,
       profilePhotoInputRef,
