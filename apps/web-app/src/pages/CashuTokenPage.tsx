@@ -6,7 +6,7 @@ import { tokenChatMessages } from "../app/lib/pendingTokenTransfers";
 import type { LocalNostrMessage } from "../app/types/appTypes";
 import { useLatest } from "../hooks/useLatest";
 import type { StoredProof, TokenTransfer } from "@linky-fit/linkshu";
-import { Radio as NfcIcon } from "lucide-react";
+import { Button, Stack, Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -230,58 +230,62 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
     if (!showMissingRecovery) return null;
 
     return (
-      <section className="panel topup-invoice-panel cashu-token-panel">
-        <p className="cashu-token-status cashu-token-status-error">
+      <Stack gap="$lg">
+        <Text variant="caption" color="$dangerText" textAlign="center">
           {t("cashuInvalid")}
-        </p>
-      </section>
+        </Text>
+      </Stack>
     );
   }
 
   const isClosed = transfer.status === "done" || transfer.status === "returned";
+  const statusLine = (text: string | null, error = false) => (
+    <Text
+      variant="caption"
+      color={error ? "$dangerText" : "$colorMuted"}
+      textAlign="center"
+    >
+      {text}
+    </Text>
+  );
 
   return (
-    <section className="panel topup-invoice-panel cashu-token-panel">
-      <div className="topup-invoice-head">
-        <div className="topup-invoice-balance">
-          <WalletBalance ariaLabel={t("cashuToken")} balance={tokenAmount} />
-        </div>
-
+    <Stack gap="$lg">
+      <Stack alignItems="center" gap="$xs">
+        <WalletBalance ariaLabel={t("cashuToken")} balance={tokenAmount} />
         {mintDisplay ? (
-          <p className="topup-invoice-mint-note">
+          <Text variant="caption" color="$colorMuted">
             Mint:{" "}
-            <span className="relay-url topup-invoice-mint-value">
+            <Text variant="caption" mono color="$colorSubtle">
               {mintDisplay}
-            </span>
-          </p>
+            </Text>
+          </Text>
         ) : null}
-      </div>
+      </Stack>
 
-      <CashuTokenHandoff
-        transfer={transfer}
-        chats={chats}
-        contacts={contacts}
-      />
+      <Stack gap="$sm">
+        <CashuTokenHandoff
+          transfer={transfer}
+          chats={chats}
+          contacts={contacts}
+        />
 
-      <p className="muted">
-        {t("cashuCreated")}{" "}
-        <time dateTime={new Date(transfer.createdAt * 1000).toISOString()}>
-          {new Date(transfer.createdAt * 1000).toLocaleString(lang)}
-        </time>
-      </p>
+        <Text color="$colorMuted">
+          {`${t("cashuCreated")} ${new Date(transfer.createdAt * 1000).toLocaleString(lang)}`}
+        </Text>
 
-      {isFailedReceive ? (
-        <p className="cashu-token-status cashu-token-status-error">
-          {formatStoredCashuError(transfer.error) ?? t("cashuReceiveFailed")}
-        </p>
-      ) : statusKey !== null ? (
-        <p className="cashu-token-status">{t(statusKey)}</p>
-      ) : null}
-      {!isFailedReceive && transfer.error !== null ? (
-        <p className="cashu-token-status cashu-token-status-error">
-          {formatStoredCashuError(transfer.error)}
-        </p>
-      ) : null}
+        {isFailedReceive
+          ? statusLine(
+              formatStoredCashuError(transfer.error) ?? t("cashuReceiveFailed"),
+              true,
+            )
+          : statusKey !== null
+            ? statusLine(t(statusKey))
+            : null}
+        {!isFailedReceive && transfer.error !== null
+          ? statusLine(formatStoredCashuError(transfer.error), true)
+          : null}
+      </Stack>
 
       {isSend && transferProofs.length > 0 ? (
         <CashuTokenProofStatus
@@ -294,98 +298,74 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
       <CashuTokenQr key={routeId} tokenText={tokenText} copyText={copyText} />
 
       {isOpenSend || isFailedReceive ? (
-        <div className="settings-row">
-          <button
-            className="btn-wide"
-            onClick={() => void checkAndRefreshCashuToken(routeId)}
-            disabled={cashuIsBusy}
-          >
-            {t("cashuCheckToken")}
-          </button>
-        </div>
+        <Button
+          onPress={() => void checkAndRefreshCashuToken(routeId)}
+          disabled={cashuIsBusy}
+        >
+          {t("cashuCheckToken")}
+        </Button>
       ) : null}
 
       {isIssued && canSendToContact ? (
-        <div className="settings-row">
-          <button
-            className="btn-wide"
-            onClick={() => void startSendCashuTokenToContact(routeId)}
-            disabled={!tokenText.trim()}
-          >
-            {t("cashuSendToContact")}
-          </button>
-        </div>
-      ) : null}
-
-      <div className="settings-row">
-        <button
-          className="btn-wide secondary"
-          onClick={() => void copyText(tokenText)}
+        <Button
+          onPress={() => void startSendCashuTokenToContact(routeId)}
           disabled={!tokenText.trim()}
         >
-          {t("copy")}
-        </button>
-      </div>
+          {t("cashuSendToContact")}
+        </Button>
+      ) : null}
+
+      <Button
+        variant="secondary"
+        onPress={() => void copyText(tokenText)}
+        disabled={!tokenText.trim()}
+      >
+        {t("copy")}
+      </Button>
 
       {isOpenSend ? (
-        <div className="settings-row">
-          <button
-            className="btn-wide secondary"
-            onClick={() => void shareTokenText(routeId, shareMessage)}
-            disabled={!shareMessage}
-          >
-            {t("share")}
-          </button>
-        </div>
+        <Button
+          variant="secondary"
+          onPress={() => void shareTokenText(routeId, shareMessage)}
+          disabled={!shareMessage}
+        >
+          {t("share")}
+        </Button>
       ) : null}
 
       {isOpenSend && canWriteToNfc ? (
-        <div className="settings-row">
-          <button
-            className="btn-wide secondary"
-            onClick={() => void writeToNfc(routeId, tokenText)}
-            disabled={!tokenText.trim()}
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                <NfcIcon size={18} />
-              </span>
-              <span>{t("uploadToNfc")}</span>
-            </span>
-          </button>
-        </div>
+        <Button
+          variant="secondary"
+          icon="Radio"
+          onPress={() => void writeToNfc(routeId, tokenText)}
+          disabled={!tokenText.trim()}
+        >
+          {t("uploadToNfc")}
+        </Button>
       ) : null}
 
       {canReturnToWallet ? (
-        <div className="settings-row">
-          <button
-            className="btn-wide secondary"
-            onClick={() =>
-              void (reclaimFromInventory
-                ? reclaimCashuTransfer(routeId)
-                : returnCashuTokenToWallet(routeId))
-            }
-            disabled={cashuIsBusy}
-          >
-            {t("cashuReturnToWallet")}
-          </button>
-        </div>
+        <Button
+          variant="secondary"
+          onPress={() =>
+            void (reclaimFromInventory
+              ? reclaimCashuTransfer(routeId)
+              : returnCashuTokenToWallet(routeId))
+          }
+          disabled={cashuIsBusy}
+        >
+          {t("cashuReturnToWallet")}
+        </Button>
       ) : null}
 
       {!isClosed && allProofsSpent ? (
-        <div className="settings-row">
-          <button
-            className={
-              pendingCashuDeleteId === routeId
-                ? "btn-wide secondary danger-armed"
-                : "btn-wide secondary"
-            }
-            onClick={() => requestDeleteCashuToken(routeId)}
-          >
-            {t("delete")}
-          </button>
-        </div>
+        <Button
+          variant={pendingCashuDeleteId === routeId ? "danger" : "secondary"}
+          onPress={() => requestDeleteCashuToken(routeId)}
+        >
+          {t("delete")}
+        </Button>
       ) : null}
-    </section>
+    </Stack>
   );
 };

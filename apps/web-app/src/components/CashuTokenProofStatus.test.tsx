@@ -42,7 +42,7 @@ describe("CashuTokenProofStatus", () => {
     expect(container.textContent).toContain("cashuUnspentProofs60 sat");
     expect(container.textContent).toContain("cashuPendingAtMint40 sat");
     expect(container.textContent).toContain("cashuPendingQuoteExpiryHint");
-    expect(container.querySelector("time")?.dateTime).toBeTruthy();
+    expect(container.textContent).toMatch(/cashuProofLastChecked: \S/);
     await unmount();
   });
 

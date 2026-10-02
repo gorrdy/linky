@@ -1,3 +1,4 @@
+import type { TextField } from "@linky-fit/ui";
 import type { PushToastOptions } from "../../../hooks/useToasts";
 import {
   transactionIdForOperation,
@@ -29,7 +30,7 @@ import {
   useAtomSet,
 } from "@linky-fit/linkstr-react";
 import { Cause, Either, Exit, Option, Schema } from "effect";
-import React, { useMemo, useState } from "react";
+import React, { type ComponentRef, useMemo, useState } from "react";
 import type { CashuOperationId, ContactId } from "../../../evolu";
 import { navigateTo, useRouting } from "../../../hooks/useRouting";
 import {
@@ -368,7 +369,7 @@ export const useCashuWalletComposition = ({
   }, [appOwnerId, appOwnerIdRef, makeLocalStorageKey]);
 
   const [cashuDraft, setCashuDraft] = useState("");
-  const cashuDraftRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const cashuDraftRef = React.useRef<ComponentRef<typeof TextField>>(null);
   const [cashuEmitAmount, setCashuEmitAmount] = useState("");
   const [cashuIsBusy, setCashuIsBusy] = useState(false);
   const runPaymentRequestExclusively = useExclusiveRun();

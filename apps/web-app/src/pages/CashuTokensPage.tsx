@@ -4,7 +4,20 @@ import type {
   TokenTransfer,
   RestoreProgress,
 } from "@linky-fit/linkshu";
-import { ChevronRight, CirclePlus as TokenAddIcon } from "lucide-react";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  Icon,
+  Pressable,
+  Progress,
+  Row,
+  Spinner,
+  Stack,
+  Text,
+  border,
+  space,
+} from "@linky-fit/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
@@ -17,6 +30,7 @@ import {
   CashuTokenHandoff,
   type CashuTokenHandoffProps,
 } from "../components/CashuTokenHandoff";
+import { FloatingActionButton } from "../components/FloatingActionButton";
 import { navigateTo } from "../hooks/useRouting";
 import { nowSeconds } from "../utils/time";
 
@@ -103,221 +117,219 @@ export const CashuTokensPage = ({
     void checkIssuedCashuTokensAndDeleteClaimed();
   }, [hasHandedOut, checkIssuedCashuTokensAndDeleteClaimed]);
 
+  const ageText = (createdAt: number) => {
+    const minutes = Math.max(0, Math.floor((now - createdAt) / 60));
+    const hours = Math.floor(minutes / 60);
+    const days = Math.max(0, Math.floor((now - createdAt) / 86_400));
+    if (minutes < 1) return t("cashuJustCreated");
+    if (hours < 1)
+      return t("cashuPendingMinutes").replace("{minutes}", String(minutes));
+    if (days < 1)
+      return t("cashuPendingHours").replace("{hours}", String(hours));
+    if (days === 1) return t("cashuPendingOneDay");
+    return t("cashuPendingDays").replace("{days}", String(days));
+  };
+
+  const restoreStatusText =
+    tokensRestoreProgress?.phase === "refreshing"
+      ? t("cashuRestoreRefreshing")
+      : tokensRestoreProgress?.phase === "scanning"
+        ? t("cashuRestoreScanProgress")
+            .replace(
+              "{completed}",
+              String(tokensRestoreProgress.completedKeysets),
+            )
+            .replace("{total}", String(tokensRestoreProgress.totalKeysets))
+            .replace("{mints}", String(tokensRestoreProgress.totalMints))
+        : t("cashuRestorePreparing");
+
+  const balanceColumn = (label: string, amount: number) => (
+    <Stack flex={1} gap="$xs">
+      <Text variant="label" color="$colorMuted">
+        {label}
+      </Text>
+      <Text variant="heading" testID="cashu-token-balance">
+        {formatDisplayedAmountText(amount)}
+      </Text>
+    </Stack>
+  );
+
+  const strong = (text: string) => (
+    <Text variant="caption" bold>
+      {text}
+    </Text>
+  );
+
   return (
     <>
-      <section className="panel cashu-transfers-page">
+      <Stack gap="$lg" paddingBottom={space.huge * 2}>
         {balancesByMint.length <= 1 ? (
-          <dl className="cashu-token-balance-summary">
-            <div>
-              <dt>{t("cashuBalance")}</dt>
-              <dd>{formatDisplayedAmountText(availableBalance)}</dd>
-            </div>
-            <div>
-              <dt>{t("cashuPendingBalance")}</dt>
-              <dd>{formatDisplayedAmountText(pendingBalance)}</dd>
-            </div>
-          </dl>
+          <Row gap="$lg" alignItems="flex-start">
+            {balanceColumn(t("cashuBalance"), availableBalance)}
+            {balanceColumn(t("cashuPendingBalance"), pendingBalance)}
+          </Row>
         ) : (
-          <table className="cashu-token-balances">
-            <thead>
-              <tr>
-                <th scope="col">{t("cashuProofsColumnMint")}</th>
-                <th scope="col">{t("cashuBalance")}</th>
-                <th scope="col">{t("cashuPendingBalance")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {balancesByMint.map(([mint, balance]) => (
-                <tr key={mint}>
-                  <th scope="row">{getMintDisplay(mint)}</th>
-                  <td>{formatDisplayedAmountText(balance.available)}</td>
-                  <td>{formatDisplayedAmountText(balance.pending)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row">{t("cashuTotalBalance")}</th>
-                <td>{formatDisplayedAmountText(availableBalance)}</td>
-                <td>{formatDisplayedAmountText(pendingBalance)}</td>
-              </tr>
-            </tfoot>
-          </table>
+          <DataTable
+            fill
+            accessibilityLabel={t("mintBalance")}
+            columns={[
+              { key: "mint", label: t("cashuProofsColumnMint") },
+              { key: "available", label: t("cashuBalance") },
+              { key: "pending", label: t("cashuPendingBalance") },
+            ]}
+            rows={[
+              ...balancesByMint.map(([mint, balance]) => ({
+                key: mint,
+                cells: [
+                  getMintDisplay(mint),
+                  formatDisplayedAmountText(balance.available),
+                  formatDisplayedAmountText(balance.pending),
+                ],
+              })),
+              {
+                key: "total",
+                cells: [
+                  strong(t("cashuTotalBalance")),
+                  strong(formatDisplayedAmountText(availableBalance)),
+                  strong(formatDisplayedAmountText(pendingBalance)),
+                ],
+              },
+            ]}
+          />
         )}
-        <div className="cashu-transfers-toolbar">
-          <button
-            className="secondary"
-            onClick={() => navigateTo({ route: "cashuProofs" })}
+        <Row justifyContent="space-between" flexWrap="wrap">
+          <Button
+            variant="secondary"
+            onPress={() => navigateTo({ route: "cashuProofs" })}
           >
             {t("cashuInspectProofs")}
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={cashuIsBusy}
-            onClick={() => navigateTo({ route: "cashuTokenEmit" })}
+            onPress={() => navigateTo({ route: "cashuTokenEmit" })}
           >
             {t("cashuEmit")}
-          </button>
-        </div>
-        <div className="list-header">
-          <span>
-            {t("cashuPendingTransfers")} · {transfers.length}
-          </span>
-          <button
-            className="btn-small secondary"
-            onClick={() => void checkIssuedCashuTokensAndDeleteClaimed()}
-            disabled={!hasHandedOut || cashuIsBusy || cashuBulkCheckIsBusy}
-          >
-            {t("cashuCheckIssuedTokens")}
-          </button>
-        </div>
-        {transfers.length === 0 ? (
-          <p className="muted cashu-transfers-empty">
-            {t("cashuTransfersEmpty")}
-          </p>
-        ) : (
-          <ul
-            className="cashu-transfer-list"
-            aria-label={t("cashuPendingTransfers")}
-          >
-            {transfers.map((transfer) => {
-              const chats = (chatsByToken.get(transfer.tokenText) ?? []).filter(
-                (message) => message.direction === "out",
-              );
-              const minutes = Math.max(
-                0,
-                Math.floor((now - transfer.createdAt) / 60),
-              );
-              const hours = Math.floor(minutes / 60);
-              const days = Math.max(
-                0,
-                Math.floor((now - transfer.createdAt) / 86_400),
-              );
-              const partiallyClaimed = cashuProofs.some(
-                (proof) =>
-                  proof.operationId === transfer.id && proof.state === "spent",
-              );
-              const state = t(
-                partiallyClaimed
-                  ? "cashuPartiallyClaimed"
-                  : transfer.status === "pending"
-                    ? "cashuAwaitingDelivery"
-                    : "cashuAwaitingClaim",
-              );
-              return (
-                <li key={transfer.id} className="cashu-transfer-row">
-                  <button
-                    className="cashu-transfer-open"
-                    aria-label={`${t("cashuToken")}: ${formatDisplayedAmountText(transfer.amount)}`}
-                    onClick={() => {
-                      const id = CashuOperationId.fromUnknown(transfer.id);
-                      if (id.ok)
-                        navigateTo({ route: "cashuToken", id: id.value });
-                    }}
-                  >
-                    <span className="cashu-transfer-amount">
-                      {formatDisplayedAmountText(transfer.amount)}
-                    </span>
-                    <span className="cashu-transfer-state">{state}</span>
-                    <ChevronRight size={18} aria-hidden="true" />
-                  </button>
-                  <CashuTokenHandoff
-                    transfer={transfer}
-                    chats={chats}
-                    contacts={contacts}
-                  />
-                  <div className="cashu-transfer-meta">
-                    <span>{getMintDisplay(transfer.mint)}</span>
-                    <span>
-                      {minutes < 1
-                        ? t("cashuJustCreated")
-                        : hours < 1
-                          ? t("cashuPendingMinutes").replace(
-                              "{minutes}",
-                              String(minutes),
-                            )
-                          : days < 1
-                            ? t("cashuPendingHours").replace(
-                                "{hours}",
-                                String(hours),
-                              )
-                            : days === 1
-                              ? t("cashuPendingOneDay")
-                              : t("cashuPendingDays").replace(
-                                  "{days}",
-                                  String(days),
-                                )}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <div className="settings-row section-actions">
-          <button
-            type="button"
-            className="btn-wide secondary"
-            onClick={() => void restoreMissingTokens()}
-            disabled={
-              !canRestoreTokens ||
-              tokensRestoreIsBusy ||
-              cashuIsBusy ||
-              cashuBulkCheckIsBusy
-            }
-          >
-            {tokensRestoreIsBusy ? t("restoring") : t("restoreTokens")}
-          </button>
-        </div>
-        {tokensRestoreIsBusy && (
-          <div>
-            <div
-              className={`cashu-restore-progress${scanProgress ? " is-determinate" : ""}`}
-              role="progressbar"
-              aria-label={t("restoring")}
-              aria-valuemin={scanProgress ? 0 : undefined}
-              aria-valuemax={scanProgress?.totalKeysets}
-              aria-valuenow={scanProgress?.completedKeysets}
+          </Button>
+        </Row>
+        <Stack gap="$none">
+          <Row justifyContent="space-between">
+            <Text flexShrink={1}>
+              {t("cashuPendingTransfers")} · {transfers.length}
+            </Text>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => void checkIssuedCashuTokensAndDeleteClaimed()}
+              disabled={!hasHandedOut || cashuIsBusy || cashuBulkCheckIsBusy}
             >
-              {scanProgress && (
-                <span
-                  style={{
-                    width: `${(scanProgress.completedKeysets / scanProgress.totalKeysets) * 100}%`,
-                  }}
-                />
-              )}
-            </div>
-            <p className="muted" role="status">
-              {tokensRestoreProgress?.phase === "refreshing"
-                ? t("cashuRestoreRefreshing")
-                : tokensRestoreProgress?.phase === "scanning"
-                  ? t("cashuRestoreScanProgress")
-                      .replace(
-                        "{completed}",
-                        String(tokensRestoreProgress.completedKeysets),
-                      )
-                      .replace(
-                        "{total}",
-                        String(tokensRestoreProgress.totalKeysets),
-                      )
-                      .replace(
-                        "{mints}",
-                        String(tokensRestoreProgress.totalMints),
-                      )
-                  : t("cashuRestorePreparing")}
-            </p>
-          </div>
+              {t("cashuCheckIssuedTokens")}
+            </Button>
+          </Row>
+          {transfers.length === 0 ? (
+            <EmptyState title={t("cashuTransfersEmpty")} />
+          ) : (
+            <Stack
+              role="list"
+              aria-label={t("cashuPendingTransfers")}
+              gap="$none"
+            >
+              {transfers.map((transfer) => {
+                const chats = (
+                  chatsByToken.get(transfer.tokenText) ?? []
+                ).filter((message) => message.direction === "out");
+                const partiallyClaimed = cashuProofs.some(
+                  (proof) =>
+                    proof.operationId === transfer.id &&
+                    proof.state === "spent",
+                );
+                const state = t(
+                  partiallyClaimed
+                    ? "cashuPartiallyClaimed"
+                    : transfer.status === "pending"
+                      ? "cashuAwaitingDelivery"
+                      : "cashuAwaitingClaim",
+                );
+                return (
+                  <Stack
+                    key={transfer.id}
+                    testID="cashu-transfer-row"
+                    role="listitem"
+                    gap="$sm"
+                    paddingVertical="$xl"
+                    borderBottomWidth={border.hairline}
+                    borderColor="$borderColor"
+                  >
+                    <Pressable
+                      gap="$md"
+                      aria-label={`${t("cashuToken")}: ${formatDisplayedAmountText(transfer.amount)}`}
+                      onPress={() => {
+                        const id = CashuOperationId.fromUnknown(transfer.id);
+                        if (id.ok)
+                          navigateTo({ route: "cashuToken", id: id.value });
+                      }}
+                    >
+                      <Text variant="title" flex={1}>
+                        {formatDisplayedAmountText(transfer.amount)}
+                      </Text>
+                      <Text variant="caption" color="$colorMuted">
+                        {state}
+                      </Text>
+                      <Icon name="ChevronRight" size="sm" />
+                    </Pressable>
+                    <CashuTokenHandoff
+                      transfer={transfer}
+                      chats={chats}
+                      contacts={contacts}
+                    />
+                    <Row justifyContent="space-between" flexWrap="wrap">
+                      <Text variant="caption" color="$colorMuted">
+                        {getMintDisplay(transfer.mint)}
+                      </Text>
+                      <Text variant="caption" color="$colorMuted">
+                        {ageText(transfer.createdAt)}
+                      </Text>
+                    </Row>
+                  </Stack>
+                );
+              })}
+            </Stack>
+          )}
+        </Stack>
+        <Button
+          variant="secondary"
+          onPress={() => void restoreMissingTokens()}
+          disabled={
+            !canRestoreTokens ||
+            tokensRestoreIsBusy ||
+            cashuIsBusy ||
+            cashuBulkCheckIsBusy
+          }
+        >
+          {tokensRestoreIsBusy ? t("restoring") : t("restoreTokens")}
+        </Button>
+        {tokensRestoreIsBusy && (
+          <Stack gap="$sm">
+            {scanProgress ? (
+              <Progress
+                value={scanProgress.completedKeysets}
+                max={scanProgress.totalKeysets}
+                accessibilityLabel={t("restoring")}
+              />
+            ) : (
+              <Spinner accessibilityLabel={t("restoring")} />
+            )}
+            <Text color="$colorMuted" role="status">
+              {restoreStatusText}
+            </Text>
+          </Stack>
         )}
-        <p className="muted">{t("cashuMissingRestoreHint")}</p>
-      </section>
-      <button
-        type="button"
-        className="contacts-fab"
-        onClick={() => navigateTo({ route: "cashuTokenNew" })}
-        aria-label={t("cashuAddToken")}
-        title={t("cashuAddToken")}
-      >
-        <TokenAddIcon className="contacts-fab-svgIcon" />
-      </button>
+        <Text color="$colorMuted">{t("cashuMissingRestoreHint")}</Text>
+      </Stack>
+      <FloatingActionButton
+        icon="CirclePlus"
+        label={t("cashuAddToken")}
+        onPress={() => navigateTo({ route: "cashuTokenNew" })}
+      />
     </>
   );
 };

@@ -308,7 +308,7 @@ test("token recovery buttons find missing funds and reclaim handed-out proofs", 
   await page
     .getByRole("button", { name: "Look for missing tokens", exact: true })
     .click();
-  await expect(page.locator(".cashu-token-balance-summary dd")).toHaveText([
+  await expect(page.getByTestId("cashu-token-balance")).toHaveText([
     "62 sat",
     "0 sat",
   ]);
@@ -336,7 +336,7 @@ test("token recovery buttons find missing funds and reclaim handed-out proofs", 
     .getByRole("button", { name: "Reclaim all handed-out tokens", exact: true })
     .click();
   await expect(page.locator('[aria-label="Handed out"]')).toHaveCount(0);
-  await expect(available.locator(".list-header > span")).toHaveText(
+  await expect(available.getByTestId("proof-section-title")).toHaveText(
     "Available · 60 sat",
   );
   await page
@@ -345,11 +345,11 @@ test("token recovery buttons find missing funds and reclaim handed-out proofs", 
       exact: true,
     })
     .click();
-  await expect(available.locator(".list-header > span")).toHaveText(
+  await expect(available.getByTestId("proof-section-title")).toHaveText(
     "Available · 59 sat",
   );
   await page.reload();
-  await expect(available.locator(".list-header > span")).toHaveText(
+  await expect(available.getByTestId("proof-section-title")).toHaveText(
     "Available · 59 sat",
   );
   await expect(page.locator('[aria-label="Handed out"]')).toHaveCount(0);

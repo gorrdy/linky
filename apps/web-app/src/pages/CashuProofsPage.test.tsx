@@ -166,7 +166,7 @@ it("offers reclaim for NFC proofs even with no open transfers, and puts full rec
   expect(reclaimHandedOutTokens).toHaveBeenCalledOnce();
   await clickButton(container, "cashuRestoreAndReclaimAll");
   expect(restoreAndReclaimAllTokens).toHaveBeenCalledOnce();
-  expect(
-    [...container.querySelectorAll("section button")].at(-1)?.textContent,
-  ).toBe("cashuRestoreAndReclaimAll");
+  expect([...container.querySelectorAll("button")].at(-1)?.textContent).toBe(
+    "cashuRestoreAndReclaimAll",
+  );
 });

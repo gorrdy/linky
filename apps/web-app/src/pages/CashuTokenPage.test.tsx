@@ -6,6 +6,7 @@ import { Schema } from "effect";
 import { act, type ComponentProps } from "react";
 import { afterEach, assert, describe, expect, it, vi } from "vitest";
 import { CashuOperationId, ContactId } from "@linky-fit/linksync";
+import { QRCode } from "@linky-fit/ui";
 import { renderIntoDocument } from "../testUtils/renderIntoDocument";
 import { ANIMATED_QR_FRAME_MS } from "../utils/animatedQr";
 import { CashuTokenPage } from "./CashuTokenPage";
@@ -81,8 +82,8 @@ const waitFor = async (check: () => void) => {
     }
   }
 };
-const imageSource = (container: HTMLElement) =>
-  container.querySelector("img.qr")?.getAttribute("src");
+const qrMarkup = (container: HTMLElement) =>
+  container.querySelector('[role="button"][aria-label="copy"] svg')?.innerHTML;
 const revealQr = async (container: HTMLElement) => {
   const button = [...container.querySelectorAll("button")].find(
     (candidate) => candidate.textContent === "cashuShowTokenQr",
@@ -91,12 +92,12 @@ const revealQr = async (container: HTMLElement) => {
   await act(async () => button.click());
 };
 const toggle = async (container: HTMLElement) => {
-  const input = container.querySelector(
-    'input[aria-label="cashuTokenAnimateQr"]',
+  const toggleSwitch = container.querySelector(
+    '[role="switch"][aria-label="cashuTokenAnimateQr"]',
   );
-  assert(input instanceof HTMLInputElement);
-  await act(async () => input.click());
-  return input;
+  assert(toggleSwitch instanceof HTMLElement);
+  await act(async () => toggleSwitch.click());
+  return toggleSwitch;
 };
 
 afterEach(() => {
@@ -110,10 +111,8 @@ describe("token QR animation toggle", () => {
       <CashuTokenPage {...pageProps} />,
     );
     const expectHidden = () => {
-      expect(imageSource(rendered.container)).toBeUndefined();
-      expect(
-        rendered.container.querySelector('input[type="checkbox"]'),
-      ).toBeNull();
+      expect(qrMarkup(rendered.container)).toBeUndefined();
+      expect(rendered.container.querySelector('[role="switch"]')).toBeNull();
       expect(rendered.container.textContent).not.toContain(
         "cashuTokenAnimatedQrHint",
       );
@@ -123,7 +122,7 @@ describe("token QR animation toggle", () => {
     try {
       expectHidden();
       await revealQr(rendered.container);
-      await waitFor(() => expect(imageSource(rendered.container)).toBeTruthy());
+      await waitFor(() => expect(qrMarkup(rendered.container)).toBeTruthy());
       expect(rendered.container.textContent).toContain(
         "cashuTokenAnimatedQrHint",
       );
@@ -152,41 +151,42 @@ describe("token QR animation toggle", () => {
 
   it("replaces the animation with a stable QR of the complete token and can re-enable it", async () => {
     const token = tokenOf(2200);
-    const QRCode = await import("qrcode");
-    const fullTokenQr: string = await QRCode.toDataURL(token, {
-      errorCorrectionLevel: "M",
-      margin: 2,
-    });
+    const reference = await renderIntoDocument(
+      <QRCode value={token} accessibilityLabel="copy" onPress={() => {}} />,
+    );
+    const fullTokenQr = qrMarkup(reference.container);
+    await reference.unmount();
+    assert(fullTokenQr !== undefined);
     const rendered = await renderIntoDocument(
       <CashuTokenPage {...props(token)} />,
     );
     try {
       await revealQr(rendered.container);
-      await waitFor(() => expect(imageSource(rendered.container)).toBeTruthy());
-      const firstFrame = imageSource(rendered.container);
+      await waitFor(() => expect(qrMarkup(rendered.container)).toBeTruthy());
+      const firstFrame = qrMarkup(rendered.container);
       await waitFor(() =>
-        expect(imageSource(rendered.container)).not.toBe(firstFrame),
+        expect(qrMarkup(rendered.container)).not.toBe(firstFrame),
       );
       const input = await toggle(rendered.container);
-      expect(input.checked).toBe(false);
+      expect(input.getAttribute("aria-checked")).toBe("false");
       await waitFor(() =>
-        expect(imageSource(rendered.container)).toBe(fullTokenQr),
+        expect(qrMarkup(rendered.container)).toBe(fullTokenQr),
       );
       await act(async () => {
         await new Promise((resolve) =>
           setTimeout(resolve, ANIMATED_QR_FRAME_MS * 2),
         );
       });
-      expect(imageSource(rendered.container)).toBe(fullTokenQr);
+      expect(qrMarkup(rendered.container)).toBe(fullTokenQr);
       expect(rendered.container.textContent).not.toContain(
         "cashuTokenAnimatedQrHint",
       );
       await toggle(rendered.container);
       await waitFor(() => {
-        expect(imageSource(rendered.container)).toBeTruthy();
-        expect(imageSource(rendered.container)).not.toBe(fullTokenQr);
+        expect(qrMarkup(rendered.container)).toBeTruthy();
+        expect(qrMarkup(rendered.container)).not.toBe(fullTokenQr);
       });
-      expect(input.checked).toBe(true);
+      expect(input.getAttribute("aria-checked")).toBe("true");
     } finally {
       await rendered.unmount();
     }
@@ -198,16 +198,16 @@ describe("token QR animation toggle", () => {
     );
     try {
       await revealQr(rendered.container);
-      await waitFor(() => expect(imageSource(rendered.container)).toBeTruthy());
+      await waitFor(() => expect(qrMarkup(rendered.container)).toBeTruthy());
       await toggle(rendered.container);
       await waitFor(() => {
-        expect(imageSource(rendered.container)).toBeUndefined();
+        expect(qrMarkup(rendered.container)).toBeUndefined();
         expect(rendered.container.textContent).toContain(
           "cashuTokenStaticQrUnavailable",
         );
       });
       await toggle(rendered.container);
-      await waitFor(() => expect(imageSource(rendered.container)).toBeTruthy());
+      await waitFor(() => expect(qrMarkup(rendered.container)).toBeTruthy());
       expect(rendered.container.textContent).not.toContain(
         "cashuTokenStaticQrUnavailable",
       );
@@ -222,10 +222,8 @@ describe("token QR animation toggle", () => {
     );
     try {
       await revealQr(rendered.container);
-      await waitFor(() => expect(imageSource(rendered.container)).toBeTruthy());
-      expect(
-        rendered.container.querySelector('input[type="checkbox"]'),
-      ).toBeNull();
+      await waitFor(() => expect(qrMarkup(rendered.container)).toBeTruthy());
+      expect(rendered.container.querySelector('[role="switch"]')).toBeNull();
     } finally {
       await rendered.unmount();
     }
@@ -353,8 +351,8 @@ it("shows the creation timestamp on token detail", async () => {
       ]}
     />,
   );
-  expect(container.querySelector("time")?.dateTime).toBe(
-    "2026-09-11T12:00:00.000Z",
+  expect(container.textContent).toContain(
+    new Date("2026-09-11T12:00:00Z").toLocaleString(),
   );
   expect(container.textContent).toContain("cashuCreated");
   expect(container.textContent).toContain("cashuHandoffIssued");
@@ -407,12 +405,14 @@ it("shows chat handoff and the return action on a delivered token's detail", asy
   expect(container.textContent).toContain("cashuAwaitingClaim");
   await act(async () => returnButton.click());
   expect(reclaimCashuTransfer).toHaveBeenCalledExactlyOnceWith(transfer.id);
-  const chatButton = container.querySelector(".cashu-transfer-chat");
-  assert(chatButton instanceof HTMLButtonElement);
+  const chatButton = [...container.querySelectorAll("button")].find(
+    (button) => button.textContent === "cashuSentInChat · Alice",
+  );
+  assert(chatButton !== undefined);
   await act(async () => chatButton.click());
   expect(navigateTo).toHaveBeenLastCalledWith({ route: "chat", id: contactId });
   await rerender(<CashuTokenPage {...pageProps} cashuIsBusy={true} />);
-  expect(returnButton.disabled).toBe(true);
+  expect(returnButton.getAttribute("aria-disabled")).toBe("true");
   await rerender(
     <CashuTokenPage
       {...pageProps}

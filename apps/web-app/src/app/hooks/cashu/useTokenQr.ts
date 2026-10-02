@@ -5,8 +5,8 @@ import {
 } from "../../../utils/animatedQr";
 
 export interface TokenQr {
-  /** Data URL of the frame to show, or null while there is nothing to show. */
-  src: string | null;
+  /** Payload of the frame to show, or null while there is nothing to show. */
+  value: string | null;
   /** Frames in one pass, or null while showing a static QR. */
   frameCount: number | null;
   canToggleAnimation: boolean;
@@ -37,11 +37,6 @@ export const staticQrVersion = async (
   }
 };
 
-const renderQr = async (payload: string): Promise<string> => {
-  const QRCode = await import("qrcode");
-  return QRCode.toDataURL(payload, { errorCorrectionLevel: "M", margin: 2 });
-};
-
 /**
  * A token's QR, animated when it has to be. A single code is better whenever
  * a camera can read it — it can be photographed, shared as an image, and read
@@ -53,13 +48,13 @@ export const useTokenQr = (
   tokenText: string,
   animationEnabled = true,
 ): TokenQr => {
-  const [src, setSrc] = React.useState<string | null>(null);
+  const [value, setValue] = React.useState<string | null>(null);
   const [frameCount, setFrameCount] = React.useState<number | null>(null);
   const [canToggleAnimation, setCanToggleAnimation] = React.useState(false);
   const [isTooLargeForStatic, setIsTooLargeForStatic] = React.useState(false);
 
   React.useEffect(() => {
-    setSrc(null);
+    setValue(null);
     setFrameCount(null);
     const payload = tokenText.trim();
     if (!payload) {
@@ -76,20 +71,13 @@ export const useTokenQr = (
       if (cancelled) return;
       setFrameCount(frames.total);
 
-      // Each tick renders the part the encoder hands out next. Past the first
+      // Each tick shows the part the encoder hands out next. Past the first
       // pass those are fountain parts, so a receiver that missed one does not
       // have to wait for that exact frame to come round again.
-      const showNextFrame = async () => {
-        const frame = frames.next();
-        const rendered = await renderQr(frame);
-        if (!cancelled) setSrc(rendered);
-      };
+      const showNextFrame = () => setValue(frames.next());
 
-      await showNextFrame();
-      if (cancelled) return;
-      timer = window.setInterval(() => {
-        void showNextFrame();
-      }, ANIMATED_QR_FRAME_MS);
+      showNextFrame();
+      timer = window.setInterval(showNextFrame, ANIMATED_QR_FRAME_MS);
     };
 
     const generate = async () => {
@@ -102,14 +90,13 @@ export const useTokenQr = (
       if (needsAnimation && animationEnabled) {
         await animate();
       } else if (version !== null) {
-        const rendered = await renderQr(payload);
-        if (!cancelled) setSrc(rendered);
+        setValue(payload);
       }
     };
 
     void generate().catch(() => {
       if (!cancelled) {
-        setSrc(null);
+        setValue(null);
         setFrameCount(null);
       }
     });
@@ -120,5 +107,5 @@ export const useTokenQr = (
     };
   }, [tokenText, animationEnabled]);
 
-  return { src, frameCount, canToggleAnimation, isTooLargeForStatic };
+  return { value, frameCount, canToggleAnimation, isTooLargeForStatic };
 };

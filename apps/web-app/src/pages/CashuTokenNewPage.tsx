@@ -1,10 +1,11 @@
-import type { FC, RefObject } from "react";
+import { Button, Stack, TextField } from "@linky-fit/ui";
+import type { ComponentRef, FC, RefObject } from "react";
 import { extractCashuTokenFromText } from "../app/lib/tokenText";
 import type { Translate } from "../i18n";
 
 interface CashuTokenNewPageProps {
   cashuDraft: string;
-  cashuDraftRef: RefObject<HTMLTextAreaElement | null>;
+  cashuDraftRef: RefObject<ComponentRef<typeof TextField> | null>;
   cashuIsBusy: boolean;
   saveCashuFromText: (
     text: string,
@@ -37,24 +38,21 @@ export const CashuTokenNewPage: FC<CashuTokenNewPageProps> = ({
   };
 
   return (
-    <section className="panel">
-      <label>{t("cashuToken")}</label>
-      <textarea
+    <Stack gap="$lg">
+      <TextField
+        multiline
         ref={cashuDraftRef}
+        label={t("cashuToken")}
         value={cashuDraft}
-        onChange={(e) => handleDraftChange(e.target.value)}
+        onChangeText={handleDraftChange}
         placeholder={t("cashuPasteManualHint")}
       />
-
-      <div className="settings-row">
-        <button
-          className="btn-wide"
-          onClick={() => saveToken(cashuDraft)}
-          disabled={!cashuDraft.trim() || cashuIsBusy}
-        >
-          {t("cashuSave")}
-        </button>
-      </div>
-    </section>
+      <Button
+        onPress={() => saveToken(cashuDraft)}
+        disabled={!cashuDraft.trim() || cashuIsBusy}
+      >
+        {t("cashuSave")}
+      </Button>
+    </Stack>
   );
 };

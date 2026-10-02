@@ -78,9 +78,11 @@ describe("pending tokens", () => {
     expect(container.textContent).toContain("Pending for 3 days");
     expect(container.querySelector("time")).toBeNull();
     expect(container.textContent).not.toContain("Created");
-    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector('[role="table"]')).toBeNull();
     expect(
-      [...container.querySelectorAll("dd")].map((node) => node.textContent),
+      [
+        ...container.querySelectorAll('[data-testid="cashu-token-balance"]'),
+      ].map((node) => node.textContent),
     ).toEqual(["0 sat", "21 sat"]);
     await click(container, "21 sat");
     expect(navigateTo).toHaveBeenLastCalledWith({
@@ -127,24 +129,26 @@ describe("pending tokens", () => {
       />,
     );
     expect(
-      [...container.querySelectorAll("thead th")].map(
+      [...container.querySelectorAll('[role="columnheader"]')].map(
         (node) => node.textContent,
       ),
     ).toEqual(["Mint", "Available balance", "In pending tokens"]);
     expect(
-      [...container.querySelectorAll("tbody tr")].map((row) =>
-        [...row.children].map((cell) => cell.textContent),
-      ),
+      [...container.querySelectorAll('[role="row"]')]
+        .slice(1)
+        .map((row) =>
+          [...row.querySelectorAll('[role="cell"]')].map(
+            (cell) => cell.textContent,
+          ),
+        ),
     ).toEqual([
       ["mint.example", "100 sat", "25 sat"],
       ["other.example", "40 sat", "3 sat"],
+      [en.cashuTotalBalance, "140 sat", "28 sat"],
     ]);
     expect(
-      [...container.querySelectorAll("tfoot td")].map(
-        (node) => node.textContent,
-      ),
-    ).toEqual(["140 sat", "28 sat"]);
-    expect(container.querySelectorAll(".cashu-transfer-row")).toHaveLength(1);
+      container.querySelectorAll('[data-testid="cashu-transfer-row"]'),
+    ).toHaveLength(1);
     expect(container.textContent).not.toContain("Received token");
     await unmount();
   });
@@ -195,11 +199,6 @@ describe("pending tokens", () => {
         .querySelector('[role="progressbar"]')
         ?.getAttribute("aria-valuemax"),
     ).toBe("6");
-    expect(
-      container
-        .querySelector('[role="progressbar"] > span')
-        ?.getAttribute("style"),
-    ).toBe("width: 50%;");
     await rerender(
       <CashuTokensPage
         {...pageProps}
@@ -264,7 +263,9 @@ describe("pending tokens", () => {
       />,
     );
     expect(container.textContent).toContain("No open transfers.");
-    expect(container.querySelector("li")).toBeNull();
+    expect(
+      container.querySelector('[data-testid="cashu-transfer-row"]'),
+    ).toBeNull();
     await unmount();
   });
 
@@ -297,7 +298,9 @@ describe("pending tokens", () => {
         />,
       );
       expect(container.textContent).toContain("No open transfers.");
-      expect(container.querySelector("li")).toBeNull();
+      expect(
+        container.querySelector('[data-testid="cashu-transfer-row"]'),
+      ).toBeNull();
       expect(container.textContent).not.toContain("Received token");
     }
     await unmount();

@@ -3,7 +3,8 @@ import type {
   ProofStateSnapshot,
   StoredProof,
 } from "@linky-fit/linkshu";
-import type { FC } from "react";
+import { Button, DataTable, Row, Stack, Text } from "@linky-fit/ui";
+import type { FC, ReactNode } from "react";
 import { useEffect, useMemo, useRef } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 
@@ -40,6 +41,30 @@ const MINT_STATE_KEY: Record<ProofStateSnapshot["state"], I18nKey> = {
 
 const sum = (proofs: readonly StoredProof[]) =>
   proofs.reduce((total, proof) => total + proof.amount, 0);
+
+interface ProofSectionProps {
+  label: string;
+  total: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}
+
+const ProofSection = ({
+  label,
+  total,
+  actions,
+  children,
+}: ProofSectionProps) => (
+  <Stack aria-label={label} gap="$md">
+    <Row justifyContent="space-between" flexWrap="wrap">
+      <Text testID="proof-section-title">
+        {label} · {total}
+      </Text>
+      {actions ? <Row gap="$sm">{actions}</Row> : null}
+    </Row>
+    {children}
+  </Stack>
+);
 
 export const CashuProofsPage: FC<CashuProofsPageProps> = ({
   canRestoreTokens,
@@ -100,176 +125,153 @@ export const CashuProofsPage: FC<CashuProofsPageProps> = ({
 
   const renderProofTable = (proofs: readonly StoredProof[]) => {
     if (proofs.length === 0) {
-      return <p className="muted">{t("cashuNoProofs")}</p>;
+      return <Text color="$colorMuted">{t("cashuNoProofs")}</Text>;
     }
     return (
-      <table className="cashu-proof-table">
-        <thead>
-          <tr>
-            <th scope="col">{t("cashuProofsColumnAmount")}</th>
-            <th scope="col">{t("cashuProofsColumnMint")}</th>
-            <th scope="col">{t("cashuProofsColumnMintState")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {proofs.map((proof) => {
-            const mintState = checkingProofs
-              ? null
-              : (mintStateById.get(proof.id) ?? "unknown");
-            return (
-              <tr key={proof.id}>
-                <td>{formatDisplayedAmountText(proof.amount)}</td>
-                <td>{getMintDisplay(proof.mint)}</td>
-                <td className={mintState === null ? "muted" : ""}>
-                  {mintState === null ? "…" : t(MINT_STATE_KEY[mintState])}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <DataTable
+        fill
+        accessibilityLabel={t("cashuProofsTable")}
+        columns={[
+          { key: "amount", label: t("cashuProofsColumnAmount") },
+          { key: "mint", label: t("cashuProofsColumnMint") },
+          { key: "state", label: t("cashuProofsColumnMintState") },
+        ]}
+        rows={proofs.map((proof) => {
+          const mintState = checkingProofs
+            ? null
+            : (mintStateById.get(proof.id) ?? "unknown");
+          return {
+            key: proof.id,
+            cells: [
+              formatDisplayedAmountText(proof.amount),
+              getMintDisplay(proof.mint),
+              mintState === null ? (
+                <Text variant="caption" color="$colorMuted">
+                  …
+                </Text>
+              ) : (
+                t(MINT_STATE_KEY[mintState])
+              ),
+            ],
+          };
+        })}
+      />
     );
   };
 
-  const sectionTotal = (proofs: readonly StoredProof[]) =>
-    formatDisplayedAmountText(sum(proofs));
+  const note = (text: string) => <Text color="$colorMuted">{text}</Text>;
 
   return (
-    <>
-      <section className="panel">
-        <p className="muted wallet-proof-status" role="status">
-          {checkingProofs ? t("cashuCheckingProofs") : t("cashuInventoryHint")}
-        </p>
+    <Stack gap="$xxl">
+      <Text color="$colorMuted" role="status">
+        {checkingProofs ? t("cashuCheckingProofs") : t("cashuInventoryHint")}
+      </Text>
 
-        <div
-          className="ln-list wallet-token-list"
-          aria-label={t("cashuProofStateAvailable")}
-        >
-          <div className="list-header">
-            <span>
-              {t("cashuProofStateAvailable")} · {sectionTotal(available)}
-            </span>
-            <div className="list-header-actions">
-              <button
-                type="button"
-                className="btn-small secondary"
-                onClick={refresh}
-                disabled={
-                  checkingProofs ||
-                  cashuIsBusy ||
-                  inspectCashuProofStates === null
-                }
-              >
-                {t("cashuRefreshProofs")}
-              </button>
-              <button
-                type="button"
-                className="btn-small secondary"
-                onClick={() => void checkAll()}
-                disabled={
-                  cashuIsBusy ||
-                  cashuBulkCheckIsBusy ||
-                  checkingProofs ||
-                  unspentProofs.length === 0
-                }
-              >
-                {t("cashuCheckAllTokens")}
-              </button>
-            </div>
-          </div>
-          {renderProofTable(available)}
-          {spentCount > 0 ? (
-            <p className="muted">
-              {t("cashuSpentProofsKept").replace("{count}", String(spentCount))}
-            </p>
-          ) : null}
-          {cashuMeltToMainMintButtonLabel ? (
-            <div className="settings-row section-actions">
-              <button
-                type="button"
-                className="btn-wide secondary"
-                onClick={() => void meltLargestForeignMintToMainMint()}
-                disabled={cashuIsBusy || cashuBulkCheckIsBusy}
-              >
-                {cashuMeltToMainMintButtonLabel}
-              </button>
-            </div>
-          ) : null}
-          <div className="settings-row section-actions">
-            <button
-              type="button"
-              className="btn-wide secondary"
-              onClick={() => void restoreMissingTokens()}
-              disabled={!canRestoreTokens || tokensRestoreIsBusy || cashuIsBusy}
+      <ProofSection
+        label={t("cashuProofStateAvailable")}
+        total={formatDisplayedAmountText(sum(available))}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={refresh}
+              disabled={
+                checkingProofs ||
+                cashuIsBusy ||
+                inspectCashuProofStates === null
+              }
             >
-              {tokensRestoreIsBusy ? t("restoring") : t("restoreTokens")}
-            </button>
-          </div>
-        </div>
-
-        {held.length > 0 ? (
-          <div
-            className="ln-list wallet-token-list"
-            aria-label={t("cashuProofStateHeld")}
+              {t("cashuRefreshProofs")}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => void checkAll()}
+              disabled={
+                cashuIsBusy ||
+                cashuBulkCheckIsBusy ||
+                checkingProofs ||
+                unspentProofs.length === 0
+              }
+            >
+              {t("cashuCheckAllTokens")}
+            </Button>
+          </>
+        }
+      >
+        {renderProofTable(available)}
+        {spentCount > 0
+          ? note(
+              t("cashuSpentProofsKept").replace("{count}", String(spentCount)),
+            )
+          : null}
+        {cashuMeltToMainMintButtonLabel ? (
+          <Button
+            variant="secondary"
+            onPress={() => void meltLargestForeignMintToMainMint()}
+            disabled={cashuIsBusy || cashuBulkCheckIsBusy}
           >
-            <div className="list-header">
-              <span>
-                {t("cashuProofStateHeld")} · {sectionTotal(held)}
-              </span>
-            </div>
-            <p className="muted">
-              {held.some((proof) => proof.operationId === null)
-                ? t("cashuHeldUnknownHint")
-                : t("cashuHeldProofsHint")}
-            </p>
-            {renderProofTable(held)}
-          </div>
+            {cashuMeltToMainMintButtonLabel}
+          </Button>
         ) : null}
+        <Button
+          variant="secondary"
+          onPress={() => void restoreMissingTokens()}
+          disabled={!canRestoreTokens || tokensRestoreIsBusy || cashuIsBusy}
+        >
+          {tokensRestoreIsBusy ? t("restoring") : t("restoreTokens")}
+        </Button>
+      </ProofSection>
 
-        {handedOut.length > 0 ? (
-          <div
-            className="ln-list wallet-token-list"
-            aria-label={t("cashuProofStateHandedOut")}
-          >
-            <div className="list-header">
-              <span>
-                {t("cashuProofStateHandedOut")} · {sectionTotal(handedOut)}
-              </span>
-            </div>
-            {renderProofTable(handedOut)}
-            <p className="muted">{t("cashuReclaimHint")}</p>
-            <div className="settings-row section-actions">
-              <button
-                type="button"
-                className="btn-wide secondary"
-                onClick={() => void reclaimHandedOutTokens().then(refresh)}
-                disabled={
-                  cashuIsBusy || cashuBulkCheckIsBusy || tokensRestoreIsBusy
-                }
-              >
-                {t("cashuReclaimHandedOut")}
-              </button>
-            </div>
-          </div>
-        ) : null}
+      {held.length > 0 ? (
+        <ProofSection
+          label={t("cashuProofStateHeld")}
+          total={formatDisplayedAmountText(sum(held))}
+        >
+          {note(
+            held.some((proof) => proof.operationId === null)
+              ? t("cashuHeldUnknownHint")
+              : t("cashuHeldProofsHint"),
+          )}
+          {renderProofTable(held)}
+        </ProofSection>
+      ) : null}
 
-        <p className="muted">{t("cashuRestoreAndReclaimHint")}</p>
-        <div className="settings-row section-actions">
-          <button
-            type="button"
-            className="btn-wide secondary"
-            onClick={() => void restoreAndReclaimAllTokens().then(refresh)}
+      {handedOut.length > 0 ? (
+        <ProofSection
+          label={t("cashuProofStateHandedOut")}
+          total={formatDisplayedAmountText(sum(handedOut))}
+        >
+          {renderProofTable(handedOut)}
+          {note(t("cashuReclaimHint"))}
+          <Button
+            variant="secondary"
+            onPress={() => void reclaimHandedOutTokens().then(refresh)}
             disabled={
-              !canRestoreTokens ||
-              cashuIsBusy ||
-              cashuBulkCheckIsBusy ||
-              tokensRestoreIsBusy
+              cashuIsBusy || cashuBulkCheckIsBusy || tokensRestoreIsBusy
             }
           >
-            {t("cashuRestoreAndReclaimAll")}
-          </button>
-        </div>
-      </section>
-    </>
+            {t("cashuReclaimHandedOut")}
+          </Button>
+        </ProofSection>
+      ) : null}
+
+      <Stack gap="$md">
+        {note(t("cashuRestoreAndReclaimHint"))}
+        <Button
+          variant="secondary"
+          onPress={() => void restoreAndReclaimAllTokens().then(refresh)}
+          disabled={
+            !canRestoreTokens ||
+            cashuIsBusy ||
+            cashuBulkCheckIsBusy ||
+            tokensRestoreIsBusy
+          }
+        >
+          {t("cashuRestoreAndReclaimAll")}
+        </Button>
+      </Stack>
+    </Stack>
   );
 };

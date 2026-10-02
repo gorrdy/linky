@@ -1,8 +1,10 @@
+import { Button, Notice, Pressable, Stack, Text } from "@linky-fit/ui";
 import { useState, type Dispatch, type FC, type SetStateAction } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { Keypad } from "../components/Keypad";
 import { useAmountInputKeypad } from "../components/useAmountInputKeypad";
+import { tooltip } from "../utils/tooltip";
 
 interface CashuTokenEmitPageProps {
   cashuBalance: number;
@@ -54,94 +56,78 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
   });
 
   return (
-    <>
+    <Stack gap="$lg">
       {showMintWarning ? (
-        <div className="wallet-warning cashu-emit-mint-warning" role="alert">
-          <button
-            type="button"
-            className="wallet-warning-close"
-            onClick={() => setMintWarningDismissed(true)}
-            aria-label={t("close")}
-            title={t("close")}
-          >
-            ×
-          </button>
-          <span className="wallet-warning-icon" aria-hidden="true">
-            !
-          </span>
-          <div className="wallet-warning-text">
-            <span className="wallet-warning-title">
-              {t("cashuMultipleMintsWarningTitle")}
-            </span>
-            <span className="wallet-warning-body">
-              {t("cashuMultipleMintsWarningBody")}
-            </span>
-            <button
-              type="button"
-              className="btn-wide secondary"
-              onClick={() => void meltLargestForeignMintToMainMint()}
-              disabled={cashuIsBusy}
-            >
-              {cashuMeltToMainMintButtonLabel}
-            </button>
-          </div>
-        </div>
+        <Notice
+          tone="warning"
+          title={t("cashuMultipleMintsWarningTitle")}
+          dismiss={{
+            label: t("close"),
+            onPress: () => setMintWarningDismissed(true),
+          }}
+          description={
+            <Stack gap="$sm">
+              <Text variant="caption" color="$colorSubtle">
+                {t("cashuMultipleMintsWarningBody")}
+              </Text>
+              <Button
+                variant="secondary"
+                onPress={() => void meltLargestForeignMintToMainMint()}
+                disabled={cashuIsBusy}
+              >
+                {cashuMeltToMainMintButtonLabel}
+              </Button>
+            </Stack>
+          }
+        />
       ) : null}
 
-      <section className="panel">
-        <div className="contact-header">
-          <div className="contact-header-text">
-            <h3>{t("cashuEmit")}</h3>
-            <p className="muted">
-              <button
-                type="button"
-                className="copyable available-amount-button muted"
-                disabled={!canUseFullAvailableAmount}
-                onClick={() => {
-                  if (!canUseFullAvailableAmount) return;
-                  setCashuEmitAmount(String(cashuBalance));
-                }}
-              >
-                {availableAmountText}
-              </button>
-            </p>
-          </div>
-        </div>
-
-        <AmountDisplay
-          amount={cashuEmitAmount}
-          cycleOnClick
-          inputDisplayValue={amountInput.inputDisplayValue}
-        />
-
-        <Keypad
-          ariaLabel={`${t("payAmount")} (${displayUnit})`}
-          decimalKeyEnabled={amountInput.decimalKeyEnabled}
-          disabled={cashuIsBusy}
-          onKeyPress={(key: string) => {
-            if (cashuIsBusy) return;
-            amountInput.onKeyPress(key);
+      <Stack gap="$xxs">
+        <Text variant="title">{t("cashuEmit")}</Text>
+        <Pressable
+          alignSelf="flex-start"
+          disabled={!canUseFullAvailableAmount}
+          onPress={() => {
+            if (!canUseFullAvailableAmount) return;
+            setCashuEmitAmount(String(cashuBalance));
           }}
-          translations={{
-            clearForm: t("clearForm"),
-            decimalPoint: t("decimalPoint"),
-            delete: t("delete"),
-          }}
-        />
+        >
+          <Text color="$colorMuted">{availableAmountText}</Text>
+        </Pressable>
+      </Stack>
 
-        <div className="actions">
-          <button
-            className="btn-wide"
-            onClick={() => {
-              void emitCashuToken();
-            }}
-            disabled={invalid}
-            title={amountSat > cashuBalance ? t("payInsufficient") : undefined}
-          >
-            {t("cashuEmit")}
-          </button>
-        </div>
-      </section>
-    </>
+      <AmountDisplay
+        amount={cashuEmitAmount}
+        cycleOnClick
+        inputDisplayValue={amountInput.inputDisplayValue}
+      />
+
+      <Keypad
+        ariaLabel={`${t("payAmount")} (${displayUnit})`}
+        decimalKeyEnabled={amountInput.decimalKeyEnabled}
+        disabled={cashuIsBusy}
+        onKeyPress={(key: string) => {
+          if (cashuIsBusy) return;
+          amountInput.onKeyPress(key);
+        }}
+        translations={{
+          clearForm: t("clearForm"),
+          decimalPoint: t("decimalPoint"),
+          delete: t("delete"),
+        }}
+      />
+
+      <Button
+        onPress={() => {
+          void emitCashuToken();
+        }}
+        disabled={invalid}
+        {...tooltip(
+          amountSat > cashuBalance ? t("payInsufficient") : undefined,
+        )}
+      >
+        {t("cashuEmit")}
+      </Button>
+    </Stack>
   );
 };

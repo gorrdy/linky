@@ -1,3 +1,4 @@
+import { Button, ListRow, QRCode, Stack, Switch, Text } from "@linky-fit/ui";
 import { useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useTokenQr } from "../app/hooks/cashu/useTokenQr";
@@ -13,75 +14,59 @@ export const CashuTokenQr = ({ tokenText, copyText }: CashuTokenQrProps) => {
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const {
     frameCount: tokenQrFrameCount,
-    src: tokenQr,
+    value: tokenQr,
     canToggleAnimation,
     isTooLargeForStatic,
   } = useTokenQr(visible ? tokenText : "", animationEnabled);
 
   if (!visible) {
     return (
-      <div className="settings-row">
-        <button
-          className="btn-wide secondary"
-          onClick={() => setVisible(true)}
-          disabled={!tokenText.trim()}
-        >
-          {t("cashuShowTokenQr")}
-        </button>
-      </div>
+      <Button
+        variant="secondary"
+        onPress={() => setVisible(true)}
+        disabled={!tokenText.trim()}
+      >
+        {t("cashuShowTokenQr")}
+      </Button>
     );
   }
 
   return (
     <>
       {tokenQr ? (
-        <div className="topup-invoice-qr-shell cashu-token-qr-shell">
-          <button
-            type="button"
-            className="topup-invoice-qr-button cashu-token-qr-button"
-            onClick={() => void copyText(tokenText)}
-            title={t("copy")}
-            aria-label={t("copy")}
-          >
-            <img
-              className="qr topup-invoice-qr cashu-token-qr"
-              src={tokenQr}
-              alt={t("cashuToken")}
-            />
-          </button>
+        <Stack gap="$md">
+          <QRCode
+            value={tokenQr}
+            accessibilityLabel={t("copy")}
+            onPress={() => void copyText(tokenText)}
+          />
           {tokenQrFrameCount === null ? null : (
-            <p className="muted cashu-token-qr-hint">
+            <Text color="$colorMuted">
               {t("cashuTokenAnimatedQrHint").replace(
                 "{frames}",
                 String(tokenQrFrameCount),
               )}
-            </p>
+            </Text>
           )}
-        </div>
+        </Stack>
       ) : null}
 
       {canToggleAnimation ? (
         <>
-          <div className="settings-row">
-            <div className="settings-left">
-              <span className="settings-label">{t("cashuTokenAnimateQr")}</span>
-            </div>
-            <div className="settings-right">
-              <label className="switch">
-                <input
-                  className="switch-input"
-                  type="checkbox"
-                  checked={animationEnabled}
-                  aria-label={t("cashuTokenAnimateQr")}
-                  onChange={(event) =>
-                    setAnimationEnabled(event.target.checked)
-                  }
-                />
-              </label>
-            </div>
-          </div>
+          <ListRow
+            title={t("cashuTokenAnimateQr")}
+            trailing={
+              <Switch
+                accessibilityLabel={t("cashuTokenAnimateQr")}
+                value={animationEnabled}
+                onValueChange={setAnimationEnabled}
+              />
+            }
+          />
           {!animationEnabled && isTooLargeForStatic ? (
-            <p className="muted">{t("cashuTokenStaticQrUnavailable")}</p>
+            <Text color="$colorMuted">
+              {t("cashuTokenStaticQrUnavailable")}
+            </Text>
           ) : null}
         </>
       ) : null}
