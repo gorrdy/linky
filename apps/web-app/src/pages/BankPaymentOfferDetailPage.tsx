@@ -1,3 +1,4 @@
+import { Button, Row, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { formatRemainingTime } from "../app/lib/bankPaymentOfferLabels";
@@ -220,8 +221,6 @@ export const BankPaymentOfferDetailPage: React.FC<
 }) => {
   const { formatDisplayedAmountText, nostrPictureByNpub, t } =
     useAppShellCore();
-  const confirmationInputRef = React.useRef<HTMLInputElement | null>(null);
-  const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
   const [isAttachingConfirmation, setIsAttachingConfirmation] =
     React.useState(false);
   const [isOpening, setIsOpening] = React.useState(false);
@@ -300,32 +299,6 @@ export const BankPaymentOfferDetailPage: React.FC<
         : null,
     [entry],
   );
-
-  React.useEffect(() => {
-    let cancelled = false;
-    setQrDataUrl(null);
-
-    const payload = (entry?.info.spdPayload ?? "").trim();
-    if (!payload) return;
-
-    void (async () => {
-      try {
-        const QRCode = await import("qrcode");
-        const qr = await QRCode.toDataURL(payload, {
-          errorCorrectionLevel: "M",
-          margin: 2,
-          width: 512,
-        });
-        if (!cancelled) setQrDataUrl(qr);
-      } catch {
-        if (!cancelled) setQrDataUrl(null);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [entry]);
 
   // The displayed countdown may belong to another recipient's entry (the
   // offerer sees the accepting contact's phase), so tick unless the offer as
@@ -415,25 +388,21 @@ export const BankPaymentOfferDetailPage: React.FC<
     offerEntry: BankPaymentOfferEntry,
     remainingSec: number,
   ) => (
-    <div className="bank-payment-offer-timer-row">
-      <span className="bank-payment-offer-timer">
+    <Row gap="$xs" justifyContent="center">
+      <Text bold color="$colorSubtle">
         {formatRemainingTime(remainingSec, t)}
-      </span>
-      <button
-        type="button"
-        className="bank-payment-offer-extend"
-        disabled={isExtending || remainingSec <= 0}
-        onClick={() => void extendTime(offerEntry)}
+      </Text>
+      <Button
+        size="sm"
+        variant="secondary"
+        loading={isExtending}
+        disabled={remainingSec <= 0}
         aria-label={t("bankPaymentOfferNeedMoreTime")}
-        title={t("bankPaymentOfferNeedMoreTime")}
+        onPress={() => void extendTime(offerEntry)}
       >
-        {isExtending ? (
-          <span className="btn-spinner" aria-hidden="true" />
-        ) : (
-          t("bankPaymentOfferExtendOneMinute")
-        )}
-      </button>
-    </div>
+        {t("bankPaymentOfferExtendOneMinute")}
+      </Button>
+    </Row>
   );
 
   if (isCreatedByMe) {
@@ -642,7 +611,6 @@ export const BankPaymentOfferDetailPage: React.FC<
         amountText={amountText}
         confirmation={confirmation}
         pendingConfirmation={pendingConfirmation}
-        confirmationInputRef={confirmationInputRef}
         attachConfirmation={attachConfirmation}
         isAttachingConfirmation={isAttachingConfirmation}
         requesterName={requesterName}
@@ -721,7 +689,7 @@ export const BankPaymentOfferDetailPage: React.FC<
       t={t}
       remainingSec={remainingSec}
       timerWithExtension={timerWithExtension}
-      qrDataUrl={qrDataUrl}
+      qrPayload={(entry.info.spdPayload ?? "").trim()}
       canConfirmPaid={canConfirmPaid}
       isConfirmingPaid={isConfirmingPaid}
       confirmPaid={confirmPaid}

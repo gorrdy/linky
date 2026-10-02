@@ -6,6 +6,7 @@ import type { BankOfferStatus } from "@linky-fit/proxy-payment";
 import type { LocalNostrMessage } from "../app/types/appTypes";
 import { createLinkyBankPaymentOfferEvent } from "../testUtils/bankPaymentOfferEvent";
 import { createSecretKey } from "../testUtils/nostrKeys";
+import { pickFile } from "../utils/pickFile";
 import { renderIntoDocument } from "../testUtils/renderIntoDocument";
 import { BankPaymentOfferDetailPage } from "./BankPaymentOfferDetailPage";
 
@@ -30,6 +31,8 @@ vi.mock("../app/context/AppShellContexts", () => ({
     t: (key: string) => appShellMock.t(key),
   }),
 }));
+
+vi.mock("../utils/pickFile", () => ({ pickFile: vi.fn() }));
 
 vi.mock("../components/PrivateImageBubble", () => ({
   PrivateImageBubble: () => <div data-testid="payment-confirmation-image" />,
@@ -72,6 +75,17 @@ const createOfferMessage = (
 };
 
 type PageProps = ComponentProps<typeof BankPaymentOfferDetailPage>;
+
+const buttonByText = (container: HTMLElement, text: string) =>
+  Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === text,
+  ) ?? null;
+
+const recipientRows = (container: HTMLElement) =>
+  container.querySelectorAll('[data-testid^="bank-payment-offer-recipient-"]');
+
+const paymentFields = (container: HTMLElement) =>
+  container.querySelector('[data-testid="bank-payment-fields"]');
 
 interface RenderOfferOptions extends Partial<PageProps> {
   status?: BankOfferStatus;
@@ -229,7 +243,7 @@ describe("BankPaymentOfferDetailPage", () => {
     const container = await renderOffer({ onRespondBankPaymentOffer });
 
     await act(async () => {
-      container.querySelector<HTMLButtonElement>(".btn-wide")?.click();
+      buttonByText(container, "bankPaymentOfferAccept")?.click();
     });
 
     expect(onRespondBankPaymentOffer).toHaveBeenCalledWith(
@@ -245,10 +259,9 @@ describe("BankPaymentOfferDetailPage", () => {
     window.location.hash = "#chat/contact-1/bank-payment-offer/offer-1";
     const onRespondBankPaymentOffer = vi.fn(async () => true);
     const container = await renderOffer({ onRespondBankPaymentOffer });
-    const buttons = container.querySelectorAll<HTMLButtonElement>(".btn-wide");
 
     await act(async () => {
-      buttons[1]?.click();
+      buttonByText(container, "decline")?.click();
     });
 
     expect(onRespondBankPaymentOffer).toHaveBeenCalledWith(
@@ -260,16 +273,15 @@ describe("BankPaymentOfferDetailPage", () => {
 
   it("does not mark the fiat step complete before the recipient confirms payment", async () => {
     const container = await renderOffer({ status: "bank_details_sent" });
-    const steps = container.querySelectorAll(
-      ".bank-payment-offer-progress-step",
+    const progress = container.querySelector(
+      '[role="progressbar"][aria-label="bankPaymentOfferProgressTitle"]',
     );
+    const labels = progress?.nextElementSibling?.children ?? [];
 
-    expect(steps).toHaveLength(4);
-    expect(steps[0]?.classList.contains("is-complete")).toBe(true);
-    expect(steps[1]?.classList.contains("is-complete")).toBe(true);
-    expect(steps[2]?.classList.contains("is-complete")).toBe(false);
-    expect(steps[3]?.classList.contains("is-complete")).toBe(false);
-    expect(Array.from(steps, (step) => step.textContent)).toEqual([
+    // Two of the four phases (offer, match) are done.
+    expect(progress?.getAttribute("aria-valuenow")).toBe("2");
+    expect(progress?.getAttribute("aria-valuemax")).toBe("4");
+    expect(Array.from(labels, (label) => label.textContent)).toEqual([
       "bankPaymentOfferProgressOffered",
       "bankPaymentOfferProgressAccept",
       "bankPaymentOfferProgressBankPayment",
@@ -280,14 +292,9 @@ describe("BankPaymentOfferDetailPage", () => {
   it("keeps the confirm action visible and hides the payment rows behind a toggle", async () => {
     const container = await renderOffer({ status: "bank_details_sent" });
 
-    expect(container.querySelector(".bank-payment-fields")).toBeNull();
-    const detailsToggle = container.querySelector<HTMLButtonElement>(
-      ".bank-payment-offer-details-toggle",
-    );
-    const confirmButton = container.querySelector<HTMLButtonElement>(
-      ".bank-payment-request",
-    );
-    expect(confirmButton?.textContent).toContain("bankPaymentOfferMarkPaid");
+    expect(paymentFields(container)).toBeNull();
+    const detailsToggle = buttonByText(container, "bankPaymentOfferDetails");
+    const confirmButton = buttonByText(container, "bankPaymentOfferMarkPaid");
     expect(
       detailsToggle &&
         confirmButton &&
@@ -297,9 +304,9 @@ describe("BankPaymentOfferDetailPage", () => {
     await act(async () => {
       detailsToggle?.click();
     });
-    expect(
-      container.querySelector(".bank-payment-fields")?.textContent,
-    ).toContain("CZ6508000000192000145399");
+    expect(paymentFields(container)?.textContent).toContain(
+      "CZ6508000000192000145399",
+    );
   });
 
   it("cycles the display unit when the amount is tapped", async () => {
@@ -362,9 +369,7 @@ describe("BankPaymentOfferDetailPage", () => {
       ],
     });
 
-    const recipients = container.querySelectorAll(
-      ".bank-payment-offer-recipient",
-    );
+    const recipients = recipientRows(container);
     expect(recipients).toHaveLength(2);
     expect(recipients[0]?.textContent).toContain("Alice");
     expect(recipients[1]?.textContent).toContain("Bob");
@@ -410,7 +415,7 @@ describe("BankPaymentOfferDetailPage", () => {
       status: "bank_paid",
     });
     const extendButton = container.querySelector<HTMLButtonElement>(
-      ".bank-payment-offer-timer-row .bank-payment-offer-extend",
+      'button[aria-label="bankPaymentOfferNeedMoreTime"]',
     );
 
     expect(extendButton?.textContent).toBe("bankPaymentOfferExtendOneMinute");
@@ -432,18 +437,15 @@ describe("BankPaymentOfferDetailPage", () => {
       onRespondBankPaymentOffer,
       status: "bank_paid",
     });
-    const buttons = container.querySelectorAll<HTMLButtonElement>(".btn-wide");
-    const recipientAvatar = container.querySelector<HTMLImageElement>(
-      ".bank-payment-offer-recipient-avatar img",
-    );
+    const settleButton = buttonByText(container, "bankPaymentOfferSettle");
+    const recipientAvatar =
+      recipientRows(container)[0]?.querySelector<HTMLImageElement>("img");
 
     expect(recipientAvatar?.src).toBe("https://example.com/alice.jpg");
-    expect(buttons[0]?.textContent).toContain("bankPaymentOfferSettle");
-    expect(buttons[0]?.querySelector("svg")).not.toBeNull();
-    expect(buttons[1]?.textContent).toContain("bankPaymentOfferNotPaid");
+    expect(settleButton?.querySelector("svg")).not.toBeNull();
 
     await act(async () => {
-      buttons[1]?.click();
+      buttonByText(container, "bankPaymentOfferNotPaid")?.click();
     });
 
     expect(onRespondBankPaymentOffer).toHaveBeenCalledWith(
@@ -474,19 +476,13 @@ describe("BankPaymentOfferDetailPage", () => {
       "bankPaymentOfferAttachConfirmation",
     );
 
-    const input =
-      container.querySelector<HTMLInputElement>('input[type="file"]');
-    if (!input) throw new Error("confirmation input not found");
     const file = new File(["confirmation"], "confirmation.png", {
       type: "image/png",
     });
-    Object.defineProperty(input, "files", {
-      configurable: true,
-      value: [file],
-    });
+    vi.mocked(pickFile).mockResolvedValueOnce(file);
 
     await act(async () => {
-      input.dispatchEvent(new Event("change", { bubbles: true }));
+      buttonByText(container, "bankPaymentOfferAttachConfirmation")?.click();
     });
 
     expect(onSendChatImage).toHaveBeenCalledWith(

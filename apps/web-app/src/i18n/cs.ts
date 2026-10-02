@@ -676,6 +676,7 @@ export const cs = {
   bankPaymentOfferAccept: "Přijmout",
   bankPaymentOfferCancel: "Zrušit nabídku",
   bankPaymentOfferDetails: "Platební údaje",
+  bankPaymentOfferQr: "QR kód bankovní platby",
   bankPaymentOfferMarkPaid: "Zaplaceno",
   bankPaymentOfferMarkDone: "Dokončit",
   bankPaymentOfferSettle: "Potvrdit vyrovnání",

@@ -1,14 +1,20 @@
 import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Copy,
-  FileText,
-  ImagePlus,
-  Landmark,
-  Share2,
-  X,
-} from "lucide-react";
+  Avatar,
+  Button,
+  Card,
+  FileAttachment,
+  Icon,
+  ImageAttachment,
+  ListRow,
+  Pressable,
+  Progress,
+  QRCode,
+  Row,
+  Stack,
+  Text,
+  type Tone,
+  Pill,
+} from "@linky-fit/ui";
 import React from "react";
 import { getBankPaymentOfferStatusLabel } from "../app/lib/bankPaymentOfferLabels";
 import type {
@@ -20,13 +26,12 @@ import {
   type PrivateImageMessagePayload,
 } from "../app/lib/privateImageMessage";
 import type { ContactRowLike, LocalNostrMessage } from "../app/types/appTypes";
-import { Avatar } from "../components/Avatar";
 import { BankPaymentAmount } from "../components/BankPaymentAmount";
 import { PrivateFileBubble } from "../components/PrivateFileBubble";
 import { PrivateImageBubble } from "../components/PrivateImageBubble";
 import type { Translate } from "../i18n";
-import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
+import { pickFile } from "../utils/pickFile";
 
 export interface BankPaymentOfferEntry {
   info: BankPaymentOfferInfo;
@@ -44,6 +49,58 @@ export interface BankPaymentConfirmation {
   payload: PrivateImageMessagePayload;
 }
 
+type TimerWithExtension = (
+  offerEntry: BankPaymentOfferEntry,
+  remainingSec: number,
+) => React.ReactElement;
+
+interface BankPaymentScreenProps {
+  children: React.ReactNode;
+  /** Fills the screen height and spreads the content to its edges. */
+  fill?: boolean;
+}
+
+/** Page root of the bank payment and offer screens. */
+export const BankPaymentScreen = ({
+  children,
+  fill = false,
+}: BankPaymentScreenProps) => (
+  <Stack
+    gap="$lg"
+    paddingBottom="$xxl"
+    $compact={{ marginTop: "$lg" }}
+    flexGrow={fill ? 1 : 0}
+    minHeight={fill ? "100%" : undefined}
+    justifyContent={fill ? "space-between" : undefined}
+  >
+    {children}
+  </Stack>
+);
+
+const StateCopy = ({ children }: { children: React.ReactNode }) => (
+  <Stack flex={1} alignItems="center" justifyContent="center" gap="$md">
+    {children}
+  </Stack>
+);
+
+const StateTitle = ({ children }: { children: string }) => (
+  <Text variant="heading" role="heading" textAlign="center">
+    {children}
+  </Text>
+);
+
+const MutedCopy = ({ children }: { children: string }) => (
+  <Text color="$colorMuted" textAlign="center">
+    {children}
+  </Text>
+);
+
+const ErrorText = ({ children }: { children: string }) => (
+  <Text variant="caption" color="$dangerText">
+    {children}
+  </Text>
+);
+
 interface PaymentConfirmationProps {
   confirmation: BankPaymentConfirmation;
   t: Translate;
@@ -52,8 +109,8 @@ interface PaymentConfirmationProps {
 const PaymentConfirmation = ({ confirmation, t }: PaymentConfirmationProps) => {
   const rumorId = (confirmation.message.rumorId ?? "").trim() || null;
   return (
-    <div className="bank-payment-offer-confirmation">
-      <strong>{t("bankPaymentOfferConfirmation")}</strong>
+    <Stack alignItems="center" gap="$sm" width="100%">
+      <Text bold>{t("bankPaymentOfferConfirmation")}</Text>
       {isPrivatePdfPayload(confirmation.payload) ? (
         <PrivateFileBubble
           onBlobChange={() => undefined}
@@ -69,7 +126,7 @@ const PaymentConfirmation = ({ confirmation, t }: PaymentConfirmationProps) => {
           t={t}
         />
       )}
-    </div>
+    </Stack>
   );
 };
 
@@ -87,23 +144,18 @@ const PendingPaymentConfirmation = ({
   pending,
   t,
 }: PendingPaymentConfirmationProps) => (
-  <div className="bank-payment-offer-confirmation">
-    <strong>{t("bankPaymentOfferConfirmation")}</strong>
+  <Stack alignItems="center" gap="$sm" width="100%">
+    <Text bold>{t("bankPaymentOfferConfirmation")}</Text>
     {pending.imageUrl ? (
-      <img
-        className="chat-private-image"
-        src={pending.imageUrl}
-        alt={t("bankPaymentOfferConfirmation")}
+      <ImageAttachment
+        uri={pending.imageUrl}
+        accessibilityLabel={t("bankPaymentOfferConfirmation")}
+        errorLabel={t("chatImageLoadFailed")}
       />
     ) : (
-      <span className="chat-private-file">
-        <span className="chat-private-file-icon" aria-hidden="true">
-          <FileText size={28} />
-        </span>
-        <span className="chat-private-file-name">{pending.fileName}</span>
-      </span>
+      <FileAttachment name={pending.fileName} />
     )}
-  </div>
+  </Stack>
 );
 
 interface RecipientProgressProps {
@@ -145,27 +197,28 @@ const RecipientProgress = ({ status, t }: RecipientProgressProps) => {
   const completedCount = steps.filter((step) => step.isComplete).length;
 
   return (
-    <div
-      className="bank-payment-offer-progress"
-      aria-label={t("bankPaymentOfferProgressTitle")}
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={steps.length}
-      aria-valuenow={completedCount}
-    >
-      {steps.map((step) => (
-        <div
-          className={`bank-payment-offer-progress-step${step.isComplete ? " is-complete" : ""}`}
-          key={step.key}
-        >
-          <span
-            className="bank-payment-offer-progress-segment"
-            aria-hidden="true"
-          />
-          <span>{step.label}</span>
-        </div>
-      ))}
-    </div>
+    <Stack gap="$xs" width="100%" maxWidth="$sheetWidth" alignSelf="center">
+      <Progress
+        accessibilityLabel={t("bankPaymentOfferProgressTitle")}
+        segments={steps.length}
+        value={completedCount}
+        max={steps.length}
+      />
+      <Row gap="$xs" alignItems="flex-start">
+        {steps.map((step) => (
+          <Text
+            key={step.key}
+            flex={1}
+            variant="caption"
+            bold
+            textAlign="center"
+            color={step.isComplete ? "$colorSubtle" : "$colorMuted"}
+          >
+            {step.label}
+          </Text>
+        ))}
+      </Row>
+    </Stack>
   );
 };
 
@@ -184,13 +237,44 @@ const RequesterIntro = ({
   status,
   t,
 }: RequesterIntroProps) => (
-  <div className="bank-payment-offer-requester-intro">
-    <strong>
+  <Stack
+    alignItems="center"
+    gap="$sm"
+    width="100%"
+    maxWidth="$sheetWidth"
+    alignSelf="center"
+  >
+    <Text variant="title" textAlign="center">
       {t("bankPaymentOfferRequestedBy").replace("{name}", requesterName)}
-    </strong>
+    </Text>
     <BankPaymentAmount canCycle={canCycleAmount} text={amountText} />
     <RecipientProgress status={status} t={t} />
-  </div>
+  </Stack>
+);
+
+interface ClosedOfferStateProps {
+  actionLabel: string;
+  amount?: React.ReactNode;
+  closeOffer: () => void;
+  description: string;
+  title: string;
+}
+
+const ClosedOfferState = ({
+  actionLabel,
+  amount,
+  closeOffer,
+  description,
+  title,
+}: ClosedOfferStateProps) => (
+  <BankPaymentScreen fill>
+    <StateCopy>
+      <StateTitle>{title}</StateTitle>
+      {amount}
+      <MutedCopy>{description}</MutedCopy>
+    </StateCopy>
+    <Button onPress={closeOffer}>{actionLabel}</Button>
+  </BankPaymentScreen>
 );
 
 interface ExpiredOfferViewProps {
@@ -200,15 +284,12 @@ interface ExpiredOfferViewProps {
 
 export function ExpiredOfferView({ t, closeOffer }: ExpiredOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
-        <h2>{t("bankPaymentOfferExpiredTitle")}</h2>
-        <p className="muted">{t("bankPaymentOfferExpiredDescription")}</p>
-      </div>
-      <button type="button" className="btn-wide" onClick={closeOffer}>
-        {t("close")}
-      </button>
-    </section>
+    <ClosedOfferState
+      actionLabel={t("close")}
+      closeOffer={closeOffer}
+      description={t("bankPaymentOfferExpiredDescription")}
+      title={t("bankPaymentOfferExpiredTitle")}
+    />
   );
 }
 
@@ -224,32 +305,36 @@ export function CanceledOfferView({
   closeOffer,
 }: CanceledOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
-        <h2>{t("bankPaymentOfferCanceledTitle")}</h2>
-        <p className="muted">
-          {t("bankPaymentOfferCanceledDescription").replace(
-            "{name}",
-            requesterName,
-          )}
-        </p>
-      </div>
-      <button type="button" className="btn-wide" onClick={closeOffer}>
-        {t("close")}
-      </button>
-    </section>
+    <ClosedOfferState
+      actionLabel={t("close")}
+      closeOffer={closeOffer}
+      description={t("bankPaymentOfferCanceledDescription").replace(
+        "{name}",
+        requesterName,
+      )}
+      title={t("bankPaymentOfferCanceledTitle")}
+    />
   );
 }
+
+const STATUS_TONES: Record<BankOfferStatus | "queued", Tone> = {
+  accepted: "accent",
+  accepted_by_other: "neutral",
+  bank_details_sent: "info",
+  bank_paid: "accent",
+  canceled: "neutral",
+  declined: "neutral",
+  offered: "warning",
+  queued: "neutral",
+  settled: "accent",
+};
 
 interface OwnerOfferViewProps {
   activeEntry: BankPaymentOfferEntry;
   activeAmountText: string;
   t: Translate;
   remainingSec: number | null;
-  timerWithExtension: (
-    offerEntry: BankPaymentOfferEntry,
-    remainingSec: number,
-  ) => React.ReactElement;
+  timerWithExtension: TimerWithExtension;
   acceptedInfoText: string | null;
   offerEntries: BankPaymentOfferEntry[];
   contacts: readonly ContactRowLike[];
@@ -283,9 +368,16 @@ export function OwnerOfferView({
   responseStatus,
   cancelOffer,
 }: OwnerOfferViewProps) {
+  const recipient = (contact: ContactRowLike | null | undefined) => {
+    const npub = normalizeNpubIdentifier(contact?.npub ?? "");
+    return {
+      name: (contact?.name ?? "").trim() || t("unknownContactTitle"),
+      pictureUrl: npub ? (nostrPictureByNpub[npub] ?? null) : null,
+    };
+  };
   return (
-    <section className="panel panel-plain bank-payment-offer-owner-page">
-      <div className="bank-payment-offer-owner-summary">
+    <BankPaymentScreen>
+      <Stack alignItems="center" gap="$sm">
         <BankPaymentAmount
           canCycle={Boolean(activeEntry.info.amountSat)}
           text={activeAmountText}
@@ -294,23 +386,19 @@ export function OwnerOfferView({
         {remainingSec !== null
           ? timerWithExtension(activeEntry, remainingSec)
           : null}
-        {acceptedInfoText ? <p className="muted">{acceptedInfoText}</p> : null}
-      </div>
+        {acceptedInfoText ? <MutedCopy>{acceptedInfoText}</MutedCopy> : null}
+      </Stack>
 
-      <div className="bank-payment-offer-recipient-list">
+      <Stack gap="$sm">
         {offerEntries.map((offerEntry) => {
           const contactId = offerEntry.message.contactId.trim();
           const contact = contacts.find(
             (candidate) => (candidate.id ?? "").trim() === contactId,
           );
-          const name = (contact?.name ?? "").trim() || t("unknownContactTitle");
-          const npub = normalizeNpubIdentifier(contact?.npub ?? "");
-          const pictureUrl = npub ? (nostrPictureByNpub[npub] ?? null) : null;
           return (
             <OfferRecipientRow
               key={contactId}
-              name={name}
-              pictureUrl={pictureUrl}
+              {...recipient(contact)}
               status={offerEntry.info.status}
               label={getBankPaymentOfferStatusLabel(
                 offerEntry.info.status,
@@ -320,63 +408,40 @@ export function OwnerOfferView({
             />
           );
         })}
-        {queuedRecipients.map(({ contact, peer }) => {
-          const name = (contact?.name ?? "").trim() || t("unknownContactTitle");
-          const npub = normalizeNpubIdentifier(contact?.npub ?? "");
-          const pictureUrl = npub ? (nostrPictureByNpub[npub] ?? null) : null;
-          return (
-            <OfferRecipientRow
-              key={peer}
-              name={name}
-              pictureUrl={pictureUrl}
-              status={"queued"}
-              label={t("bankPaymentOfferStatusQueued")}
-            />
-          );
-        })}
-      </div>
+        {queuedRecipients.map(({ contact, peer }) => (
+          <OfferRecipientRow
+            key={peer}
+            {...recipient(contact)}
+            status="queued"
+            label={t("bankPaymentOfferStatusQueued")}
+          />
+        ))}
+      </Stack>
 
       {confirmation ? (
         <PaymentConfirmation confirmation={confirmation} t={t} />
       ) : null}
 
       {canSettle ? (
-        <button
-          type="button"
-          className="btn-wide"
-          disabled={isSettling}
-          onClick={() => void settleOffer()}
+        <Button
+          icon="Check"
+          loading={isSettling}
+          onPress={() => void settleOffer()}
         >
-          <span className="btn-label-with-icon">
-            <span className="btn-label-icon" aria-hidden="true">
-              {isSettling ? <span className="btn-spinner" /> : <Check />}
-            </span>
-            <span>
-              {isSettling ? t("chatPendingShort") : t("bankPaymentOfferSettle")}
-            </span>
-          </span>
-        </button>
+          {isSettling ? t("chatPendingShort") : t("bankPaymentOfferSettle")}
+        </Button>
       ) : null}
       {canCancel ? (
-        <button
-          type="button"
-          className="btn-wide secondary"
+        <Button
+          variant="secondary"
+          icon="X"
           disabled={responseStatus !== null}
-          onClick={() => void cancelOffer()}
+          onPress={() => void cancelOffer()}
         >
-          <span className="btn-label-with-icon">
-            <X size={18} />
-            <span>
-              {t(
-                canSettle
-                  ? "bankPaymentOfferNotPaid"
-                  : "bankPaymentOfferCancel",
-              )}
-            </span>
-          </span>
-        </button>
+          {t(canSettle ? "bankPaymentOfferNotPaid" : "bankPaymentOfferCancel")}
+        </Button>
       ) : null}
-    </section>
+    </BankPaymentScreen>
   );
 }
 
@@ -396,24 +461,21 @@ export function RejectedOfferView({
   closeOffer,
 }: RejectedOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
-        <h2>{t("bankPaymentOfferRejectedTitle")}</h2>
+    <ClosedOfferState
+      actionLabel={t("chatImageBackToChat")}
+      amount={
         <BankPaymentAmount
           canCycle={Boolean(entry.info.amountSat)}
           text={amountText}
         />
-        <p className="muted">
-          {t("bankPaymentOfferRejectedDescription").replace(
-            "{name}",
-            requesterName,
-          )}
-        </p>
-      </div>
-      <button type="button" className="btn-wide" onClick={closeOffer}>
-        {t("chatImageBackToChat")}
-      </button>
-    </section>
+      }
+      closeOffer={closeOffer}
+      description={t("bankPaymentOfferRejectedDescription").replace(
+        "{name}",
+        requesterName,
+      )}
+      title={t("bankPaymentOfferRejectedTitle")}
+    />
   );
 }
 
@@ -427,15 +489,12 @@ export function AcceptedByOtherOfferView({
   closeOffer,
 }: AcceptedByOtherOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
-        <h2>{t("bankPaymentOfferStatusAcceptedByOther")}</h2>
-        <p className="muted">{t("bankPaymentOfferAcceptedByOther")}</p>
-      </div>
-      <button type="button" className="btn-wide" onClick={closeOffer}>
-        {t("close")}
-      </button>
-    </section>
+    <ClosedOfferState
+      actionLabel={t("close")}
+      closeOffer={closeOffer}
+      description={t("bankPaymentOfferAcceptedByOther")}
+      title={t("bankPaymentOfferStatusAcceptedByOther")}
+    />
   );
 }
 
@@ -444,10 +503,7 @@ interface IncomingOfferViewProps {
   entry: BankPaymentOfferEntry;
   requesterName: string;
   t: Translate;
-  timerWithExtension: (
-    offerEntry: BankPaymentOfferEntry,
-    remainingSec: number,
-  ) => React.ReactElement;
+  timerWithExtension: TimerWithExtension;
   remainingSec: number;
   errorText: string | null;
   responseStatus: "accepted" | "canceled" | "declined" | null;
@@ -466,8 +522,8 @@ export function IncomingOfferView({
   respond,
 }: IncomingOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
+    <BankPaymentScreen fill>
+      <StateCopy>
         <RequesterIntro
           amountText={amountText}
           canCycleAmount={Boolean(entry.info.amountSat)}
@@ -476,35 +532,32 @@ export function IncomingOfferView({
           t={t}
         />
         {timerWithExtension(entry, remainingSec)}
-      </div>
+      </StateCopy>
 
-      {errorText ? <p className="error-text">{errorText}</p> : null}
+      {errorText ? <ErrorText>{errorText}</ErrorText> : null}
 
-      <div className="bank-payment-offer-decision-actions">
-        <button
-          type="button"
-          className="btn-wide"
+      <Stack gap="$sm" marginBottom="$huge">
+        <Button
           disabled={responseStatus !== null}
-          onClick={() => {
+          onPress={() => {
             void respond("accepted");
           }}
         >
           {responseStatus === "accepted"
             ? t("chatPendingShort")
             : t("bankPaymentOfferAccept")}
-        </button>
-        <button
-          type="button"
-          className="btn-wide secondary"
+        </Button>
+        <Button
+          variant="secondary"
           disabled={responseStatus !== null}
-          onClick={() => {
+          onPress={() => {
             void respond("declined");
           }}
         >
           {responseStatus === "declined" ? t("chatPendingShort") : t("decline")}
-        </button>
-      </div>
-    </section>
+        </Button>
+      </Stack>
+    </BankPaymentScreen>
   );
 }
 
@@ -514,11 +567,13 @@ interface InvalidOfferViewProps {
 
 export function InvalidOfferView({ t }: InvalidOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-page">
-      <p className="muted bank-payment-hint">{t("spdPaymentInvalid")}</p>
-    </section>
+    <BankPaymentScreen>
+      <Text color="$colorMuted">{t("spdPaymentInvalid")}</Text>
+    </BankPaymentScreen>
   );
 }
+
+const CONFIRMATION_FILE_TYPES = "image/*,application/pdf,.pdf";
 
 interface WaitingForSatsOfferViewProps {
   t: Translate;
@@ -526,15 +581,11 @@ interface WaitingForSatsOfferViewProps {
   amountText: string;
   confirmation: BankPaymentConfirmation | null;
   pendingConfirmation: PendingConfirmation | null;
-  confirmationInputRef: React.RefObject<HTMLInputElement | null>;
   attachConfirmation: (file: File) => Promise<void>;
   isAttachingConfirmation: boolean;
   requesterName: string;
   remainingSec: number | null;
-  timerWithExtension: (
-    offerEntry: BankPaymentOfferEntry,
-    remainingSec: number,
-  ) => React.ReactElement;
+  timerWithExtension: TimerWithExtension;
   errorText: string | null;
 }
 
@@ -544,7 +595,6 @@ export function WaitingForSatsOfferView({
   amountText,
   confirmation,
   pendingConfirmation,
-  confirmationInputRef,
   attachConfirmation,
   isAttachingConfirmation,
   requesterName,
@@ -553,70 +603,47 @@ export function WaitingForSatsOfferView({
   errorText,
 }: WaitingForSatsOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
-        <h2>{t("bankPaymentOfferWaitingForSatsTitle")}</h2>
+    <BankPaymentScreen fill>
+      <StateCopy>
+        <StateTitle>{t("bankPaymentOfferWaitingForSatsTitle")}</StateTitle>
         <BankPaymentAmount
           canCycle={Boolean(entry.info.amountSat)}
           text={amountText}
         />
         <RecipientProgress status={entry.info.status} t={t} />
-      </div>
+      </StateCopy>
 
       {confirmation ? (
         <PaymentConfirmation confirmation={confirmation} t={t} />
       ) : pendingConfirmation ? (
         <PendingPaymentConfirmation pending={pendingConfirmation} t={t} />
       ) : (
-        <>
-          <input
-            ref={confirmationInputRef}
-            className="chat-image-input"
-            type="file"
-            accept="image/*,application/pdf,.pdf"
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              event.currentTarget.value = "";
-              if (!file) return;
-              void attachConfirmation(file);
-            }}
-            tabIndex={-1}
-          />
-          <button
-            type="button"
-            className="btn-wide"
-            disabled={isAttachingConfirmation}
-            onClick={() => confirmationInputRef.current?.click()}
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                {isAttachingConfirmation ? (
-                  <span className="btn-spinner" />
-                ) : (
-                  <ImagePlus />
-                )}
-              </span>
-              <span>
-                {isAttachingConfirmation
-                  ? t("chatPendingShort")
-                  : t("bankPaymentOfferAttachConfirmation")}
-              </span>
-            </span>
-          </button>
-        </>
+        <Button
+          icon="ImagePlus"
+          loading={isAttachingConfirmation}
+          onPress={() => {
+            void pickFile(CONFIRMATION_FILE_TYPES).then((file) =>
+              file ? attachConfirmation(file) : undefined,
+            );
+          }}
+        >
+          {isAttachingConfirmation
+            ? t("chatPendingShort")
+            : t("bankPaymentOfferAttachConfirmation")}
+        </Button>
       )}
 
-      <div className="bank-payment-offer-state-copy">
-        <p className="muted">
+      <StateCopy>
+        <MutedCopy>
           {t("bankPaymentOfferWaitingForSatsDescription").replace(
             "{name}",
             requesterName,
           )}
-        </p>
+        </MutedCopy>
         {remainingSec !== null ? timerWithExtension(entry, remainingSec) : null}
-      </div>
-      {errorText ? <p className="bank-payment-error">{errorText}</p> : null}
-    </section>
+      </StateCopy>
+      {errorText ? <ErrorText>{errorText}</ErrorText> : null}
+    </BankPaymentScreen>
   );
 }
 
@@ -626,10 +653,7 @@ interface AwaitingBankDetailsOfferViewProps {
   requesterName: string;
   t: Translate;
   remainingSec: number | null;
-  timerWithExtension: (
-    offerEntry: BankPaymentOfferEntry,
-    remainingSec: number,
-  ) => React.ReactElement;
+  timerWithExtension: TimerWithExtension;
 }
 
 export function AwaitingBankDetailsOfferView({
@@ -641,8 +665,8 @@ export function AwaitingBankDetailsOfferView({
   timerWithExtension,
 }: AwaitingBankDetailsOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-offer-state-page">
-      <div className="bank-payment-offer-state-copy">
+    <BankPaymentScreen fill>
+      <StateCopy>
         <RequesterIntro
           amountText={amountText}
           canCycleAmount={Boolean(entry.info.amountSat)}
@@ -650,15 +674,15 @@ export function AwaitingBankDetailsOfferView({
           status={entry.info.status}
           t={t}
         />
-        <p className="muted">
+        <MutedCopy>
           {t("bankPaymentOfferDescriptionAcceptedIncoming").replace(
             "{amount}",
             amountText,
           )}
-        </p>
+        </MutedCopy>
         {remainingSec !== null ? timerWithExtension(entry, remainingSec) : null}
-      </div>
-    </section>
+      </StateCopy>
+    </BankPaymentScreen>
   );
 }
 
@@ -668,11 +692,8 @@ interface BankDetailsOfferViewProps {
   requesterName: string;
   t: Translate;
   remainingSec: number | null;
-  timerWithExtension: (
-    offerEntry: BankPaymentOfferEntry,
-    remainingSec: number,
-  ) => React.ReactElement;
-  qrDataUrl: string | null;
+  timerWithExtension: TimerWithExtension;
+  qrPayload: string;
   canConfirmPaid: boolean;
   isConfirmingPaid: boolean;
   confirmPaid: () => Promise<void>;
@@ -694,7 +715,7 @@ export function BankDetailsOfferView({
   t,
   remainingSec,
   timerWithExtension,
-  qrDataUrl,
+  qrPayload,
   canConfirmPaid,
   isConfirmingPaid,
   confirmPaid,
@@ -709,8 +730,8 @@ export function BankDetailsOfferView({
   errorText,
 }: BankDetailsOfferViewProps) {
   return (
-    <section className="panel panel-plain bank-payment-page bank-payment-offer-detail-page">
-      <div className="bank-payment-summary bank-payment-offer-requester-summary">
+    <BankPaymentScreen>
+      <Stack alignItems="center" gap="$xs">
         <RequesterIntro
           amountText={amountText}
           canCycleAmount={Boolean(entry.info.amountSat)}
@@ -719,125 +740,82 @@ export function BankDetailsOfferView({
           t={t}
         />
         {remainingSec !== null ? timerWithExtension(entry, remainingSec) : null}
-      </div>
+      </Stack>
 
-      <div className="bank-payment-offer-qr-wrap">
-        {qrDataUrl ? (
-          <img className="qr bank-payment-offer-qr" src={qrDataUrl} alt="" />
-        ) : (
-          <div className="bank-payment-offer-qr-placeholder" aria-hidden="true">
-            QR
-          </div>
-        )}
-      </div>
+      <QRCode value={qrPayload} accessibilityLabel={t("bankPaymentOfferQr")} />
 
       {/* Confirming the payment must stay reachable without scrolling past
           the QR, so the field rows hide behind a toggle below. */}
-      <button
-        type="button"
-        className="btn-wide bank-payment-request"
-        disabled={!canConfirmPaid || isConfirmingPaid}
-        onClick={() => {
+      <Button
+        icon="Check"
+        loading={isConfirmingPaid}
+        disabled={!canConfirmPaid}
+        onPress={() => {
           void confirmPaid();
         }}
       >
-        <span className="btn-label-with-icon">
-          <span className="btn-label-icon" aria-hidden="true">
-            {isConfirmingPaid ? <span className="btn-spinner" /> : <Check />}
-          </span>
-          <span>
-            {isConfirmingPaid
-              ? t("chatPendingShort")
-              : t("bankPaymentOfferMarkPaid")}
-          </span>
-        </span>
-      </button>
+        {isConfirmingPaid
+          ? t("chatPendingShort")
+          : t("bankPaymentOfferMarkPaid")}
+      </Button>
 
-      <button
-        type="button"
-        className="btn-wide secondary bank-payment-offer-details-toggle"
+      <Button
+        variant="secondary"
+        icon={showPaymentRows ? "ChevronUp" : "ChevronDown"}
         aria-expanded={showPaymentRows}
-        onClick={() => setShowPaymentRows((current) => !current)}
+        onPress={() => setShowPaymentRows((current) => !current)}
       >
-        <span className="btn-label-with-icon">
-          <span className="btn-label-icon" aria-hidden="true">
-            {showPaymentRows ? <ChevronUp /> : <ChevronDown />}
-          </span>
-          <span>{t("bankPaymentOfferDetails")}</span>
-        </span>
-      </button>
+        {t("bankPaymentOfferDetails")}
+      </Button>
 
       {showPaymentRows ? (
-        <div className="bank-payment-fields">
+        <Stack gap="$xl" testID="bank-payment-fields">
           {rows.map((row) => (
-            <div className="settings-row bank-payment-row" key={row.key}>
-              <div>
-                <strong>{row.label}</strong>
-                <button
-                  type="button"
-                  className="copyable transaction-detail-copy bank-payment-copy"
-                  onClick={() => onCopyText(row.value)}
-                  aria-label={t("copy")}
-                  title={t("copy")}
-                >
-                  <span className="transaction-detail-copyText">
-                    {row.value}
-                  </span>
-                  <span
-                    className="transaction-detail-copyIcon"
-                    aria-hidden="true"
-                  >
-                    <Copy size={14} />
-                  </span>
-                </button>
-              </div>
-            </div>
+            <Stack gap="$xs" key={row.key} testID="bank-payment-row">
+              <Text bold>{row.label}</Text>
+              <Pressable
+                aria-label={t("copy")}
+                alignSelf="flex-start"
+                gap="$xs"
+                onPress={() => onCopyText(row.value)}
+              >
+                <Text color="$colorStrong" flexShrink={1}>
+                  {row.value}
+                </Text>
+                <Icon name="Copy" size="sm" color="$colorMuted" />
+              </Pressable>
+            </Stack>
           ))}
-        </div>
+        </Stack>
       ) : null}
 
-      <div className="bank-payment-open-actions">
-        <button
-          type="button"
-          className="btn-wide secondary bank-payment-open"
-          disabled={isOpening}
-          onClick={() => {
+      <Row gap="$sm">
+        <Button
+          flex={1}
+          variant="secondary"
+          icon="Landmark"
+          loading={isOpening}
+          onPress={() => {
             void openInBank();
           }}
         >
-          <span className="btn-label-with-icon">
-            <span className="btn-label-icon" aria-hidden="true">
-              {isOpening ? <span className="btn-spinner" /> : <Landmark />}
-            </span>
-            <span>
-              {isOpening ? t("spdPaymentOpening") : t("spdPaymentOpenInBank")}
-            </span>
-          </span>
-        </button>
-
-        <button
-          type="button"
-          className="btn-wide secondary bank-payment-open"
-          disabled={isSharingJpeg}
-          onClick={() => {
+          {isOpening ? t("spdPaymentOpening") : t("spdPaymentOpenInBank")}
+        </Button>
+        <Button
+          flex={1}
+          variant="secondary"
+          icon="Share2"
+          loading={isSharingJpeg}
+          onPress={() => {
             void openWithJpeg();
           }}
         >
-          <span className="btn-label-with-icon">
-            <span className="btn-label-icon" aria-hidden="true">
-              {isSharingJpeg ? <span className="btn-spinner" /> : <Share2 />}
-            </span>
-            <span>
-              {isSharingJpeg
-                ? t("spdPaymentOpening")
-                : t("spdPaymentOpenWithJpg")}
-            </span>
-          </span>
-        </button>
-      </div>
+          {isSharingJpeg ? t("spdPaymentOpening") : t("spdPaymentOpenWithJpg")}
+        </Button>
+      </Row>
 
-      {errorText ? <p className="bank-payment-error">{errorText}</p> : null}
-    </section>
+      {errorText ? <ErrorText>{errorText}</ErrorText> : null}
+    </BankPaymentScreen>
   );
 }
 
@@ -847,6 +825,7 @@ interface OfferRecipientRowProps {
   status: BankOfferStatus | "queued";
   label: string;
 }
+
 function OfferRecipientRow({
   name,
   pictureUrl,
@@ -854,23 +833,22 @@ function OfferRecipientRow({
   label,
 }: OfferRecipientRowProps) {
   return (
-    <div className="bank-payment-offer-recipient">
-      <span className="bank-payment-offer-recipient-identity">
-        <span
-          className="bank-payment-offer-recipient-avatar"
-          aria-hidden="true"
-        >
-          <Avatar
-            pictureUrl={pictureUrl}
-            fallback={getInitials(name)}
-            fallbackClassName=""
-          />
-        </span>
-        <span>{name}</span>
-      </span>
-      <span className={`chat-payment-request-status is-${status}`}>
-        {label}
-      </span>
-    </div>
+    <Card padding="$xs" backgroundColor="$neutralSoft">
+      <ListRow
+        testID={`bank-payment-offer-recipient-${status}`}
+        leading={<Avatar name={name} uri={pictureUrl ?? undefined} size="sm" />}
+        title={
+          <Text bold numberOfLines={1}>
+            {name}
+          </Text>
+        }
+        trailing={
+          // Badge aligns to the top of a row; the column centers it.
+          <Stack>
+            <Pill size="sm" label={label} tone={STATUS_TONES[status]} />
+          </Stack>
+        }
+      />
+    </Card>
   );
 }

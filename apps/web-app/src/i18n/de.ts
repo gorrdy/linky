@@ -674,6 +674,7 @@ export const de = {
   bankPaymentOfferAccept: "Annehmen",
   bankPaymentOfferCancel: "Angebot abbrechen",
   bankPaymentOfferDetails: "Zahlungsdetails",
+  bankPaymentOfferQr: "QR-Code der Banküberweisung",
   bankPaymentOfferMarkPaid: "Ich habe bezahlt",
   bankPaymentOfferMarkDone: "Erledigen",
   bankPaymentOfferSettle: "Abschluss bestätigen",

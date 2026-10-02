@@ -197,6 +197,9 @@ const walletBalance = async (page: Page): Promise<number> => {
   return value;
 };
 
+const paymentQr = (page: Page) =>
+  page.getByRole("img", { name: "Bank payment QR code" });
+
 const offerDetailUrl = (page: Page) =>
   new URL(page.url()).hash.match(
     /^#chat\/([^/]+)\/bank-payment-offer\/([^/]+)$/,
@@ -349,7 +352,7 @@ const runProxyPayment = async (
         await b.page
           .getByRole("button", { name: "Accept", exact: true })
           .click();
-        await expect(b.page.locator(".bank-payment-offer-qr")).toBeVisible();
+        await expect(paymentQr(b.page)).toBeVisible();
         await expect.poll(() => offererInbox.failedAcks).toBeGreaterThan(0);
         offererInbox.failRecipient = "";
         for (const deliver of offererInbox.pending.splice(0)) deliver();
@@ -360,8 +363,10 @@ const runProxyPayment = async (
         await b.page
           .getByRole("button", { name: "Accept", exact: true })
           .click();
-        await expect(b.page.locator(".bank-payment-offer-qr")).toBeVisible();
-        await expect(a.page.locator(".is-accepted_by_other")).toBeVisible();
+        await expect(paymentQr(b.page)).toBeVisible();
+        await expect(
+          a.page.getByTestId("bank-payment-offer-recipient-accepted_by_other"),
+        ).toBeVisible();
         expect(inbox.pending.length).toBeGreaterThan(0);
         const decisionObservedSec = Math.floor(Date.now() / 1000);
         await expect
@@ -400,7 +405,7 @@ const runProxyPayment = async (
         // The payment rows are collapsed by default, so the rendered QR is
         // the winner's marker.
         const hasBankDetails = async (account: Account) =>
-          (await account.page.locator(".bank-payment-offer-qr").count()) > 0;
+          (await paymentQr(account.page).count()) > 0;
 
         // Time-boxed so a broken first publish attempt is not hidden by the
         // responder's 30s retry loop.
@@ -416,8 +421,10 @@ const runProxyPayment = async (
       });
 
     await test.step("the loser never sees the bank details", async () => {
-      await expect(loser.page.locator(".bank-payment-fields")).toHaveCount(0);
-      await expect(loser.page.locator(".bank-payment-offer-qr")).toHaveCount(0);
+      await expect(loser.page.getByTestId("bank-payment-fields")).toHaveCount(
+        0,
+      );
+      await expect(paymentQr(loser.page)).toHaveCount(0);
       await expect(
         loser.page.getByText("Someone else accepted the offer first", {
           exact: false,
@@ -454,39 +461,40 @@ const runProxyPayment = async (
     });
 
     await test.step("the winner received the payment info intact", async () => {
-      await expect(
-        winner.page.locator(".bank-payment-offer-qr-placeholder"),
-      ).toHaveCount(0);
-
       await winner.page
         .getByRole("button", { name: "Payment details" })
         .click();
-      const fields = winner.page.locator(".bank-payment-fields");
+      const fields = winner.page.getByTestId("bank-payment-fields");
       await expect(fields).toContainText(SPD_ACCOUNT);
       await expect(fields).toContainText(SPD_VARIABLE_SYMBOL);
       await expect(fields).toContainText(SPD_MESSAGE);
 
       // Decode the rendered QR to prove the payload survived
       // offerer -> relay -> acceptor -> re-render byte for byte.
-      const pixels = await winner.page.evaluate(async () => {
-        const img = document.querySelector<HTMLImageElement>(
-          "img.bank-payment-offer-qr",
-        );
-        if (!img) throw new Error("Payment QR image missing");
+      const svgMarkup = await paymentQr(winner.page)
+        .locator("svg")
+        .evaluate((svg) => new XMLSerializer().serializeToString(svg));
+      const pixels = await winner.page.evaluate(async (markup) => {
+        const img = new Image();
+        img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
         await img.decode();
+        // The SVG has no quiet zone; jsQR needs a white margin to find the code.
+        const margin = 32;
         const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.width = img.naturalWidth + margin * 2;
+        canvas.height = img.naturalHeight + margin * 2;
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas context unavailable");
-        ctx.drawImage(img, 0, 0);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, margin, margin);
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
         return {
           data: Array.from(data.data),
           width: data.width,
           height: data.height,
         };
-      });
+      }, svgMarkup);
       const decoded = jsQR(
         new Uint8ClampedArray(pixels.data),
         pixels.width,
