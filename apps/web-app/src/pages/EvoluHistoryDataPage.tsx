@@ -98,50 +98,45 @@ export function EvoluHistoryDataPage(): React.ReactElement {
   return (
     <Stack gap="$lg">
       {tableNames.length > 0 && (
-        <Stack aria-label={t("filterByTable")}>
-          <Row flexWrap="wrap" gap="$sm">
+        <Row flexWrap="wrap" gap="$sm" aria-label={t("filterByTable")}>
+          <Chip
+            label={t("all")}
+            selected={selectedTable === null}
+            onPress={() => setSelectedTable(null)}
+          />
+          {tableNames.map((tableName) => (
             <Chip
-              label={t("all")}
-              selected={selectedTable === null}
-              onPress={() => setSelectedTable(null)}
+              key={tableName}
+              label={tableName}
+              selected={selectedTable === tableName}
+              onPress={() => setSelectedTable(tableName)}
             />
-            {tableNames.map((tableName) => (
-              <Chip
-                key={tableName}
-                label={tableName}
-                selected={selectedTable === tableName}
-                onPress={() => setSelectedTable(tableName)}
-              />
-            ))}
-          </Row>
-        </Stack>
+          ))}
+        </Row>
       )}
 
-      <Stack maxHeight="$contentWidth" overflow="scroll">
-        {filteredData.length > 0 ? (
-          <EvoluHistoryTable rows={filteredData} t={t} />
-        ) : (
-          <EmptyState title={t("evoluNoDataYet")} />
-        )}
+      {filteredData.length > 0 ? (
+        <EvoluHistoryTable rows={filteredData} t={t} />
+      ) : (
+        <EmptyState title={t("evoluNoDataYet")} />
+      )}
 
-        {hasMore && (
-          <Stack alignItems="center" paddingVertical="$lg">
-            <Button
-              onPress={handleLoadMore}
-              disabled={isLoadingMore}
-              variant="secondary"
-            >
-              {isLoadingMore ? t("loadingMore") : t("loadMore")}
-            </Button>
-          </Stack>
-        )}
+      {hasMore && (
+        <Button
+          alignSelf="center"
+          onPress={handleLoadMore}
+          loading={isLoadingMore}
+          variant="secondary"
+        >
+          {t("loadMore")}
+        </Button>
+      )}
 
-        {!hasMore && historyData.length > 0 && (
-          <Text alignItems="center" paddingVertical="$lg">
-            {t("allRecordsLoaded")}
-          </Text>
-        )}
-      </Stack>
+      {!hasMore && historyData.length > 0 && (
+        <Text textAlign="center" color="$colorMuted">
+          {t("allRecordsLoaded")}
+        </Text>
+      )}
     </Stack>
   );
 }

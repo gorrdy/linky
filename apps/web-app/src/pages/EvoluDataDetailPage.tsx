@@ -1,16 +1,20 @@
 import {
   Button,
   Chip,
-  DataTable,
+  Disclosure,
+  EmptyState,
   ListRow,
+  LoadingState,
   Progress,
   Row,
+  Section,
   Stack,
   Text,
 } from "@linky-fit/ui";
 import { EvoluHistoryTable } from "../components/EvoluHistoryTable";
+import { EvoluCurrentTable } from "../components/EvoluCurrentTable";
 import type { LinkyScope } from "@linky-fit/linksync";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
 import { readRowOwnerId } from "../app/lib/rowOwnerId";
@@ -23,9 +27,87 @@ import {
   loadEvoluHistoryData,
   type EvoluHistoryRow,
 } from "../evolu";
-import { formatEvoluDebugValue } from "../utils/evoluDebugValue";
+import { formatEvoluRowCount } from "../utils/evoluRowCount";
 import { formatBytes } from "../utils/formatting";
 const ONE_MB = 1024 * 1024;
+const USER_TABLES = [
+  "contact",
+  "conversation",
+  "message",
+  "reaction",
+  "unknownSenderMessage",
+  "cashuToken",
+  "cashuProof",
+  "cashuOperation",
+  "nostrIdentity",
+  "nostrMessage",
+  "nostrReaction",
+  "transaction",
+];
+const SYSTEM_TABLES = ["ownerMeta", "shardPointer", "setting"];
+
+type InScopeView = (tableName: string) => boolean;
+
+const rowValue = (value: string) => (
+  <Text variant="label" color="$colorMuted">
+    {value}
+  </Text>
+);
+
+function CurrentDataTables({ inScopeView }: { inScopeView: InScopeView }) {
+  const { evoluShards } = useEvoluSettingsContext();
+  const { t } = useAppShellCore();
+  const [currentData, setCurrentData] = useState<Awaited<
+    ReturnType<typeof loadEvoluCurrentData>
+  > | null>(null);
+  useEffect(() => {
+    void loadEvoluCurrentData().then(setCurrentData);
+  }, []);
+  if (!currentData) return <LoadingState label={t("loading")} />;
+  return Object.entries(currentData)
+    .filter(([tableName]) => inScopeView(tableName))
+    .map(([tableName, allRows]) => {
+      const rows = filterRowsToVisibleShards(
+        tableName,
+        allRows,
+        evoluShards,
+        readRowOwnerId,
+      );
+      return (
+        <Section key={tableName} title={tableName}>
+          {rows.length > 0 ? (
+            <EvoluCurrentTable tableName={tableName} rows={rows} />
+          ) : (
+            <EmptyState title={t("evoluNoDataYet")} />
+          )}
+        </Section>
+      );
+    });
+}
+
+function HistoryDataTable({ inScopeView }: { inScopeView: InScopeView }) {
+  const { evoluShards } = useEvoluSettingsContext();
+  const { t } = useAppShellCore();
+  const [historyData, setHistoryData] = useState<EvoluHistoryRow[] | null>(
+    null,
+  );
+  useEffect(() => {
+    void loadEvoluHistoryData().then(setHistoryData);
+  }, []);
+  if (!historyData) return <LoadingState label={t("loading")} />;
+  const rows = historyData.filter(
+    (row) =>
+      inScopeView(row.table) &&
+      filterRowsToVisibleShards(row.table, [row], evoluShards, readRowOwnerId)
+        .length === 1,
+  );
+  return rows.length > 0 ? (
+    <EvoluHistoryTable rows={rows} t={t} />
+  ) : (
+    <EmptyState title={t("evoluNoDataYet")} />
+  );
+}
+
 export function EvoluDataDetailPage(): React.ReactElement {
   const {
     clearDatabaseArmed,
@@ -44,412 +126,156 @@ export function EvoluDataDetailPage(): React.ReactElement {
       scopeView === "all" || scopeOfTable(tableName) === scopeView,
     [scopeView],
   );
-  const [showHistoryData, setShowHistoryData] = useState(false);
-  const [showCurrentData, setShowCurrentData] = useState(false);
-  const [historyData, setHistoryData] = useState<EvoluHistoryRow[]>([]);
-  const [currentData, setCurrentData] = useState<
-    Awaited<ReturnType<typeof loadEvoluCurrentData>>
-  >({});
-  const [isLoading, setIsLoading] = useState(false);
-  const rawDbBytes = evoluDatabaseBytes ?? 0;
-  const percentage = Math.min((rawDbBytes / ONE_MB) * 100, 100);
-  // Separate tables into user data and system tables
-  const userTables = [
-    "contact",
-    "conversation",
-    "message",
-    "reaction",
-    "unknownSenderMessage",
-    "cashuToken",
-    "cashuProof",
-    "cashuOperation",
-    "nostrIdentity",
-    "nostrMessage",
-    "nostrReaction",
-    "transaction",
-  ];
-  const systemTables = ["ownerMeta", "shardPointer", "setting"];
+  if (evoluDatabaseBytes === null) return <EmptyState title={t("unknown")} />;
+
+  const percentage = Math.min((evoluDatabaseBytes / ONE_MB) * 100, 100);
+  const rowCount = (rows: number | null) => formatEvoluRowCount(t, rows);
   const tableEntries = Object.entries(evoluTableCounts);
   const scopedEntries = tableEntries.filter(([name]) => inScopeView(name));
-  const userTableEntries = scopedEntries
-    .filter(([name]) => userTables.includes(name))
-    .sort(([, a], [, b]) => (b ?? 0) - (a ?? 0));
-  const systemTableEntries = scopedEntries
-    .filter(([name]) => systemTables.includes(name))
-    .sort(([, a], [, b]) => (b ?? 0) - (a ?? 0));
+  const tablesOf = (names: readonly string[]) =>
+    scopedEntries
+      .filter(([name]) => names.includes(name))
+      .sort(([, a], [, b]) => (b ?? 0) - (a ?? 0));
+  const userTableEntries = tablesOf(USER_TABLES);
+  const systemTableEntries = tablesOf(SYSTEM_TABLES);
   const totalCurrentRows = scopedEntries.reduce<number | null>(
     (sum, [, count]) => (sum === null || count === null ? null : sum + count),
     scopedEntries.length ? 0 : null,
   );
-  const historyRows = evoluHistoryCount;
   const totalRows =
-    totalCurrentRows === null || historyRows === null
+    totalCurrentRows === null || evoluHistoryCount === null
       ? null
-      : totalCurrentRows + historyRows;
-  // Calculate row distribution percentages
-  const calculatePercentage = (rows: number | null) => {
-    if (rows === null || totalRows === null) return null;
-    if (totalRows === 0) return 0;
-    return Math.round((rows / totalRows) * 100);
+      : totalCurrentRows + evoluHistoryCount;
+  const tableRow = ([tableName, rows]: [string, number | null]) => {
+    const share =
+      rows === null || totalRows === null
+        ? null
+        : totalRows > 0
+          ? rows / totalRows
+          : 0;
+    return (
+      <ListRow
+        key={tableName}
+        testID={tableName}
+        title={tableName}
+        trailing={rowValue(
+          share === null
+            ? rowCount(rows)
+            : `${rowCount(rows)} (${Math.round(share * 100)}%) · ~${formatBytes(Math.round(share * evoluDatabaseBytes))}`,
+        )}
+      />
+    );
   };
-  const handleShowHistory = async () => {
-    if (!showHistoryData && historyData.length === 0) {
-      setIsLoading(true);
-      const data = await loadEvoluHistoryData();
-      setHistoryData(data);
-      setIsLoading(false);
-    }
-    setShowHistoryData(!showHistoryData);
-  };
-  const handleShowCurrent = async () => {
-    if (!showCurrentData && Object.keys(currentData).length === 0) {
-      setIsLoading(true);
-      const data = await loadEvoluCurrentData();
-      setCurrentData(data);
-      setIsLoading(false);
-    }
-    setShowCurrentData(!showCurrentData);
-  };
-  const currentDataEntries = React.useMemo(
-    () =>
-      Object.entries(currentData)
-        .filter(([tableName]) => inScopeView(tableName))
-        .map(
-          ([tableName, rows]) =>
-            [
-              tableName,
-              filterRowsToVisibleShards(
-                tableName,
-                rows,
-                evoluShards,
-                readRowOwnerId,
-              ),
-            ] as const,
-        ),
-    [currentData, evoluShards, inScopeView],
-  );
-  const visibleHistoryRows = React.useMemo(
-    () =>
-      historyData.filter(
-        (row) =>
-          inScopeView(row.table) &&
-          filterRowsToVisibleShards(
-            row.table,
-            [row],
-            evoluShards,
-            readRowOwnerId,
-          ).length === 1,
-      ),
-    [evoluShards, historyData, inScopeView],
-  );
+
   return (
     <Stack gap="$lg">
-      {evoluDatabaseBytes !== null ? (
-        <>
-          <ListRow
-            title={t("evoluRawDbSize")}
-            trailing={
-              <>
-                <Text variant="label" color="$colorMuted">
-                  {formatBytes(rawDbBytes)} / 1 MiB
-                </Text>
-              </>
-            }
-            testID="evoluRawDbSize"
+      <ListRow
+        title={t("evoluRawDbSize")}
+        trailing={rowValue(
+          t("evoluRawDbSizeOfLimit").replace(
+            "{size}",
+            formatBytes(evoluDatabaseBytes),
+          ),
+        )}
+        testID="evoluRawDbSize"
+      />
+
+      <Stack gap="$xs">
+        <Progress
+          value={percentage}
+          max={100}
+          tone={
+            percentage > 90 ? "danger" : percentage > 70 ? "warning" : "accent"
+          }
+          accessibilityLabel={t("evoluUsageOfLimit")}
+        />
+        <Text variant="caption" color="$colorMuted">
+          {t("evoluUsageOfLimit").replace("{percent}", percentage.toFixed(1))}
+        </Text>
+      </Stack>
+
+      <Button
+        onPress={requestClearDatabase}
+        disabled={
+          evoluWipeStorageIsBusy || evoluErrorType === "ProtocolQuotaError"
+        }
+        loading={evoluWipeStorageIsBusy}
+        variant={clearDatabaseArmed ? "danger" : "secondary"}
+      >
+        {t("evoluClearDatabase")}
+      </Button>
+
+      <Section title={t("evoluRowCounts")}>
+        <Row flexWrap="wrap" gap="$sm">
+          <Chip
+            label={t("all")}
+            selected={scopeView === "all"}
+            onPress={() => setScopeView("all")}
           />
-
-          {/* Progress bar showing usage of 1MB limit */}
-          <Stack>
-            <Progress
-              value={percentage}
-              max={100}
-              tone={
-                percentage > 90
-                  ? "danger"
-                  : percentage > 70
-                    ? "warning"
-                    : "accent"
-              }
-              accessibilityLabel={t("evoluUsageOfLimit")}
-            />
-
-            <Text variant="caption" color="$colorMuted">
-              {t("evoluUsageOfLimit").replace(
-                "{percent}",
-                percentage.toFixed(1),
-              )}
-            </Text>
-          </Stack>
-
-          <Row
-            justifyContent="space-between"
-            minHeight="$control"
-            paddingVertical="$sm"
-          >
-            <Button
-              width="100%"
-              type="button"
-              onPress={requestClearDatabase}
-              disabled={
-                evoluWipeStorageIsBusy ||
-                evoluErrorType === "ProtocolQuotaError"
-              }
-              variant={clearDatabaseArmed ? "danger" : "secondary"}
-            >
-              {t("evoluClearDatabase")}
-            </Button>
-          </Row>
-
-          <Text variant="title" role="heading" marginTop="$lg">
-            {t("evoluRowCounts")}
-          </Text>
-
-          <Row flexWrap="wrap">
-            <Chip
-              label={t("all")}
-              selected={scopeView === "all"}
-              onPress={() => setScopeView("all")}
-            />
-            {evoluShards.map((shard) => (
-              <Chip
-                key={shard.scope}
-                label={shard.scope}
-                selected={scopeView === shard.scope}
-                onPress={() => setScopeView(shard.scope)}
-              />
-            ))}
-          </Row>
-
           {evoluShards.map((shard) => (
-            <ListRow
+            <Chip
               key={shard.scope}
-              title={`${shard.scope} ${t("evoluShardIndex").toLowerCase()}`}
-              trailing={
-                <>
-                  <Text variant="label" color="$colorMuted">
-                    {shard.index} ({shard.visibleOwnerIds.length}{" "}
-                    {t("evoluShardVisibleCount").toLowerCase()})
-                  </Text>
-                </>
-              }
-              testID="evoluShardIndex"
+              label={shard.scope}
+              selected={scopeView === shard.scope}
+              onPress={() => setScopeView(shard.scope)}
             />
           ))}
+        </Row>
 
+        {evoluShards.map((shard) => (
           <ListRow
-            title={t("evoluCurrentDataJson")}
-            trailing={
-              <>
-                <Text variant="label" color="$colorMuted">
-                  {totalCurrentRows === null
-                    ? t("unknown")
-                    : `${totalCurrentRows} rows`}
-                </Text>
-              </>
-            }
-            testID="evoluCurrentDataJson"
+            key={shard.scope}
+            title={`${shard.scope} ${t("evoluShardIndex").toLowerCase()}`}
+            trailing={rowValue(
+              `${shard.index} (${shard.visibleOwnerIds.length} ${t("evoluShardVisibleCount").toLowerCase()})`,
+            )}
+            testID="evoluShardIndex"
           />
+        ))}
 
-          <ListRow
-            title={t("evoluHistoryDataJson")}
-            trailing={
-              <>
-                <Text variant="label" color="$colorMuted">
-                  {historyRows === null ? t("unknown") : `${historyRows} rows`}
-                </Text>
-              </>
-            }
-            testID="evoluHistoryDataJson"
+        <ListRow
+          title={t("evoluCurrentDataJson")}
+          trailing={rowValue(rowCount(totalCurrentRows))}
+          testID="evoluCurrentDataJson"
+        />
+        <ListRow
+          title={t("evoluHistoryDataJson")}
+          trailing={rowValue(rowCount(evoluHistoryCount))}
+          testID="evoluHistoryDataJson"
+        />
+        <ListRow
+          title={t("evoluTotalRows")}
+          trailing={rowValue(rowCount(totalRows))}
+          testID="evoluTotalRows"
+        />
+      </Section>
+
+      <Disclosure title={t("evoluCurrentDataJson")}>
+        <CurrentDataTables inScopeView={inScopeView} />
+      </Disclosure>
+      <Disclosure title={t("evoluHistoryDataJson")}>
+        <HistoryDataTable inScopeView={inScopeView} />
+      </Disclosure>
+
+      <Section title={t("evoluUserTables")}>
+        {userTableEntries.length === 0 ? (
+          <EmptyState
+            title={t(tableEntries.length === 0 ? "unknown" : "evoluNoDataYet")}
           />
+        ) : (
+          userTableEntries.map(tableRow)
+        )}
+      </Section>
 
-          <ListRow
-            title={t("evoluTotalRows")}
-            trailing={
-              <>
-                <Text variant="label" color="$colorMuted">
-                  {totalRows === null ? t("unknown") : `${totalRows} rows`}
-                </Text>
-              </>
-            }
-            testID="evoluTotalRows"
-          />
+      {systemTableEntries.length > 0 ? (
+        <Section title={t("evoluSystemTables")}>
+          {systemTableEntries.map(tableRow)}
+        </Section>
+      ) : null}
 
-          {/* Buttons to view data */}
-          <Row flexWrap="wrap">
-            <Button
-              type="button"
-              onPress={handleShowCurrent}
-              disabled={isLoading}
-              variant="secondary"
-            >
-              {showCurrentData
-                ? t("evoluHideCurrentData")
-                : t("evoluShowCurrentData")}
-            </Button>
-            <Button
-              type="button"
-              onPress={handleShowHistory}
-              disabled={isLoading}
-              variant="secondary"
-            >
-              {showHistoryData
-                ? t("evoluHideHistoryData")
-                : t("evoluShowHistoryData")}
-            </Button>
-          </Row>
-
-          {isLoading && (
-            <Text variant="label" color="$colorMuted">
-              {t("loading")}...
-            </Text>
-          )}
-
-          {/* Current Data Table View */}
-          {showCurrentData && (
-            <Stack>
-              <Text variant="title" role="heading">
-                {t("evoluCurrentDataJson")}
-              </Text>
-              <Stack>
-                {currentDataEntries.map(([tableName, rows]) => (
-                  <Stack key={tableName}>
-                    <Text variant="title" role="heading">
-                      {tableName} ({rows.length} rows)
-                    </Text>
-                    {rows.length > 0 ? (
-                      <DataTable
-                        accessibilityLabel={tableName}
-                        columns={Object.keys(rows[0]).map((key) => ({
-                          key,
-                          label: key,
-                        }))}
-                        rows={rows.map((row, index) => ({
-                          key: String(index),
-                          cells: Object.entries(row).map(([key, value]) =>
-                            formatEvoluDebugValue(tableName, key, value).slice(
-                              0,
-                              50,
-                            ),
-                          ),
-                        }))}
-                      />
-                    ) : (
-                      <Text variant="label" color="$colorMuted">
-                        {t("evoluNoDataYet")}
-                      </Text>
-                    )}
-                  </Stack>
-                ))}
-              </Stack>
-            </Stack>
-          )}
-
-          {/* History Data Table View - All individual records */}
-          {showHistoryData && (
-            <Stack>
-              <Text variant="title" role="heading">
-                {t("evoluHistoryDataJson")}
-              </Text>
-              <Stack>
-                {visibleHistoryRows.length > 0 ? (
-                  <EvoluHistoryTable rows={visibleHistoryRows} t={t} />
-                ) : (
-                  <Text variant="label" color="$colorMuted">
-                    {t("evoluNoDataYet")}
-                  </Text>
-                )}
-              </Stack>
-            </Stack>
-          )}
-
-          <Text variant="title" role="heading" marginTop="$lg">
-            {t("evoluUserTables")}
-          </Text>
-
-          {userTableEntries.length === 0 ? (
-            <Text variant="label" color="$colorMuted">
-              {t(tableEntries.length === 0 ? "unknown" : "evoluNoDataYet")}
-            </Text>
-          ) : (
-            userTableEntries.map(([tableName, count]) => {
-              const rows = count;
-              const percentage = calculatePercentage(rows);
-              const estimatedTableBytes =
-                rows === null || totalRows === null
-                  ? null
-                  : totalRows > 0
-                    ? Math.round((rows / totalRows) * rawDbBytes)
-                    : 0;
-              return (
-                <ListRow
-                  key={tableName}
-                  testID={tableName}
-                  title={tableName}
-                  trailing={
-                    <>
-                      <Text variant="label" color="$colorMuted">
-                        {rows === null ? t("unknown") : `${rows} rows`}
-                        {percentage === null ? "" : ` (${percentage}%)`}
-                      </Text>
-                      <Text variant="label" color="$colorMuted">
-                        {estimatedTableBytes === null
-                          ? ""
-                          : `~${formatBytes(estimatedTableBytes)}`}
-                      </Text>
-                    </>
-                  }
-                />
-              );
-            })
-          )}
-
-          {systemTableEntries.length > 0 && (
-            <>
-              <Text variant="title" role="heading" marginTop="$lg">
-                {t("evoluSystemTables")}
-              </Text>
-              {systemTableEntries.map(([tableName, count]) => {
-                const rows = count;
-                const percentage = calculatePercentage(rows);
-                const estimatedTableBytes =
-                  rows === null || totalRows === null
-                    ? null
-                    : totalRows > 0
-                      ? Math.round((rows / totalRows) * rawDbBytes)
-                      : 0;
-                return (
-                  <ListRow
-                    key={tableName}
-                    testID={tableName}
-                    title={tableName}
-                    trailing={
-                      <>
-                        <Text variant="label" color="$colorMuted">
-                          {rows === null ? t("unknown") : `${rows} rows`}
-                          {percentage === null ? "" : ` (${percentage}%)`}
-                        </Text>
-                        <Text variant="label" color="$colorMuted">
-                          {estimatedTableBytes === null
-                            ? ""
-                            : `~${formatBytes(estimatedTableBytes)}`}
-                        </Text>
-                      </>
-                    }
-                  />
-                );
-              })}
-            </>
-          )}
-
-          <Text variant="label" color="$colorMuted">
-            {t("evoluSizeEstimateHint")}
-          </Text>
-        </>
-      ) : (
-        <Text variant="label" color="$colorMuted">
-          {t("unknown")}
-        </Text>
-      )}
+      <Text variant="caption" color="$colorMuted">
+        {t("evoluSizeEstimateHint")}
+      </Text>
     </Stack>
   );
 }

@@ -24,7 +24,9 @@ const counts = vi.hoisted(() => {
 });
 
 vi.mock("../app/context/AppShellContexts", () => ({
-  useAppShellCore: () => ({ t: (key: string) => key }),
+  useAppShellCore: () => ({
+    t: (key: string) => (key === "evoluRowCount" ? "{count} rows" : key),
+  }),
 }));
 
 vi.mock("../app/context/SystemSettingsContexts", () => ({

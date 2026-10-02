@@ -17,6 +17,7 @@ import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
 import { deriveEvoluServerState } from "../app/lib/evoluServerState";
 import { navigateTo } from "../hooks/useRouting";
+import { formatEvoluRowCount } from "../utils/evoluRowCount";
 import { EvoluReloadNotice } from "./EvoluReloadNotice";
 import { EvoluSyncErrorNotice } from "./EvoluSyncErrorNotice";
 export function EvoluServersPage(): React.ReactElement {
@@ -144,9 +145,7 @@ export function EvoluServersPage(): React.ReactElement {
           trailing={
             <>
               <Text variant="label" color="$colorMuted">
-                {totalCurrentRows === null
-                  ? t("unknown")
-                  : `${totalCurrentRows} rows`}
+                {formatEvoluRowCount(t, totalCurrentRows)}
               </Text>
             </>
           }
@@ -159,9 +158,7 @@ export function EvoluServersPage(): React.ReactElement {
           trailing={
             <>
               <Text variant="label" color="$colorMuted">
-                {evoluHistoryCount === null
-                  ? t("unknown")
-                  : `${evoluHistoryCount} rows`}
+                {formatEvoluRowCount(t, evoluHistoryCount)}
               </Text>
             </>
           }

@@ -96,8 +96,8 @@ describe("routine Evolu debug views", () => {
 
   it("redacts both detail-page data sections", async () => {
     const view = await renderIntoDocument(<EvoluDataDetailPage />);
-    await clickNamedButton(view.container, "evoluShowCurrentData");
-    await clickNamedButton(view.container, "evoluShowHistoryData");
+    await clickNamedButton(view.container, "evoluCurrentDataJson");
+    await clickNamedButton(view.container, "evoluHistoryDataJson");
     expectNoSecrets(view.container);
     await view.unmount();
   });

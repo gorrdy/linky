@@ -24,6 +24,3 @@ export const filterRowsToVisibleShards = <Row>(
   const visible = new Set(summary.visibleOwnerIds);
   return rows.filter((row) => visible.has(ownerIdOf(row)));
 };
-
-export const shortOwnerId = (ownerId: string): string =>
-  ownerId.length > 12 ? `${ownerId.slice(0, 6)}…${ownerId.slice(-4)}` : ownerId;
