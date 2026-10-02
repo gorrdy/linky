@@ -373,6 +373,7 @@ export function ProfilePage({
           autoCapitalize="none"
           autoCorrect={false}
           spellCheck={false}
+          error={inlineClaimError ?? undefined}
           trailing={
             showPurchaseButton ? (
               <Button
@@ -396,9 +397,6 @@ export function ProfilePage({
             ) : null
           }
         />
-        {inlineClaimError ? (
-          <Text color="$colorMuted">{inlineClaimError}</Text>
-        ) : null}
       </Stack>
 
       <TextField
