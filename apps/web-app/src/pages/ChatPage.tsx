@@ -117,6 +117,9 @@ interface ChatPageProps {
   onAddNpubContacts: (npubs: readonly string[], messageId: string) => void;
   contactsGroupAssignment: MessageContactsGroupAssignment | null;
   onBlockUnknownContact: () => Promise<void>;
+  onDismissUnknownContactLink: () => void;
+  onLinkUnknownContact: () => Promise<void>;
+  unknownContactLinkSuggestion: { contactName: string } | null;
   onCopy: (message: LocalNostrMessage) => void;
   onDeclinePaymentRequest: (message: LocalNostrMessage) => Promise<void>;
   onSettleBankPaymentOffer: (message: LocalNostrMessage) => Promise<void>;
@@ -1104,18 +1107,44 @@ const useChatViewport = (
 };
 
 interface UnknownContactWarningProps {
+  linkSuggestionName: string | null;
   onAdd: () => Promise<void>;
   onBlock: () => Promise<void>;
+  onDismissLink: () => void;
+  onLink: () => Promise<void>;
   t: Translate;
 }
 
 const UnknownContactWarning = memo(function UnknownContactWarning({
+  linkSuggestionName,
   onAdd,
   onBlock,
+  onDismissLink,
+  onLink,
   t,
 }: UnknownContactWarningProps) {
   return (
-    <Stack paddingHorizontal="$xl" paddingTop="$sm">
+    <Stack paddingHorizontal="$xl" paddingTop="$sm" gap="$sm">
+      {linkSuggestionName ? (
+        <Notice
+          tone="warning"
+          icon="Info"
+          title={t("chatUnknownContactLinkSuggestion").replace(
+            "{name}",
+            linkSuggestionName,
+          )}
+          description={
+            <Row gap="$sm" paddingTop="$xs">
+              <Button flex={1} onPress={() => void onLink()}>
+                {t("chatUnknownContactLink")}
+              </Button>
+              <Button flex={1} variant="secondary" onPress={onDismissLink}>
+                {t("chatUnknownContactLinkDismiss")}
+              </Button>
+            </Row>
+          }
+        />
+      ) : null}
       <Notice
         tone="accent"
         icon="Info"
@@ -1159,6 +1188,9 @@ export const ChatPage: FC<ChatPageProps> = ({
   onAddNpubContacts,
   contactsGroupAssignment,
   onBlockUnknownContact,
+  onDismissUnknownContactLink,
+  onLinkUnknownContact,
+  unknownContactLinkSuggestion,
   onCopy,
   onDeclinePaymentRequest,
   onEdit,
@@ -1269,8 +1301,11 @@ export const ChatPage: FC<ChatPageProps> = ({
     <Stack testID="chat-panel" flex={1} minHeight={0} gap="$none">
       {isUnknownContact ? (
         <UnknownContactWarning
+          linkSuggestionName={unknownContactLinkSuggestion?.contactName ?? null}
           onAdd={onAddUnknownContact}
           onBlock={onBlockUnknownContact}
+          onDismissLink={onDismissUnknownContactLink}
+          onLink={onLinkUnknownContact}
           t={t}
         />
       ) : null}

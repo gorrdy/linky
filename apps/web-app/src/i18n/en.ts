@@ -406,6 +406,11 @@ export const en = {
   chatUnknownContactBlockConfirm:
     "Block this contact? The conversation will be removed.",
   chatUnknownContactBlocked: "Contact blocked.",
+  chatUnknownContactLinkSuggestion:
+    "This may be {name} from your contacts: the profile shows the same lightning address, but anyone can copy it. Link this conversation to the contact?",
+  chatUnknownContactLink: "Link",
+  chatUnknownContactLinkDismiss: "Don't link",
+  chatUnknownContactLinked: "Conversation linked to the contact.",
   chatUnknownContactAddFailed: "Cannot add this contact yet.",
   chatQueued: "Queued for delivery.",
   chatPendingShort: "pending",

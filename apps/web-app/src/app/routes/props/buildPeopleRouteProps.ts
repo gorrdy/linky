@@ -51,6 +51,9 @@ interface BuildPeopleRoutePropsParams {
   makeNip98AuthHeader: PeopleRoutesProps["profileProps"]["makeNip98AuthHeader"];
   nostrPictureByNpub: PeopleRoutesProps["contactProps"]["nostrPictureByNpub"];
   onBlockUnknownContact: PeopleRoutesProps["chatProps"]["onBlockUnknownContact"];
+  onDismissUnknownContactLink: PeopleRoutesProps["chatProps"]["onDismissUnknownContactLink"];
+  onLinkUnknownContact: PeopleRoutesProps["chatProps"]["onLinkUnknownContact"];
+  unknownContactLinkSuggestion: PeopleRoutesProps["chatProps"]["unknownContactLinkSuggestion"];
   onCancelEdit: PeopleRoutesProps["chatProps"]["onCancelEdit"];
   onCancelReply: PeopleRoutesProps["chatProps"]["onCancelReply"];
   onAddUnknownContact: PeopleRoutesProps["chatProps"]["onAddUnknownContact"];
@@ -164,6 +167,9 @@ export const buildPeopleRouteProps = ({
   makeNip98AuthHeader,
   nostrPictureByNpub,
   onBlockUnknownContact,
+  onDismissUnknownContactLink,
+  onLinkUnknownContact,
+  unknownContactLinkSuggestion,
   onCancelEdit,
   onCancelReply,
   onAddUnknownContact,
@@ -281,6 +287,9 @@ export const buildPeopleRouteProps = ({
       onAddNpubContacts,
       contactsGroupAssignment,
       onBlockUnknownContact,
+      onDismissUnknownContactLink,
+      onLinkUnknownContact,
+      unknownContactLinkSuggestion,
       sendChatImage,
       sendChatMessage,
       openContactPay,

@@ -10,6 +10,8 @@ import {
   directConversationIdFor,
   NonEmptyString1000,
   PositiveInt,
+  SqliteBoolean,
+  sqliteTrue,
   type ContactsRepository,
   type ConversationsRepository,
   type TransactionsRepository,
@@ -25,9 +27,12 @@ import {
   useAtomSet,
   useOutboxResults,
 } from "@linky-fit/linkstr-react";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import React, { useMemo, useState } from "react";
-import { deriveDefaultProfile } from "../../../derivedProfile";
+import {
+  deriveDefaultProfile,
+  omitSyntheticContactLightningAddress,
+} from "../../../derivedProfile";
 import { reportAppLog } from "../../../devtools/inspector/appLog";
 import { useLinkstrInspectorBridge } from "../../../devtools/inspector/useLinkstrInspectorBridge";
 import { useDeferredOnlineReady } from "../../../hooks/useDeferredOnlineReady";
@@ -49,6 +54,7 @@ import {
 } from "../../../profileCache";
 import {
   ARCHIVED_CONTACTS_FILTER,
+  DISMISSED_CONTACT_LINK_SUGGESTIONS_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_BACKUPED_KEYS_STORAGE_KEY,
   CONTACTS_ONBOARDING_HAS_PAID_STORAGE_KEY,
   NO_GROUP_FILTER,
@@ -68,6 +74,7 @@ import {
   collectUnreadNewestIncomingByContactId,
   contactsToUnarchive,
 } from "../../lib/chatUnread";
+import { findContactLinkSuggestion } from "../../lib/contactIdentity";
 import { buildLinkyPaymentRequestDeclineMessage } from "../../lib/paymentRequestMessage";
 import { getChatAttachmentRejection } from "../../lib/privateImageMessage";
 import {
@@ -117,7 +124,11 @@ import { useMessagesDomain } from "../useMessagesDomain";
 import { usePushRegistrationLifecycle } from "../usePushRegistrationLifecycle";
 import { useRelayDomain } from "../useRelayDomain";
 import { useIdentityOwnersComposition } from "./useIdentityOwnersComposition";
-import { safeLocalStorageGet } from "../../../utils/storage";
+import {
+  safeLocalStorageGet,
+  safeLocalStorageGetJson,
+  safeLocalStorageSetJson,
+} from "../../../utils/storage";
 import type { Translate } from "../../../i18n";
 import type { PushToastOptions } from "../../../hooks/useToasts";
 
@@ -697,7 +708,6 @@ export const useContactsMessagingComposition = ({
 
   useUnknownSenderReassignment({
     contacts,
-    contactsRepository,
     hydrated: accountHydrated,
     reassign: reassignNostrConversationContactId,
     unknownSenders: unknownContacts,
@@ -872,6 +882,42 @@ export const useContactsMessagingComposition = ({
         : {}),
     };
   }, [displayContactById, route, selectedContact]);
+
+  const [dismissedContactLinkSuggestions, setDismissedContactLinkSuggestions] =
+    useState<readonly string[]>(() =>
+      safeLocalStorageGetJson(
+        DISMISSED_CONTACT_LINK_SUGGESTIONS_STORAGE_KEY,
+        Schema.Array(Schema.String),
+        [],
+      ),
+    );
+
+  const unknownContactLinkSuggestion = React.useMemo(() => {
+    if (!selectedChatContact?.isUnknownContact) return null;
+    const unknownNpub = normalizeNpubIdentifier(selectedChatContact.npub ?? "");
+    if (!unknownNpub) return null;
+
+    const metadata = loadCachedProfile(unknownNpub)?.metadata;
+    if (!metadata) return null;
+    const lightningAddress = omitSyntheticContactLightningAddress(
+      (metadata.lud16 ?? "").trim() || (metadata.lud06 ?? "").trim(),
+      unknownNpub,
+    );
+    const contact = findContactLinkSuggestion(contacts, lightningAddress);
+    if (!contact) return null;
+
+    const dismissalKey = `${unknownNpub} ${contact.id}`;
+    if (dismissedContactLinkSuggestions.includes(dismissalKey)) return null;
+
+    return {
+      contactId: contact.id,
+      contactName: (contact.name ?? "").trim() || lightningAddress,
+      dismissalKey,
+      lightningAddress,
+      unknownContactId: selectedChatContact.id,
+      unknownNpub,
+    };
+  }, [contacts, dismissedContactLinkSuggestions, selectedChatContact]);
 
   const displayContactsSearchData = React.useMemo(() => {
     return displayContacts.map((contact) => {
@@ -1463,6 +1509,81 @@ export const useContactsMessagingComposition = ({
     t,
   ]);
 
+  const linkUnknownContactFromChat = React.useCallback(async () => {
+    if (route.kind !== "chat" || !unknownContactLinkSuggestion) return;
+    const { contactId, lightningAddress, unknownContactId, unknownNpub } =
+      unknownContactLinkSuggestion;
+
+    const contact = contacts.find((row) => row.id === contactId);
+    if (!contact || normalizeNpubIdentifier(contact.npub ?? "")) return;
+    const parsedNpub = NonEmptyString1000.fromUnknown(unknownNpub);
+    if (!parsedNpub.ok) return;
+
+    const metadata = loadCachedProfile(unknownNpub)?.metadata;
+    const profileName = metadata ? (getBestNostrName(metadata) ?? "") : "";
+    const parsedProfileName = profileName
+      ? NonEmptyString1000.fromUnknown(profileName)
+      : null;
+    const currentName = (contact.name ?? "").trim();
+    const patch: {
+      lnAddressSetByUser: typeof SqliteBoolean.Type;
+      name?: typeof NonEmptyString1000.Type;
+      nameSetByUser?: typeof SqliteBoolean.Type;
+      npub: typeof NonEmptyString1000.Type;
+    } = { lnAddressSetByUser: sqliteTrue, npub: parsedNpub.value };
+    if (!currentName && parsedProfileName?.ok) {
+      patch.name = parsedProfileName.value;
+    } else if (currentName && currentName !== profileName) {
+      patch.nameSetByUser = sqliteTrue;
+    }
+
+    const outcome = await runWrite(
+      contactsRepository.update(contact.id, patch),
+    );
+    if (!outcome.ok) {
+      setStatus(`${t("errorPrefix")}: ${outcome.error}`);
+      return;
+    }
+
+    reassignNostrConversationContactId(unknownContactId, contact.id);
+    reportAppLog({
+      tag: "contacts.unknownSenderLinked",
+      summary: "Linked an unknown sender to a contact after confirmation",
+      links: { contact: contact.id },
+      payload: { npub: unknownNpub, lightningAddress },
+    });
+    setStatus(t("chatUnknownContactLinked"));
+    navigateTo({ route: "chat", id: contact.id });
+  }, [
+    contacts,
+    contactsRepository,
+    reassignNostrConversationContactId,
+    route.kind,
+    setStatus,
+    t,
+    unknownContactLinkSuggestion,
+  ]);
+
+  const dismissUnknownContactLink = React.useCallback(() => {
+    if (!unknownContactLinkSuggestion) return;
+    const { contactId, dismissalKey, lightningAddress, unknownNpub } =
+      unknownContactLinkSuggestion;
+
+    const next = [...dismissedContactLinkSuggestions, dismissalKey];
+    safeLocalStorageSetJson(
+      DISMISSED_CONTACT_LINK_SUGGESTIONS_STORAGE_KEY,
+      next,
+    );
+    setDismissedContactLinkSuggestions(next);
+    reportAppLog({
+      tag: "contacts.unknownSenderLinkDismissed",
+      summary:
+        "Dismissed the suggestion to link an unknown sender to a contact",
+      links: { contact: contactId },
+      payload: { npub: unknownNpub, lightningAddress },
+    });
+  }, [dismissedContactLinkSuggestions, unknownContactLinkSuggestion]);
+
   const blockUnknownContactFromChat = React.useCallback(async () => {
     if (route.kind !== "chat") return;
     if (!selectedChatContact?.isUnknownContact) return;
@@ -2002,6 +2123,9 @@ export const useContactsMessagingComposition = ({
     blockArchivedContact,
     proxyPaymentPayerContacts,
     blockUnknownContactFromChat,
+    dismissUnknownContactLink,
+    linkUnknownContactFromChat,
+    unknownContactLinkSuggestion,
     addChatAttachments,
     canSaveNewRelay,
     chatAttachments,

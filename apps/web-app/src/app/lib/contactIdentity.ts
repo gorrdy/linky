@@ -27,3 +27,26 @@ export const findUniqueContactByLightningAddress = <
   }
   return match;
 };
+
+interface LinkCandidateContact extends LightningAddressContact {
+  readonly archivedAtSec?: number | null;
+  readonly npub?: string | null;
+}
+
+export const findContactLinkSuggestion = <
+  TContact extends LinkCandidateContact,
+>(
+  contacts: readonly TContact[],
+  senderLightningAddress: unknown,
+): TContact | null => {
+  const activeContacts = contacts.filter((contact) => {
+    const archivedAtSec = contact.archivedAtSec ?? 0;
+    return !Number.isFinite(archivedAtSec) || archivedAtSec <= 0;
+  });
+  const match = findUniqueContactByLightningAddress(
+    activeContacts,
+    senderLightningAddress,
+  );
+  if (!match || (match.npub ?? "").trim()) return null;
+  return match;
+};

@@ -79,4 +79,6 @@ export const LOCAL_NPUB_CASH_CLAIM_INBOX_STORAGE_KEY_PREFIX =
 
 export const BLOCKED_NOSTR_PUBKEYS_STORAGE_KEY =
   "linky.blocked_nostr_pubkeys.v1";
+export const DISMISSED_CONTACT_LINK_SUGGESTIONS_STORAGE_KEY =
+  "linky.dismissed_contact_link_suggestions.v1";
 export const UNKNOWN_CONTACT_ID_PREFIX = "unknown:";

@@ -411,6 +411,11 @@ export const cs = {
   chatUnknownContactBlockConfirm:
     "Opravdu chcete tento kontakt zablokovat? Konverzace zmizí.",
   chatUnknownContactBlocked: "Kontakt byl zablokován.",
+  chatUnknownContactLinkSuggestion:
+    "Může to být {name} z vašich kontaktů: profil uvádí stejnou lightning adresu, kterou ale může zkopírovat kdokoli. Propojit tuto konverzaci s kontaktem?",
+  chatUnknownContactLink: "Propojit",
+  chatUnknownContactLinkDismiss: "Nepropojovat",
+  chatUnknownContactLinked: "Konverzace je propojená s kontaktem.",
   chatUnknownContactAddFailed: "Tento kontakt se zatím nepodařilo přidat.",
   chatQueued: "Zpráva zařazena do fronty.",
   chatPendingShort: "čeká",

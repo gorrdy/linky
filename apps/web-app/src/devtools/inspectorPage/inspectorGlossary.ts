@@ -132,6 +132,10 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
     "The newest mute list was merged into this device's block list as a union: a pubkey blocked on either side stays blocked. Added lists the pubkeys the list brought; publish says the merged list goes out because the published one lacks an entry, or no relay holds one. A fetch that cannot tell whether a list exists merges nothing. The wrap link is the fetched list's event id.",
   "profiles.searchProfiles":
     "Add-contact text search: a NIP-50 kind-0 query fanned out to the read relays plus the configured search relays; relays without NIP-50 answer with unrelated profiles, so only hits that match the query locally are returned (the params carry the query and limit).",
+  "contacts.unknownSenderLinked":
+    "The user confirmed that an unknown sender whose profile lightning address matches a contact without an npub is that contact: the sender's npub was written to the contact and the conversation moved to it. The match itself is never applied without this confirmation, because anyone can copy a lightning address into their profile.",
+  "contacts.unknownSenderLinkDismissed":
+    "The user rejected the suggestion to link an unknown sender to the contact with the same lightning address; this device stops offering that pair.",
   "contacts.dedupeFailed":
     "The contact dedupe the user started threw before finishing; the payload carries the error. Contacts already merged before the failure stay merged.",
   "contacts.ownerMigrated":

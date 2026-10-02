@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  findContactLinkSuggestion,
   findUniqueContactByLightningAddress,
   normalizeContactLightningAddress,
 } from "./contactIdentity";
@@ -21,6 +22,34 @@ describe("contact identity", () => {
     expect(
       findUniqueContactByLightningAddress(
         [alice, { id: "alice-copy", lnAddress: "Alice@Linky.Fit" }],
+        "alice@linky.fit",
+      ),
+    ).toBeNull();
+  });
+
+  it("never suggests a contact that already has an npub", () => {
+    const alice = {
+      id: "alice",
+      lnAddress: "alice@linky.fit",
+      npub: "npub1alice",
+    };
+
+    expect(findContactLinkSuggestion([alice], "alice@linky.fit")).toBeNull();
+  });
+
+  it("suggests only an unambiguous active contact without an npub", () => {
+    const alice = { id: "alice", lnAddress: "alice@linky.fit", npub: null };
+
+    expect(findContactLinkSuggestion([alice], "ALICE@linky.fit")).toBe(alice);
+    expect(
+      findContactLinkSuggestion(
+        [alice, { id: "other", lnAddress: "alice@linky.fit", npub: "npub1x" }],
+        "alice@linky.fit",
+      ),
+    ).toBeNull();
+    expect(
+      findContactLinkSuggestion(
+        [{ ...alice, archivedAtSec: 10 }],
         "alice@linky.fit",
       ),
     ).toBeNull();

@@ -1,3 +1,4 @@
+import { canMergeContactNpubs } from "../lib/contactDedupe";
 import { toContactTextFields } from "../lib/contactFields";
 import { Option, Schema, Struct } from "effect";
 import {
@@ -210,12 +211,13 @@ export const useAppDataTransfer = <TContact extends ImportableContact>({
       }
 
       const existingByNpub = new Map<string, TContact>();
-      const existingByLn = new Map<string, TContact>();
+      const existingByLn = new Map<string, TContact[]>();
       for (const contact of contacts) {
         const npub = (contact.npub ?? "").trim();
         const ln = (contact.lnAddress ?? "").trim().toLowerCase();
         if (npub) existingByNpub.set(npub, contact);
-        if (ln) existingByLn.set(ln, contact);
+        if (ln)
+          existingByLn.set(ln, [...(existingByLn.get(ln) ?? []), contact]);
       }
       const insertedNpubs = new Set<string>();
       const insertedLnAddresses = new Set<string>();
@@ -238,15 +240,20 @@ export const useAppDataTransfer = <TContact extends ImportableContact>({
 
         if (!name && !npub && !lnAddress) continue;
 
+        const normalizedLnAddress = lnAddress?.toLowerCase() ?? null;
         const existing =
           (npub ? existingByNpub.get(npub) : undefined) ??
-          (lnAddress ? existingByLn.get(lnAddress.toLowerCase()) : undefined);
-        const normalizedLnAddress = lnAddress?.toLowerCase() ?? null;
+          (normalizedLnAddress
+            ? existingByLn
+                .get(normalizedLnAddress)
+                ?.find((contact) => canMergeContactNpubs(contact.npub, npub))
+            : undefined);
         if (
           !existing &&
-          ((npub && insertedNpubs.has(npub)) ||
-            (normalizedLnAddress &&
-              insertedLnAddresses.has(normalizedLnAddress)))
+          (npub
+            ? insertedNpubs.has(npub)
+            : normalizedLnAddress &&
+              insertedLnAddresses.has(normalizedLnAddress))
         ) {
           continue;
         }

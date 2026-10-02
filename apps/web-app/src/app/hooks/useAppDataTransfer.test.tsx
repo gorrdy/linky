@@ -7,7 +7,8 @@ import {
   TokenText,
   UnixSeconds,
 } from "@linky-fit/linkshu";
-import { Schema } from "effect";
+import { createId, NonEmptyString1000 } from "@linky-fit/linksync";
+import { Effect, Schema } from "effect";
 import { act, createRef, useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { en } from "../../i18n/en";
@@ -37,24 +38,31 @@ const walletUnavailable: WalletImports = {
   importCashuProofs: null,
 };
 
-const mount = async (wallet: WalletImports = walletUnavailable) => {
-  const insert = vi.fn();
-  const update = vi.fn();
+type ExistingContact = Parameters<
+  typeof useAppDataTransfer
+>[0]["contacts"][number];
+
+const mount = async (
+  wallet: WalletImports = walletUnavailable,
+  contacts: readonly ExistingContact[] = [],
+) => {
+  const insert = vi.fn<(row: unknown) => void>();
+  const update = vi.fn<(id: unknown, patch: unknown) => void>();
   const pushToast = vi.fn();
   let transfer: ReturnType<typeof useAppDataTransfer> | undefined;
   const Harness = () => {
     const api = useAppDataTransfer({
       cashuOperations: [],
       cashuProofs: [],
-      contacts: [],
+      contacts,
       contactsRepository: {
-        insert: () => {
-          insert();
-          throw new Error("Unexpected contact insert");
+        insert: (row) => {
+          insert(row);
+          return Effect.void;
         },
-        update: () => {
-          update();
-          throw new Error("Unexpected contact update");
+        update: (id, patch) => {
+          update(id, patch);
+          return Effect.void;
         },
       },
       ...wallet,
@@ -167,5 +175,37 @@ describe("useAppDataTransfer", () => {
     expect(pushToast).toHaveBeenCalledWith(
       "Import complete. Contacts added: 0, updated: 0, proofs: 0, wallet operations: 1.",
     );
+  });
+
+  it("keeps an existing contact when an imported one shares its lightning address under a different npub", async () => {
+    const alice = {
+      id: createId<"Contact">(),
+      lnAddress: NonEmptyString1000.orThrow("alice@linky.fit"),
+      name: NonEmptyString1000.orThrow("Alice"),
+      npub: NonEmptyString1000.orThrow("npub1alice"),
+    };
+    const { transfer, insert, update } = await mount(walletUnavailable, [
+      alice,
+    ]);
+    const file = Object.assign(new File([], "backup.txt"), {
+      text: async () =>
+        JSON.stringify({
+          contacts: [
+            {
+              name: "Mallory",
+              npub: "npub1mallory",
+              lnAddress: "alice@linky.fit",
+            },
+            { name: "Eve", npub: "npub1eve", lnAddress: "alice@linky.fit" },
+          ],
+        }),
+    });
+    await act(() => transfer.handleImportAppDataFilePicked(file));
+    expect(update).not.toHaveBeenCalled();
+    expect(insert).toHaveBeenCalledTimes(2);
+    expect(insert.mock.calls.map(([row]) => row)).toEqual([
+      expect.objectContaining({ npub: "npub1mallory" }),
+      expect.objectContaining({ npub: "npub1eve" }),
+    ]);
   });
 });

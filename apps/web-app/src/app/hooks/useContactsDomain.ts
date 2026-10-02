@@ -20,6 +20,7 @@ import {
   joinContactChatState,
   type ContactWithChatState,
 } from "../lib/contactChatState";
+import { groupDuplicateContacts } from "../lib/contactDedupe";
 import { runWrite } from "../lib/storeWrite";
 import { useConversationArchiveMigration } from "../migrations/useConversationArchiveMigration";
 import type { Translate } from "../../i18n";
@@ -113,53 +114,12 @@ export const useContactsDomain = ({
       normalize(value) ? 1 : 0;
 
     try {
-      const n = contacts.length;
-      if (n === 0) {
+      if (contacts.length === 0) {
         pushToast(t("dedupeContactsNone"));
         return;
       }
 
-      const parent = Array.from({ length: n }, (_v, i) => i);
-      const find = (i: number): number => {
-        let x = i;
-        while (parent[x] !== x) {
-          parent[x] = parent[parent[x]];
-          x = parent[x];
-        }
-        return x;
-      };
-
-      const union = (a: number, b: number) => {
-        const ra = find(a);
-        const rb = find(b);
-        if (ra !== rb) parent[rb] = ra;
-      };
-
-      const keyToIndex = new Map<string, number>();
-      for (let i = 0; i < n; i += 1) {
-        const contact = contacts[i];
-        const npub = normalize(contact.npub);
-        const ln = normalize(contact.lnAddress);
-        const keys: string[] = [];
-        if (npub) keys.push(`npub:${npub}`);
-        if (ln) keys.push(`ln:${ln}`);
-
-        for (const key of keys) {
-          const prev = keyToIndex.get(key);
-          if (prev == null) keyToIndex.set(key, i);
-          else union(i, prev);
-        }
-      }
-
-      const groups = new Map<number, number[]>();
-      for (let i = 0; i < n; i += 1) {
-        const root = find(i);
-        const arr = groups.get(root);
-        if (arr) arr.push(i);
-        else groups.set(root, [i]);
-      }
-
-      const dupGroups = [...groups.values()].filter((g) => g.length > 1);
+      const dupGroups = groupDuplicateContacts(contacts);
       if (dupGroups.length === 0) {
         pushToast(t("dedupeContactsNone"));
         return;
