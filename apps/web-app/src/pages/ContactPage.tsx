@@ -2,11 +2,10 @@ import {
   Avatar,
   Button,
   EmptyState,
-  Pressable,
+  Pill,
   Row,
   Stack,
   Text,
-  Pill,
 } from "@linky-fit/ui";
 import { useEffect, useState, type FC } from "react";
 
@@ -16,7 +15,10 @@ import type { Translate } from "../i18n";
 import { formatDisplayGeneralStatus } from "../nostrStatus";
 import { loadCachedProfile } from "../profileCache";
 import { getContactGroups } from "../utils/contactGroups";
-import { formatShortLightningAddress } from "../utils/formatting";
+import {
+  formatShortLightningAddress,
+  formatShortNpub,
+} from "../utils/formatting";
 import { resolveVerifiedNip05Identifier } from "../utils/nostrNip05";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
 import { PageCard } from "../components/PageCard";
@@ -127,22 +129,10 @@ export const ContactPage: FC<ContactPageProps> = ({
     status: statusText,
     providesLabel: t("contactStatusProvides"),
   });
-  const avatar = <Avatar name={name} uri={url ?? undefined} size="lg" />;
-
   return (
     <PageCard elevated>
       <Stack alignItems="center" gap="$sm">
-        {npub ? (
-          <Pressable
-            borderRadius="$pill"
-            onPress={() => void copyText(npub)}
-            aria-label={`${t("copy")} ${t("npub")}`}
-          >
-            {avatar}
-          </Pressable>
-        ) : (
-          avatar
-        )}
+        <Avatar name={name} uri={url ?? undefined} size="lg" />
         <Text variant="display" textAlign="center" numberOfLines={2}>
           {contactName}
         </Text>
@@ -157,7 +147,7 @@ export const ContactPage: FC<ContactPageProps> = ({
         {groups.length > 0 ? (
           <Row gap="$sm" flexWrap="wrap" justifyContent="center">
             {groups.map((group) => (
-              <Pill size="sm" key={group} label={group} tone="neutral" />
+              <Pill key={group} label={group} tone="neutral" />
             ))}
           </Row>
         ) : null}
@@ -174,6 +164,17 @@ export const ContactPage: FC<ContactPageProps> = ({
             }
           >
             {formatShortLightningAddress(ln)}
+          </Button>
+        ) : null}
+        {npub ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="Copy"
+            onPress={() => void copyText(npub)}
+            aria-label={`${t("copy")} ${t("npub")}`}
+          >
+            {formatShortNpub(npub)}
           </Button>
         ) : null}
       </Stack>
