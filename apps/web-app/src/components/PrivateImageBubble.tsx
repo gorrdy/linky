@@ -206,7 +206,10 @@ export function PrivateImageBubble({
             objectFit="contain"
             draggable={false}
             userSelect="none"
-            style={zoom.imageStyle}
+            x={zoom.transform.x}
+            y={zoom.transform.y}
+            scale={zoom.transform.scale}
+            transition={zoom.isGesturing ? null : "fast"}
             onClick={(event: React.MouseEvent) => event.stopPropagation()}
           />
         </Stack>

@@ -9,7 +9,13 @@ const Harness = ({ onOutsideClick }: { onOutsideClick: () => void }) => {
   return (
     <div onClick={onOutsideClick}>
       <div className="stage" ref={stageRef} {...zoom.handlers}>
-        <img alt="" style={zoom.imageStyle} />
+        <img
+          alt=""
+          style={{
+            transform: `translate(${zoom.transform.x}px, ${zoom.transform.y}px) scale(${zoom.transform.scale})`,
+            transition: zoom.isGesturing ? "none" : "transform",
+          }}
+        />
       </div>
     </div>
   );

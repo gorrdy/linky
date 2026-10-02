@@ -4,6 +4,7 @@ import {
   Button,
   Chip,
   DaySeparator,
+  duration,
   Icon,
   IconButton,
   MessageBubble,
@@ -649,7 +650,7 @@ function ChatMessageComponent({
   const resetSwipeTransform = React.useCallback(() => {
     const el = messageDivRef.current;
     if (!el) return;
-    el.style.transition = "transform 0.2s ease";
+    el.style.transition = `transform ${duration.base}ms ease`;
     el.style.transform = "";
     const onEnd = () => {
       el.style.transition = "";

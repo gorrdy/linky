@@ -266,10 +266,8 @@ export const useImageZoom = (
       onPointerMove,
       onPointerUp: onPointerEnd,
     },
-    imageStyle: {
-      transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-      transition: isGesturing ? "none" : "transform 160ms ease-out",
-    },
+    isGesturing,
+    transform,
     isZoomed: transform.scale > 1,
     reset,
   };
