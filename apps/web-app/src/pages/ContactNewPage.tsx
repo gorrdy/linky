@@ -7,6 +7,7 @@ import {
   LoadingState,
   Row,
   ScrollView,
+  Section,
   Stack,
   Text,
   TextField,
@@ -372,21 +373,13 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
 
   const searchStep = (
     <>
-      <Stack gap="$xs">
-        <Text variant="label" color="$colorSubtle">
-          {t("contactSearchLabel")}
-        </Text>
-        <Text variant="label" fontWeight="$regular" color="$colorMuted">
-          {t("contactSearchHint")}
-        </Text>
-      </Stack>
       <TextField
         ref={(node) => {
           searchInputRef.current =
             node instanceof HTMLInputElement ? node : null;
         }}
         label={t("contactSearchLabel")}
-        hideLabel
+        hint={t("contactSearchHint")}
         value={form.npub}
         onChange={(event) => {
           lastSearchedQueryRef.current = "";
@@ -437,7 +430,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
                   />
                 }
                 title={
-                  <Text bold numberOfLines={1}>
+                  <Text fontWeight="$semibold" numberOfLines={1}>
                     {displayName}
                   </Text>
                 }
@@ -502,16 +495,8 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
       ) : null}
 
       {showSuggestions ? (
-        <Stack
-          flexGrow={1}
-          justifyContent="flex-end"
-          gap="$sm"
-          paddingTop="$xxl"
-        >
-          <Text variant="caption" bold color="$colorSubtle">
-            {t("contactSuggestionsTitle")}
-          </Text>
-          <Stack gap="$xs">
+        <Stack flexGrow={1} justifyContent="flex-end" paddingTop="$xxl">
+          <Section title={t("contactSuggestionsTitle")}>
             {contactSuggestions.map((suggestion) => {
               const displayName =
                 (suggestion.name || suggestion.query || "").trim() ||
@@ -526,7 +511,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
                     />
                   }
                   title={
-                    <Text bold numberOfLines={1}>
+                    <Text fontWeight="$semibold" numberOfLines={1}>
                       {displayName}
                     </Text>
                   }
@@ -545,7 +530,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
                 />
               );
             })}
-          </Stack>
+          </Section>
         </Stack>
       ) : null}
     </>
