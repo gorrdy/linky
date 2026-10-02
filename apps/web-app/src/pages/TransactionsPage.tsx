@@ -7,13 +7,25 @@ import {
   buildTransactionHistory,
   deriveDeclinedRequestIds,
 } from "../app/lib/transactionHistory";
-import { Copy as CompactCopyIcon } from "lucide-react";
+import {
+  Avatar,
+  border,
+  Button,
+  EmptyState,
+  Icon,
+  opacity,
+  Pressable,
+  Row,
+  Stack,
+  Text,
+  Pill,
+} from "@linky-fit/ui";
+import type { Tone } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
-import { Avatar } from "../components/Avatar";
 
 import { createCashuTokenId } from "../app/lib/cashuTokenIdentity";
 import { calculateTransactionHistoryFee } from "../app/lib/transactionHistoryFee";
@@ -26,11 +38,8 @@ import {
 } from "../app/hooks/useLinksync";
 import type { Translate } from "../i18n";
 import { getLightningInvoicePreview } from "@linky-fit/linkshu";
-import {
-  formatInteger,
-  getInitials,
-  normalizeLocale,
-} from "../utils/formatting";
+import { formatInteger, normalizeLocale } from "../utils/formatting";
+import { tooltip } from "../utils/tooltip";
 import { asNonEmptyString } from "../utils/validation";
 
 interface ContactSummary {
@@ -51,8 +60,8 @@ interface TransactionDetailEntry {
 }
 
 interface TransactionStatusPill {
-  className: string;
   label: string;
+  tone: Tone;
 }
 
 const TRANSACTION_PAGE_SIZE = 50;
@@ -149,6 +158,7 @@ interface TransactionCardProps {
   item: TransactionItem;
   nostrPictureByNpub: Readonly<Record<string, string | null>>;
   onToggle: (id: string) => void;
+  striped: boolean;
   t: Translate;
   tokenByReferenceId: ReadonlyMap<string, string>;
 }
@@ -166,6 +176,7 @@ const TransactionCardView = ({
   item,
   nostrPictureByNpub,
   onToggle,
+  striped,
   t,
   tokenByReferenceId,
 }: TransactionCardProps): React.ReactElement => {
@@ -177,12 +188,7 @@ const TransactionCardView = ({
   const pictureUrl =
     (contact?.npub ? nostrPictureByNpub[contact.npub] : null) ||
     generatedPicture;
-  const initials = getInitials(contact?.name || title);
   const amountText = formatAmountText(item.amount, item.unit);
-  const amountClassName =
-    item.direction === "in"
-      ? "transaction-amount is-positive"
-      : "transaction-amount is-negative";
   const requestStatus = getRequestStatus(item);
   const problemStatusPill = buildProblemStatusPill(item, requestStatus);
   const hasDetails = React.useMemo(
@@ -201,102 +207,126 @@ const TransactionCardView = ({
     item.isReturned;
   const lnurlMessage = readLnurlSuccessMessage(item);
 
-  return (
-    <div
-      className={`transaction-card${hasDetails ? " is-expandable" : ""}${isUnsuccessful ? " is-unsuccessful" : ""}`}
-      onClick={() => {
-        if (hasDetails) onToggle(item.id);
-      }}
-      onKeyDown={(event) => {
-        if (!hasDetails) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        onToggle(item.id);
-      }}
-      role={hasDetails ? "button" : undefined}
-      tabIndex={hasDetails ? 0 : undefined}
-    >
-      <article className="transaction-row">
-        <div className="contact-avatar transaction-avatar" aria-hidden="true">
-          {contact ? (
-            <Avatar
-              pictureUrl={pictureUrl}
-              fallback={initials}
-              fallbackClassName="contact-avatar-fallback"
-              loading="lazy"
+  const summary = (
+    <>
+      <Avatar
+        name={contact?.name || title}
+        uri={contact ? (pictureUrl ?? undefined) : undefined}
+        fallback={
+          contact ? undefined : item.category === "lightning" ? "⚡️" : "🥜"
+        }
+      />
+      <Stack flex={1} gap="$xs">
+        <Text variant="label" numberOfLines={1}>
+          {title}
+        </Text>
+        {lnurlMessage ? (
+          <Text variant="caption" color="$colorSubtle" numberOfLines={2}>
+            {lnurlMessage}
+          </Text>
+        ) : null}
+        <Row gap="$sm" flexWrap="wrap">
+          <Text variant="caption" color="$colorMuted">
+            {formatDateText(item.createdAtSec)}
+          </Text>
+          {problemStatusPill ? (
+            <Pill
+              size="sm"
+              label={problemStatusPill.label}
+              tone={problemStatusPill.tone}
             />
-          ) : (
-            <span className="contact-avatar-fallback transaction-icon-fallback">
-              {item.category === "lightning" ? "⚡️" : "🥜"}
-            </span>
-          )}
-        </div>
-        <div className="transaction-main">
-          <div className="transaction-title">{title}</div>
-          {lnurlMessage ? (
-            <div className="transaction-subtitle">{lnurlMessage}</div>
           ) : null}
-          <div className="transaction-meta">
-            <span>{formatDateText(item.createdAtSec)}</span>
-            {problemStatusPill ? (
-              <span className={problemStatusPill.className}>
-                {problemStatusPill.label}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className={amountClassName}>{amountText || ""}</div>
-      </article>
+        </Row>
+      </Stack>
+      <Text
+        variant="label"
+        bold
+        flexShrink={0}
+        color={item.direction === "in" ? "$accentText" : "$dangerText"}
+      >
+        {amountText}
+      </Text>
+    </>
+  );
+
+  return (
+    <Stack
+      testID="transaction-card"
+      gap="$none"
+      borderRadius="$card"
+      backgroundColor={striped ? "$neutralSoft" : "$transparent"}
+      opacity={isUnsuccessful ? opacity.disabled : 1}
+    >
+      {hasDetails ? (
+        <Pressable
+          gap="$md"
+          paddingVertical="$md"
+          paddingHorizontal="$xs"
+          borderRadius="$card"
+          aria-expanded={isExpanded}
+          onPress={() => onToggle(item.id)}
+        >
+          {summary}
+        </Pressable>
+      ) : (
+        <Row paddingVertical="$md" paddingHorizontal="$xs">
+          {summary}
+        </Row>
+      )}
       {detailEntries.length > 0 ? (
-        <div className="transaction-detail-panel">
-          <dl className="transaction-detail-list">
-            {detailEntries.map((field, index) => (
-              <React.Fragment key={`${item.id}:${field.label}:${index}`}>
-                <dt>{field.label}</dt>
-                <dd>
-                  <div className="transaction-detail-values">
-                    {field.values.map((value, valueIndex) =>
-                      value.copyValue ? (
-                        <button
-                          key={`${item.id}:${field.label}:${index}:${valueIndex}`}
-                          type="button"
-                          className="copyable transaction-detail-copy"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void copyText(value.copyValue ?? "");
-                          }}
-                          onKeyDown={(event) => {
-                            event.stopPropagation();
-                          }}
-                          title={t("copy")}
-                          aria-label={t("copy")}
-                        >
-                          <span className="transaction-detail-copyText">
-                            {value.value}
-                          </span>
-                          <span
-                            className="transaction-detail-copyIcon"
-                            aria-hidden="true"
-                          >
-                            <CompactCopyIcon size={14} />
-                          </span>
-                        </button>
-                      ) : (
-                        <span
-                          key={`${item.id}:${field.label}:${index}:${valueIndex}`}
-                        >
-                          {value.value}
-                        </span>
-                      ),
-                    )}
-                  </div>
-                </dd>
-              </React.Fragment>
-            ))}
-          </dl>
-        </div>
+        <Stack
+          gap="$xs"
+          paddingHorizontal="$md"
+          paddingTop="$sm"
+          paddingBottom="$md"
+          borderTopWidth={border.hairline}
+          borderColor="$borderColor"
+        >
+          {detailEntries.map((field, index) => (
+            <Row
+              key={`${item.id}:${field.label}:${index}`}
+              gap="$sm"
+              alignItems="flex-start"
+            >
+              <Text
+                variant="caption"
+                color="$colorMuted"
+                textTransform="lowercase"
+                width="$hero"
+                flexShrink={0}
+              >
+                {field.label}
+              </Text>
+              <Stack flex={1} gap="$xs" alignItems="flex-start">
+                {field.values.map((value, valueIndex) => {
+                  const key = `${item.id}:${field.label}:${index}:${valueIndex}`;
+                  const { copyValue } = value;
+                  return copyValue ? (
+                    <Pressable
+                      key={key}
+                      gap="$xs"
+                      maxWidth="100%"
+                      onPress={() => void copyText(copyValue)}
+                      aria-label={t("copy")}
+                      {...tooltip(t("copy"))}
+                    >
+                      <Text variant="caption" numberOfLines={1} flexShrink={1}>
+                        {value.value}
+                      </Text>
+                      <Icon name="Copy" size="sm" color="$colorMuted" />
+                    </Pressable>
+                  ) : (
+                    <Text key={key} variant="caption">
+                      {value.value}
+                    </Text>
+                  );
+                })}
+              </Stack>
+            </Row>
+          ))}
+        </Stack>
       ) : null}
-    </div>
+    </Stack>
   );
 };
 
@@ -447,7 +477,7 @@ export function TransactionsPage(): React.ReactElement {
     ): TransactionStatusPill | null => {
       if (item.hiddenReason === "duplicate" || item.isReturned) {
         return {
-          className: "pill pill-muted transaction-status-pill",
+          tone: "neutral",
           label: t(
             item.hiddenReason === "duplicate"
               ? "transactionDuplicate"
@@ -461,19 +491,19 @@ export function TransactionsPage(): React.ReactElement {
         item.pendingLabel === "pending"
       ) {
         return {
-          className: "pill pill-muted transaction-status-pill",
+          tone: "neutral",
           label: t("transactionPending"),
         };
       }
       if (requestStatus === "declined") {
         return {
-          className: "pill pill-error transaction-status-pill",
+          tone: "danger",
           label: t("paymentRequestStatusDeclined"),
         };
       }
       if (item.status === "error" || item.status === "declined") {
         return {
-          className: "pill pill-error transaction-status-pill",
+          tone: "danger",
           label: t("transactionFailed"),
         };
       }
@@ -664,13 +694,13 @@ export function TransactionsPage(): React.ReactElement {
   }, []);
 
   return (
-    <section className="panel panel-plain transactions-page">
+    <Stack paddingTop="$sm" paddingBottom="$xl">
       {transactions.length === 0 ? (
-        <p className="muted">{t("paymentsHistoryEmpty")}</p>
+        <EmptyState title={t("paymentsHistoryEmpty")} />
       ) : (
         <>
-          <div className="transactions-list">
-            {visibleTransactions.map((item) => (
+          <Stack gap="$xs">
+            {visibleTransactions.map((item, index) => (
               <TransactionCard
                 buildDetailEntries={buildDetailEntries}
                 buildProblemStatusPill={buildProblemStatusPill}
@@ -685,26 +715,24 @@ export function TransactionsPage(): React.ReactElement {
                 key={item.id}
                 nostrPictureByNpub={nostrPictureByNpub}
                 onToggle={toggleExpanded}
+                striped={index % 2 === 1}
                 t={t}
                 tokenByReferenceId={tokenByReferenceId}
               />
             ))}
-          </div>
+          </Stack>
           {visibleCount < transactions.length ? (
-            <div className="settings-row">
-              <button
-                type="button"
-                className="btn-wide secondary"
-                onClick={() =>
-                  setVisibleCount((count) => count + TRANSACTION_PAGE_SIZE)
-                }
-              >
-                {t("loadMore")}
-              </button>
-            </div>
+            <Button
+              variant="secondary"
+              onPress={() =>
+                setVisibleCount((count) => count + TRANSACTION_PAGE_SIZE)
+              }
+            >
+              {t("loadMore")}
+            </Button>
           ) : null}
         </>
       )}
-    </section>
+    </Stack>
   );
 }

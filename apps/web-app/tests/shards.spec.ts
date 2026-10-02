@@ -152,7 +152,7 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
     await expect.poll(() => readBalanceSat(source.page)).toBe(32);
     for (const device of devices) {
       await device.page.goto("/#wallet/transactions");
-      await expect(device.page.locator(".transaction-card")).toHaveCount(1);
+      await expect(device.page.getByTestId("transaction-card")).toHaveCount(1);
     }
 
     await test.step("rotate each scope from the debug page and observe its pointer on the other device", async () => {
@@ -206,7 +206,9 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
       await expect.poll(() => readBalanceSat(source.page)).toBe(48);
       for (const device of devices) {
         await device.page.goto("/#wallet/transactions");
-        await expect(device.page.locator(".transaction-card")).toHaveCount(2);
+        await expect(device.page.getByTestId("transaction-card")).toHaveCount(
+          2,
+        );
       }
       for (const device of devices) {
         await device.page.reload();
@@ -224,7 +226,9 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
             device.page.getByTestId("chat-bubble").filter({ hasText: text }),
           ).toBeVisible();
         await device.page.goto("/#wallet/transactions");
-        await expect(device.page.locator(".transaction-card")).toHaveCount(2);
+        await expect(device.page.getByTestId("transaction-card")).toHaveCount(
+          2,
+        );
         device.errors.assertClean();
       }
     });
@@ -323,7 +327,7 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
           .filter({ hasText: "Also before rotation" }),
       ).toHaveCount(0);
       await fresh.page.goto("/#wallet/transactions");
-      await expect(fresh.page.locator(".transaction-card")).toHaveCount(2);
+      await expect(fresh.page.getByTestId("transaction-card")).toHaveCount(2);
       await fresh.page.goto("/#wallet");
       await expect.poll(() => readBalanceSat(fresh.page)).toBe(48);
       await testInfo.attach("fresh device after forgetting shard 0", {
