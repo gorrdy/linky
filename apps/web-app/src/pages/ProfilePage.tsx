@@ -350,51 +350,55 @@ export function ProfilePage({
       />
 
       <Stack gap="$xs">
-        <Row justifyContent="space-between">
-          <Text variant="label" color="$colorSubtle">
-            {t("lightningAddress")}
-          </Text>
-          {canRestoreDefaultLightningAddress && restoreLightningAddress ? (
-            <IconButton
-              icon="RefreshCcw"
-              size="sm"
-              accessibilityLabel={t("restore")}
-              onPress={() => setProfileEditLnAddress(restoreLightningAddress)}
+        <Text variant="label" color="$colorSubtle">
+          {t("lightningAddress")}
+        </Text>
+        <Row alignItems="flex-start" gap="$sm">
+          <Stack flex={1}>
+            <TextField
+              id="profileLn"
+              label={t("lightningAddress")}
+              hideLabel
+              value={profileEditLnAddress}
+              onChangeText={setProfileEditLnAddress}
+              placeholder={t("lightningAddress")}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              error={inlineClaimError ?? undefined}
+              trailing={
+                canRestoreDefaultLightningAddress && restoreLightningAddress ? (
+                  <IconButton
+                    icon="RefreshCcw"
+                    size="sm"
+                    accessibilityLabel={t("restore")}
+                    onPress={() =>
+                      setProfileEditLnAddress(restoreLightningAddress)
+                    }
+                  />
+                ) : null
+              }
             />
+          </Stack>
+          {showPurchaseButton ? (
+            <Button
+              loading={inlineClaimIsConfirming}
+              disabled={
+                cashuIsBusy ||
+                inlineClaimInsufficientBalance ||
+                inlineClaimIsChecking
+              }
+              tooltip={
+                inlineClaimInsufficientBalance
+                  ? t("payInsufficient")
+                  : undefined
+              }
+              onPress={() => void purchaseInlineLightningAddress()}
+            >
+              {inlineClaimButtonLabel}
+            </Button>
           ) : null}
         </Row>
-        <TextField
-          id="profileLn"
-          label={t("lightningAddress")}
-          hideLabel
-          value={profileEditLnAddress}
-          onChangeText={setProfileEditLnAddress}
-          placeholder={t("lightningAddress")}
-          autoCapitalize="none"
-          autoCorrect={false}
-          spellCheck={false}
-          error={inlineClaimError ?? undefined}
-          trailing={
-            showPurchaseButton ? (
-              <Button
-                loading={inlineClaimIsConfirming}
-                disabled={
-                  cashuIsBusy ||
-                  inlineClaimInsufficientBalance ||
-                  inlineClaimIsChecking
-                }
-                tooltip={
-                  inlineClaimInsufficientBalance
-                    ? t("payInsufficient")
-                    : undefined
-                }
-                onPress={() => void purchaseInlineLightningAddress()}
-              >
-                {inlineClaimButtonLabel}
-              </Button>
-            ) : null
-          }
-        />
       </Stack>
 
       <TextField

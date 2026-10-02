@@ -76,12 +76,12 @@ export const ContactEditPage: FC<ContactEditPageProps> = ({
         groupNames={groupNames}
         includeNpub
         lightningPublicValue={showPublicLnAddress ? publicLnAddress : ""}
-        nameLabelAction={
+        nameAction={
           form.npub.trim() && form.name.trim() ? restoreButton("name") : null
         }
         namePlaceholder={publicName || t("namePlaceholder")}
         namePublicValue={showPublicName ? publicName : ""}
-        lightningLabelAction={
+        lightningAction={
           form.npub.trim() && form.lnAddress.trim()
             ? restoreButton("lnAddress")
             : null

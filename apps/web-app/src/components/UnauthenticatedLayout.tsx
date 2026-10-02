@@ -268,6 +268,7 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
             trailing={
               <IconButton
                 icon="ClipboardPaste"
+                size="sm"
                 accessibilityLabel={t("onboardingReturnPasteButton")}
                 onPointerDown={keepInputFocus}
                 onPress={() => void pasteReturningSlip39FromClipboard()}

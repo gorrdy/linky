@@ -552,7 +552,6 @@ export const en = {
   continue: "Continue",
 
   contactNotFound: "Contact not found.",
-  contactPublicProfileValue: "Public profile",
   name: "Name",
   npub: "Identifier",
   lightningAddress: "Lightning address",

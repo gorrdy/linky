@@ -489,11 +489,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
                     isDate ? fromDateInputValue(value) : value,
                   )
                 }
-                trailing={
-                  key === "AM" ? (
-                    <Text color="$colorMuted">{currencyCode}</Text>
-                  ) : undefined
-                }
+                trailing={key === "AM" ? currencyCode : undefined}
               />
             );
           })}

@@ -13,7 +13,6 @@ import {
   Text,
   TextField,
 } from "@linky-fit/ui";
-import type { TextFieldProps } from "@linky-fit/ui";
 import type { FC } from "react";
 import React from "react";
 import { getContactQueryPrefill } from "../app/lib/contactQueryPrefill";
@@ -37,11 +36,11 @@ interface ContactFieldsProps {
   form: ContactFormData;
   groupNames: string[];
   includeNpub?: boolean;
-  lightningLabelAction?: React.ReactNode;
+  lightningAction?: React.ReactNode;
   lightningPlaceholder?: string;
-  /** Shown under the field when the typed value differs from it. */
+  /** Shown inside the field when the typed value differs from it. */
   lightningPublicValue?: string;
-  nameLabelAction?: React.ReactNode;
+  nameAction?: React.ReactNode;
   namePlaceholder?: string;
   namePublicValue?: string;
   setForm: (value: ContactFormData) => void;
@@ -52,10 +51,10 @@ export function ContactFields({
   form,
   groupNames,
   includeNpub = false,
-  lightningLabelAction,
+  lightningAction,
   lightningPlaceholder,
   lightningPublicValue,
-  nameLabelAction,
+  nameAction,
   namePlaceholder,
   namePublicValue,
   setForm,
@@ -75,37 +74,37 @@ export function ContactFields({
       groups: form.groups.filter((group) => group !== value),
     });
   };
-  const publicValueHint = (publicValue: string | undefined) =>
-    publicValue
-      ? `${t("contactPublicProfileValue")}: ${publicValue}`
-      : undefined;
-  const labelledField = (
-    action: React.ReactNode | undefined,
-    { label, ...props }: TextFieldProps,
+  const publicValueAndAction = (
+    publicValue: string | undefined,
+    action: React.ReactNode,
   ) =>
-    action === undefined ? (
-      <TextField label={label} {...props} />
-    ) : (
-      <Stack gap="$xs">
-        <Row justifyContent="space-between" minHeight="$controlSm">
-          <Text variant="label" color="$colorSubtle">
-            {label}
+    action ? (
+      <Row gap="$xs" flexShrink={1}>
+        {publicValue ? (
+          <Text
+            variant="caption"
+            color="$colorMuted"
+            numberOfLines={1}
+            flexShrink={1}
+          >
+            {publicValue}
           </Text>
-          {action}
-        </Row>
-        <TextField label={label} hideLabel {...props} />
-      </Stack>
+        ) : null}
+        {action}
+      </Row>
+    ) : (
+      publicValue
     );
 
   return (
     <Stack gap="$md">
-      {labelledField(nameLabelAction, {
-        label: t("name"),
-        value: form.name,
-        onChange: (event) => setForm({ ...form, name: event.target.value }),
-        placeholder: namePlaceholder ?? t("namePlaceholder"),
-        hint: publicValueHint(namePublicValue),
-      })}
+      <TextField
+        label={t("name")}
+        value={form.name}
+        onChange={(event) => setForm({ ...form, name: event.target.value })}
+        placeholder={namePlaceholder ?? t("namePlaceholder")}
+        trailing={publicValueAndAction(namePublicValue, nameAction)}
+      />
 
       {includeNpub ? (
         <TextField
@@ -116,14 +115,15 @@ export function ContactFields({
         />
       ) : null}
 
-      {labelledField(lightningLabelAction, {
-        label: t("lightningAddress"),
-        value: form.lnAddress,
-        onChange: (event) =>
-          setForm({ ...form, lnAddress: event.target.value }),
-        placeholder: lightningPlaceholder ?? t("lightningAddressPlaceholder"),
-        hint: publicValueHint(lightningPublicValue),
-      })}
+      <TextField
+        label={t("lightningAddress")}
+        value={form.lnAddress}
+        onChange={(event) =>
+          setForm({ ...form, lnAddress: event.target.value })
+        }
+        placeholder={lightningPlaceholder ?? t("lightningAddressPlaceholder")}
+        trailing={publicValueAndAction(lightningPublicValue, lightningAction)}
+      />
 
       <Stack gap="$xs">
         <Text variant="label" color="$colorSubtle">
@@ -407,6 +407,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
         trailing={
           <IconButton
             icon="ClipboardPaste"
+            size="sm"
             accessibilityLabel={t("paste")}
             onPointerDown={(event) => event.preventDefault()}
             onPress={() => void pasteSearch()}
