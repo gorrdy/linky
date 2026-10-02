@@ -4,6 +4,17 @@ import { StrictMode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
+import {
+  fontFamily,
+  fontWeight,
+  radius,
+  size,
+  space,
+  themes,
+  typography,
+  zIndex,
+} from "@linky-fit/ui/tokens";
+import type { TextVariant } from "@linky-fit/ui/tokens";
 import { BootCommitSignal } from "./components/BootCommitSignal";
 import "./index.css";
 import {
@@ -530,6 +541,28 @@ const getBootErrorText = () => {
   };
 };
 
+const bootTheme = themes.dark;
+
+const bootFont = (
+  variant: TextVariant,
+  weight: keyof typeof fontWeight = typography.weight[variant],
+): string =>
+  `font:${fontWeight[weight]} ${typography.size[variant]}px/${typography.lineHeight[variant]}px ${fontFamily.body}`;
+
+const bootButtonStyle = (variant: "primary" | "secondary"): string =>
+  [
+    "border:0",
+    `border-radius:${radius.control}px`,
+    `padding:${space.md}px ${space.lg}px`,
+    `background:${variant === "primary" ? bootTheme.accent : bootTheme.surfaceRaised}`,
+    `color:${variant === "primary" ? bootTheme.onAccent : bootTheme.color}`,
+    bootFont("label", "bold"),
+    "cursor:pointer",
+  ].join(";");
+
+const bootCodeStyle = (color: string, background: string): string =>
+  `overflow:auto;color:${color};background:${background};padding:${space.md}px;white-space:pre-wrap;border-radius:${radius.sm}px`;
+
 const signalBootFailure = (): void => {
   window.dispatchEvent(new Event("linky-boot-failed"));
 };
@@ -543,49 +576,43 @@ const renderBootError = (error: unknown, source: string) => {
   const text = getBootErrorText();
   const snapshot = getBootDiagnosticSnapshot();
   const panel = document.createElement("div");
-  panel.style.cssText =
-    "min-height:100vh;overflow:auto;padding:32px 24px;background:#020617;color:#f9fbfc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace";
+  panel.style.cssText = `min-height:100vh;overflow:auto;padding:${space.xxxl}px ${space.xxl}px;background:${bootTheme.background};color:${bootTheme.colorStrong};font-family:${fontFamily.mono}`;
 
   const title = document.createElement("h1");
-  title.style.cssText = "font:700 24px system-ui;margin:0 0 16px";
+  title.style.cssText = `${bootFont("heading")};margin:0 0 ${space.lg}px`;
   title.textContent = text.title;
 
   const stage = document.createElement("p");
-  stage.style.cssText = "font:600 15px system-ui;margin:0 0 14px";
+  stage.style.cssText = `${bootFont("label")};margin:0 0 ${space.md}px`;
   stage.textContent = `${text.stage}: ${snapshot.currentStage}`;
 
   const message = document.createElement("pre");
-  message.style.cssText =
-    "overflow:auto;background:#1a1a1a;color:#ff7b7b;padding:12px;white-space:pre-wrap;border-radius:8px";
+  message.style.cssText = bootCodeStyle(bootTheme.danger, bootTheme.surface);
   message.textContent = formatBootError(error);
 
   const summary = document.createElement("details");
-  summary.style.cssText = "margin-top:12px";
+  summary.style.cssText = `margin-top:${space.md}px`;
   const summaryTitle = document.createElement("summary");
-  summaryTitle.style.cssText = "cursor:pointer;font:600 14px system-ui";
+  summaryTitle.style.cssText = `cursor:pointer;${bootFont("label")}`;
   summaryTitle.textContent = text.details;
   const summaryBody = document.createElement("pre");
-  summaryBody.style.cssText =
-    "overflow:auto;background:#111827;padding:12px;white-space:pre-wrap;border-radius:8px";
+  summaryBody.style.cssText = bootCodeStyle(bootTheme.color, bootTheme.surface);
   summaryBody.textContent = JSON.stringify(snapshot, null, 2);
   summary.append(summaryTitle, summaryBody);
   panel.append(title, stage, message, summary);
 
   const actions = document.createElement("div");
-  actions.style.cssText =
-    "display:flex;flex-wrap:wrap;gap:10px;margin-top:16px";
+  actions.style.cssText = `display:flex;flex-wrap:wrap;gap:${space.sm}px;margin-top:${space.lg}px`;
 
   if (snapshot.currentStage === "await-initial-local-data") {
     const temporaryDescription = document.createElement("p");
-    temporaryDescription.style.cssText =
-      "font:14px/1.5 system-ui;color:#cbd5e1;margin:16px 0 0";
+    temporaryDescription.style.cssText = `${bootFont("label", "regular")};color:${bootTheme.colorSubtle};margin:${space.lg}px 0 0`;
     temporaryDescription.textContent = text.temporaryDescription;
     panel.append(temporaryDescription);
 
     const temporary = document.createElement("button");
     temporary.type = "button";
-    temporary.style.cssText =
-      "border:0;border-radius:12px;padding:12px 16px;background:#14b8a6;color:#020617;font:700 14px system-ui;cursor:pointer";
+    temporary.style.cssText = bootButtonStyle("primary");
     temporary.textContent = text.temporary;
     temporary.addEventListener("click", () => {
       temporary.disabled = true;
@@ -597,8 +624,7 @@ const renderBootError = (error: unknown, source: string) => {
 
   const download = document.createElement("button");
   download.type = "button";
-  download.style.cssText =
-    "border:0;border-radius:12px;padding:12px 16px;background:#14b8a6;color:#020617;font:700 14px system-ui;cursor:pointer";
+  download.style.cssText = bootButtonStyle("primary");
   download.textContent = text.download;
   download.addEventListener("click", () => {
     void downloadBootDiagnostics();
@@ -606,8 +632,7 @@ const renderBootError = (error: unknown, source: string) => {
 
   const reload = document.createElement("button");
   reload.type = "button";
-  reload.style.cssText =
-    "border:0;border-radius:12px;padding:12px 16px;background:#1e293b;color:#e2e8f0;font:700 14px system-ui;cursor:pointer";
+  reload.style.cssText = bootButtonStyle("secondary");
   reload.textContent = text.reload;
   reload.addEventListener("click", () => {
     reload.disabled = true;
@@ -629,15 +654,13 @@ const showTemporarySessionPrompt = (issue: OpfsProbeIssue): Promise<void> => {
 
   const panel = document.createElement("div");
   panel.id = TEMPORARY_SESSION_PROMPT_ID;
-  panel.style.cssText =
-    "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:#020617;color:#f9fbfc;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;text-align:center";
+  panel.style.cssText = `position:fixed;inset:0;z-index:${zIndex.toast};display:grid;place-items:center;padding:${space.xxl}px;background:${bootTheme.background};color:${bootTheme.colorStrong};font-family:${fontFamily.body};text-align:center`;
 
   const content = document.createElement("div");
-  content.style.cssText =
-    "display:grid;gap:14px;max-width:420px;justify-items:center";
+  content.style.cssText = `display:grid;gap:${space.md}px;max-width:${size.sheetWidth}px;justify-items:center`;
 
   const title = document.createElement("h1");
-  title.style.cssText = "font-size:20px;margin:0";
+  title.style.cssText = `${bootFont("title")};margin:0`;
   title.textContent =
     issue === "unavailable"
       ? isCzech
@@ -648,8 +671,7 @@ const showTemporarySessionPrompt = (issue: OpfsProbeIssue): Promise<void> => {
         : "Loading is taking longer than usual";
 
   const description = document.createElement("p");
-  description.style.cssText =
-    "font-size:14px;line-height:1.5;opacity:.85;margin:0";
+  description.style.cssText = `${bootFont("label", "regular")};color:${bootTheme.colorSubtle};margin:0`;
   description.textContent =
     issue === "unavailable"
       ? isCzech
@@ -661,8 +683,7 @@ const showTemporarySessionPrompt = (issue: OpfsProbeIssue): Promise<void> => {
 
   const continueButton = document.createElement("button");
   continueButton.type = "button";
-  continueButton.style.cssText =
-    "border:0;border-radius:12px;padding:12px 18px;background:#14b8a6;color:#020617;font:inherit;font-weight:700;cursor:pointer";
+  continueButton.style.cssText = bootButtonStyle("primary");
   continueButton.textContent = isCzech
     ? "Pokračovat v dočasné relaci"
     : "Continue with temporary session";
