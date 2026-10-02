@@ -91,7 +91,7 @@ export function AvatarPhotoInput({
       const photo = await loadPhoto(file);
       if (photo.width === photo.height) {
         URL.revokeObjectURL(photo.objectUrl);
-        onSelected(await createSquareAvatarDataUrl(file, 160));
+        onSelected(await createSquareAvatarDataUrl(file));
         return;
       }
       setCenter({ x: photo.width / 2, y: photo.height / 2 });
@@ -111,7 +111,7 @@ export function AvatarPhotoInput({
     if (!pendingPhoto || isSaving) return;
     setIsSaving(true);
     try {
-      const dataUrl = await createSquareAvatarDataUrl(pendingPhoto.file, 160, {
+      const dataUrl = await createSquareAvatarDataUrl(pendingPhoto.file, {
         centerX: center.x,
         centerY: center.y,
         zoom,

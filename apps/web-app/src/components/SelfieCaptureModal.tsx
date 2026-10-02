@@ -1,6 +1,7 @@
 import { Button, CameraPreview, Dialog, MediaFrame, Row } from "@linky-fit/ui";
 import React from "react";
 import type { Translate } from "../i18n";
+import { AVATAR_SIZE_PX } from "../utils/image";
 
 interface SelfieCaptureModalProps {
   onCancel: () => void;
@@ -8,8 +9,6 @@ interface SelfieCaptureModalProps {
   onError: (error: unknown) => void;
   t: Translate;
 }
-
-const AVATAR_SIZE_PX = 160;
 
 const stopStream = (stream: MediaStream) => {
   stream.getTracks().forEach((track) => track.stop());

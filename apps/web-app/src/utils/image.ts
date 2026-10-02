@@ -1,6 +1,7 @@
+export const AVATAR_SIZE_PX = 160;
+
 export const createSquareAvatarDataUrl = async (
   file: File,
-  sizePx: number,
   crop?: {
     centerX: number;
     centerY: number;
@@ -39,14 +40,24 @@ export const createSquareAvatarDataUrl = async (
     const sy = centerY - halfSide;
 
     const canvas = document.createElement("canvas");
-    canvas.width = sizePx;
-    canvas.height = sizePx;
+    canvas.width = AVATAR_SIZE_PX;
+    canvas.height = AVATAR_SIZE_PX;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not available");
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, sx, sy, side, side, 0, 0, sizePx, sizePx);
+    ctx.drawImage(
+      img,
+      sx,
+      sy,
+      side,
+      side,
+      0,
+      0,
+      AVATAR_SIZE_PX,
+      AVATAR_SIZE_PX,
+    );
 
     return canvas.toDataURL("image/jpeg", 0.85);
   } finally {
