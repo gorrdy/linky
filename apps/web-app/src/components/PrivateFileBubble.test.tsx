@@ -69,7 +69,7 @@ describe("PrivateFileBubble", () => {
     const container = await render();
 
     const preview = container.querySelector<HTMLImageElement>(
-      ".chat-private-pdf-preview img",
+      "[aria-label='chatPdfOpen'] img",
     );
     expect(preview?.src).toBe("blob:page-1");
     expect(container.textContent).toContain("invoice.pdf");
@@ -82,15 +82,23 @@ describe("PrivateFileBubble", () => {
 
     await act(async () => {
       container
-        .querySelector<HTMLButtonElement>(".chat-private-pdf-preview")
+        .querySelector("[aria-label='chatPdfOpen'] img")
+        ?.dispatchEvent(new Event("load"));
+    });
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>("[aria-label='chatPdfOpen']")
         ?.click();
     });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
-    const viewer = document.body.querySelector(".chat-image-viewer");
-    expect(viewer).not.toBeNull();
-    expect(viewer?.querySelectorAll(".chat-pdf-viewer-pages img")).toHaveLength(
-      1,
+    const viewer = document.body.querySelector(
+      "[data-testid='attachment-viewer']",
     );
+    expect(viewer).not.toBeNull();
+    expect(viewer?.querySelectorAll("img")).toHaveLength(1);
     expect(viewer?.textContent).toContain("chatPdfSave");
     expect(viewer?.textContent).toContain("share");
   });
@@ -99,8 +107,8 @@ describe("PrivateFileBubble", () => {
     renderMock.mockRejectedValueOnce(new Error("broken"));
     const container = await render();
 
-    expect(container.querySelector(".chat-private-pdf-preview")).toBeNull();
-    expect(container.querySelector(".chat-private-file")).not.toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("[aria-label='chatPdfOpen']")).toBeNull();
     expect(container.textContent).toContain("invoice.pdf");
   });
 });

@@ -1,10 +1,17 @@
-import { useLatest } from "../hooks/useLatest";
 import {
-  HeartHandshake as DonateIcon,
-  Images as GalleryIcon,
-  HandCoins as PayIcon,
-  Send as SendIcon,
-} from "lucide-react";
+  Avatar,
+  Button,
+  IconButton,
+  ListRow,
+  MessageComposerFrame,
+  Notice,
+  ReplyPreview,
+  Row,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
+import { useDivRef } from "../hooks/useDivRef";
+import { useLatest } from "../hooks/useLatest";
 import {
   memo,
   useCallback,
@@ -56,7 +63,6 @@ import type {
   LocalNostrMessage,
   LocalNostrReaction,
 } from "../app/types/appTypes";
-import { Avatar } from "../components/Avatar";
 import { ChatAttachmentPreview } from "../components/ChatAttachmentPreview";
 import {
   ChatMessage,
@@ -65,13 +71,12 @@ import {
   type NpubMessageContactInfo,
 } from "../components/ChatMessage";
 import { ChatMessageEditor } from "../components/ChatMessageEditor";
-import { RequestIcon } from "../components/icons";
-import { ReplyPreview } from "../components/ReplyPreview";
 import { navigateTo } from "../hooks/useRouting";
 import type { Translate } from "../i18n";
 import { formatChatDayLabel, normalizeLocale } from "../utils/formatting";
 import type { MintIcon } from "../utils/mint";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
+import { pickFiles } from "../utils/pickFiles";
 import { nowSeconds } from "../utils/time";
 
 interface Contact {
@@ -319,6 +324,7 @@ const ChatMessageList = memo(function ChatMessageList({
       copy: t("copy"),
       edit: t("chatEditAction"),
       edited: t("chatEdited"),
+      menu: t("chatMessageActions"),
       react: t("chatReactAction"),
       reply: t("chatReplyAction"),
       save: t("chatImageSave"),
@@ -333,6 +339,7 @@ const ChatMessageList = memo(function ChatMessageList({
     (timestamp: number) => formatChatDayLabel(timestamp, lang, t),
     [lang, t],
   );
+  const messagesNodeRef = useDivRef(chatMessagesRef);
   const messageElRef = useCallback(
     (element: HTMLDivElement | null, messageId: string) => {
       const elements = chatMessageElByIdRef.current;
@@ -500,14 +507,20 @@ const ChatMessageList = memo(function ChatMessageList({
   ]);
 
   return (
-    <div
-      className="chat-messages"
+    <Stack
+      ref={messagesNodeRef}
       role="log"
       aria-live="polite"
-      ref={chatMessagesRef}
+      flex={1}
+      minHeight={0}
+      overflowY="auto"
+      gap="$sm"
+      paddingHorizontal="$xl"
+      paddingTop="$lg"
+      paddingBottom="$md"
     >
       {viewModels.length === 0 ? (
-        <p className="muted">{t("chatEmpty")}</p>
+        <Text color="$colorMuted">{t("chatEmpty")}</Text>
       ) : (
         viewModels.map((viewModel) => (
           <ChatMessage
@@ -557,7 +570,7 @@ const ChatMessageList = memo(function ChatMessageList({
           />
         ))
       )}
-    </div>
+    </Stack>
   );
 });
 
@@ -570,7 +583,6 @@ interface ChatComposerProps {
   chatAttachments: readonly File[];
   chatDraft: string;
   chatSendIsBusy: boolean;
-  composeContainerRef: React.RefObject<HTMLDivElement | null>;
   composeInputRef: React.RefObject<HTMLDivElement | null>;
   editContext: EditChatContext | null;
   getCashuTokenMessageInfo: ChatPageProps["getCashuTokenMessageInfo"];
@@ -602,7 +614,6 @@ export const ChatComposer = memo(function ChatComposer({
   chatAttachments,
   chatDraft,
   chatSendIsBusy,
-  composeContainerRef,
   composeInputRef,
   editContext,
   getCashuTokenMessageInfo,
@@ -624,7 +635,6 @@ export const ChatComposer = memo(function ChatComposer({
   setChatDraft,
   t,
 }: ChatComposerProps) {
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingSendDraftRef = useRef<string | null>(null);
   const [previousDraftProps, setPreviousDraftProps] = useState({
     chatDraft,
@@ -758,99 +768,129 @@ export const ChatComposer = memo(function ChatComposer({
     focusComposeInput();
   }, [editContext, focusComposeInput, hasUnknownPubkeyHex, npub, replyContext]);
 
-  return (
-    <div className="chat-compose" ref={composeContainerRef}>
-      {replyContext && (
-        <ReplyPreview
-          label={t("chatReplyingTo")}
-          body={replyPreviewText || t("chatReplyUnavailable")}
-          onCancel={onCancelReply}
-        />
-      )}
-      {editContext && (
-        <ReplyPreview
-          label={t("chatEditing")}
-          body={editContext.originalContent || t("chatEmpty")}
-          onCancel={onCancelEdit}
-        />
-      )}
-      {chatAttachments.length > 0 ? (
-        <ChatAttachmentPreview
-          addLabel={t("chatImageAttach")}
-          disabled={chatSendIsBusy}
-          files={chatAttachments}
-          onAdd={() => imageInputRef.current?.click()}
-          onRemove={removeChatAttachment}
-          removeLabel={t("chatAttachmentRemove")}
-        />
-      ) : null}
-      {mentionSuggestions.length > 0 ? (
-        <div className="chat-mention-suggestions" role="listbox">
-          {mentionSuggestions.map((suggestion) => {
-            if (suggestion.kind === "group") {
-              return (
-                <button
-                  key={`group-${suggestion.groupName}`}
-                  type="button"
-                  className="chat-mention-suggestion"
-                  onPointerDown={(event) => event.preventDefault()}
-                  onClick={() => selectMentionSuggestion(suggestion)}
-                >
-                  <span className="chat-mention-suggestion-label">
-                    @{suggestion.groupName}
-                  </span>
-                  <span className="muted">
-                    {t("chatMentionGroupCount").replace(
-                      "{count}",
-                      String(suggestion.contacts.length),
-                    )}
-                  </span>
-                </button>
-              );
-            }
+  const attachFiles = () => {
+    void pickFiles({ accept: "image/*,application/pdf,.pdf", multiple: true })
+      // A cancelled or late pick must not stage files the chat can no longer take.
+      .then((files) => {
+        if (files.length > 0 && canAttach) addChatAttachments(files);
+      });
+  };
+  // Keeps the editor focused, and the iOS keyboard open, while tapping composer controls.
+  const keepEditorFocus = (event: React.PointerEvent) => event.preventDefault();
+  const showSend = hasDraftText || chatAttachments.length > 0;
 
-            const info = getNpubMessageContactInfo(suggestion.contact.npub);
-            return (
-              <button
-                key={`contact-${suggestion.contact.npub}`}
-                type="button"
-                className="chat-mention-suggestion"
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => selectMentionSuggestion(suggestion)}
+  return (
+    <Stack testID="chat-compose" data-safe-area="bottom">
+      <MessageComposerFrame
+        header={
+          replyContext ||
+          editContext ||
+          chatAttachments.length > 0 ||
+          mentionSuggestions.length > 0 ? (
+            <>
+              {replyContext ? (
+                <ReplyPreview
+                  author={t("chatReplyingTo")}
+                  body={replyPreviewText || t("chatReplyUnavailable")}
+                  dismiss={{ label: t("close"), onPress: onCancelReply }}
+                />
+              ) : null}
+              {editContext ? (
+                <ReplyPreview
+                  author={t("chatEditing")}
+                  body={editContext.originalContent || t("chatEmpty")}
+                  dismiss={{ label: t("close"), onPress: onCancelEdit }}
+                />
+              ) : null}
+              {chatAttachments.length > 0 ? (
+                <ChatAttachmentPreview
+                  accessibilityLabel={t("chatAttachments")}
+                  addLabel={t("chatImageAttach")}
+                  disabled={chatSendIsBusy}
+                  files={chatAttachments}
+                  onAdd={attachFiles}
+                  onRemove={removeChatAttachment}
+                  removeLabel={t("chatAttachmentRemove")}
+                />
+              ) : null}
+              {mentionSuggestions.length > 0 ? (
+                <Stack
+                  role="list"
+                  maxHeight="$qr"
+                  overflowY="auto"
+                  padding="$xs"
+                  borderRadius="$control"
+                  backgroundColor="$surfaceRaised"
+                  onPointerDown={keepEditorFocus}
+                >
+                  {mentionSuggestions.map((suggestion) =>
+                    suggestion.kind === "group" ? (
+                      <ListRow
+                        key={`group-${suggestion.groupName}`}
+                        title={`@${suggestion.groupName}`}
+                        meta={t("chatMentionGroupCount").replace(
+                          "{count}",
+                          String(suggestion.contacts.length),
+                        )}
+                        chevron={false}
+                        onPress={() => selectMentionSuggestion(suggestion)}
+                      />
+                    ) : (
+                      <ListRow
+                        key={`contact-${suggestion.contact.npub}`}
+                        leading={
+                          <Avatar
+                            name={suggestion.contact.name}
+                            uri={
+                              getNpubMessageContactInfo(suggestion.contact.npub)
+                                ?.pictureUrl ?? undefined
+                            }
+                            size="xs"
+                          />
+                        }
+                        title={suggestion.contact.name}
+                        meta={suggestion.contact.groupName ?? undefined}
+                        chevron={false}
+                        onPress={() => selectMentionSuggestion(suggestion)}
+                      />
+                    ),
+                  )}
+                </Stack>
+              ) : null}
+            </>
+          ) : null
+        }
+        footer={
+          canPayThisContact ? (
+            <Row gap="$sm">
+              {canRequestThisContact ? (
+                <Button
+                  flex={1}
+                  variant="secondary"
+                  icon="Request"
+                  onPress={() =>
+                    openContactPay(selectedContact.id, true, "request")
+                  }
+                  disabled={cashuIsBusy}
+                  data-guide="chat-request"
+                >
+                  {t("requestPayment")}
+                </Button>
+              ) : null}
+              <Button
+                flex={1}
+                variant="secondary"
+                icon={isFeedbackContact ? "HeartHandshake" : "HandCoins"}
+                onPress={() => openContactPay(selectedContact.id, true)}
+                disabled={cashuIsBusy || !canStartPay}
+                data-guide="chat-pay"
               >
-                <span className="chat-contact-pill-avatar" aria-hidden="true">
-                  <Avatar
-                    pictureUrl={info?.pictureUrl ? info.pictureUrl : null}
-                    fallback={suggestion.contact.name.charAt(0)}
-                    fallbackClassName="chat-contact-pill-avatar-fallback"
-                    loading="lazy"
-                  />
-                </span>
-                <span className="chat-mention-suggestion-label">
-                  {suggestion.contact.name}
-                </span>
-                {suggestion.contact.groupName ? (
-                  <span className="muted">{suggestion.contact.groupName}</span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-      <div className="chat-compose-input-wrap">
-        <input
-          ref={imageInputRef}
-          className="chat-image-input"
-          type="file"
-          accept="image/*,application/pdf,.pdf"
-          multiple
-          onChange={(event) => {
-            const files = Array.from(event.target.files ?? []);
-            event.currentTarget.value = "";
-            if (files.length > 0 && canAttach) addChatAttachments(files);
-          }}
-          tabIndex={-1}
-        />
+                {isFeedbackContact ? t("donate") : t("pay")}
+              </Button>
+            </Row>
+          ) : null
+        }
+      >
         <ChatMessageEditor
           ref={composeInputRef}
           value={draft}
@@ -864,83 +904,39 @@ export const ChatComposer = memo(function ChatComposer({
           }}
           placeholder={t("chatPlaceholder")}
           removeContactLabel={t("chatRemoveContactFromDraft")}
+          trailing={
+            showSend ? (
+              <IconButton
+                icon="Send"
+                variant="primary"
+                size="sm"
+                accessibilityLabel={
+                  editContext ? t("chatSaveAction") : t("send")
+                }
+                onPointerDown={keepEditorFocus}
+                onPress={() => void requestSend()}
+                disabled={!canSendChat}
+                data-guide="chat-send"
+              />
+            ) : (
+              <IconButton
+                icon="Images"
+                variant="secondary"
+                size="sm"
+                accessibilityLabel={t("chatImageAttach")}
+                onPointerDown={keepEditorFocus}
+                onPress={attachFiles}
+                disabled={!canAttach}
+              />
+            )
+          }
           disabled={!npub && !hasUnknownPubkeyHex}
           getCashuTokenMessageInfo={getCashuTokenMessageInfo}
           getMintIconUrl={getMintIconUrl}
           getNpubMessageContactInfo={getNpubMessageContactInfo}
         />
-        {!hasDraftText && chatAttachments.length === 0 ? (
-          <button
-            type="button"
-            className="chat-compose-image-button"
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={() => imageInputRef.current?.click()}
-            disabled={!canAttach}
-            aria-label={t("chatImageAttach")}
-            title={t("chatImageAttach")}
-          >
-            <span className="chat-compose-send-icon" aria-hidden="true">
-              <GalleryIcon size={18} />
-            </span>
-          </button>
-        ) : null}
-        {hasDraftText || chatAttachments.length > 0 ? (
-          <button
-            type="button"
-            className="chat-compose-send-button"
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={() => void requestSend()}
-            disabled={!canSendChat}
-            aria-label={editContext ? t("chatSaveAction") : t("send")}
-            title={editContext ? t("chatSaveAction") : t("send")}
-            data-guide="chat-send"
-          >
-            <span className="chat-compose-send-icon" aria-hidden="true">
-              <SendIcon size={18} />
-            </span>
-          </button>
-        ) : null}
-      </div>
-      {canPayThisContact && (
-        <div className="chat-compose-payment-actions">
-          {canRequestThisContact && (
-            <button
-              className="btn-wide secondary chat-pay-button"
-              onClick={() =>
-                openContactPay(selectedContact.id, true, "request")
-              }
-              disabled={cashuIsBusy}
-              data-guide="chat-request"
-            >
-              <span className="btn-label-with-icon">
-                <span className="btn-label-icon" aria-hidden="true">
-                  <RequestIcon size={18} />
-                </span>
-                <span>{t("requestPayment")}</span>
-              </span>
-            </button>
-          )}
-          <button
-            className="btn-wide secondary chat-pay-button"
-            onClick={() => openContactPay(selectedContact.id, true)}
-            disabled={cashuIsBusy || !canStartPay}
-            title={!canStartPay ? t("payInsufficient") : undefined}
-            data-guide="chat-pay"
-          >
-            <span className="btn-label-with-icon">
-              <span className="btn-label-icon" aria-hidden="true">
-                {isFeedbackContact ? (
-                  <DonateIcon size={18} />
-                ) : (
-                  <PayIcon size={18} />
-                )}
-              </span>
-              <span>{isFeedbackContact ? t("donate") : t("pay")}</span>
-            </span>
-          </button>
-        </div>
-      )}
-    </div>
+      </MessageComposerFrame>
+    </Stack>
   );
 });
 
@@ -1016,10 +1012,6 @@ const useChatViewport = (
         );
       }
       root.style.setProperty("--chat-viewport-height", `${viewportHeight}px`);
-      root.style.setProperty(
-        "--chat-keyboard-inset",
-        `${Math.round(keyboardInset)}px`,
-      );
       if (keyboardInset > 0) {
         root.dataset.chatKeyboardOpen = "true";
       } else {
@@ -1090,46 +1082,9 @@ const useChatViewport = (
       root.style.overflow = previousHtmlOverflow;
       body.style.overflow = previousBodyOverflow;
       root.style.removeProperty("--chat-viewport-height");
-      root.style.removeProperty("--chat-keyboard-inset");
       delete root.dataset.chatKeyboardOpen;
     };
   }, [chatMessagesRef, composeInputRef, selectedContactId]);
-};
-
-const useChatComposeHeight = (
-  composeContainerRef: React.RefObject<HTMLDivElement | null>,
-  selectedContactId: string | null,
-) => {
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (typeof window === "undefined") return;
-
-    const root = document.documentElement;
-    const compose = composeContainerRef.current;
-    if (!compose) return;
-
-    const updateComposeHeight = () => {
-      root.style.setProperty(
-        "--chat-compose-height",
-        `${Math.round(compose.getBoundingClientRect().height)}px`,
-      );
-    };
-
-    updateComposeHeight();
-    window.addEventListener("resize", updateComposeHeight);
-
-    const observer =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(updateComposeHeight);
-    observer?.observe(compose);
-
-    return () => {
-      window.removeEventListener("resize", updateComposeHeight);
-      observer?.disconnect();
-      root.style.removeProperty("--chat-compose-height");
-    };
-  }, [composeContainerRef, selectedContactId]);
 };
 
 interface UnknownContactWarningProps {
@@ -1144,25 +1099,23 @@ const UnknownContactWarning = memo(function UnknownContactWarning({
   t,
 }: UnknownContactWarningProps) {
   return (
-    <div className="chat-unknown-warning">
-      <p>{t("chatUnknownContactWarning")}</p>
-      <div className="chat-unknown-warning-actions">
-        <button
-          className="btn-wide chat-unknown-primary"
-          type="button"
-          onClick={() => void onAdd()}
-        >
-          {t("addContact")}
-        </button>
-        <button
-          className="btn-wide secondary"
-          type="button"
-          onClick={() => void onBlock()}
-        >
-          {t("blockContact")}
-        </button>
-      </div>
-    </div>
+    <Stack paddingHorizontal="$xl" paddingTop="$sm">
+      <Notice
+        tone="accent"
+        icon="Info"
+        title={t("chatUnknownContactWarning")}
+        description={
+          <Row gap="$sm" paddingTop="$xs">
+            <Button flex={1} onPress={() => void onAdd()}>
+              {t("addContact")}
+            </Button>
+            <Button flex={1} variant="secondary" onPress={() => void onBlock()}>
+              {t("blockContact")}
+            </Button>
+          </Row>
+        }
+      />
+    </Stack>
   );
 });
 
@@ -1213,7 +1166,6 @@ export const ChatPage: FC<ChatPageProps> = ({
 }) => {
   const { formatDisplayedAmountText, t } = useAppShellCore();
   const composeInputRef = useRef<HTMLDivElement | null>(null);
-  const composeContainerRef = useRef<HTMLDivElement | null>(null);
   const npub = selectedContact
     ? normalizeNpubIdentifier(selectedContact.npub ?? "")
     : null;
@@ -1223,7 +1175,6 @@ export const ChatPage: FC<ChatPageProps> = ({
   );
 
   useChatViewport(chatMessagesRef, composeInputRef, selectedContactId);
-  useChatComposeHeight(composeContainerRef, selectedContactId);
 
   useEffect(() => {
     if (selectedContact?.isUnknownContact) return;
@@ -1287,9 +1238,9 @@ export const ChatPage: FC<ChatPageProps> = ({
 
   if (!selectedContact) {
     return (
-      <section className="panel">
-        <p className="muted">{t("contactNotFound")}</p>
-      </section>
+      <Stack padding="$xl">
+        <Text color="$colorMuted">{t("contactNotFound")}</Text>
+      </Stack>
     );
   }
 
@@ -1305,7 +1256,7 @@ export const ChatPage: FC<ChatPageProps> = ({
   const isFeedbackContact = npub === feedbackContactNpub;
 
   return (
-    <section className="panel chat-panel">
+    <Stack testID="chat-panel" flex={1} minHeight={0} gap="$none">
       {isUnknownContact ? (
         <UnknownContactWarning
           onAdd={onAddUnknownContact}
@@ -1315,7 +1266,9 @@ export const ChatPage: FC<ChatPageProps> = ({
       ) : null}
 
       {!npub && !hasUnknownPubkeyHex && (
-        <p className="muted">{t("chatMissingContactNpub")}</p>
+        <Text color="$colorMuted" paddingHorizontal="$xl" paddingTop="$sm">
+          {t("chatMissingContactNpub")}
+        </Text>
       )}
 
       <ChatMessageList
@@ -1359,7 +1312,6 @@ export const ChatPage: FC<ChatPageProps> = ({
         chatAttachments={chatAttachments}
         chatDraft={chatDraft}
         chatSendIsBusy={chatSendIsBusy}
-        composeContainerRef={composeContainerRef}
         composeInputRef={composeInputRef}
         editContext={editContext}
         getCashuTokenMessageInfo={getCashuTokenMessageInfo}
@@ -1381,6 +1333,6 @@ export const ChatPage: FC<ChatPageProps> = ({
         setChatDraft={setChatDraft}
         t={t}
       />
-    </section>
+    </Stack>
   );
 };

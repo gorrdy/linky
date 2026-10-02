@@ -1,7 +1,14 @@
+import {
+  DocumentPages,
+  FileAttachment,
+  ImageAttachment,
+  Spinner,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
+import { useDivRef } from "../hooks/useDivRef";
 import { useLatest } from "../hooks/useLatest";
-import { Download, FileText, Share2 as ShareIcon } from "lucide-react";
 import React from "react";
-import { createPortal } from "react-dom";
 import {
   renderPdfPages,
   revokePdfPages,
@@ -18,6 +25,7 @@ import {
 } from "../app/lib/privateImageMessage";
 
 import type { Translate } from "../i18n";
+import { AttachmentViewer } from "./AttachmentViewer";
 
 interface PrivateFileBubbleProps {
   onBlobChange: (blob: Blob | null) => void;
@@ -42,6 +50,7 @@ export function PrivateFileBubble({
   t,
 }: PrivateFileBubbleProps) {
   const placeholderRef = React.useRef<HTMLDivElement | null>(null);
+  const placeholderNodeRef = useDivRef(placeholderRef);
   const [shouldLoad, setShouldLoad] = React.useState(
     typeof IntersectionObserver === "undefined",
   );
@@ -124,14 +133,8 @@ export function PrivateFileBubble({
         if (!cancelled) setViewerErrorText(t("chatPdfLoadFailed"));
       });
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setViewerOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
     return () => {
       cancelled = true;
-      window.removeEventListener("keydown", handleKeyDown);
       revokePdfPages(rendered);
       setViewerPages(null);
     };
@@ -173,156 +176,99 @@ export function PrivateFileBubble({
 
   if (failed) {
     return (
-      <div className="chat-private-image-placeholder is-error">
+      <Text variant="caption" color="$dangerText">
         {t("chatPdfLoadFailed")}
-      </div>
+      </Text>
     );
   }
 
   if (!shouldLoad) {
     return (
-      <div ref={placeholderRef} className="chat-private-file" aria-busy="true">
-        <span className="chat-private-file-icon" aria-hidden="true">
-          <FileText size={28} />
-        </span>
-        <span className="chat-private-file-body">
-          <span className="chat-private-file-name">{fileName}</span>
-          <span className="chat-private-file-meta">{t("chatPdfMessage")}</span>
-        </span>
-      </div>
+      <Stack ref={placeholderNodeRef} aria-busy>
+        <FileAttachment name={fileName} meta={t("chatPdfMessage")} />
+      </Stack>
     );
   }
 
   return (
     <>
       {preview ? (
-        <button
-          type="button"
-          className="chat-private-image-button chat-private-pdf-preview"
-          onClick={openViewer}
-          aria-label={t("chatPdfOpen")}
-          title={t("chatPdfOpen")}
-        >
-          <img
-            src={preview.url}
-            alt={fileName}
-            width={preview.width}
-            height={preview.height}
-            decoding="async"
+        <Stack width="$qr" maxWidth="100%" testID="chat-pdf-preview">
+          <ImageAttachment
+            uri={preview.url}
+            accessibilityLabel={t("chatPdfOpen")}
+            errorLabel={t("chatPdfLoadFailed")}
+            aspectRatio={preview.width / preview.height}
+            onPress={openViewer}
           />
-          <span className="chat-private-pdf-badge">{fileName}</span>
-        </button>
+          <Stack
+            position="absolute"
+            left="$sm"
+            bottom="$sm"
+            maxWidth="90%"
+            pointerEvents="none"
+          >
+            <Text
+              variant="caption"
+              bold
+              numberOfLines={1}
+              paddingHorizontal="$sm"
+              paddingVertical="$xxs"
+              borderRadius="$pill"
+              overflow="hidden"
+              backgroundColor="$surfaceRaised"
+            >
+              {fileName}
+            </Text>
+          </Stack>
+        </Stack>
       ) : (
-        <button
-          type="button"
-          className="chat-private-file"
-          onClick={openViewer}
-          disabled={!fileBlob}
-          aria-label={t("chatPdfOpen")}
-          title={t("chatPdfOpen")}
-        >
-          <span className="chat-private-file-icon" aria-hidden="true">
-            <FileText size={28} />
-          </span>
-          <span className="chat-private-file-body">
-            <span className="chat-private-file-name">{fileName}</span>
-            <span className="chat-private-file-meta">
-              {fileBlob
-                ? `${t("chatPdfMessage")} · ${formatFileSize(fileBlob.size)}`
-                : t("chatPdfDecrypting")}
-            </span>
-          </span>
-        </button>
+        <FileAttachment
+          name={fileName}
+          meta={
+            fileBlob
+              ? `${t("chatPdfMessage")} · ${formatFileSize(fileBlob.size)}`
+              : t("chatPdfDecrypting")
+          }
+          loading={!fileBlob}
+          onPress={openViewer}
+        />
       )}
 
-      {viewerOpen && fileBlob
-        ? // Portaled to <body> for the same reason as the image viewer.
-          createPortal(
-            <div
-              className="chat-image-viewer"
-              role="dialog"
-              aria-modal="true"
-              aria-label={fileName}
-              onClick={closeViewer}
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <div
-                className="chat-image-viewer-toolbar"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  className="topbar-btn chat-image-viewer-back"
-                  onClick={closeViewer}
-                  aria-label={t("chatImageBackToChat")}
-                  title={t("chatImageBackToChat")}
-                >
-                  <span aria-hidden="true">&lt;</span>
-                </button>
-              </div>
-
-              <div
-                className="chat-image-viewer-stage"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {viewerPages ? (
-                  <div className="chat-pdf-viewer-pages">
-                    {viewerPages.map((page, index) => (
-                      <img
-                        key={page.url}
-                        src={page.url}
-                        alt={`${fileName} ${index + 1}`}
-                        width={page.width}
-                        height={page.height}
-                        decoding="async"
-                      />
-                    ))}
-                  </div>
-                ) : viewerErrorText ? null : (
-                  <span className="btn-spinner" aria-hidden="true" />
-                )}
-              </div>
-
-              <div
-                className="chat-image-viewer-footer"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {viewerErrorText ? (
-                  <div className="chat-image-viewer-error" role="status">
-                    {viewerErrorText}
-                  </div>
-                ) : null}
-                <div className="chat-image-viewer-actions">
-                  <button
-                    type="button"
-                    className="chat-image-viewer-action"
-                    onClick={saveFile}
-                  >
-                    <span className="btn-label-with-icon">
-                      <span className="btn-label-icon" aria-hidden="true">
-                        <Download size={20} />
-                      </span>
-                      <span>{t("chatPdfSave")}</span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="chat-image-viewer-action"
-                    onClick={() => void shareFile()}
-                  >
-                    <span className="btn-label-with-icon">
-                      <span className="btn-label-icon" aria-hidden="true">
-                        <ShareIcon size={20} />
-                      </span>
-                      <span>{t("share")}</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      <AttachmentViewer
+        open={viewerOpen && fileBlob !== null}
+        onClose={closeViewer}
+        title={fileName}
+        backLabel={t("chatImageBackToChat")}
+        errorText={viewerErrorText}
+        actions={[
+          { icon: "Download", label: t("chatPdfSave"), onPress: saveFile },
+          {
+            icon: "Share2",
+            label: t("share"),
+            onPress: () => void shareFile(),
+          },
+        ]}
+      >
+        {viewerPages ? (
+          <Stack
+            flex={1}
+            width="100%"
+            onClick={(event: React.MouseEvent) => event.stopPropagation()}
+          >
+            <DocumentPages
+              pages={viewerPages.map((page, index) => ({
+                uri: page.url,
+                accessibilityLabel: `${fileName} ${index + 1}`,
+                width: page.width,
+                height: page.height,
+              }))}
+            />
+          </Stack>
+        ) : viewerErrorText ? null : (
+          <Spinner accessibilityLabel={t("chatPdfDecrypting")} />
+        )}
+      </AttachmentViewer>
     </>
   );
 }

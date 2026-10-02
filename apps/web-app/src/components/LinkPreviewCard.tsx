@@ -1,4 +1,6 @@
+import { LinkPreview, Stack } from "@linky-fit/ui";
 import React from "react";
+import { useDivRef } from "../hooks/useDivRef";
 import { isNativePlatform } from "../platform/runtime";
 import { isRecord } from "../utils/unknown";
 import { asNonEmptyString } from "../utils/validation";
@@ -98,7 +100,8 @@ const loadLinkPreview = (url: string): Promise<LinkPreview | null> => {
 };
 
 export function LinkPreviewCard({ url }: LinkPreviewCardProps) {
-  const cardRef = React.useRef<HTMLAnchorElement | null>(null);
+  const placeholderRef = React.useRef<HTMLDivElement | null>(null);
+  const placeholderNodeRef = useDivRef(placeholderRef);
   const [shouldLoad, setShouldLoad] = React.useState(
     getCachedPreview(url) !== undefined ||
       typeof IntersectionObserver === "undefined",
@@ -109,7 +112,7 @@ export function LinkPreviewCard({ url }: LinkPreviewCardProps) {
 
   React.useEffect(() => {
     if (shouldLoad || typeof IntersectionObserver === "undefined") return;
-    const element = cardRef.current;
+    const element = placeholderRef.current;
     if (!element) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -135,56 +138,17 @@ export function LinkPreviewCard({ url }: LinkPreviewCardProps) {
   }, [shouldLoad, url]);
 
   if (!preview) {
-    return shouldLoad ? null : (
-      <a
-        ref={cardRef}
-        className="chat-link-preview chat-link-preview-placeholder"
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-hidden="true"
-        tabIndex={-1}
-      />
-    );
+    return shouldLoad ? null : <Stack ref={placeholderNodeRef} aria-hidden />;
   }
 
   return (
-    <a
-      ref={cardRef}
-      className="chat-link-preview"
+    <LinkPreview
       href={preview.url}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      {preview.imageUrl ? (
-        <img
-          className="chat-link-preview-image"
-          src={preview.imageUrl}
-          alt=""
-          loading="lazy"
-          referrerPolicy="no-referrer"
-        />
-      ) : null}
-      <span className="chat-link-preview-body">
-        <span className="chat-link-preview-site">
-          {preview.faviconUrl ? (
-            <img
-              className="chat-link-preview-favicon"
-              src={preview.faviconUrl}
-              alt=""
-              loading="lazy"
-              referrerPolicy="no-referrer"
-            />
-          ) : null}
-          {preview.siteName}
-        </span>
-        <strong className="chat-link-preview-title">{preview.title}</strong>
-        {preview.description ? (
-          <span className="chat-link-preview-description">
-            {preview.description}
-          </span>
-        ) : null}
-      </span>
-    </a>
+      site={preview.siteName}
+      title={preview.title}
+      description={preview.description ?? undefined}
+      imageUri={preview.imageUrl ?? undefined}
+      faviconUri={preview.faviconUrl ?? undefined}
+    />
   );
 }

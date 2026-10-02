@@ -244,6 +244,8 @@ export const useImageZoom = (
   React.useEffect(() => {
     const stage = stageRef.current;
     if (!enabled || !stage) return;
+    // Pinch gestures reach the pointer handlers only without browser panning.
+    stage.style.touchAction = "none";
     stage.addEventListener("wheel", onWheel, { passive: false });
     return () => stage.removeEventListener("wheel", onWheel);
   }, [enabled, onWheel, stageRef]);

@@ -125,7 +125,9 @@ test("an unknown sender's message reaches a device that has no Nostr relay, and 
       });
       await unknownCard(evoluOnlyDevice.page).click();
       await expect(
-        evoluOnlyDevice.page.locator(".chat-bubble").filter({ hasText: text }),
+        evoluOnlyDevice.page
+          .getByTestId("chat-bubble")
+          .filter({ hasText: text }),
       ).toBeVisible();
     });
 
@@ -137,7 +139,7 @@ test("an unknown sender's message reaches a device that has no Nostr relay, and 
       // Adding opens the contact's chat once the contact is saved.
       await expect(nostrDevice.page).toHaveURL(/#chat\/(?!unknown)[^/]+$/);
       await expect(
-        nostrDevice.page.locator(".chat-bubble").filter({ hasText: text }),
+        nostrDevice.page.getByTestId("chat-bubble").filter({ hasText: text }),
       ).toBeVisible();
       await evoluOnlyDevice.page.goto("/#contacts");
       await expect(unknownCard(evoluOnlyDevice.page)).toHaveCount(0, {
@@ -148,7 +150,9 @@ test("an unknown sender's message reaches a device that has no Nostr relay, and 
         .first()
         .click();
       await expect(
-        evoluOnlyDevice.page.locator(".chat-bubble").filter({ hasText: text }),
+        evoluOnlyDevice.page
+          .getByTestId("chat-bubble")
+          .filter({ hasText: text }),
       ).toBeVisible();
       await testInfo.attach("moved chat on the Evolu-only device", {
         body: await evoluOnlyDevice.page.screenshot(),

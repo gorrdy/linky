@@ -68,7 +68,7 @@ const unknownId = (identity: SeedIdentity) =>
 
 /** The open chat shows exactly these messages, each once, in order. */
 const expectBubbles = (page: Page, texts: ReadonlyArray<string>) =>
-  expect(page.locator(".chat-bubble")).toHaveText(
+  expect(page.getByTestId("chat-bubble")).toHaveText(
     texts.map((text) => new RegExp(text)),
   );
 
@@ -145,7 +145,7 @@ test("a seed restore keeps the account's archive, blocks and history intact", as
         await sendInOpenChat(a.page, "Hi X");
         await sendDirectMessage(x.nsec, account.npub, "Hi from X");
         await expect(
-          a.page.locator(".chat-bubble").filter({ hasText: "Hi from X" }),
+          a.page.getByTestId("chat-bubble").filter({ hasText: "Hi from X" }),
         ).toBeVisible();
         await a.page.goto(`/#contact/${id}/edit`);
         await a.page

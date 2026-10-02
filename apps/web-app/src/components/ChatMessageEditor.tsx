@@ -1,3 +1,12 @@
+import {
+  fontWeight,
+  opacity,
+  radius,
+  RichTextInput,
+  size,
+  space,
+  typography,
+} from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
@@ -26,8 +35,57 @@ interface ChatMessageEditorProps {
   onSendShortcut: () => void;
   placeholder: string;
   removeContactLabel: string;
+  trailing?: React.ReactNode;
   value: string;
 }
+
+type PillTone = "accent" | "neutral";
+
+const pillColors: Record<PillTone, { background: string; color: string }> = {
+  accent: { background: "var(--accentSoft)", color: "var(--accentText)" },
+  neutral: { background: "var(--neutralSoft)", color: "var(--colorSubtle)" },
+};
+
+// The editor's DOM is built imperatively, so pills take token values as inline styles.
+const createEntityPill = (
+  kind: "contact" | "token",
+  rawValue: string,
+  tone: PillTone,
+): HTMLSpanElement => {
+  const pill = document.createElement("span");
+  pill.contentEditable = "false";
+  pill.dataset.messageEntityValue = rawValue;
+  pill.dataset.messageEntityKind = kind;
+  Object.assign(pill.style, {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: `${space.xs}px`,
+    margin: `0 ${space.xxs}px`,
+    padding: `0 ${space.sm}px`,
+    borderRadius: `${radius.pill}px`,
+    verticalAlign: "middle",
+    fontWeight: fontWeight.semibold,
+    userSelect: kind === "contact" ? "none" : "all",
+    cursor: kind === "contact" ? "pointer" : "text",
+    ...pillColors[tone],
+  });
+  return pill;
+};
+
+const createPillImage = (url: string): HTMLImageElement => {
+  const image = document.createElement("img");
+  image.src = url;
+  image.alt = "";
+  image.loading = "lazy";
+  image.referrerPolicy = "no-referrer";
+  Object.assign(image.style, {
+    width: `${size.iconSm}px`,
+    height: `${size.iconSm}px`,
+    borderRadius: `${radius.pill}px`,
+    objectFit: "cover",
+  });
+  return image;
+};
 
 const appendContactPill = (
   fragment: DocumentFragment,
@@ -35,40 +93,31 @@ const appendContactPill = (
   info: NpubMessageContactInfo,
   removeContactLabel: string,
 ) => {
-  const pill = document.createElement("span");
-  pill.className = "pill chat-contact-pill chat-compose-inline-pill";
-  pill.contentEditable = "false";
-  pill.dataset.messageEntityValue = rawValue;
+  const pill = createEntityPill("contact", rawValue, "accent");
   pill.setAttribute(
     "aria-label",
     `${info.displayName} — ${removeContactLabel}`,
   );
   pill.title = removeContactLabel;
 
-  const avatar = document.createElement("span");
-  avatar.className = "chat-contact-pill-avatar";
+  const avatar = info.pictureUrl
+    ? createPillImage(info.pictureUrl)
+    : document.createElement("span");
   avatar.setAttribute("aria-hidden", "true");
-  if (info.pictureUrl) {
-    const image = document.createElement("img");
-    image.src = info.pictureUrl;
-    image.alt = "";
-    image.loading = "lazy";
-    image.referrerPolicy = "no-referrer";
-    avatar.append(image);
-  } else {
-    const fallback = document.createElement("span");
-    fallback.className = "chat-contact-pill-avatar-fallback";
-    fallback.textContent = deriveDefaultProfile(info.npub).name.charAt(0);
-    avatar.append(fallback);
+  if (!info.pictureUrl) {
+    avatar.textContent = deriveDefaultProfile(info.npub).name.charAt(0);
+    Object.assign(avatar.style, {
+      fontSize: `${typography.size.caption}px`,
+      fontWeight: fontWeight.bold,
+    });
   }
 
   const label = document.createElement("span");
-  label.className = "chat-contact-pill-label";
   label.textContent = info.displayName;
   const remove = document.createElement("span");
-  remove.className = "chat-compose-contact-remove";
   remove.setAttribute("aria-hidden", "true");
   remove.textContent = "×";
+  remove.style.opacity = String(opacity.dimmed);
   pill.append(avatar, label, remove);
   fragment.append(pill);
 };
@@ -93,23 +142,13 @@ const appendCashuPill = (
   iconUrl: string | null,
   amountText: string,
 ) => {
-  const pill = document.createElement("span");
-  pill.className = info.isValid
-    ? "pill cashu-token-pill chat-token-pill chat-compose-inline-pill"
-    : "pill pill-muted cashu-token-pill chat-token-pill chat-compose-inline-pill";
-  pill.contentEditable = "false";
-  pill.dataset.messageEntityValue = rawValue;
+  const pill = createEntityPill(
+    "token",
+    rawValue,
+    info.isValid ? "accent" : "neutral",
+  );
   pill.setAttribute("aria-label", amountText);
-  if (iconUrl) {
-    const image = document.createElement("img");
-    image.src = iconUrl;
-    image.alt = "";
-    image.width = 14;
-    image.height = 14;
-    image.loading = "lazy";
-    image.referrerPolicy = "no-referrer";
-    pill.append(image);
-  }
+  if (iconUrl) pill.append(createPillImage(iconUrl));
   const label = document.createElement("span");
   label.textContent = amountText;
   pill.append(label);
@@ -131,6 +170,7 @@ export const ChatMessageEditor = React.forwardRef<
     onSendShortcut,
     placeholder,
     removeContactLabel,
+    trailing,
     value,
   },
   forwardedRef,
@@ -244,17 +284,13 @@ export const ChatMessageEditor = React.forwardRef<
   };
 
   return (
-    <div
+    <RichTextInput
       ref={setEditorRef}
-      className="chat-message-editor"
-      contentEditable={!disabled}
-      role="textbox"
-      aria-multiline="true"
-      aria-disabled={disabled}
-      data-placeholder={placeholder}
+      placeholder={placeholder}
+      empty={value === ""}
+      disabled={disabled}
+      trailing={trailing}
       data-guide="chat-input"
-      suppressContentEditableWarning
-      tabIndex={disabled ? -1 : 0}
       onBeforeInput={(event) => {
         const editor = localRef.current;
         if (!editor) return;
@@ -299,7 +335,7 @@ export const ChatMessageEditor = React.forwardRef<
         const contactPill =
           target instanceof Element
             ? target.closest<HTMLElement>(
-                ".chat-contact-pill[data-message-entity-value]",
+                '[data-message-entity-kind="contact"]',
               )
             : null;
         if (contactPill && editor.contains(contactPill)) {

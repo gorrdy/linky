@@ -35,7 +35,7 @@ describe("LinkPreviewCard", () => {
       window.setTimeout(resolve, 0);
     });
 
-    const link = container.querySelector("a.chat-link-preview");
+    const link = container.querySelector("a");
     if (!link) throw new Error("Expected link preview anchor");
     expect(link.getAttribute("href")).toBe("https://linky.fit/");
     expect(link.getAttribute("target")).toBe("_blank");

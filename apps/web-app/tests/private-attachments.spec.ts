@@ -106,7 +106,7 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
         name: "smoke.png",
         mimeType: "image/png",
         buffer: Buffer.from(png, "base64"),
-        selector: ".chat-private-image-button img",
+        selector: '[aria-label="Open image"] img',
         // Picked together with smoke.png to cover staging several files.
         companion: {
           name: "companion.png",
@@ -118,32 +118,32 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
         name: "keyboard-paste.png",
         mimeType: "image/png",
         buffer: Buffer.from(png, "base64"),
-        selector: ".chat-private-image-button img",
+        selector: '[aria-label="Open image"] img',
       },
       {
         name: "system-paste.png",
         mimeType: "image/png",
         buffer: Buffer.from(png, "base64"),
-        selector: ".chat-private-image-button img",
+        selector: '[aria-label="Open image"] img',
       },
       {
         name: "smoke.pdf",
         mimeType: "application/pdf",
         buffer: makePdf(),
-        selector: ".chat-private-pdf-preview img",
+        selector: '[aria-label="Open PDF"] img',
       },
     ];
     for (const file of files) {
       await test.step(`send, decrypt and export ${file.name}`, async () => {
         const editor = sender.page.getByRole("textbox");
         const previousMessageIds = await receiver.page
-          .locator(".chat-message.in")
+          .locator('[data-testid="chat-message"][data-direction="in"]')
           .evaluateAll((messages) =>
             messages.map((message) => message.getAttribute("data-message-id")),
           );
         const previousMessageCount = previousMessageIds.length;
         const newMessages = receiver.page.locator(
-          `.chat-message.in${previousMessageIds.map((id) => `:not([data-message-id="${id}"])`).join("")}`,
+          `[data-testid="chat-message"][data-direction="in"]${previousMessageIds.map((id) => `:not([data-message-id="${id}"])`).join("")}`,
         );
         if (file.name === "keyboard-paste.png") {
           await sender.page.bringToFront();
@@ -183,29 +183,35 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
             );
           }, Array.from(file.buffer));
         } else {
+          const fileChooser = sender.page.waitForEvent("filechooser");
           await sender.page
-            .locator(".chat-image-input")
-            .setInputFiles([
-              { name: file.name, mimeType: file.mimeType, buffer: file.buffer },
-              ...(file.companion ? [file.companion] : []),
-            ]);
+            .getByRole("button", { name: "Add image or PDF", exact: true })
+            .click();
+          await (
+            await fileChooser
+          ).setFiles([
+            { name: file.name, mimeType: file.mimeType, buffer: file.buffer },
+            ...(file.companion ? [file.companion] : []),
+          ]);
         }
         // Staging never sends; the composer's send button ships every staged
         // attachment in order and any typed text as the final message.
         const stagedCount = file.companion ? 2 : 1;
-        await expect(sender.page.locator(".chat-attachment-item")).toHaveCount(
-          stagedCount,
-        );
+        await expect(
+          sender.page.getByRole("button", { name: /^Remove attachment: / }),
+        ).toHaveCount(stagedCount);
         await expect(editor).toHaveText(
           file.name === "keyboard-paste.png" ? "Keep this draft" : "",
         );
         const followUpTextCount = file.name === "keyboard-paste.png" ? 1 : 0;
         await sender.page.locator('[data-guide="chat-send"]').click();
-        await expect(receiver.page.locator(".chat-message.in")).toHaveCount(
-          previousMessageCount + stagedCount + followUpTextCount,
-        );
         await expect(
-          sender.page.locator(".chat-attachment-preview"),
+          receiver.page.locator(
+            '[data-testid="chat-message"][data-direction="in"]',
+          ),
+        ).toHaveCount(previousMessageCount + stagedCount + followUpTextCount);
+        await expect(
+          sender.page.getByRole("group", { name: "Attachments" }),
         ).toHaveCount(0);
         await expect(editor).toHaveText("");
         const attachments = newMessages.filter({
@@ -233,25 +239,30 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
           )
           .toBe(true);
         await expect(
-          sender.page.locator(".chat-message.out").last(),
-        ).toHaveClass(/seen/);
+          sender.page
+            .locator('[data-testid="chat-message"][data-direction="out"]')
+            .last(),
+        ).toHaveAttribute("data-seen", "true");
         if (file.mimeType !== "application/pdf") {
           await test.step("full-screen viewer covers the chat chrome", async () => {
-            await message.locator(".chat-private-image-button").click();
-            const viewer = receiver.page.locator(".chat-image-viewer");
+            await message.getByRole("button", { name: "Open image" }).click();
+            const viewer = receiver.page.getByTestId("attachment-viewer");
             await expect(viewer).toBeVisible();
-            // Portaled to <body>, so no chat ancestor's stacking context can
-            // paint the topbar or the compose bar over it.
+            // Portaled out of the app root, so no chat ancestor's stacking
+            // context can paint the topbar or the compose bar over it.
             expect(
               await viewer.evaluate(
-                (element) => element.parentElement === document.body,
+                (element) =>
+                  !document.getElementById("root")?.contains(element),
               ),
             ).toBe(true);
             const covered = await receiver.page.evaluate(() => {
-              const viewer = document.querySelector(".chat-image-viewer");
+              const viewer = document.querySelector(
+                '[data-testid="attachment-viewer"]',
+              );
               const probes = [
                 document.querySelector('[role="banner"]'),
-                document.querySelector(".chat-compose"),
+                document.querySelector('[data-testid="chat-compose"]'),
               ];
               return probes.every((probe) => {
                 if (!probe) return true;
@@ -268,10 +279,10 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
             await expect(viewer).toHaveCount(0);
           });
         }
-        await message.locator(".chat-bubble").click({ button: "right" });
+        await message.getByTestId("chat-bubble").click({ button: "right" });
         const downloadEvent = receiver.page.waitForEvent("download");
         await receiver.page
-          .getByRole("menu")
+          .getByRole("dialog", { name: "Message actions" })
           .getByRole("button", { name: /^(Save|Save to photos)$/, exact: true })
           .click();
         const download = await downloadEvent;
@@ -284,9 +295,9 @@ test("private images and PDFs reach a peer, decrypt, save and share with seen re
         expect([...blobs.values()].some((blob) => blob.equals(saved))).toBe(
           false,
         );
-        await message.locator(".chat-bubble").click({ button: "right" });
+        await message.getByTestId("chat-bubble").click({ button: "right" });
         await receiver.page
-          .getByRole("menu")
+          .getByRole("dialog", { name: "Message actions" })
           .getByRole("button", { name: "Share", exact: true })
           .click();
         await expect

@@ -22,7 +22,6 @@ const setup = async (overrides: Partial<Props> = {}) => {
     chatAttachments: [],
     chatDraft: "First message",
     chatSendIsBusy: false,
-    composeContainerRef: createRef<HTMLDivElement>(),
     composeInputRef: createRef<HTMLDivElement>(),
     editContext: null,
     getCashuTokenMessageInfo: () => null,

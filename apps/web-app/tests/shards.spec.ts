@@ -120,7 +120,7 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
     await follower.page.goto(`/#chat/${contactId}`);
     for (const text of ["Before shard rotation", "Also before rotation"])
       await expect(
-        follower.page.locator(".chat-bubble").filter({ hasText: text }),
+        follower.page.getByTestId("chat-bubble").filter({ hasText: text }),
       ).toBeVisible();
     // Wait for status = sent and non-pending wrapId on both devices before rotation,
     // or a late publish receipt can copy the fixture into the new shard.
@@ -221,7 +221,7 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
           "After shard rotation",
         ])
           await expect(
-            device.page.locator(".chat-bubble").filter({ hasText: text }),
+            device.page.getByTestId("chat-bubble").filter({ hasText: text }),
           ).toBeVisible();
         await device.page.goto("/#wallet/transactions");
         await expect(device.page.locator(".transaction-card")).toHaveCount(2);
@@ -232,11 +232,11 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
     await test.step("an edit of a shard 0 message lands as a copy in shard 1 on the other device", async () => {
       await source.page.goto(`/#chat/${contactId}`);
       await source.page
-        .locator(".chat-bubble")
+        .getByTestId("chat-bubble")
         .filter({ hasText: "Before shard rotation" })
         .click({ button: "right" });
       await source.page
-        .getByRole("menu")
+        .getByRole("dialog", { name: "Message actions" })
         .getByRole("button", { name: "Edit", exact: true })
         .click();
       await source.page
@@ -266,7 +266,7 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
       await follower.page.goto(`/#chat/${contactId}`);
       await expect(
         follower.page
-          .locator(".chat-message")
+          .getByTestId("chat-message")
           .filter({ hasText: "Before shard rotation, edited" }),
       ).toContainText("edited");
     });
@@ -315,11 +315,11 @@ test("shard rotations keep old rows, copy edited rows forward, sync new writes, 
         "Before shard rotation, edited",
       ])
         await expect(
-          fresh.page.locator(".chat-bubble").filter({ hasText: text }),
+          fresh.page.getByTestId("chat-bubble").filter({ hasText: text }),
         ).toBeVisible();
       await expect(
         fresh.page
-          .locator(".chat-bubble")
+          .getByTestId("chat-bubble")
           .filter({ hasText: "Also before rotation" }),
       ).toHaveCount(0);
       await fresh.page.goto("/#wallet/transactions");
@@ -423,7 +423,7 @@ test("natural message rotations retain local history until forget and sync only 
       await source.page.bringToFront();
       await expect(
         source.page
-          .locator(".chat-bubble")
+          .getByTestId("chat-bubble")
           .filter({ hasText: "Active chat after natural rotation" }),
       ).toBeVisible();
       const newestOwner = await hooks.shardOwnerId(source.page, "messages", 4);
@@ -541,7 +541,7 @@ test("natural message rotations retain local history until forget and sync only 
       ).toHaveCount(0);
       await expect(
         source.page
-          .locator(".chat-bubble")
+          .getByTestId("chat-bubble")
           .filter({ hasText: "Active chat after natural rotation" }),
       ).toBeVisible();
       await source.page.goto("/#advanced/inspector/timeline");

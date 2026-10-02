@@ -1,8 +1,14 @@
+import { useDivRef } from "../hooks/useDivRef";
 import { useImageZoom } from "../hooks/useImageZoom";
 import { useLatest } from "../hooks/useLatest";
-import { Download, Share2 as ShareIcon } from "lucide-react";
+import {
+  Image,
+  ImageAttachment,
+  LoadingState,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
 import React from "react";
-import { createPortal } from "react-dom";
 import {
   downloadPrivateImageBlob,
   sharePrivateImageBlob,
@@ -14,6 +20,7 @@ import {
 } from "../app/lib/privateImageMessage";
 
 import type { Translate } from "../i18n";
+import { AttachmentViewer } from "./AttachmentViewer";
 
 interface PrivateImageBubbleProps {
   onBlobChange: (blob: Blob | null) => void;
@@ -43,6 +50,8 @@ export function PrivateImageBubble({
   const onBlobChangeRef = useLatest(onBlobChange);
   const viewerStageRef = React.useRef<HTMLDivElement | null>(null);
   const zoom = useImageZoom(viewerStageRef, viewerOpen);
+  const placeholderNodeRef = useDivRef(placeholderRef);
+  const viewerStageNodeRef = useDivRef(viewerStageRef);
 
   React.useEffect(() => {
     if (shouldLoad || typeof IntersectionObserver === "undefined") return;
@@ -91,19 +100,6 @@ export function PrivateImageBubble({
     };
   }, [payload, shouldLoad, onBlobChangeRef]);
 
-  React.useEffect(() => {
-    if (!viewerOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setViewerOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [viewerOpen]);
-
   const openViewer = () => {
     zoom.reset();
     setViewerErrorText(null);
@@ -140,146 +136,81 @@ export function PrivateImageBubble({
 
   if (failed) {
     return (
-      <div className="chat-private-image-placeholder is-error">
+      <Text variant="caption" color="$dangerText">
         {t("chatImageLoadFailed")}
-      </div>
+      </Text>
     );
   }
 
+  const aspectRatio =
+    payload.width && payload.height ? payload.width / payload.height : 1;
+
   if (!imageUrl) {
     return (
-      <div
-        ref={placeholderRef}
-        className="chat-private-image-placeholder"
-        style={
-          payload.width && payload.height
-            ? { aspectRatio: `${payload.width} / ${payload.height}` }
-            : undefined
-        }
+      <Stack
+        ref={placeholderNodeRef}
+        width="$qr"
+        maxWidth="100%"
+        aspectRatio={aspectRatio}
+        alignItems="center"
+        justifyContent="center"
+        borderRadius="$control"
+        backgroundColor="$neutralSoft"
       >
-        {shouldLoad ? (
-          <>
-            <span className="btn-spinner" aria-hidden="true" />
-            <span>{t("chatImageDecrypting")}</span>
-          </>
-        ) : null}
-      </div>
+        {shouldLoad ? <LoadingState label={t("chatImageDecrypting")} /> : null}
+      </Stack>
     );
   }
 
   return (
     <>
-      <button
-        type="button"
-        className="chat-private-image-button"
-        onClick={openViewer}
-        aria-label={t("chatImageOpen")}
-      >
-        <img
-          className="chat-private-image"
-          src={imageUrl}
-          alt={t("chatImageMessage")}
-          width={payload.width}
-          height={payload.height}
-          loading="lazy"
-          decoding="async"
-          referrerPolicy="no-referrer"
+      <Stack width="$qr" maxWidth="100%">
+        <ImageAttachment
+          uri={imageUrl}
+          accessibilityLabel={t("chatImageOpen")}
+          errorLabel={t("chatImageLoadFailed")}
+          aspectRatio={aspectRatio}
+          onPress={openViewer}
         />
-      </button>
+      </Stack>
 
-      {viewerOpen && imageBlob
-        ? // Portaled to <body>: on iOS the chat scroller is a composited layer whose
-          // stacking context would otherwise paint this fixed viewer below the
-          // topbar and the compose bar.
-          createPortal(
-            <div
-              className="chat-image-viewer"
-              role="dialog"
-              aria-modal="true"
-              aria-label={t("chatImageMessage")}
-              onClick={closeViewer}
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <div
-                className="chat-image-viewer-toolbar"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  className="topbar-btn chat-image-viewer-back"
-                  onClick={closeViewer}
-                  aria-label={t("chatImageBackToChat")}
-                  title={t("chatImageBackToChat")}
-                >
-                  <span aria-hidden="true">&lt;</span>
-                </button>
-              </div>
-
-              <div
-                className="chat-image-viewer-stage"
-                ref={viewerStageRef}
-                {...zoom.handlers}
-              >
-                <img
-                  className="chat-image-viewer-image"
-                  src={imageUrl}
-                  alt={t("chatImageMessage")}
-                  width={payload.width}
-                  height={payload.height}
-                  decoding="async"
-                  draggable={false}
-                  referrerPolicy="no-referrer"
-                  style={zoom.imageStyle}
-                  onClick={(event) => event.stopPropagation()}
-                />
-              </div>
-
-              <div
-                className="chat-image-viewer-footer"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {viewerErrorText ? (
-                  <div className="chat-image-viewer-error" role="status">
-                    {viewerErrorText}
-                  </div>
-                ) : null}
-                <div className="chat-image-viewer-actions">
-                  <button
-                    type="button"
-                    className="chat-image-viewer-action"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      saveImage();
-                    }}
-                  >
-                    <span className="btn-label-with-icon">
-                      <span className="btn-label-icon" aria-hidden="true">
-                        <Download size={20} />
-                      </span>
-                      <span>{t("chatImageSave")}</span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="chat-image-viewer-action"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void shareImage();
-                    }}
-                  >
-                    <span className="btn-label-with-icon">
-                      <span className="btn-label-icon" aria-hidden="true">
-                        <ShareIcon size={20} />
-                      </span>
-                      <span>{t("share")}</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      <AttachmentViewer
+        open={viewerOpen && imageBlob !== null}
+        onClose={closeViewer}
+        title={t("chatImageMessage")}
+        backLabel={t("chatImageBackToChat")}
+        errorText={viewerErrorText}
+        actions={[
+          { icon: "Download", label: t("chatImageSave"), onPress: saveImage },
+          {
+            icon: "Share2",
+            label: t("share"),
+            onPress: () => void shareImage(),
+          },
+        ]}
+      >
+        <Stack
+          ref={viewerStageNodeRef}
+          {...zoom.handlers}
+          flex={1}
+          width="100%"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Image
+            src={imageUrl}
+            aria-label={t("chatImageMessage")}
+            width="100%"
+            height="100%"
+            maxWidth="$contentWidth"
+            objectFit="contain"
+            draggable={false}
+            userSelect="none"
+            style={zoom.imageStyle}
+            onClick={(event: React.MouseEvent) => event.stopPropagation()}
+          />
+        </Stack>
+      </AttachmentViewer>
     </>
   );
 }

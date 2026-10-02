@@ -1,7 +1,8 @@
-import { FileText, Plus } from "lucide-react";
-import { useEffect, useMemo, type FC } from "react";
+import { AttachmentTray } from "@linky-fit/ui";
+import { useEffect, useRef, type FC } from "react";
 
 interface ChatAttachmentPreviewProps {
+  accessibilityLabel: string;
   addLabel: string;
   disabled: boolean;
   files: readonly File[];
@@ -10,85 +11,60 @@ interface ChatAttachmentPreviewProps {
   removeLabel: string;
 }
 
-interface ChatAttachmentItemProps {
-  disabled: boolean;
-  file: File;
-  onRemove: (file: File) => void;
-  removeLabel: string;
-}
+const previewUrls = new WeakMap<File, string>();
 
-const useObjectUrl = (file: File | null) => {
-  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
-  useEffect(
-    () => () => {
-      if (url) URL.revokeObjectURL(url);
-    },
-    [url],
-  );
+const previewUrlFor = (file: File): string | null => {
+  if (!file.type.startsWith("image/")) return null;
+  const cached = previewUrls.get(file);
+  if (cached) return cached;
+  const url = URL.createObjectURL(file);
+  previewUrls.set(file, url);
   return url;
 };
 
-const ChatAttachmentItem: FC<ChatAttachmentItemProps> = ({
-  disabled,
-  file,
-  onRemove,
-  removeLabel,
-}) => {
-  const isImage = file.type.startsWith("image/");
-  const imageUrl = useObjectUrl(isImage ? file : null);
-
-  return (
-    <div className="chat-attachment-item" title={file.name}>
-      {imageUrl ? (
-        <img src={imageUrl} alt="" />
-      ) : (
-        <>
-          <FileText size={24} aria-hidden="true" />
-          <span className="chat-attachment-item-name">{file.name}</span>
-        </>
-      )}
-      <button
-        type="button"
-        className="chat-attachment-remove"
-        onClick={() => onRemove(file)}
-        disabled={disabled}
-        aria-label={`${removeLabel}: ${file.name}`}
-        title={removeLabel}
-      >
-        ×
-      </button>
-    </div>
-  );
+/** Staged files outlive the composer, so a preview is revoked only once its file leaves the tray. */
+const useRevokeRemovedPreviews = (files: readonly File[]) => {
+  const previous = useRef(files);
+  useEffect(() => {
+    for (const file of previous.current) {
+      if (files.includes(file)) continue;
+      const url = previewUrls.get(file);
+      if (url) URL.revokeObjectURL(url);
+      previewUrls.delete(file);
+    }
+    previous.current = files;
+  }, [files]);
 };
 
 export const ChatAttachmentPreview: FC<ChatAttachmentPreviewProps> = ({
+  accessibilityLabel,
   addLabel,
   disabled,
   files,
   onAdd,
   onRemove,
   removeLabel,
-}) => (
-  <div className="chat-attachment-preview" data-guide="chat-attachments">
-    {files.map((file, index) => (
-      <ChatAttachmentItem
-        key={`${index}:${file.name}:${file.size}:${file.lastModified}`}
-        disabled={disabled}
-        file={file}
-        onRemove={onRemove}
-        removeLabel={removeLabel}
-      />
-    ))}
-    <button
-      type="button"
-      className="chat-attachment-add"
-      onPointerDown={(event) => event.preventDefault()}
-      onClick={onAdd}
+}) => {
+  useRevokeRemovedPreviews(files);
+  const items = files.map((file, index) => {
+    const previewUri = previewUrlFor(file);
+    return {
+      id: String(index),
+      name: file.name,
+      ...(previewUri ? { previewUri } : {}),
+    };
+  });
+  return (
+    <AttachmentTray
+      accessibilityLabel={accessibilityLabel}
+      items={items}
+      removeLabel={(item) => `${removeLabel}: ${item.name}`}
+      onRemove={(id) => {
+        const file = files[Number(id)];
+        if (file) onRemove(file);
+      }}
+      add={{ label: addLabel, onPress: onAdd }}
       disabled={disabled}
-      aria-label={addLabel}
-      title={addLabel}
-    >
-      <Plus size={20} aria-hidden="true" />
-    </button>
-  </div>
-);
+    />
+  );
+};

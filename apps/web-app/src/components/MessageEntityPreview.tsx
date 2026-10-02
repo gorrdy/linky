@@ -1,18 +1,17 @@
+import { Row, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { CashuTokenMessageInfo } from "../app/lib/tokenMessageInfo";
 import { isStandaloneCashuTokenMessage } from "../app/lib/tokenText";
-import { deriveDefaultProfile } from "../derivedProfile";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
-import { Avatar } from "./Avatar";
 import { CashuTokenPill } from "./CashuTokenPill";
 import type { NpubMessageContactInfo } from "./ChatMessage";
+import { ContactPill } from "./ContactPill";
 
 const ENTITY_PATTERN =
   /(?:nostr:)?npub1[023456789acdefghjklmnpqrstuvwxyz]+(?:@npub\.cash)?|cashu[0-9A-Za-z_-]+={0,2}/gi;
 
 interface MessageEntityPreviewProps {
-  className?: string;
   content: string;
   directionSymbol?: string;
   getCashuTokenMessageInfo: (text: string) => CashuTokenMessageInfo | null;
@@ -23,8 +22,14 @@ interface MessageEntityPreviewProps {
   onOpenNpubContact?: (npub: string) => void;
 }
 
+const PreviewText = ({ children }: { children: string }) => (
+  <Text variant="caption" color="$colorMuted" numberOfLines={1} flexShrink={1}>
+    {children}
+  </Text>
+);
+
+/** One line of a message with its contacts and tokens shown as pills. */
 export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
-  className,
   content,
   directionSymbol,
   getCashuTokenMessageInfo,
@@ -40,14 +45,16 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
   const segments: React.ReactNode[] = [];
   let cursor = 0;
 
-  if (directionSymbol) segments.push(`${directionSymbol} `);
+  const pushText = (text: string) =>
+    segments.push(<PreviewText key={segments.length}>{text}</PreviewText>);
+
+  if (directionSymbol) pushText(directionSymbol);
 
   if (standaloneTokenInfo) {
     const icon = getMintIconUrl(standaloneTokenInfo.mintUrl);
     segments.push(
       <CashuTokenPill
         key="standalone-cashu"
-        className="chat-token-pill"
         icon={icon}
         amountText={formatDisplayedAmountText(standaloneTokenInfo.amount ?? 0)}
         isMuted={
@@ -60,7 +67,7 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
   for (const match of standaloneTokenInfo ? [] : matches) {
     const text = match[0];
     const start = match.index ?? 0;
-    if (start > cursor) segments.push(content.slice(cursor, start));
+    if (start > cursor) pushText(content.slice(cursor, start));
 
     const isCashuToken = text.toLowerCase().startsWith("cashu");
     const npub = isCashuToken ? null : normalizeNpubIdentifier(text);
@@ -68,57 +75,37 @@ export const MessageEntityPreview: React.FC<MessageEntityPreviewProps> = ({
     const tokenInfo = isCashuToken ? getCashuTokenMessageInfo(text) : null;
 
     if (contactInfo) {
-      const avatar = contactInfo.pictureUrl;
-      const label = contactInfo.displayName;
-      const pillContent = (
-        <>
-          <span className="chat-contact-pill-avatar" aria-hidden="true">
-            <Avatar
-              pictureUrl={avatar}
-              fallback={deriveDefaultProfile(contactInfo.npub).name.charAt(0)}
-              fallbackClassName="chat-contact-pill-avatar-fallback"
-              loading="lazy"
-            />
-          </span>
-          <span className="chat-contact-pill-label">{label}</span>
-        </>
-      );
       segments.push(
-        onOpenNpubContact ? (
-          <button
-            key={`${start}-npub`}
-            type="button"
-            className="pill chat-contact-pill"
-            onClick={() => onOpenNpubContact(contactInfo.npub)}
-          >
-            {pillContent}
-          </button>
-        ) : (
-          <span key={`${start}-npub`} className="pill chat-contact-pill">
-            {pillContent}
-          </span>
-        ),
+        <ContactPill
+          key={`${start}-npub`}
+          info={contactInfo}
+          onOpen={onOpenNpubContact}
+          size="sm"
+        />,
       );
     } else if (tokenInfo) {
       const icon = getMintIconUrl(tokenInfo.mintUrl);
       segments.push(
         <CashuTokenPill
           key={`${start}-cashu`}
-          className="chat-token-pill"
           icon={icon}
           amountText={formatDisplayedAmountText(tokenInfo.amount ?? 0)}
           isMuted={!tokenInfo.isValid || tokenInfo.isHiddenTestMint}
         />,
       );
     } else {
-      segments.push(text);
+      pushText(text);
     }
     cursor = start + text.length;
   }
 
   if (!standaloneTokenInfo && cursor < content.length) {
-    segments.push(content.slice(cursor));
+    pushText(content.slice(cursor));
   }
 
-  return <div className={className}>{segments}</div>;
+  return (
+    <Row gap="$xs" overflow="hidden">
+      {segments}
+    </Row>
+  );
 };

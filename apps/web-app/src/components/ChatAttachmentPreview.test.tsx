@@ -9,6 +9,7 @@ const pdf = new File(["%PDF"], "invoice.pdf", { type: "application/pdf" });
 const render = (files: File[], onRemove = vi.fn(), onAdd = vi.fn()) =>
   renderIntoDocument(
     <ChatAttachmentPreview
+      accessibilityLabel="Attachments"
       addLabel="Add image or PDF"
       disabled={false}
       files={files}
@@ -37,11 +38,10 @@ describe("ChatAttachmentPreview", () => {
     const rendered = await render([image, pdf], onRemove, onAdd);
 
     expect(createObjectUrl).toHaveBeenCalledExactlyOnceWith(image);
-    const tiles = rendered.container.querySelectorAll(".chat-attachment-item");
-    expect(tiles).toHaveLength(2);
-    expect(tiles[0]?.querySelector("img")?.src).toBe("blob:preview");
-    expect(tiles[1]?.querySelector("img")).toBeNull();
-    expect(tiles[1]?.textContent).toContain("invoice.pdf");
+    const images = rendered.container.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0]?.src).toBe("blob:preview");
+    expect(rendered.container.textContent).toContain("invoice.pdf");
 
     await act(async () => {
       rendered.container
@@ -56,8 +56,19 @@ describe("ChatAttachmentPreview", () => {
     expect(onRemove).toHaveBeenCalledExactlyOnceWith(pdf);
     expect(onAdd).toHaveBeenCalledOnce();
 
-    await rendered.unmount();
+    await rendered.rerender(
+      <ChatAttachmentPreview
+        accessibilityLabel="Attachments"
+        addLabel="Add image or PDF"
+        disabled={false}
+        files={[pdf]}
+        onAdd={() => undefined}
+        onRemove={() => undefined}
+        removeLabel="Remove attachment"
+      />,
+    );
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:preview");
+    await rendered.unmount();
   });
 
   it("keeps the image thumbnail when another file is removed", async () => {
@@ -71,6 +82,7 @@ describe("ChatAttachmentPreview", () => {
     const rendered = await render([image, pdf]);
     await rendered.rerender(
       <ChatAttachmentPreview
+        accessibilityLabel="Attachments"
         addLabel="Add image or PDF"
         disabled={false}
         files={[image]}
@@ -83,7 +95,7 @@ describe("ChatAttachmentPreview", () => {
     expect(createObjectUrl).toHaveBeenCalledOnce();
     expect(revokeObjectUrl).not.toHaveBeenCalled();
     expect(
-      rendered.container.querySelectorAll(".chat-attachment-item"),
+      rendered.container.querySelectorAll("[aria-label^='Remove attachment:']"),
     ).toHaveLength(1);
 
     await rendered.unmount();

@@ -262,57 +262,58 @@ test("supports chat reply, edit, reaction toggle, and copy actions", async ({
   await chatInput.fill("First message");
   await sendButton.click();
   await expect(
-    page.locator(".chat-bubble").filter({ hasText: "First message" }),
+    page.getByTestId("chat-bubble").filter({ hasText: "First message" }),
   ).toBeVisible();
 
   await page
-    .locator(".chat-message .chat-bubble")
+    .getByTestId("chat-message")
+    .getByTestId("chat-bubble")
     .filter({ hasText: "First message" })
     .first()
     .click({ button: "right" });
   await page.getByRole("button", { name: "Reply", exact: true }).click();
-  const replyPreview = page.locator(".reply-preview");
+  const replyPreview = page.getByTestId("chat-compose");
   await expect(replyPreview).toContainText("Replying to");
   await expect(replyPreview).toContainText("First message");
 
   await chatInput.fill("Reply body");
   await sendButton.click();
   const replyBubble = page
-    .locator(".chat-message")
+    .getByTestId("chat-message")
     .filter({ hasText: "Reply body" })
     .first();
   await expect(replyBubble).toBeVisible();
   await expect(replyBubble).toHaveAttribute("data-reply-to-id", /.+/);
-  await expect(replyBubble.locator(".chat-reply-quote")).toContainText(
+  await expect(replyBubble.getByTestId("chat-reply-quote")).toContainText(
     "First message",
   );
 
-  await replyBubble.locator(".chat-bubble").click({ button: "right" });
+  await replyBubble.getByTestId("chat-bubble").click({ button: "right" });
   await page
-    .getByRole("menu")
+    .getByRole("dialog", { name: "Message actions" })
     .getByRole("button", { name: "Edit", exact: true })
     .click();
   await chatInput.fill("Reply body edited");
   await page.getByRole("button", { name: "Save" }).click();
   const editedBubble = page
-    .locator(".chat-message")
+    .getByTestId("chat-message")
     .filter({ hasText: "Reply body edited" })
     .first();
   await expect(editedBubble).toContainText("edited");
 
-  await editedBubble.locator(".chat-bubble").click({ button: "right" });
+  await editedBubble.getByTestId("chat-bubble").click({ button: "right" });
   await page
-    .getByRole("listbox", { name: "Emoji picker" })
+    .getByRole("group", { name: "React" })
     .getByRole("button", { name: "👍", exact: true })
     .click();
-  const reactionChip = editedBubble.locator(".reaction-chip", {
-    hasText: "👍",
-  });
+  const reactionChip = editedBubble
+    .getByTestId("message-reactions")
+    .getByRole("button", { name: "👍" });
   await expect(reactionChip).toBeVisible();
   await reactionChip.click();
   await expect(reactionChip).toHaveCount(0);
 
-  await editedBubble.locator(".chat-bubble").click({ button: "right" });
+  await editedBubble.getByTestId("chat-bubble").click({ button: "right" });
   await page.getByRole("button", { name: "Copy", exact: true }).click();
   await expect(
     page.locator('[aria-live="polite"]').getByText("Copied to clipboard"),
@@ -336,7 +337,10 @@ test("supports chat reply, edit, reaction toggle, and copy actions", async ({
   ).toBeVisible();
   await page.goto(`/#chat/${encodeURIComponent(contactId)}`);
   await expect(
-    page.locator(".chat-message").filter({ hasText: "First message" }).first(),
+    page
+      .getByTestId("chat-message")
+      .filter({ hasText: "First message" })
+      .first(),
   ).toBeVisible();
   await expect(editedBubble).toContainText("Reply body edited");
 });
@@ -503,7 +507,7 @@ test("keeps the composer visible on the first keyboard opening when iOS temporar
   await setAuthenticatedStorage(page);
   await createContactAndOpenChat(page);
   const editor = page.locator('[data-guide="chat-input"]');
-  const composer = page.locator(".chat-compose");
+  const composer = page.getByTestId("chat-compose");
   await editor.fill("First keyboard opening");
 
   // Replay the iOS SE standalone measurements: innerHeight briefly equals

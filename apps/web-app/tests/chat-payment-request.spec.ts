@@ -105,7 +105,7 @@ test("incoming 2-sat requests recover a CDK output collision after local counter
           .click();
         await requester.page.locator('[data-guide="request-send"]').click();
         await expect(requester.page).toHaveURL(/#chat\/[^/]+$/);
-        const incoming = payer.page.locator(".chat-payment-request-card");
+        const incoming = payer.page.getByTestId("chat-payment-request-card");
         await expect(incoming).toHaveCount(paymentNumber);
         await expect(incoming.last()).toContainText("2 sat");
         await incoming
@@ -113,10 +113,14 @@ test("incoming 2-sat requests recover a CDK output collision after local counter
           .getByRole("button", { name: "Pay", exact: true })
           .click();
         await expect(
-          payer.page.locator(".chat-payment-request-status.is-paid"),
+          payer.page.locator(
+            '[data-testid="chat-payment-request-card"][data-status="paid"]',
+          ),
         ).toHaveCount(paymentNumber);
         await expect(
-          requester.page.locator(".chat-payment-request-status.is-paid"),
+          requester.page.locator(
+            '[data-testid="chat-payment-request-card"][data-status="paid"]',
+          ),
         ).toHaveCount(paymentNumber);
         // Paid renders before the send finishes and navigates back to chat.
         await expect(
@@ -135,7 +139,9 @@ test("incoming 2-sat requests recover a CDK output collision after local counter
     for (const account of accounts) {
       await account.page.reload();
       await expect(
-        account.page.locator(".chat-payment-request-status.is-paid"),
+        account.page.locator(
+          '[data-testid="chat-payment-request-card"][data-status="paid"]',
+        ),
       ).toHaveCount(2);
       await testInfo.attach(
         `${account === payer ? "payer" : "requester"} paid requests`,

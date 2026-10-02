@@ -147,13 +147,13 @@ for (const serviceWorkers of ["allow", "block"] as const) {
           await page.locator('[data-guide="chat-input"]').fill(message);
           await page.locator('[data-guide="chat-send"]').click();
           await expect(
-            page.locator(".chat-bubble").filter({ hasText: message }),
+            page.getByTestId("chat-bubble").filter({ hasText: message }),
           ).toBeVisible();
 
           await page.reload();
           await expect(page).toHaveURL(new RegExp(`#chat/${contactId}$`));
           await expect(
-            page.locator(".chat-bubble").filter({ hasText: message }),
+            page.getByTestId("chat-bubble").filter({ hasText: message }),
           ).toBeVisible();
           await page.goto("/#contacts");
           const contactCard = page.locator('[data-guide="contact-card"]');
@@ -161,7 +161,7 @@ for (const serviceWorkers of ["allow", "block"] as const) {
           await contactCard.click();
           await expect(page).toHaveURL(new RegExp(`#chat/${contactId}$`));
           await expect(
-            page.locator(".chat-bubble").filter({ hasText: message }),
+            page.getByTestId("chat-bubble").filter({ hasText: message }),
           ).toBeVisible();
         }
         assertNoSeedRequests();

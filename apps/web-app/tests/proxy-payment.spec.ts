@@ -512,9 +512,9 @@ const runProxyPayment = async (
         name: "Mark done",
       });
       await expect(settle).toBeVisible({ timeout: 60_000 });
-      const offerCard = a.page.locator(".chat-bank-payment-offer-card", {
-        has: settle,
-      });
+      const offerCard = a.page
+        .getByTestId("chat-bank-payment-offer-card")
+        .filter({ has: settle });
       await expect(
         offerCard.getByRole("button", { name: "Details" }),
       ).toBeVisible();

@@ -72,6 +72,11 @@ interface RenderChatMessageOptions {
   onSettleBankPaymentOffer?: () => Promise<void>;
 }
 
+const buttonWithText = (container: ParentNode, text: string) =>
+  Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+    (button) => button.textContent?.includes(text),
+  ) ?? null;
+
 const renderChatMessage = async (
   content: string,
   options: RenderChatMessageOptions = {},
@@ -83,6 +88,7 @@ const renderChatMessage = async (
         copy: "copy",
         edit: "edit",
         edited: "edited",
+        menu: "Message actions",
         react: "react",
         reply: "reply",
         save: "save",
@@ -150,11 +156,9 @@ describe("ChatMessage contact actions", () => {
     const container = await renderChatMessage("npub1aaaa npub1cccc npub1aaaa", {
       onAddNpubContacts,
     });
-    const button = container.querySelector<HTMLButtonElement>(
-      ".chat-add-all-contacts",
-    );
+    const button = buttonWithText(container, "addAllContacts");
 
-    expect(button?.textContent).toContain("addAllContacts");
+    expect(button).not.toBeNull();
 
     await act(async () => {
       button?.click();
@@ -180,19 +184,15 @@ describe("ChatMessage contact actions", () => {
       getNpubMessageContactInfo: (npub) => contactInfo(npub, true),
     });
 
-    expect(container.querySelector(".chat-add-all-contacts")).toBeNull();
-    expect(container.querySelector(".contact-group-pill")).toBeNull();
+    expect(buttonWithText(container, "addAllContacts")).toBeNull();
+    expect(buttonWithText(container, "Friends")).toBeNull();
 
     await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>(".chat-add-to-group-toggle")
-        ?.click();
+      buttonWithText(container, "addToGroupAction")?.click();
     });
 
-    const pill = container.querySelector<HTMLButtonElement>(
-      ".chat-add-to-group .contact-group-pill",
-    );
-    expect(pill?.textContent).toBe("Friends");
+    const pill = buttonWithText(container, "Friends");
+    expect(pill).not.toBeNull();
 
     await act(async () => {
       pill?.click();
@@ -210,8 +210,8 @@ describe("ChatMessage contact actions", () => {
       direction: "out",
     });
 
-    expect(oneUnsaved.querySelector(".chat-add-all-contacts")).toBeNull();
-    expect(outgoing.querySelector(".chat-add-all-contacts")).toBeNull();
+    expect(buttonWithText(oneUnsaved, "addAllContacts")).toBeNull();
+    expect(buttonWithText(outgoing, "addAllContacts")).toBeNull();
   });
 });
 
@@ -257,6 +257,18 @@ describe("ChatMessage image message actions", () => {
     document.body.innerHTML = "";
   });
 
+  // The image button is pressable once its image has loaded.
+  const loadedImageButton = async (container: HTMLElement) => {
+    await act(async () => {
+      container
+        .querySelector('[aria-label="chatImageOpen"] img')
+        ?.dispatchEvent(new Event("load"));
+    });
+    return container.querySelector<HTMLButtonElement>(
+      '[aria-label="chatImageOpen"]',
+    );
+  };
+
   const openMenu = async (container: HTMLElement) => {
     const menuButton = container.querySelector<HTMLButtonElement>(
       '[aria-label="Message actions"]',
@@ -267,9 +279,9 @@ describe("ChatMessage image message actions", () => {
   };
 
   const menuItemLabels = (): string[] =>
-    Array.from(document.body.querySelectorAll(".message-actions-item")).map(
-      (item) => item.textContent ?? "",
-    );
+    Array.from(
+      document.body.querySelectorAll('[data-testid="message-action"]'),
+    ).map((item) => item.textContent ?? "");
 
   it("offers share and save instead of copy once the image is decrypted", async () => {
     const container = await renderChatMessage(imageMessageContent);
@@ -284,7 +296,7 @@ describe("ChatMessage image message actions", () => {
 
     const shareItem = Array.from(
       document.body.querySelectorAll<HTMLButtonElement>(
-        ".message-actions-item",
+        '[data-testid="message-action"]',
       ),
     ).find((item) => item.textContent === "share");
     await act(async () => {
@@ -311,15 +323,18 @@ describe("ChatMessage image message actions", () => {
     const container = await renderChatMessage(imageMessageContent, {
       canReplyOrReact: true,
     });
-    const imageButton = container.querySelector<HTMLButtonElement>(
-      ".chat-private-image-button",
-    );
+    const imageButton = await loadedImageButton(container);
 
     await act(async () => {
       imageButton?.click();
     });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
-    expect(document.body.querySelector(".chat-image-viewer")).not.toBeNull();
+    expect(
+      document.body.querySelector('[data-testid="attachment-viewer"]'),
+    ).not.toBeNull();
   });
 
   it("swallows the click synthesized after a long-press", async () => {
@@ -328,9 +343,7 @@ describe("ChatMessage image message actions", () => {
       const container = await renderChatMessage(imageMessageContent, {
         canReplyOrReact: true,
       });
-      const imageButton = container.querySelector<HTMLButtonElement>(
-        ".chat-private-image-button",
-      );
+      const imageButton = await loadedImageButton(container);
       expect(imageButton).not.toBeNull();
 
       const touchEvent = (type: string): MouseEvent => {
@@ -346,16 +359,16 @@ describe("ChatMessage image message actions", () => {
         vi.advanceTimersByTime(500);
       });
 
-      expect(
-        document.body.querySelector(".message-actions-sheet"),
-      ).not.toBeNull();
+      expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
 
       await act(async () => {
         imageButton?.dispatchEvent(touchEvent("pointerup"));
         imageButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
 
-      expect(container.querySelector(".chat-image-viewer")).toBeNull();
+      expect(
+        document.body.querySelector('[data-testid="attachment-viewer"]'),
+      ).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -389,18 +402,8 @@ describe("ChatMessage bank payment offer actions", () => {
       direction: "out",
       onSettleBankPaymentOffer,
     });
-    const detailsButton = Array.from(
-      container.querySelectorAll<HTMLButtonElement>(
-        ".chat-payment-request-actions button",
-      ),
-    ).find((button) => button.textContent?.includes("details"));
-    const settleButton = Array.from(
-      container.querySelectorAll<HTMLButtonElement>(
-        ".chat-payment-request-actions button",
-      ),
-    ).find((button) =>
-      button.textContent?.includes("bankPaymentOfferMarkDone"),
-    );
+    const detailsButton = buttonWithText(container, "details");
+    const settleButton = buttonWithText(container, "bankPaymentOfferMarkDone");
 
     expect(detailsButton).toBeDefined();
     expect(settleButton).toBeDefined();

@@ -441,6 +441,7 @@ export const de = {
   chatPdfTooLarge: "Das PDF ist zu groß (max. 2 MB).",
   chatImageTooLarge: "Das Bild ist zu groß (max. 20 MB).",
   chatAttachmentRemove: "Anhang entfernen",
+  chatAttachments: "Anhänge",
   chatAttachmentUnsupported:
     "Es können nur Bilder und PDF-Dateien gesendet werden.",
   chatImageDecrypting: "Bild wird entschlüsselt…",
@@ -451,6 +452,7 @@ export const de = {
   chatImageSave: "In Fotos speichern",
   chatReplyAction: "Antworten",
   chatReactAction: "Reagieren",
+  chatMessageActions: "Nachrichtenaktionen",
   chatEditAction: "Bearbeiten",
   chatSaveAction: "Speichern",
   chatReplyingTo: "Antwort auf",

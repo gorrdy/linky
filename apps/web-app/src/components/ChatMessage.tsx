@@ -1,12 +1,19 @@
 import {
-  Check,
-  CheckCheck,
-  FolderPlus,
-  Info,
-  HandCoins as PayIcon,
-  Plus,
-  X,
-} from "lucide-react";
+  border,
+  Button,
+  Chip,
+  DaySeparator,
+  Icon,
+  IconButton,
+  MessageBubble,
+  MessageLink,
+  Pill,
+  Row,
+  Stack,
+  Text,
+  TextField,
+} from "@linky-fit/ui";
+import type { Tone } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
@@ -42,11 +49,10 @@ import type {
   ChatReactionChip,
   LocalNostrMessage,
 } from "../app/types/appTypes";
-import { deriveDefaultProfile } from "../derivedProfile";
 import type { MintIcon } from "../utils/mint";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
-import { Avatar } from "./Avatar";
 import { CashuTokenPill } from "./CashuTokenPill";
+import { ContactPill } from "./ContactPill";
 
 import type { I18nKey, Translate } from "../i18n";
 import { LinkPreviewCard } from "./LinkPreviewCard";
@@ -76,6 +82,7 @@ interface ChatMessageProps {
     copy: string;
     edit: string;
     edited: string;
+    menu: string;
     react: string;
     reply: string;
     save: string;
@@ -137,6 +144,22 @@ const getChatTimeFormatter = (locale: string): Intl.DateTimeFormat => {
   });
   chatTimeFormatters.set(locale, formatter);
   return formatter;
+};
+
+const statusTones: Record<
+  BankOfferStatus | "declined" | "paid" | "requested",
+  Tone
+> = {
+  requested: "warning",
+  offered: "warning",
+  accepted: "warning",
+  paid: "accent",
+  bank_details_sent: "info",
+  bank_paid: "info",
+  settled: "accent",
+  declined: "neutral",
+  canceled: "neutral",
+  accepted_by_other: "neutral",
 };
 
 const getBankPaymentOfferDescriptionKey = (
@@ -219,6 +242,7 @@ function ChatMessageComponent({
 }: ChatMessageProps) {
   const { formatDisplayedAmountText, t } = useAppShellCore();
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
   const [privateImageBlob, setPrivateImageBlob] = React.useState<Blob | null>(
     null,
   );
@@ -361,7 +385,6 @@ function ChatMessageComponent({
               ? `${amountText} · ${info.mintDisplay}`
               : amountText
           }
-          className="chat-token-pill"
           {...(info.isHiddenTestMint
             ? { hint: t("cashuTestMintHiddenHint") }
             : {})}
@@ -406,15 +429,12 @@ function ChatMessageComponent({
       if (messageLink) {
         replacementCount += 1;
         segments.push(
-          <a
+          <MessageLink
             key={`${messageId}-link-${start}`}
-            className="chat-message-link"
             href={messageLink.url}
-            target="_blank"
-            rel="noopener noreferrer"
           >
             {messageLink.displayText}
-          </a>,
+          </MessageLink>,
         );
         if (messageLink.trailingText) {
           segments.push(messageLink.trailingText);
@@ -426,32 +446,12 @@ function ChatMessageComponent({
         } else {
           replacementCount += 1;
           segments.push(
-            <button
+            <ContactPill
               key={`${messageId}-npub-${start}`}
-              type="button"
-              className="pill chat-contact-pill"
-              onClick={() => onOpenNpubContact(npubContactInfo.npub)}
-              aria-label={npubContactInfo.displayName}
-            >
-              {!npubContactInfo.isSaved ? (
-                <span className="chat-contact-pill-add" aria-hidden="true">
-                  <Plus size={12} strokeWidth={2.5} />
-                </span>
-              ) : null}
-              <span className="chat-contact-pill-avatar" aria-hidden="true">
-                <Avatar
-                  pictureUrl={npubContactInfo.pictureUrl}
-                  fallback={deriveDefaultProfile(
-                    npubContactInfo.npub,
-                  ).name.charAt(0)}
-                  fallbackClassName="chat-contact-pill-avatar-fallback"
-                  loading="lazy"
-                />
-              </span>
-              <span className="chat-contact-pill-label">
-                {npubContactInfo.displayName}
-              </span>
-            </button>,
+              info={npubContactInfo}
+              onOpen={onOpenNpubContact}
+              showAdd={!npubContactInfo.isSaved}
+            />,
           );
         }
       } else {
@@ -630,12 +630,19 @@ function ChatMessageComponent({
   // Touch browsers can still synthesize a click after the long-press timer
   // opened the menu; swallow it so it doesn't also trigger bubble content
   // (e.g. the image viewer).
-  const handleClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!longPressFiredRef.current) return;
-    longPressFiredRef.current = false;
-    event.preventDefault();
-    event.stopPropagation();
-  };
+  React.useEffect(() => {
+    const element = messageDivRef.current;
+    if (!element) return;
+    const swallowLongPressClick = (event: MouseEvent) => {
+      if (!longPressFiredRef.current) return;
+      longPressFiredRef.current = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    element.addEventListener("click", swallowLongPressClick, true);
+    return () =>
+      element.removeEventListener("click", swallowLongPressClick, true);
+  }, [isIdentityChangeMessage]);
 
   const resetSwipeTransform = React.useCallback(() => {
     const el = messageDivRef.current;
@@ -685,35 +692,171 @@ function ChatMessageComponent({
     resetSwipeTransform();
   };
 
+  const setMessageNode = (node: unknown) => {
+    const element = node instanceof HTMLDivElement ? node : null;
+    messageDivRef.current = element;
+    if (messageElRef && messageId) messageElRef(element, messageId);
+  };
+
+  const bankOfferCard = bankPaymentOfferInfo ? (
+    <PaymentCard
+      testID="chat-bank-payment-offer-card"
+      status={bankPaymentOfferInfo.status}
+      title={t("bankPaymentOfferTitle")}
+      statusLabel={getBankPaymentOfferStatusLabel(
+        bankPaymentOfferInfo.status,
+        !isOut,
+        t,
+      )}
+      amount={bankOfferDisplayAmount}
+    >
+      {bankOfferDescription ? (
+        <CardNote>{bankOfferDescription}</CardNote>
+      ) : null}
+      {bankOfferPeerNoticeText ? (
+        <CardNote>{bankOfferPeerNoticeText}</CardNote>
+      ) : null}
+      {bankOfferTimeLabel ? (
+        <Text variant="caption" bold color="$colorSubtle">
+          {bankOfferTimeLabel}
+        </Text>
+      ) : null}
+      {canOpenBankPaymentOfferDetails &&
+      !isTerminalBankPaymentOfferStatus(bankPaymentOfferInfo.status) ? (
+        <Row gap="$sm">
+          <Button
+            flex={1}
+            icon="Info"
+            variant={canSettleBankPaymentOffer ? "secondary" : "primary"}
+            onPress={onOpenBankPaymentOfferDetails}
+          >
+            {t("details")}
+          </Button>
+          {canSettleBankPaymentOffer ? (
+            <Button
+              flex={1}
+              icon="Check"
+              loading={isSettlingBankPaymentOffer}
+              disabled={settleBankPaymentOfferBusy}
+              onPress={() => void settleBankPaymentOffer()}
+            >
+              {t("bankPaymentOfferMarkDone")}
+            </Button>
+          ) : null}
+        </Row>
+      ) : null}
+    </PaymentCard>
+  ) : null;
+
+  const paymentRequestCard = paymentRequestInfo ? (
+    <PaymentCard
+      testID="chat-payment-request-card"
+      status={paymentRequestStatus ?? "requested"}
+      title={t("requestPaymentLabel")}
+      statusLabel={
+        paymentRequestStatus === "paid"
+          ? t("paymentRequestStatusPaid")
+          : paymentRequestStatus === "declined"
+            ? t("paymentRequestStatusDeclined")
+            : t("paymentRequestStatusRequested")
+      }
+      amount={formatDisplayedAmountText(paymentRequestInfo.amount)}
+    >
+      {message.isEdited && !isOut ? (
+        <CardNote>{t("paymentRequestChanged")}</CardNote>
+      ) : null}
+      {canActOnPaymentRequest ? (
+        <Row gap="$sm">
+          <Button
+            flex={1}
+            icon="HandCoins"
+            loading={payPaymentRequestBusy}
+            disabled={payPaymentRequestDisabled}
+            onPress={() => onPayPaymentRequest(paymentRequestInfo)}
+          >
+            {payPaymentRequestBusy ? t("payPaying") : t("pay")}
+          </Button>
+          <Button
+            flex={1}
+            icon="X"
+            variant="secondary"
+            onPress={onDeclinePaymentRequest}
+          >
+            {t("decline")}
+          </Button>
+        </Row>
+      ) : null}
+    </PaymentCard>
+  ) : null;
+
+  const messageBody =
+    bankOfferCard ??
+    paymentRequestCard ??
+    (isDeclineMessage ? (
+      <Pill label={t("paymentRequestDeclinedMessage")} tone="neutral" />
+    ) : privateImageInfo && isPrivatePdfPayload(privateImageInfo) ? (
+      <PrivateFileBubble
+        onBlobChange={setPrivateImageBlob}
+        payload={privateImageInfo}
+        rumorId={rumorId}
+        t={t}
+      />
+    ) : privateImageInfo ? (
+      <PrivateImageBubble
+        onBlobChange={setPrivateImageBlob}
+        payload={privateImageInfo}
+        rumorId={rumorId}
+        t={t}
+      />
+    ) : tokenInfo && isStandaloneTokenMessage ? (
+      renderCashuTokenPill(tokenInfo)
+    ) : (
+      <MessageText>{inlineMessageContent ?? content}</MessageText>
+    ));
+
   return (
     <React.Fragment key={messageId}>
+      <MessageActionsMenu
+        canCopy={!privateImageInfo}
+        canEdit={canEdit}
+        canReplyOrReact={canReplyOrReact}
+        imageActions={imageActions}
+        isOpen={menuOpen}
+        labels={
+          privateImageInfo && isPrivatePdfPayload(privateImageInfo)
+            ? { ...actionLabels, save: t("chatPdfSave") }
+            : actionLabels
+        }
+        onReply={() => onReply(message)}
+        onEdit={() => onEdit(message)}
+        onReact={(emoji) => onReact(message, emoji)}
+        onCopy={() => onCopy(message)}
+        onClose={closeMenu}
+      />
       {showDaySeparator ? (
-        <div className="chat-day-separator" aria-hidden="true">
-          {formatChatDayLabel(ms)}
-        </div>
+        <DaySeparator label={formatChatDayLabel(ms)} />
       ) : null}
 
       {isIdentityChangeMessage ? (
-        <div className="chat-day-separator" role="note">
-          {t("chatIdentityChangedNotice")}
-        </div>
-      ) : null}
-
-      {isIdentityChangeMessage ? null : (
-        <div
-          className={`chat-message ${isOut ? "out" : "in"}${isPending ? " pending" : ""}${isSeen ? " seen" : ""}`}
+        <DaySeparator label={t("chatIdentityChangedNotice")} />
+      ) : (
+        <MessageBubble
+          ref={setMessageNode}
+          testID="chat-bubble"
+          data-testid="chat-message"
+          data-direction={isOut ? "out" : "in"}
+          data-seen={isSeen ? "true" : undefined}
+          data-pending={isPending ? "true" : undefined}
           data-message-id={messageId || undefined}
           data-rumor-id={rumorId ?? undefined}
           data-reply-to-id={replyToId ?? undefined}
           data-root-message-id={rootMessageId ?? undefined}
-          ref={(el) => {
-            messageDivRef.current = el;
-            if (messageElRef && messageId) {
-              messageElRef(el, messageId);
-            }
-          }}
-          onClickCapture={handleClickCapture}
-          onContextMenu={(event) => {
+          userSelect="none"
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          direction={isOut ? "outgoing" : "incoming"}
+          pending={isPending}
+          onContextMenu={(event: React.MouseEvent) => {
             event.preventDefault();
             openMenu();
           }}
@@ -721,267 +864,136 @@ function ChatMessageComponent({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-        >
-          <MessageActionsMenu
-            canCopy={!privateImageInfo}
-            canEdit={canEdit}
-            canReplyOrReact={canReplyOrReact}
-            imageActions={imageActions}
-            isOpen={menuOpen}
-            labels={
-              privateImageInfo && isPrivatePdfPayload(privateImageInfo)
-                ? { ...actionLabels, save: t("chatPdfSave") }
-                : actionLabels
-            }
-            onReply={() => onReply(message)}
-            onEdit={() => onEdit(message)}
-            onReact={(emoji) => onReact(message, emoji)}
-            onCopy={() => onCopy(message)}
-            onClose={closeMenu}
-          />
-
-          <div className="chat-bubble-wrap">
-            <div className="chat-message-tools">
-              <button
-                type="button"
-                className="chat-message-action-btn"
-                onClick={() => (menuOpen ? closeMenu() : openMenu())}
-                aria-label="Message actions"
-              >
-                ⋯
-              </button>
-            </div>
-            <div className={isOut ? "chat-bubble out" : "chat-bubble in"}>
-              {replyQuoteText && (
-                <div className="chat-reply-quote">
-                  <span>{replyQuoteText}</span>
-                </div>
-              )}
-              {bankPaymentOfferInfo ? (
-                <div className="chat-payment-request-card chat-bank-payment-offer-card">
-                  <div className="chat-payment-request-header">
-                    <span className="chat-payment-request-title">
-                      {t("bankPaymentOfferTitle")}
-                    </span>
-                    <span
-                      className={`chat-payment-request-status is-${bankPaymentOfferInfo.status}`}
-                    >
-                      {getBankPaymentOfferStatusLabel(
-                        bankPaymentOfferInfo.status,
-                        !isOut,
-                        t,
-                      )}
-                    </span>
-                  </div>
-                  <div className="chat-bank-payment-amount-row">
-                    <div className="chat-payment-request-amount">
-                      {bankOfferDisplayAmount}
-                    </div>
-                  </div>
-                  {bankOfferDescription ? (
-                    <div className="chat-payment-request-description">
-                      {bankOfferDescription}
-                    </div>
-                  ) : null}
-                  {bankOfferPeerNoticeText ? (
-                    <div className="chat-payment-request-description">
-                      {bankOfferPeerNoticeText}
-                    </div>
-                  ) : null}
-                  {bankOfferTimeLabel ? (
-                    <div className="chat-bank-payment-timer">
-                      {bankOfferTimeLabel}
-                    </div>
-                  ) : null}
-                  {canOpenBankPaymentOfferDetails &&
-                  !isTerminalBankPaymentOfferStatus(
-                    bankPaymentOfferInfo.status,
-                  ) ? (
-                    <div className="chat-payment-request-actions">
-                      <button
-                        type="button"
-                        className={`btn-wide ${canSettleBankPaymentOffer ? "secondary" : "chat-payment-request-pay"}`}
-                        onClick={onOpenBankPaymentOfferDetails}
-                      >
-                        <span className="btn-label-with-icon">
-                          <span className="btn-label-icon" aria-hidden="true">
-                            <Info size={18} />
-                          </span>
-                          <span>{t("details")}</span>
-                        </span>
-                      </button>
-                      {canSettleBankPaymentOffer ? (
-                        <button
-                          type="button"
-                          className="btn-wide chat-payment-request-pay"
-                          disabled={
-                            settleBankPaymentOfferBusy ||
-                            isSettlingBankPaymentOffer
-                          }
-                          onClick={() => void settleBankPaymentOffer()}
-                        >
-                          <span className="btn-label-with-icon">
-                            <span className="btn-label-icon" aria-hidden="true">
-                              {isSettlingBankPaymentOffer ? (
-                                <span className="btn-spinner" />
-                              ) : (
-                                <Check size={18} />
-                              )}
-                            </span>
-                            <span>{t("bankPaymentOfferMarkDone")}</span>
-                          </span>
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : paymentRequestInfo ? (
-                <div className="chat-payment-request-card">
-                  <div className="chat-payment-request-header">
-                    <span className="chat-payment-request-title">
-                      {t("requestPaymentLabel")}
-                    </span>
-                    <span
-                      className={`chat-payment-request-status is-${paymentRequestStatus ?? "requested"}`}
-                    >
-                      {paymentRequestStatus === "paid"
-                        ? t("paymentRequestStatusPaid")
-                        : paymentRequestStatus === "declined"
-                          ? t("paymentRequestStatusDeclined")
-                          : t("paymentRequestStatusRequested")}
-                    </span>
-                  </div>
-                  <div className="chat-payment-request-amount">
-                    {formatDisplayedAmountText(paymentRequestInfo.amount)}
-                  </div>
-                  {message.isEdited && !isOut ? (
-                    <p className="muted">{t("paymentRequestChanged")}</p>
-                  ) : null}
-                  {canActOnPaymentRequest ? (
-                    <div className="chat-payment-request-actions">
-                      <button
-                        type="button"
-                        className="btn-wide chat-payment-request-pay"
-                        disabled={payPaymentRequestDisabled}
-                        onClick={() => onPayPaymentRequest(paymentRequestInfo)}
-                        title={
-                          payPaymentRequestDisabled && !payPaymentRequestBusy
-                            ? t("payInsufficient")
-                            : undefined
-                        }
-                      >
-                        <span className="btn-label-with-icon">
-                          <span className="btn-label-icon" aria-hidden="true">
-                            {payPaymentRequestBusy ? (
-                              <span className="btn-spinner" />
-                            ) : (
-                              <PayIcon size={18} />
-                            )}
-                          </span>
-                          <span>
-                            {payPaymentRequestBusy ? t("payPaying") : t("pay")}
-                          </span>
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-wide secondary chat-payment-request-decline"
-                        onClick={onDeclinePaymentRequest}
-                      >
-                        <span className="btn-label-with-icon">
-                          <span className="btn-label-icon" aria-hidden="true">
-                            <X size={18} />
-                          </span>
-                          <span>{t("decline")}</span>
-                        </span>
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : isDeclineMessage ? (
-                <span className="pill pill-muted">
-                  {t("paymentRequestDeclinedMessage")}
-                </span>
-              ) : privateImageInfo && isPrivatePdfPayload(privateImageInfo) ? (
-                <PrivateFileBubble
-                  onBlobChange={setPrivateImageBlob}
-                  payload={privateImageInfo}
-                  rumorId={rumorId}
-                  t={t}
+          accessory={
+            <Stack
+              opacity={hovered || menuOpen ? 1 : 0}
+              focusWithinStyle={{ opacity: 1 }}
+            >
+              <IconButton
+                icon="Ellipsis"
+                size="sm"
+                accessibilityLabel={actionLabels.menu}
+                onPress={() => (menuOpen ? closeMenu() : openMenu())}
+              />
+            </Stack>
+          }
+          footer={
+            reactions.length > 0 || showTime ? (
+              <Stack alignSelf="stretch" gap="$xs">
+                <MessageReactions
+                  reactions={reactions}
+                  onReact={(emoji) => onReact(message, emoji)}
                 />
-              ) : privateImageInfo ? (
-                <PrivateImageBubble
-                  onBlobChange={setPrivateImageBlob}
-                  payload={privateImageInfo}
-                  rumorId={rumorId}
-                  t={t}
-                />
-              ) : tokenInfo && isStandaloneTokenMessage ? (
-                renderCashuTokenPill(tokenInfo)
-              ) : inlineMessageContent ? (
-                inlineMessageContent
-              ) : (
-                content
-              )}
-              {unsavedMessageContactNpubs.length > 1 ? (
-                <button
-                  type="button"
-                  className="chat-add-all-contacts"
-                  onClick={() =>
-                    onAddNpubContacts(unsavedMessageContactNpubs, message.id)
-                  }
-                >
-                  <Plus size={15} strokeWidth={2.5} aria-hidden="true" />
-                  <span>{t("addAllContacts")}</span>
-                </button>
-              ) : contactsGroupAssignment?.messageId === message.id ? (
-                <MessageContactsGroupPicker
-                  assignment={contactsGroupAssignment}
-                  t={t}
-                />
-              ) : null}
-              {previewUrl ? (
-                <LinkPreviewCard key={previewUrl} url={previewUrl} />
-              ) : null}
-              {isSeen ? (
-                <CheckCheck
-                  className="chat-seen-check"
-                  size={13}
-                  strokeWidth={2.5}
-                  role="img"
-                  aria-label={chatSeenLabel}
-                />
-              ) : null}
-            </div>
-          </div>
-
-          <MessageReactions
-            reactions={reactions}
-            showAddButton={false}
-            onReact={(emoji) => onReact(message, emoji)}
-          />
-
-          {showTime ? (
-            <div className="chat-time">
-              {timeLabel}
-              {message.isEdited ? (
-                <>
-                  {" "}
-                  ·{" "}
-                  <span
-                    className="edited-indicator"
-                    title={message.originalContent || undefined}
+                {showTime ? (
+                  <Text
+                    variant="caption"
+                    color={isPending ? "$warningText" : "$colorMuted"}
+                    textAlign={isOut ? "right" : "left"}
                   >
-                    {actionLabels.edited}
-                  </span>
-                </>
-              ) : null}
-              {isPending ? ` · ${chatPendingLabel}` : ""}
-            </div>
+                    {timeLabel}
+                    {message.isEdited ? ` · ${actionLabels.edited}` : ""}
+                    {isPending ? ` · ${chatPendingLabel}` : ""}
+                  </Text>
+                ) : null}
+              </Stack>
+            ) : null
+          }
+        >
+          {replyQuoteText ? (
+            <Stack
+              testID="chat-reply-quote"
+              borderLeftWidth={border.emphasis}
+              borderColor="$info"
+              paddingLeft="$sm"
+            >
+              <Text variant="caption" color="$colorSubtle" numberOfLines={2}>
+                {replyQuoteText}
+              </Text>
+            </Stack>
           ) : null}
-        </div>
+          {isSeen ? (
+            <Row alignItems="flex-end" gap="$sm">
+              <Stack flexShrink={1}>{messageBody}</Stack>
+              <Stack role="img" aria-label={chatSeenLabel}>
+                <Icon name="CheckCheck" size="sm" color="$accent" />
+              </Stack>
+            </Row>
+          ) : (
+            messageBody
+          )}
+          {unsavedMessageContactNpubs.length > 1 ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon="Plus"
+              onPress={() =>
+                onAddNpubContacts(unsavedMessageContactNpubs, message.id)
+              }
+            >
+              {t("addAllContacts")}
+            </Button>
+          ) : contactsGroupAssignment?.messageId === message.id ? (
+            <MessageContactsGroupPicker
+              assignment={contactsGroupAssignment}
+              t={t}
+            />
+          ) : null}
+          {previewUrl ? (
+            <LinkPreviewCard key={previewUrl} url={previewUrl} />
+          ) : null}
+        </MessageBubble>
       )}
     </React.Fragment>
+  );
+}
+
+/** Message text keeps links, pills and line breaks inline. */
+function MessageText({ children }: { children: React.ReactNode }) {
+  return (
+    <Text whiteSpace="pre-wrap" wordWrap="break-word">
+      {children}
+    </Text>
+  );
+}
+
+function CardNote({ children }: { children: string }) {
+  return (
+    <Text variant="caption" color="$colorMuted">
+      {children}
+    </Text>
+  );
+}
+
+interface PaymentCardProps {
+  testID: string;
+  status: keyof typeof statusTones;
+  title: string;
+  statusLabel: string;
+  amount: string;
+  children: React.ReactNode;
+}
+
+function PaymentCard({
+  testID,
+  status,
+  title,
+  statusLabel,
+  amount,
+  children,
+}: PaymentCardProps) {
+  return (
+    <Stack testID={testID} data-status={status} gap="$sm" minWidth="$qr">
+      <Row justifyContent="space-between" gap="$sm">
+        <Text eyebrow color="$colorSubtle">
+          {title}
+        </Text>
+        <Pill size="sm" label={statusLabel} tone={statusTones[status]} />
+      </Row>
+      <Text variant="display" color="$colorStrong">
+        {amount}
+      </Text>
+      {children}
+    </Stack>
   );
 }
 
@@ -1010,74 +1022,73 @@ function MessageContactsGroupPicker({
       ? "addToGroupTitleFew"
       : "addToGroupTitle",
   ).replace("{count}", String(assignment.contactCount));
+  const stopGesture = (event: { stopPropagation: () => void }) =>
+    event.stopPropagation();
 
   // The picker lives inside the bubble that owns long-press/swipe gestures;
   // its own interactions must not start them.
   return (
-    <div
-      className={
-        isExpanded ? "chat-add-to-group is-expanded" : "chat-add-to-group"
-      }
-      onPointerDown={(event) => event.stopPropagation()}
-      onPointerMove={(event) => event.stopPropagation()}
-      onPointerUp={(event) => event.stopPropagation()}
-      onContextMenu={(event) => event.stopPropagation()}
+    <Stack
+      gap="$sm"
+      onPointerDown={stopGesture}
+      onPointerMove={stopGesture}
+      onPointerUp={stopGesture}
+      onContextMenu={stopGesture}
     >
-      <div className="chat-add-to-group-header">
-        <button
-          type="button"
-          className="chat-add-to-group-toggle"
-          onClick={() => setIsExpanded(true)}
+      <Row gap="$xs">
+        <Button
+          flex={1}
+          size="sm"
+          variant="ghost"
+          icon="FolderPlus"
           aria-expanded={isExpanded}
+          onPress={() => setIsExpanded(true)}
         >
-          <FolderPlus size={15} aria-hidden="true" />
-          <span>{isExpanded ? title : t("addToGroupAction")}</span>
-        </button>
-        <button
-          type="button"
-          className="icon-only-ghost chat-add-to-group-dismiss"
-          onClick={assignment.onDismiss}
-          aria-label={t("close")}
-          title={t("close")}
-        >
-          <X size={15} aria-hidden="true" />
-        </button>
-      </div>
+          {isExpanded ? title : t("addToGroupAction")}
+        </Button>
+        <IconButton
+          icon="X"
+          size="sm"
+          accessibilityLabel={t("close")}
+          onPress={assignment.onDismiss}
+        />
+      </Row>
       {isExpanded ? (
         <>
           {assignment.groupNames.length > 0 ? (
-            <div className="contact-group-pills">
+            <Row gap="$xs" flexWrap="wrap">
               {assignment.groupNames.map((group) => (
-                <button
+                <Chip
                   key={group}
-                  type="button"
-                  className="group-filter-btn contact-group-pill"
-                  onClick={() => assignment.onAssign(group)}
-                >
-                  {group}
-                </button>
+                  label={group}
+                  onPress={() => assignment.onAssign(group)}
+                />
               ))}
-            </div>
+            </Row>
           ) : null}
-          <form
-            className="chat-add-to-group-new"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (newGroup) assignment.onAssign(newGroup);
-            }}
-          >
-            <input
-              autoFocus
-              value={groupInput}
-              onChange={(event) => setGroupInput(event.target.value)}
-              placeholder={t("groupPlaceholder")}
-            />
-            <button type="submit" disabled={!newGroup}>
+          <Row gap="$xs" alignItems="flex-end">
+            <Stack flex={1}>
+              <TextField
+                label={t("groupPlaceholder")}
+                hideLabel
+                autoFocus
+                value={groupInput}
+                onChangeText={setGroupInput}
+                placeholder={t("groupPlaceholder")}
+                onSubmitEditing={() => {
+                  if (newGroup) assignment.onAssign(newGroup);
+                }}
+              />
+            </Stack>
+            <Button
+              disabled={!newGroup}
+              onPress={() => assignment.onAssign(newGroup)}
+            >
               {t("add")}
-            </button>
-          </form>
+            </Button>
+          </Row>
         </>
       ) : null}
-    </div>
+    </Stack>
   );
 }

@@ -6,6 +6,7 @@ import { MessageActionsMenu } from "./MessageActionsMenu";
 const defaultLabels = {
   copy: "Copy",
   edit: "Edit",
+  menu: "Message actions",
   react: "React",
   reply: "Reply",
   save: "Save",
@@ -36,9 +37,9 @@ const renderMenu = async (overrides: Partial<MenuProps> = {}) => {
 };
 
 const menuItemLabels = (): string[] =>
-  Array.from(document.body.querySelectorAll(".message-actions-item")).map(
-    (item) => item.textContent ?? "",
-  );
+  Array.from(
+    document.body.querySelectorAll('[data-testid="message-action"]'),
+  ).map((item) => item.textContent ?? "");
 
 describe("MessageActionsMenu", () => {
   afterEach(() => {
@@ -56,7 +57,7 @@ describe("MessageActionsMenu", () => {
     expect(menuItemLabels()).toEqual(["Reply", "Share", "Save"]);
 
     const [, shareItem, saveItem] = Array.from(
-      document.body.querySelectorAll(".message-actions-item"),
+      document.body.querySelectorAll('[data-testid="message-action"]'),
     );
     await act(async () => {
       shareItem?.dispatchEvent(new MouseEvent("click", { bubbles: true }));

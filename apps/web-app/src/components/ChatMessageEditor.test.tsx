@@ -105,7 +105,9 @@ describe("ChatMessageEditor", () => {
       />,
     );
 
-    const firstPill = container.querySelector(".chat-contact-pill");
+    const firstPill = container.querySelector(
+      '[data-message-entity-kind="contact"]',
+    );
     expect(firstPill).not.toBeNull();
     await act(async () => {
       firstPill?.dispatchEvent(new MouseEvent("click", { bubbles: true }));

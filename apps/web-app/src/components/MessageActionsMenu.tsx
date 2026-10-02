@@ -1,13 +1,17 @@
 import {
-  Copy as CopyIcon,
-  Download,
-  Pencil as EditIcon,
-  Reply as ReplyIcon,
-  Share2 as ShareIcon,
-} from "lucide-react";
-import type { FC } from "react";
-import { createPortal } from "react-dom";
-import { EmojiPicker } from "./EmojiPicker";
+  Divider,
+  EmojiPicker,
+  Icon,
+  ListRow,
+  ScrollView,
+  Sheet,
+} from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
+import { useState, type FC } from "react";
+import {
+  QUICK_REACTION_EMOJIS,
+  REACTION_EMOJIS,
+} from "../app/lib/reactionEmojis";
 
 interface MessageImageActions {
   canShare: boolean;
@@ -24,6 +28,7 @@ interface MessageActionsMenuProps {
   labels: {
     copy: string;
     edit: string;
+    menu: string;
     react: string;
     reply: string;
     save: string;
@@ -34,6 +39,12 @@ interface MessageActionsMenuProps {
   onEdit: () => void;
   onReact: (emoji: string) => void;
   onReply: () => void;
+}
+
+interface MenuAction {
+  icon: IconName;
+  label: string;
+  run: () => void;
 }
 
 export const MessageActionsMenu: FC<MessageActionsMenuProps> = ({
@@ -49,105 +60,75 @@ export const MessageActionsMenu: FC<MessageActionsMenuProps> = ({
   onReact,
   onReply,
 }) => {
+  const [emojisExpanded, setEmojisExpanded] = useState(false);
+  // Every message has its own menu and a closing Sheet lingers in the DOM, so mount it only while open.
   if (!isOpen) return null;
+  const actions: MenuAction[] = [];
+  if (canReplyOrReact)
+    actions.push({ icon: "Reply", label: labels.reply, run: onReply });
+  if (canEdit)
+    actions.push({ icon: "Pencil", label: labels.edit, run: onEdit });
+  if (imageActions?.canShare)
+    actions.push({
+      icon: "Share2",
+      label: labels.share,
+      run: imageActions.onShare,
+    });
+  if (imageActions)
+    actions.push({
+      icon: "Download",
+      label: labels.save,
+      run: imageActions.onSave,
+    });
+  if (canCopy) actions.push({ icon: "Copy", label: labels.copy, run: onCopy });
+  const close = () => {
+    setEmojisExpanded(false);
+    onClose();
+  };
 
-  // Portaled to <body>: on iOS the chat scroller is a composited layer whose
-  // stacking context would otherwise paint this fixed sheet below the compose bar.
-  return createPortal(
-    <>
-      <div
-        className="message-actions-backdrop"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className="message-actions-sheet" role="menu">
-        <div className="message-actions-handle" aria-hidden="true" />
-        {canReplyOrReact && (
+  return (
+    <Sheet
+      open
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
+      title={labels.menu}
+      hideTitle
+    >
+      {canReplyOrReact ? (
+        <ScrollView maxHeight="$qr" flexGrow={0}>
           <EmojiPicker
+            accessibilityLabel={labels.react}
+            emojis={emojisExpanded ? REACTION_EMOJIS : QUICK_REACTION_EMOJIS}
             onSelect={(emoji) => {
               onReact(emoji);
-              onClose();
+              close();
             }}
+            {...(emojisExpanded
+              ? {}
+              : {
+                  more: {
+                    label: "More emojis",
+                    onPress: () => setEmojisExpanded(true),
+                  },
+                })}
           />
-        )}
-        <div className="message-actions-separator" />
-        {canReplyOrReact && (
-          <button
-            type="button"
-            className="message-actions-item"
-            onClick={() => {
-              onReply();
-              onClose();
-            }}
-          >
-            <span className="message-actions-icon">
-              <ReplyIcon size={18} />
-            </span>
-            {labels.reply}
-          </button>
-        )}
-        {canEdit && (
-          <button
-            type="button"
-            className="message-actions-item"
-            onClick={() => {
-              onEdit();
-              onClose();
-            }}
-          >
-            <span className="message-actions-icon">
-              <EditIcon size={18} />
-            </span>
-            {labels.edit}
-          </button>
-        )}
-        {imageActions?.canShare && (
-          <button
-            type="button"
-            className="message-actions-item"
-            onClick={() => {
-              imageActions.onShare();
-              onClose();
-            }}
-          >
-            <span className="message-actions-icon">
-              <ShareIcon size={18} />
-            </span>
-            {labels.share}
-          </button>
-        )}
-        {imageActions && (
-          <button
-            type="button"
-            className="message-actions-item"
-            onClick={() => {
-              imageActions.onSave();
-              onClose();
-            }}
-          >
-            <span className="message-actions-icon">
-              <Download size={18} />
-            </span>
-            {labels.save}
-          </button>
-        )}
-        {canCopy && (
-          <button
-            type="button"
-            className="message-actions-item"
-            onClick={() => {
-              onCopy();
-              onClose();
-            }}
-          >
-            <span className="message-actions-icon">
-              <CopyIcon size={18} />
-            </span>
-            {labels.copy}
-          </button>
-        )}
-      </div>
-    </>,
-    document.body,
+        </ScrollView>
+      ) : null}
+      <Divider />
+      {actions.map((action) => (
+        <ListRow
+          key={action.label}
+          testID="message-action"
+          leading={<Icon name={action.icon} />}
+          title={action.label}
+          chevron={false}
+          onPress={() => {
+            action.run();
+            close();
+          }}
+        />
+      ))}
+    </Sheet>
   );
 };

@@ -38,10 +38,8 @@ describe("MessageEntityPreview", () => {
       />,
     );
 
-    expect(container.querySelector(".chat-token-pill")?.textContent).toBe(
-      "21 sat",
-    );
-    expect(container.querySelector(".chat-contact-pill")).toBeNull();
+    expect(container.textContent).toBe("21 sat");
+    expect(container.textContent).not.toContain("Wrong contact");
     expect(getNpubMessageContactInfo).not.toHaveBeenCalled();
   });
 
@@ -69,9 +67,7 @@ describe("MessageEntityPreview", () => {
       />,
     );
 
-    expect(container.querySelector(".chat-token-pill")?.textContent).toBe(
-      "2 sat",
-    );
+    expect(container.textContent).toBe("2 sat");
     expect(container.textContent).not.toContain("proofs");
   });
 });
