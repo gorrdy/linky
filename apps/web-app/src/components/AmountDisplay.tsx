@@ -4,7 +4,6 @@ import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
-import { tooltip } from "../utils/tooltip";
 
 interface AmountDisplayProps {
   amount: string;
@@ -58,7 +57,7 @@ export function AmountDisplay({
   return (
     <Pressable
       {...frame}
-      {...tooltip(t("unitCycleAction"))}
+      tooltip={t("unitCycleAction")}
       onPress={cycleDisplayCurrency}
     >
       {value}

@@ -4,7 +4,6 @@ import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
-import { tooltip } from "../utils/tooltip";
 
 interface BankPaymentAmountProps {
   canCycle?: boolean;
@@ -34,7 +33,7 @@ export const BankPaymentAmount: React.FC<BankPaymentAmountProps> = ({
     <Pressable
       testID="bank-payment-amount-button"
       alignSelf="flex-start"
-      {...tooltip(t("unitCycleAction"))}
+      tooltip={t("unitCycleAction")}
       onPress={cycleDisplayCurrency}
     >
       {amount}

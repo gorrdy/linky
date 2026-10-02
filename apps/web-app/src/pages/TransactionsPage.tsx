@@ -39,7 +39,6 @@ import {
 import type { Translate } from "../i18n";
 import { getLightningInvoicePreview } from "@linky-fit/linkshu";
 import { formatInteger, normalizeLocale } from "../utils/formatting";
-import { tooltip } from "../utils/tooltip";
 import { asNonEmptyString } from "../utils/validation";
 
 interface ContactSummary {
@@ -308,7 +307,7 @@ const TransactionCardView = ({
                       maxWidth="100%"
                       onPress={() => void copyText(copyValue)}
                       aria-label={t("copy")}
-                      {...tooltip(t("copy"))}
+                      tooltip={t("copy")}
                     >
                       <Text variant="caption" numberOfLines={1} flexShrink={1}>
                         {value.value}

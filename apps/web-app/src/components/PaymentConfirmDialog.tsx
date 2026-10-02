@@ -1,6 +1,5 @@
 import { Button, Dialog, Stack, Text } from "@linky-fit/ui";
 import type { ReactNode } from "react";
-import { tooltip } from "../utils/tooltip";
 import { WalletBalance } from "./WalletBalance";
 
 interface PaymentConfirmDialogProps {
@@ -54,7 +53,7 @@ export function PaymentConfirmDialog({
           <Button
             onPress={() => void onConfirm()}
             disabled={isBusy || disabled}
-            {...tooltip(disabledReason)}
+            tooltip={disabledReason}
           >
             {confirmLabel}
           </Button>

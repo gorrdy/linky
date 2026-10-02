@@ -4,7 +4,6 @@ import { useAppShellCore } from "../app/context/AppShellContexts";
 import { AmountDisplay } from "../components/AmountDisplay";
 import { Keypad } from "../components/Keypad";
 import { useAmountInputKeypad } from "../components/useAmountInputKeypad";
-import { tooltip } from "../utils/tooltip";
 
 interface CashuTokenEmitPageProps {
   cashuBalance: number;
@@ -122,9 +121,7 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
           void emitCashuToken();
         }}
         disabled={invalid}
-        {...tooltip(
-          amountSat > cashuBalance ? t("payInsufficient") : undefined,
-        )}
+        tooltip={amountSat > cashuBalance ? t("payInsufficient") : undefined}
       >
         {t("cashuEmit")}
       </Button>

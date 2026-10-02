@@ -883,6 +883,7 @@ export const ChatComposer = memo(function ChatComposer({
                 icon={isFeedbackContact ? "HeartHandshake" : "HandCoins"}
                 onPress={() => openContactPay(selectedContact.id, true)}
                 disabled={cashuIsBusy || !canStartPay}
+                tooltip={!canStartPay ? t("payInsufficient") : undefined}
                 data-guide="chat-pay"
               >
                 {isFeedbackContact ? t("donate") : t("pay")}

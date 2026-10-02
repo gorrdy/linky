@@ -191,6 +191,7 @@ export const ContactPage: FC<ContactPageProps> = ({
           icon={isFeedbackContact ? "HeartHandshake" : "HandCoins"}
           onPress={() => openContactPay(contactId)}
           disabled={cashuIsBusy || !canStartPay}
+          tooltip={!canStartPay ? t("payInsufficient") : undefined}
           data-guide="contact-pay"
         >
           {payLabel}

@@ -295,6 +295,7 @@ export function ProfilePage({
         <QRCode
           value={optimizeCaseInsensitiveQrPayload(currentNpub)}
           accessibilityLabel={t("copy")}
+          tooltip={t("copy")}
           badge="Copy"
           onPress={() => void copyText(currentNpub)}
         />
@@ -398,6 +399,11 @@ export function ProfilePage({
                   cashuIsBusy ||
                   inlineClaimInsufficientBalance ||
                   inlineClaimIsChecking
+                }
+                tooltip={
+                  inlineClaimInsufficientBalance
+                    ? t("payInsufficient")
+                    : undefined
                 }
                 onPress={() => void purchaseInlineLightningAddress()}
               >

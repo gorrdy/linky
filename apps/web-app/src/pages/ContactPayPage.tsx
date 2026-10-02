@@ -18,7 +18,6 @@ import {
 } from "../hooks/useLnurlPayPreview";
 import { getInitials } from "../utils/formatting";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
-import { tooltip } from "../utils/tooltip";
 
 interface Contact {
   id: ContactId;
@@ -153,7 +152,7 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
                       prev === "lightning" ? "cashu" : "lightning",
                     )
                   }
-                  {...tooltip(showToggle ? methodLabel : undefined)}
+                  tooltip={showToggle ? methodLabel : undefined}
                 />
               </Row>
             )}

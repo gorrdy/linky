@@ -38,6 +38,7 @@ export const CashuTokenQr = ({ tokenText, copyText }: CashuTokenQrProps) => {
           <QRCode
             value={tokenQr}
             accessibilityLabel={t("copy")}
+            tooltip={t("copy")}
             onPress={() => void copyText(tokenText)}
           />
           {tokenQrFrameCount === null ? null : (

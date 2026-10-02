@@ -775,6 +775,7 @@ export function BankDetailsOfferView({
               <Text bold>{row.label}</Text>
               <Pressable
                 aria-label={t("copy")}
+                tooltip={t("copy")}
                 alignSelf="flex-start"
                 gap="$xs"
                 onPress={() => onCopyText(row.value)}

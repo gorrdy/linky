@@ -774,6 +774,11 @@ function ChatMessageComponent({
             icon="HandCoins"
             loading={payPaymentRequestBusy}
             disabled={payPaymentRequestDisabled}
+            tooltip={
+              payPaymentRequestDisabled && !payPaymentRequestBusy
+                ? t("payInsufficient")
+                : undefined
+            }
             onPress={() => onPayPaymentRequest(paymentRequestInfo)}
           >
             {payPaymentRequestBusy ? t("payPaying") : t("pay")}

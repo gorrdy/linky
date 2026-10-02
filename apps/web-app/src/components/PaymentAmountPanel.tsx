@@ -2,7 +2,6 @@ import { Button, Stack } from "@linky-fit/ui";
 import type { IconName } from "@linky-fit/ui";
 import type { FC, ReactNode } from "react";
 import type { Translate } from "../i18n";
-import { tooltip } from "../utils/tooltip";
 import { AmountDisplay } from "./AmountDisplay";
 import { Keypad } from "./Keypad";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
@@ -81,7 +80,7 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
           onPress={onSubmit}
           disabled={cashuIsBusy || submitDisabled}
           data-guide={sendGuideId}
-          {...tooltip(submitTitle)}
+          tooltip={submitTitle}
         >
           {isSubmitBusy ? t("payPaying") : (submitLabel ?? t("paySend"))}
         </Button>

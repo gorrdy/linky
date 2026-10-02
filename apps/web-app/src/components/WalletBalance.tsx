@@ -4,7 +4,6 @@ import {
   useAppShellActions,
   useAppShellCore,
 } from "../app/context/AppShellContexts";
-import { tooltip } from "../utils/tooltip";
 
 interface WalletBalanceProps {
   ariaLabel: string;
@@ -41,7 +40,7 @@ export const WalletBalance: React.FC<WalletBalanceProps> = ({
     <Pressable
       alignSelf="center"
       aria-label={ariaLabel}
-      {...tooltip(t("unitCycleAction"))}
+      tooltip={t("unitCycleAction")}
       onPress={cycleDisplayCurrency}
     >
       {amount}

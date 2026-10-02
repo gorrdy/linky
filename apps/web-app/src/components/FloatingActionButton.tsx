@@ -1,6 +1,5 @@
 import { IconButton, Stack, space, useMedia } from "@linky-fit/ui";
 import type { IconName } from "@linky-fit/ui";
-import { tooltip } from "../utils/tooltip";
 
 interface FloatingActionButtonProps {
   icon: IconName;
@@ -29,7 +28,7 @@ export function FloatingActionButton({
         variant="primary"
         size="lg"
         onPress={onPress}
-        {...tooltip(label)}
+        tooltip={label}
       />
     </Stack>
   );
