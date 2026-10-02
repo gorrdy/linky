@@ -772,7 +772,7 @@ function ChatMessageComponent({
             }
             onPress={() => onPayPaymentRequest(paymentRequestInfo)}
           >
-            {payPaymentRequestBusy ? t("payPaying") : t("pay")}
+            {t("pay")}
           </Button>
           <Button
             flex={1}

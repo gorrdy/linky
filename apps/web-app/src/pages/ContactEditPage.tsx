@@ -99,18 +99,18 @@ export const ContactEditPage: FC<ContactEditPageProps> = ({
             <Button
               icon="Save"
               onPress={handleSaveContact}
-              disabled={isSavingContact}
+              loading={isSavingContact}
             >
-              {isSavingContact ? t("saving") : t("saveChanges")}
+              {t("saveChanges")}
             </Button>
           )
         ) : (
           <Button
             onPress={handleSaveContact}
             data-guide="contact-save"
-            disabled={isSavingContact}
+            loading={isSavingContact}
           >
-            {isSavingContact ? t("saving") : t("saveContact")}
+            {t("saveContact")}
           </Button>
         )}
         {isArchivedContact ? (

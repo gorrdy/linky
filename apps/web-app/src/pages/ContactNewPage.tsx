@@ -461,13 +461,11 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
                     onPress={() =>
                       void addNewContactFromSearchResult(candidate)
                     }
-                    disabled={isSavingContact}
+                    loading={isSavingContact}
                   >
-                    {isSavingContact
-                      ? t("saving")
-                      : candidate.existingContactId
-                        ? t("openContact")
-                        : t("saveContact")}
+                    {candidate.existingContactId
+                      ? t("openContact")
+                      : t("saveContact")}
                   </Button>
                 }
               />
@@ -519,9 +517,9 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
                     <Button
                       icon="UserPlus"
                       onPress={() => void addSuggestion(suggestion)}
-                      disabled={isSavingContact}
+                      loading={isSavingContact}
                     >
-                      {isSavingContact ? t("saving") : t("saveContact")}
+                      {t("saveContact")}
                     </Button>
                   }
                 />
@@ -550,9 +548,9 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
             <Button
               icon="Save"
               onPress={handleSaveContact}
-              disabled={isSavingContact}
+              loading={isSavingContact}
             >
-              {isSavingContact ? t("saving") : t("saveContact")}
+              {t("saveContact")}
             </Button>
             <Button
               variant="secondary"
