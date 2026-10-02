@@ -128,8 +128,7 @@ export default defineConfig([
     files: ["src/**/*.tsx"],
     ignores: testHelperImportIgnores,
     plugins: { "linky-ui": uiOnlyPlugin },
-    // Warns until every area is migrated; the cleanup then makes it an error.
-    rules: { "linky-ui/ui-only": ["warn", { allow: ["video"] }] },
+    rules: { "linky-ui/ui-only": ["error", { allow: ["video"] }] },
   },
   {
     files: ["src/devtools/e2e/**"],
