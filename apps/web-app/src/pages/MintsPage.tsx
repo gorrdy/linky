@@ -2,7 +2,10 @@ import { Divider, Progress, Row, Stack, Text } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
-import { FloatingActionButton } from "../components/FloatingActionButton";
+import {
+  FloatingActionButton,
+  floatingActionButtonClearance,
+} from "../components/FloatingActionButton";
 import { MintButton } from "../components/MintButton";
 import { MintFees } from "../components/MintFees";
 import { MintPendingPill } from "../components/MintPendingPill";
@@ -112,7 +115,7 @@ export function MintsPage() {
 
   return (
     <>
-      <Stack gap="$sm">
+      <Stack gap="$sm" paddingBottom={floatingActionButtonClearance}>
         {standardMints.map((mint) => renderMintButton(mint))}
         {testMints.length > 0 ? (
           <Stack testID="mint-test-group" gap="$sm">

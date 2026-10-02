@@ -16,7 +16,6 @@ import {
   Stack,
   Text,
   border,
-  space,
 } from "@linky-fit/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -30,7 +29,10 @@ import {
   CashuTokenHandoff,
   type CashuTokenHandoffProps,
 } from "../components/CashuTokenHandoff";
-import { FloatingActionButton } from "../components/FloatingActionButton";
+import {
+  FloatingActionButton,
+  floatingActionButtonClearance,
+} from "../components/FloatingActionButton";
 import { navigateTo } from "../hooks/useRouting";
 import { nowSeconds } from "../utils/time";
 
@@ -162,7 +164,7 @@ export const CashuTokensPage = ({
 
   return (
     <>
-      <Stack gap="$lg" paddingBottom={space.huge * 2}>
+      <Stack gap="$lg" paddingBottom={floatingActionButtonClearance}>
         {balancesByMint.length <= 1 ? (
           <Row gap="$lg" alignItems="flex-start">
             {balanceColumn(t("cashuBalance"), availableBalance)}

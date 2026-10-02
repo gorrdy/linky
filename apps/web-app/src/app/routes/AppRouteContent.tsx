@@ -222,23 +222,25 @@ interface PageBodyProps {
   fill: boolean;
 }
 
-const PageBody = ({ children, fill }: PageBodyProps): React.ReactElement =>
-  fill ? (
-    <Stack flex={1} minHeight={0} gap="$none">
-      {children}
-    </Stack>
-  ) : (
-    <Stack
-      flex={1}
-      minHeight={0}
-      overflowY="auto"
-      paddingHorizontal="$xl"
-      paddingTop="$xxxl"
-      paddingBottom="$huge"
-    >
-      {children}
-    </Stack>
-  );
+/** Positioned so a floating action button stays in its corner while the page scrolls. */
+const PageBody = ({ children, fill }: PageBodyProps): React.ReactElement => (
+  <Stack flex={1} minHeight={0} gap="$none" position="relative">
+    {fill ? (
+      children
+    ) : (
+      <Stack
+        flex={1}
+        minHeight={0}
+        overflowY="auto"
+        paddingHorizontal="$xl"
+        paddingTop="$xxxl"
+        paddingBottom="$huge"
+      >
+        {children}
+      </Stack>
+    )}
+  </Stack>
+);
 
 const PhoneRouteContent = (): React.ReactElement => {
   const { route, t } = useAppShellCore();
@@ -319,6 +321,7 @@ export const AppRouteContent = (): React.ReactElement => {
               outlined
               backgroundColor="$background"
               role="region"
+              position="relative"
               aria-label={t("detail")}
               flex={1.12}
               minHeight={0}

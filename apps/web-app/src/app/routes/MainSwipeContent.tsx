@@ -2,7 +2,10 @@ import { Pager, Stack } from "@linky-fit/ui";
 import React from "react";
 import { BottomTabBar } from "../../components/BottomTabBar";
 import { ContactsChecklist } from "../../components/ContactsChecklist";
-import { FloatingActionButton } from "../../components/FloatingActionButton";
+import {
+  FloatingActionButton,
+  floatingActionButtonClearance,
+} from "../../components/FloatingActionButton";
 import type { Translate } from "../../i18n";
 import { ContactsPage } from "../../pages/ContactsPage";
 import { WalletPage } from "../../pages/WalletPage";
@@ -275,27 +278,36 @@ export const MainSwipeContent = (): React.ReactElement => {
 
   return (
     <>
-      <Pager
-        scrollRef={mainSwipeRef}
-        activePage={route.kind === "wallet" ? 1 : 0}
+      <Stack
+        testID="main-swipe"
+        flex={1}
+        minHeight={0}
+        gap="$none"
+        position="relative"
       >
-        <Stack
-          flex={1}
-          paddingHorizontal="$xl"
-          paddingTop="$xxxl"
-          paddingBottom="$huge"
+        <Pager
+          scrollRef={mainSwipeRef}
+          activePage={route.kind === "wallet" ? 1 : 0}
         >
-          <ContactsPane filterAlwaysOpen={false} />
-        </Stack>
-        <Stack
-          flex={1}
-          paddingHorizontal="$xl"
-          paddingTop="$xxxl"
-          paddingBottom="$huge"
-        >
-          <WalletPane />
-        </Stack>
-      </Pager>
+          <Stack
+            flex={1}
+            paddingHorizontal="$xl"
+            paddingTop="$xxxl"
+            paddingBottom={floatingActionButtonClearance}
+          >
+            <ContactsPane filterAlwaysOpen={false} />
+          </Stack>
+          <Stack
+            flex={1}
+            paddingHorizontal="$xl"
+            paddingTop="$xxxl"
+            paddingBottom="$huge"
+          >
+            <WalletPane />
+          </Stack>
+        </Pager>
+        <MainSwipeFab label={t("addContact")} onPress={openNewContactPage} />
+      </Stack>
       <MainSwipeBottomTabBar
         activeTab={bottomTabActive}
         contactsLabel={t("contactsTitle")}
@@ -303,7 +315,6 @@ export const MainSwipeContent = (): React.ReactElement => {
         t={t}
         walletLabel={t("wallet")}
       />
-      <MainSwipeFab label={t("addContact")} onPress={openNewContactPage} />
     </>
   );
 };
