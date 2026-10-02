@@ -1,4 +1,5 @@
 import {
+  Amount,
   border,
   Button,
   Chip,
@@ -231,7 +232,15 @@ function ChatMessageComponent({
   replyQuoteText,
   settleBankPaymentOfferBusy,
 }: ChatMessageProps) {
-  const { formatDisplayedAmountText, t } = useAppShellCore();
+  const { formatDisplayedAmountParts, formatDisplayedAmountText, t } =
+    useAppShellCore();
+  const paymentCardAmount = (amountSat: number): PaymentCardAmount => {
+    const parts = formatDisplayedAmountParts(amountSat);
+    return {
+      value: `${parts.approxPrefix}${parts.amountText}`,
+      unit: parts.unitLabel.trim() || undefined,
+    };
+  };
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
   const [privateImageBlob, setPrivateImageBlob] = React.useState<Blob | null>(
@@ -701,7 +710,11 @@ function ChatMessageComponent({
         !isOut,
         t,
       )}
-      amount={bankOfferDisplayAmount}
+      amount={
+        bankPaymentOfferInfo.amountSat
+          ? paymentCardAmount(bankPaymentOfferInfo.amountSat)
+          : { value: bankPaymentOfferInfo.amountText }
+      }
     >
       {bankOfferDescription ? (
         <CardNote>{bankOfferDescription}</CardNote>
@@ -753,7 +766,7 @@ function ChatMessageComponent({
             ? t("paymentRequestStatusDeclined")
             : t("paymentRequestStatusRequested")
       }
-      amount={formatDisplayedAmountText(paymentRequestInfo.amount)}
+      amount={paymentCardAmount(paymentRequestInfo.amount)}
     >
       {message.isEdited && !isOut ? (
         <CardNote>{t("paymentRequestChanged")}</CardNote>
@@ -962,12 +975,17 @@ function CardNote({ children }: { children: string }) {
   );
 }
 
+interface PaymentCardAmount {
+  value: string;
+  unit?: string | undefined;
+}
+
 interface PaymentCardProps {
   testID: string;
   status: keyof typeof statusTones;
   title: string;
   statusLabel: string;
-  amount: string;
+  amount: PaymentCardAmount;
   children: React.ReactNode;
 }
 
@@ -982,14 +1000,12 @@ function PaymentCard({
   return (
     <Stack testID={testID} data-status={status} gap="$sm" minWidth="$qr">
       <Row justifyContent="space-between" gap="$sm">
-        <Text eyebrow color="$colorSubtle">
-          {title}
-        </Text>
+        <Text eyebrow>{title}</Text>
         <Pill size="sm" label={statusLabel} tone={statusTones[status]} />
       </Row>
-      <Text variant="display" color="$colorStrong">
-        {amount}
-      </Text>
+      <Row>
+        <Amount size="md" value={amount.value} unit={amount.unit} />
+      </Row>
       {children}
     </Stack>
   );

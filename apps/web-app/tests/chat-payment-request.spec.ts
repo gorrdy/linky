@@ -107,7 +107,7 @@ test("incoming 2-sat requests recover a CDK output collision after local counter
         await expect(requester.page).toHaveURL(/#chat\/[^/]+$/);
         const incoming = payer.page.getByTestId("chat-payment-request-card");
         await expect(incoming).toHaveCount(paymentNumber);
-        await expect(incoming.last()).toContainText("2 sat");
+        await expect(incoming.last()).toContainText(/2\s*sat/);
         await incoming
           .last()
           .getByRole("button", { name: "Pay", exact: true })
