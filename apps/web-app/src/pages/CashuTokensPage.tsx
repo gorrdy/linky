@@ -8,14 +8,13 @@ import {
   Button,
   DataTable,
   EmptyState,
-  Icon,
-  Pressable,
+  ListRow,
   Progress,
   Row,
   Spinner,
   Stack,
   Text,
-  border,
+  Pill,
 } from "@linky-fit/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -232,7 +231,7 @@ export const CashuTokensPage = ({
             <Stack
               role="list"
               aria-label={t("cashuPendingTransfers")}
-              gap="$none"
+              gap="$md"
             >
               {transfers.map((transfer) => {
                 const chats = (
@@ -255,41 +254,33 @@ export const CashuTokensPage = ({
                     key={transfer.id}
                     testID="cashu-transfer-row"
                     role="listitem"
-                    gap="$sm"
-                    paddingVertical="$xl"
-                    borderBottomWidth={border.hairline}
-                    borderColor="$borderColor"
+                    gap="$xs"
                   >
-                    <Pressable
-                      gap="$md"
-                      aria-label={`${t("cashuToken")}: ${formatDisplayedAmountText(transfer.amount)}`}
+                    <ListRow
+                      title={
+                        <Text variant="label" bold>
+                          {formatDisplayedAmountText(transfer.amount)}
+                        </Text>
+                      }
+                      description={[
+                        getMintDisplay(transfer.mint),
+                        ageText(transfer.createdAt),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                      trailing={<Pill size="sm" label={state} tone="warning" />}
+                      accessibilityLabel={`${t("cashuToken")}: ${formatDisplayedAmountText(transfer.amount)}`}
                       onPress={() => {
                         const id = CashuOperationId.fromUnknown(transfer.id);
                         if (id.ok)
                           navigateTo({ route: "cashuToken", id: id.value });
                       }}
-                    >
-                      <Text variant="title" flex={1}>
-                        {formatDisplayedAmountText(transfer.amount)}
-                      </Text>
-                      <Text variant="caption" color="$colorMuted">
-                        {state}
-                      </Text>
-                      <Icon name="ChevronRight" size="sm" />
-                    </Pressable>
+                    />
                     <CashuTokenHandoff
                       transfer={transfer}
                       chats={chats}
                       contacts={contacts}
                     />
-                    <Row justifyContent="space-between" flexWrap="wrap">
-                      <Text variant="caption" color="$colorMuted">
-                        {getMintDisplay(transfer.mint)}
-                      </Text>
-                      <Text variant="caption" color="$colorMuted">
-                        {ageText(transfer.createdAt)}
-                      </Text>
-                    </Row>
                   </Stack>
                 );
               })}

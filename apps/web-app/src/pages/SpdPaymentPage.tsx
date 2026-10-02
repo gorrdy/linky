@@ -29,6 +29,7 @@ import {
   updateBankPaymentFields,
 } from "@linky-fit/proxy-payment";
 import { DisplayAmount } from "../components/DisplayAmount";
+import { ValueRow } from "../components/ValueRow";
 import { BankPaymentScreen, InvalidOfferView } from "./BankPaymentOfferViews";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey, Translate } from "../i18n";
@@ -515,12 +516,14 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
     <BankPaymentScreen>
       {summary}
 
-      <Stack gap="$xl">
+      <Stack gap="$xs">
         {rows.map((row) => (
-          <Stack gap="$xs" key={row.key} testID="bank-payment-row">
-            <Text bold>{row.label}</Text>
-            <Text color="$colorStrong">{row.value}</Text>
-          </Stack>
+          <ValueRow
+            key={row.key}
+            testID="bank-payment-row"
+            label={row.label}
+            value={row.value}
+          />
         ))}
       </Stack>
 

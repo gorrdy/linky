@@ -1,5 +1,5 @@
 import type { LightningFeeProbeResult } from "@linky-fit/linkshu";
-import { Row, Stack, Text } from "@linky-fit/ui";
+import { Stack } from "@linky-fit/ui";
 import { Either } from "effect";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -12,6 +12,7 @@ import {
   PRODUCTION_MINTS,
 } from "../utils/mint";
 import { nowSeconds } from "../utils/time";
+import { ValueRow } from "./ValueRow";
 
 // Rough proof count of a typical Cashu payment, used to express ppk in sats.
 const TYPICAL_PAYMENT_PROOF_COUNT = 6;
@@ -99,29 +100,6 @@ const useLightningFeeProbe = (
   return byMint[mintUrl] ?? "pending";
 };
 
-interface MintValueRowProps {
-  label: string;
-  value: string;
-}
-
-export function MintValueRow({ label, value }: MintValueRowProps) {
-  return (
-    <Row justifyContent="space-between">
-      <Text variant="caption" color="$colorMuted" flexShrink={1}>
-        {label}
-      </Text>
-      <Text
-        variant="caption"
-        aria-label={label}
-        textAlign="right"
-        fontVariant={["tabular-nums"]}
-      >
-        {value}
-      </Text>
-    </Row>
-  );
-}
-
 interface MintFeesProps {
   mint: string;
 }
@@ -134,13 +112,13 @@ export function MintFees({ mint }: MintFeesProps) {
   const lightningFee = useLightningFeeProbe(probeLightningFee, mintUrl);
 
   return (
-    <Stack testID="mint-fees" gap="$sm">
-      <MintValueRow
+    <Stack testID="mint-fees" gap="$xs">
+      <ValueRow
         label={t("mintFeeCashuPayments")}
         value={ppk !== null ? formatCashuFee(ppk) : t("unknown")}
       />
-      <MintValueRow label={t("mintFeeLightningTopup")} value="0 sat" />
-      <MintValueRow
+      <ValueRow label={t("mintFeeLightningTopup")} value="0 sat" />
+      <ValueRow
         label={t("mintFeeLightningPayments")}
         value={
           lightningFee === "pending"

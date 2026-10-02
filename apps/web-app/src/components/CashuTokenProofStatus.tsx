@@ -5,6 +5,7 @@ import type { InspectCashuProofStates } from "../app/hooks/composition/useLinksh
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useTokenProofStates } from "../hooks/useTokenProofStates";
 import { normalizeLocale } from "../utils/formatting";
+import { ValueRow } from "./ValueRow";
 
 interface CashuTokenProofStatusProps {
   /** The proofs a transfer handed out, as the inventory holds them. */
@@ -45,12 +46,7 @@ export const CashuTokenProofStatus = ({
   const sums = sumProofsByMintState(proofs, reports);
 
   const amountRow = (label: string, amount: number) => (
-    <Row justifyContent="space-between">
-      <Text variant="label">{label}</Text>
-      <Text variant="label" fontWeight="$regular">
-        {formatDisplayedAmountText(amount)}
-      </Text>
-    </Row>
+    <ValueRow label={label} value={formatDisplayedAmountText(amount)} />
   );
 
   return (
@@ -73,7 +69,7 @@ export const CashuTokenProofStatus = ({
           {t("cashuCheckingProofs")}
         </Text>
       ) : (
-        <Stack gap="$sm">
+        <Stack gap="$xs">
           {amountRow(t("cashuUnspentProofs"), sums.unspent)}
           {amountRow(t("cashuPendingAtMint"), sums.pending)}
           {sums.spent > 0 ? amountRow(t("cashuSpentProofs"), sums.spent) : null}

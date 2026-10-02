@@ -9,12 +9,10 @@ import {
 } from "../app/lib/transactionHistory";
 import {
   Avatar,
-  border,
   Button,
   EmptyState,
-  Icon,
+  ListRow,
   opacity,
-  Pressable,
   Row,
   Stack,
   Text,
@@ -157,7 +155,6 @@ interface TransactionCardProps {
   item: TransactionItem;
   nostrPictureByNpub: Readonly<Record<string, string | null>>;
   onToggle: (id: string) => void;
-  striped: boolean;
   t: Translate;
   tokenByReferenceId: ReadonlyMap<string, string>;
 }
@@ -175,7 +172,6 @@ const TransactionCardView = ({
   item,
   nostrPictureByNpub,
   onToggle,
-  striped,
   t,
   tokenByReferenceId,
 }: TransactionCardProps): React.ReactElement => {
@@ -206,125 +202,86 @@ const TransactionCardView = ({
     item.isReturned;
   const lnurlMessage = readLnurlSuccessMessage(item);
 
-  const summary = (
-    <>
-      <Avatar
-        name={contact?.name || title}
-        uri={contact ? (pictureUrl ?? undefined) : undefined}
-        fallback={
-          contact ? undefined : item.category === "lightning" ? "⚡️" : "🥜"
-        }
-      />
-      <Stack flex={1} gap="$xs">
-        <Text variant="label" numberOfLines={1}>
-          {title}
-        </Text>
-        {lnurlMessage ? (
-          <Text variant="caption" color="$colorSubtle" numberOfLines={2}>
-            {lnurlMessage}
-          </Text>
-        ) : null}
-        <Row gap="$sm" flexWrap="wrap">
-          <Text variant="caption" color="$colorMuted">
-            {formatDateText(item.createdAtSec)}
-          </Text>
-          {problemStatusPill ? (
-            <Pill
-              size="sm"
-              label={problemStatusPill.label}
-              tone={problemStatusPill.tone}
-            />
-          ) : null}
-        </Row>
-      </Stack>
-      <Text
-        variant="label"
-        bold
-        flexShrink={0}
-        color={item.direction === "in" ? "$accentText" : "$dangerText"}
-      >
-        {amountText}
-      </Text>
-    </>
-  );
-
   return (
     <Stack
       testID="transaction-card"
       gap="$none"
-      borderRadius="$card"
-      backgroundColor={striped ? "$neutralSoft" : "$transparent"}
       opacity={isUnsuccessful ? opacity.disabled : 1}
     >
-      {hasDetails ? (
-        <Pressable
-          gap="$md"
-          paddingVertical="$md"
-          paddingHorizontal="$xs"
-          borderRadius="$card"
-          aria-expanded={isExpanded}
-          onPress={() => onToggle(item.id)}
-        >
-          {summary}
-        </Pressable>
-      ) : (
-        <Row paddingVertical="$md" paddingHorizontal="$xs">
-          {summary}
-        </Row>
-      )}
-      {detailEntries.length > 0 ? (
-        <Stack
-          gap="$xs"
-          paddingHorizontal="$md"
-          paddingTop="$sm"
-          paddingBottom="$md"
-          borderTopWidth={border.hairline}
-          borderColor="$borderColor"
-        >
-          {detailEntries.map((field, index) => (
-            <Row
-              key={`${item.id}:${field.label}:${index}`}
-              gap="$sm"
-              alignItems="flex-start"
-            >
-              <Text
-                variant="caption"
-                color="$colorMuted"
-                textTransform="lowercase"
-                width="$hero"
-                flexShrink={0}
-              >
-                {field.label}
+      <ListRow
+        leading={
+          <Avatar
+            name={contact?.name || title}
+            uri={contact ? (pictureUrl ?? undefined) : undefined}
+            fallback={
+              contact ? undefined : item.category === "lightning" ? "⚡️" : "🥜"
+            }
+          />
+        }
+        title={title}
+        description={
+          <Stack gap="$xxs">
+            {lnurlMessage ? (
+              <Text variant="caption" color="$colorSubtle" numberOfLines={2}>
+                {lnurlMessage}
               </Text>
-              <Stack flex={1} gap="$xs" alignItems="flex-start">
-                {field.values.map((value, valueIndex) => {
-                  const key = `${item.id}:${field.label}:${index}:${valueIndex}`;
-                  const { copyValue } = value;
-                  return copyValue ? (
-                    <Pressable
-                      key={key}
-                      gap="$xs"
-                      maxWidth="100%"
-                      onPress={() => void copyText(copyValue)}
-                      aria-label={t("copy")}
-                      tooltip={t("copy")}
-                    >
-                      <Text variant="caption" numberOfLines={1} flexShrink={1}>
-                        {value.value}
-                      </Text>
-                      <Icon name="Copy" size="sm" color="$colorMuted" />
-                    </Pressable>
-                  ) : (
-                    <Text key={key} variant="caption">
-                      {value.value}
-                    </Text>
-                  );
-                })}
-              </Stack>
+            ) : null}
+            <Row gap="$sm" flexWrap="wrap">
+              <Text variant="caption" color="$colorMuted">
+                {formatDateText(item.createdAtSec)}
+              </Text>
+              {problemStatusPill ? (
+                <Pill
+                  size="sm"
+                  label={problemStatusPill.label}
+                  tone={problemStatusPill.tone}
+                />
+              ) : null}
             </Row>
-          ))}
-        </Stack>
-      ) : null}
+          </Stack>
+        }
+        trailing={
+          <Text
+            variant="label"
+            bold
+            color={item.direction === "in" ? "$accentText" : "$dangerText"}
+          >
+            {amountText}
+          </Text>
+        }
+        chevron={false}
+        onPress={hasDetails ? () => onToggle(item.id) : undefined}
+      />
+      {detailEntries.map((field, index) => (
+        <ListRow
+          key={`${item.id}:${field.label}:${index}`}
+          title={field.label}
+          trailing={
+            <Stack gap="$xxs" alignItems="flex-end">
+              {field.values.map((value, valueIndex) => {
+                const key = `${item.id}:${field.label}:${index}:${valueIndex}`;
+                const { copyValue } = value;
+                return copyValue ? (
+                  <Button
+                    key={key}
+                    variant="ghost"
+                    size="sm"
+                    icon="Copy"
+                    tooltip={t("copy")}
+                    onPress={() => void copyText(copyValue)}
+                  >
+                    {value.value}
+                  </Button>
+                ) : (
+                  <Text key={key} variant="label" color="$colorMuted">
+                    {value.value}
+                  </Text>
+                );
+              })}
+            </Stack>
+          }
+        />
+      ))}
     </Stack>
   );
 };
@@ -699,7 +656,7 @@ export function TransactionsPage(): React.ReactElement {
       ) : (
         <>
           <Stack gap="$xs">
-            {visibleTransactions.map((item, index) => (
+            {visibleTransactions.map((item) => (
               <TransactionCard
                 buildDetailEntries={buildDetailEntries}
                 buildProblemStatusPill={buildProblemStatusPill}
@@ -714,7 +671,6 @@ export function TransactionsPage(): React.ReactElement {
                 key={item.id}
                 nostrPictureByNpub={nostrPictureByNpub}
                 onToggle={toggleExpanded}
-                striped={index % 2 === 1}
                 t={t}
                 tokenByReferenceId={tokenByReferenceId}
               />

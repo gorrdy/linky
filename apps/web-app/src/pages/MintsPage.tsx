@@ -1,4 +1,4 @@
-import { Divider, Progress, Row, Stack, Text } from "@linky-fit/ui";
+import { Card, Divider, Progress, Row, Stack, Text } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
@@ -83,13 +83,7 @@ export function MintsPage() {
     const holding = renderHolding(normalized);
 
     return (
-      <Stack
-        key={mint}
-        testID="mint-choice"
-        gap="$none"
-        borderRadius="$control"
-        backgroundColor={isSelected ? "$accentSoft" : "$surfaceRaised"}
-      >
+      <Card key={mint} testID="mint-choice" outlined>
         <MintButton
           mint={mint}
           getMintIconUrl={getMintIconUrl}
@@ -98,18 +92,9 @@ export function MintsPage() {
           badge={mintKindBadge(mint)}
           onPress={() => navigateTo({ route: "mint", mintUrl: normalized })}
         />
-        {holding !== null || isSelected ? (
-          <Stack
-            gap="$xl"
-            paddingHorizontal="$md"
-            paddingTop="$xs"
-            paddingBottom="$md"
-          >
-            {holding}
-            {isSelected ? <MintFees mint={normalized} /> : null}
-          </Stack>
-        ) : null}
-      </Stack>
+        {holding}
+        {isSelected ? <MintFees mint={normalized} /> : null}
+      </Card>
     );
   };
 

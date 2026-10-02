@@ -1,12 +1,9 @@
 import {
   Avatar,
   Button,
-  Card,
   FileAttachment,
-  Icon,
   ImageAttachment,
   ListRow,
-  Pressable,
   Progress,
   QRCode,
   Row,
@@ -384,7 +381,7 @@ export function OwnerOfferView({
         {acceptedInfoText ? <MutedCopy>{acceptedInfoText}</MutedCopy> : null}
       </Stack>
 
-      <Stack gap="$sm">
+      <Stack gap="$xs">
         {offerEntries.map((offerEntry) => {
           const contactId = offerEntry.message.contactId.trim();
           const contact = contacts.find(
@@ -753,23 +750,24 @@ export function BankDetailsOfferView({
       </Button>
 
       {showPaymentRows ? (
-        <Stack gap="$xl" testID="bank-payment-fields">
+        <Stack gap="$xs" testID="bank-payment-fields">
           {rows.map((row) => (
-            <Stack gap="$xs" key={row.key} testID="bank-payment-row">
-              <Text bold>{row.label}</Text>
-              <Pressable
-                aria-label={t("copy")}
-                tooltip={t("copy")}
-                alignSelf="flex-start"
-                gap="$xs"
-                onPress={() => onCopyText(row.value)}
-              >
-                <Text color="$colorStrong" flexShrink={1}>
+            <ListRow
+              key={row.key}
+              testID="bank-payment-row"
+              title={row.label}
+              trailing={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="Copy"
+                  tooltip={t("copy")}
+                  onPress={() => onCopyText(row.value)}
+                >
                   {row.value}
-                </Text>
-                <Icon name="Copy" size="sm" color="$colorMuted" />
-              </Pressable>
-            </Stack>
+                </Button>
+              }
+            />
           ))}
         </Stack>
       ) : null}
@@ -818,22 +816,16 @@ function OfferRecipientRow({
   label,
 }: OfferRecipientRowProps) {
   return (
-    <Card padding="$xs" backgroundColor="$neutralSoft">
-      <ListRow
-        testID={`bank-payment-offer-recipient-${status}`}
-        leading={<Avatar name={name} uri={pictureUrl ?? undefined} size="sm" />}
-        title={
-          <Text bold numberOfLines={1}>
-            {name}
-          </Text>
-        }
-        trailing={
-          // Badge aligns to the top of a row; the column centers it.
-          <Stack>
-            <Pill size="sm" label={label} tone={STATUS_TONES[status]} />
-          </Stack>
-        }
-      />
-    </Card>
+    <ListRow
+      testID={`bank-payment-offer-recipient-${status}`}
+      leading={<Avatar name={name} uri={pictureUrl ?? undefined} />}
+      title={name}
+      trailing={
+        // Badge aligns to the top of a row; the column centers it.
+        <Stack>
+          <Pill size="sm" label={label} tone={STATUS_TONES[status]} />
+        </Stack>
+      }
+    />
   );
 }

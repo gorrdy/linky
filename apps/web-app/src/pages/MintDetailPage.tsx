@@ -1,15 +1,6 @@
 import { parseMintUrl } from "@linky-fit/linkshu";
 import { sqliteTrue } from "@linky-fit/linksync";
-import {
-  Button,
-  Divider,
-  ListRow,
-  Row,
-  Section,
-  Stack,
-  Text,
-} from "@linky-fit/ui";
-import type { IconName } from "@linky-fit/ui";
+import { Button, Divider, Row, Section, Stack, Text } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
@@ -18,6 +9,7 @@ import { MintDeferredReceives } from "../components/MintDeferredReceives";
 import { MintFees } from "../components/MintFees";
 import { MintIcon } from "../components/MintIcon";
 import { MintMoveFundsForm } from "../components/MintMoveFundsForm";
+import { ValueRow } from "../components/ValueRow";
 import { navigateTo } from "../hooks/useRouting";
 import { LOCAL_MINT_INFO_STORAGE_KEY_PREFIX } from "../utils/constants";
 import { normalizeLocale } from "../utils/formatting";
@@ -46,32 +38,6 @@ const moveTargets = (
         mint !== sourceMint &&
         !isHiddenTestMint(mint, allowTestMints),
     );
-
-interface InfoRowProps {
-  icon: IconName;
-  label: string;
-  value: string;
-  muted?: boolean;
-}
-
-function InfoRow({ icon, label, value, muted = false }: InfoRowProps) {
-  return (
-    <ListRow
-      icon={icon}
-      title={label}
-      trailing={
-        <Text
-          variant="label"
-          bold
-          color={muted ? "$colorMuted" : "$colorSubtle"}
-          aria-label={label}
-        >
-          {value}
-        </Text>
-      }
-    />
-  );
-}
 
 export function MintDetailPage() {
   const {
@@ -179,7 +145,7 @@ export function MintDetailPage() {
       <Divider />
 
       <Section title={t("mintFundsTitle")}>
-        <InfoRow
+        <ValueRow
           icon="Wallet"
           label={t("mintBalance")}
           value={formatDisplayedAmountText(holding.balance)}
@@ -222,11 +188,10 @@ export function MintDetailPage() {
           <Divider />
           <Section title={t("mintInfoTitle")}>
             <Stack gap="$lg">
-              <InfoRow
+              <ValueRow
                 icon="Gauge"
                 label={t("mintLatency")}
                 value={latencyMs !== null ? `${latencyMs} ms` : t("unknown")}
-                muted={latencyMs === null}
               />
               <Button
                 variant="secondary"

@@ -7,8 +7,8 @@ import type { MintIcon as MintIconSource } from "../utils/mint";
 import { formatMintLabel, mintKindBadge } from "../utils/mint";
 import { AmountKeypad } from "./AmountKeypad";
 import { MintButton } from "./MintButton";
-import { MintValueRow } from "./MintFees";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
+import { ValueRow } from "./ValueRow";
 
 interface MintMoveFundsFormProps {
   /** Sat available at the source mint. */
@@ -122,28 +122,20 @@ export function MintMoveFundsForm({
       <Text variant="label" color="$colorSubtle" aria-hidden>
         {t("mintMoveTarget")}
       </Text>
-      <Stack role="group" aria-label={t("mintMoveTarget")} gap="$sm">
-        {targets.map((mint) => {
-          const isSelected = mint === target;
-          return (
-            <Stack
-              key={mint}
-              borderRadius="$control"
-              backgroundColor={isSelected ? "$transparent" : "$surfaceRaised"}
-            >
-              <MintButton
-                badge={mintKindBadge(mint)}
-                chevron={false}
-                disabled={busy}
-                getMintIconUrl={getMintIconUrl}
-                isSelected={isSelected}
-                label={formatMintLabel(mint)}
-                mint={mint}
-                onPress={() => setTargetMint(mint)}
-              />
-            </Stack>
-          );
-        })}
+      <Stack role="group" aria-label={t("mintMoveTarget")} gap="$xs">
+        {targets.map((mint) => (
+          <MintButton
+            key={mint}
+            badge={mintKindBadge(mint)}
+            chevron={false}
+            disabled={busy}
+            getMintIconUrl={getMintIconUrl}
+            isSelected={mint === target}
+            label={formatMintLabel(mint)}
+            mint={mint}
+            onPress={() => setTargetMint(mint)}
+          />
+        ))}
       </Stack>
 
       <Text variant="caption" color="$colorMuted" textAlign="center">
@@ -156,20 +148,20 @@ export function MintMoveFundsForm({
 
       {rows !== null ? (
         <>
-          <Stack aria-label={t("mintMoveEstimate")} gap="$xs" marginTop="$xs">
-            <MintValueRow
+          <Stack aria-label={t("mintMoveEstimate")} gap="$xs">
+            <ValueRow
               label={t("mintMoveArrives")}
               value={formatDisplayedAmountText(rows.arrives)}
             />
-            <MintValueRow
+            <ValueRow
               label={t("mintMoveFeeLightning")}
               value={formatDisplayedAmountText(rows.lightningFeeReserve)}
             />
-            <MintValueRow
+            <ValueRow
               label={t("mintMoveFeeInput")}
               value={formatDisplayedAmountText(rows.inputFee)}
             />
-            <MintValueRow
+            <ValueRow
               label={t("mintMoveTotal")}
               value={formatDisplayedAmountText(rows.leaves)}
             />
