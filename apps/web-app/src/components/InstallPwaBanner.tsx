@@ -333,7 +333,7 @@ export const InstallPwaBanner: React.FC<InstallPwaBannerProps> = ({ t }) => {
           </>
         )}
 
-        <Button variant="ghost" onPress={dismiss}>
+        <Button variant="secondary" onPress={dismiss}>
           {t("installPwaDismiss")}
         </Button>
       </Stack>
