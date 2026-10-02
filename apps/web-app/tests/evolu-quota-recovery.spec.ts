@@ -21,7 +21,7 @@ const addRecoveryRelay = async (page: Page): Promise<void> => {
   await expect(
     page.getByRole("button", { name: "Clear Evolu storage", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Go online", exact: true }).click();
+  await page.getByRole("switch", { name: "Offline", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Reload now", exact: true }),
   ).toBeVisible();

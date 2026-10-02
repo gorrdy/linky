@@ -514,12 +514,18 @@ test("natural message rotations retain local history until forget and sync only 
       await expect(
         source.page.getByTestId("chat-storage-subscribed"),
       ).toHaveText("Subscribed on this device5");
-      await source.page
-        .getByRole("button", { name: "Forget old chat shards", exact: true })
-        .click();
-      await expect(source.page.getByRole("status")).toHaveText(
-        "Old chat shards forgotten on this device.",
-      );
+      const forgetButton = source.page.getByRole("button", {
+        name: "Forget old chat shards",
+        exact: true,
+      });
+      // The first press arms the destructive action; the second confirms it.
+      await forgetButton.click();
+      await forgetButton.click();
+      await expect(
+        source.page.getByText("Old chat shards forgotten on this device.", {
+          exact: true,
+        }),
+      ).toBeVisible();
       await expect(
         source.page.getByTestId("chat-storage-subscribed"),
       ).toHaveText("Subscribed on this device4");
