@@ -406,11 +406,7 @@ export function ProfilePage({
       />
 
       {canSaveProfileEdits ? (
-        <Button
-          icon="Save"
-          alignSelf="flex-start"
-          onPress={() => void saveProfileEdits()}
-        >
+        <Button icon="Save" onPress={() => void saveProfileEdits()}>
           {t("saveChanges")}
         </Button>
       ) : null}
