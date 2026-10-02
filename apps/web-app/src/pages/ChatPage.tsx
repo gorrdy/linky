@@ -1267,9 +1267,9 @@ export const ChatPage: FC<ChatPageProps> = ({
       ) : null}
 
       {!npub && !hasUnknownPubkeyHex && (
-        <Text color="$colorMuted" paddingHorizontal="$xl" paddingTop="$sm">
-          {t("chatMissingContactNpub")}
-        </Text>
+        <Stack paddingHorizontal="$xl" paddingTop="$sm">
+          <Notice tone="accent" title={t("chatMissingContactNpub")} />
+        </Stack>
       )}
 
       <ChatMessageList

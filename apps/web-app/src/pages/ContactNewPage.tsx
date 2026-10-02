@@ -5,6 +5,7 @@ import {
   IconButton,
   ListRow,
   LoadingState,
+  Notice,
   Row,
   ScrollView,
   Section,
@@ -475,11 +476,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
         </Stack>
       ) : null}
 
-      {searchError ? (
-        <Text variant="label" color="$dangerText">
-          {searchError}
-        </Text>
-      ) : null}
+      {searchError ? <Notice tone="danger" title={searchError} /> : null}
 
       {showSearchLoader ? <LoadingState label={t("contactSearching")} /> : null}
 
