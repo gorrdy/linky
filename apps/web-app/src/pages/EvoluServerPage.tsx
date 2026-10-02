@@ -8,6 +8,7 @@ import {
   Text,
 } from "@linky-fit/ui";
 import { evoluSyncStatus } from "../utils/connectionStatus";
+import { useArmedAction } from "../hooks/useArmedAction";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useEvoluSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -22,14 +23,13 @@ export function EvoluServerPage(): React.ReactElement {
     evoluServerUrls,
     isEvoluServerOffline,
     isEvoluServerRecommended,
-    pendingEvoluServerDeleteUrl,
     saveEvoluServerUrls,
     setEvoluServerOffline,
-    setPendingEvoluServerDeleteUrl,
     setStatus,
     syncOwnerId,
   } = useEvoluSettingsContext();
   const { route, t } = useAppShellCore();
+  const deleteAction = useArmedAction(() => setStatus(t("deleteArmedHint")));
   const url = route.kind === "evoluServer" ? route.id : null;
   if (!url) return <Notice tone="danger" title={t("errorPrefix")} />;
 
@@ -43,14 +43,7 @@ export function EvoluServerPage(): React.ReactElement {
         syncOwnerId,
       })
     ];
-  const deleteArmed = pendingEvoluServerDeleteUrl === url;
-  const requestRemove = () => {
-    if (!deleteArmed) {
-      setStatus(t("deleteArmedHint"));
-      setPendingEvoluServerDeleteUrl(url);
-      return;
-    }
-    setPendingEvoluServerDeleteUrl(null);
+  const removeServer = () => {
     setEvoluServerOffline(url, false);
     saveEvoluServerUrls(
       evoluServerUrls.filter((u) => u.toLowerCase() !== url.toLowerCase()),
@@ -96,8 +89,8 @@ export function EvoluServerPage(): React.ReactElement {
         </Text>
       ) : (
         <Button
-          onPress={requestRemove}
-          variant={deleteArmed ? "danger" : "secondary"}
+          onPress={() => deleteAction.confirm(removeServer)}
+          variant={deleteAction.armed ? "danger" : "secondary"}
         >
           {t("evoluServerRemove")}
         </Button>

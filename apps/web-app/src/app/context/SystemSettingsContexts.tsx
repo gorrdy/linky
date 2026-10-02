@@ -63,14 +63,12 @@ export interface EvoluSettingsContextValue {
   isEvoluServerOffline: (url: string) => boolean;
   isEvoluServerRecommended: (url: string) => boolean;
   newEvoluServerUrl: string;
-  pendingEvoluServerDeleteUrl: string | null;
   requestClearDatabase: () => void;
   requestRotateShard: (scope: LinkyScope) => Promise<void>;
   rotatingShardScope: LinkyScope | null;
   saveEvoluServerUrls: (urls: string[]) => void;
   setEvoluServerOffline: (url: string, offline: boolean) => void;
   setNewEvoluServerUrl: (url: string) => void;
-  setPendingEvoluServerDeleteUrl: (url: string | null) => void;
   setStatus: (message: string) => void;
   syncOwnerId: string | null;
   wipeEvoluStorage: () => Promise<void>;
@@ -98,13 +96,11 @@ export interface MintSettingsContextValue {
   meltLargestForeignMintToMainMint: () => Promise<void>;
   mintInfoByUrl: Map<string, LocalMintInfoRow>;
   moveMintFunds: (move: MintMove) => Promise<boolean>;
-  pendingMintDeleteUrl: string | null;
   /** Null until the linkshu runtime is composed (seed + owners resolved). */
   probeLightningFee: ProbeLightningFee | null;
   refreshMintInfo: (url: string) => Promise<void>;
   setAllowTestMints: (allow: boolean) => Promise<WriteOutcome>;
   setMintInfoAll: React.Dispatch<React.SetStateAction<LocalMintInfoRow[]>>;
-  setPendingMintDeleteUrl: (url: string | null) => void;
   setStatus: (message: string) => void;
 }
 

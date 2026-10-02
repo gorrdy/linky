@@ -46,14 +46,12 @@ export const createMintSettings = (
   meltLargestForeignMintToMainMint: vi.fn(async () => {}),
   mintInfoByUrl: new Map(),
   moveMintFunds: vi.fn(async () => false),
-  pendingMintDeleteUrl: null,
   probeLightningFee,
   refreshMintInfo: async () => {},
   setAllowTestMints: vi.fn<MintSettingsContextValue["setAllowTestMints"]>(
     async () => ({ ok: true }),
   ),
   setMintInfoAll: vi.fn(),
-  setPendingMintDeleteUrl: vi.fn(),
   setStatus: vi.fn(),
   ...overrides,
 });

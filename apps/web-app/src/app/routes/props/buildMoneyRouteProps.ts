@@ -51,18 +51,16 @@ interface BuildMoneyRoutePropsParams {
   onSubmitManualPayText: MoneyRoutesProps["manualPayProps"]["onSubmitText"];
   meltLargestForeignMintToMainMint: MoneyRoutesProps["cashuProofsProps"]["meltLargestForeignMintToMainMint"];
   payLightningAddressWithCashu: MoneyRoutesProps["lnAddressPayProps"]["payLightningAddressWithCashu"];
-  pendingCashuDeleteId: ReturnType<
-    MoneyRoutesProps["cashuTokenProps"]
-  >["pendingCashuDeleteId"];
   reclaimCashuTransfer: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
   >["reclaimCashuTransfer"];
   restoreMissingTokens: MoneyRoutesProps["cashuProofsProps"]["restoreMissingTokens"];
   reclaimHandedOutTokens: MoneyRoutesProps["cashuProofsProps"]["reclaimHandedOutTokens"];
   restoreAndReclaimAllTokens: MoneyRoutesProps["cashuProofsProps"]["restoreAndReclaimAllTokens"];
-  requestDeleteCashuToken: ReturnType<
+  deleteCashuToken: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
-  >["requestDeleteCashuToken"];
+  >["deleteCashuToken"];
+  setStatus: ReturnType<MoneyRoutesProps["cashuTokenProps"]>["setStatus"];
   returnCashuTokenToWallet: ReturnType<
     MoneyRoutesProps["cashuTokenProps"]
   >["returnCashuTokenToWallet"];
@@ -137,12 +135,12 @@ export const buildMoneyRouteProps = ({
   onSubmitManualPayText,
   meltLargestForeignMintToMainMint,
   payLightningAddressWithCashu,
-  pendingCashuDeleteId,
   reclaimCashuTransfer,
   restoreMissingTokens,
   reclaimHandedOutTokens,
   restoreAndReclaimAllTokens,
-  requestDeleteCashuToken,
+  deleteCashuToken,
+  setStatus,
   returnCashuTokenToWallet,
   startSendCashuTokenToContact,
   route,
@@ -229,12 +227,12 @@ export const buildMoneyRouteProps = ({
         routeId: route.id,
         inspectCashuProofStates,
         cashuIsBusy: cashuIsBusy || cashuBulkCheckIsBusy || tokensRestoreIsBusy,
-        pendingCashuDeleteId,
         checkAndRefreshCashuToken,
         checkSingleIssuedCashuTokenIsClaimed,
         showPaidOverlay,
         copyText,
-        requestDeleteCashuToken,
+        deleteCashuToken,
+        setStatus,
         returnCashuTokenToWallet,
         startSendCashuTokenToContact,
         shareTokenText: shareCashuTokenText,

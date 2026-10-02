@@ -73,7 +73,6 @@ import { useAppLanguage } from "./hooks/useAppLanguage";
 import { useAllowedDisplayCurrencies } from "./hooks/useAllowedDisplayCurrencies";
 import { useAppPreferences } from "./hooks/useAppPreferences";
 import { useTopDownTilt } from "./hooks/useTopDownTilt";
-import { useArmedDeleteTimeouts } from "./hooks/useArmedDeleteTimeouts";
 import { useFiatRates } from "./hooks/useFiatRates";
 import { useLnurlAuth } from "./hooks/useLnurlAuth";
 import {
@@ -179,8 +178,6 @@ export const useAppShellComposition = ({
   const [status, setStatus] = useState<string | null>(null);
   const importDataFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const [pendingEvoluServerDeleteUrl, setPendingEvoluServerDeleteUrl] =
-    useState<string | null>(null);
   const mainSwipeRef = React.useRef<HTMLDivElement | null>(null);
   const mainSwipeScrollTimerRef = React.useRef<number | null>(null);
   const { allowedDisplayCurrencies, toggleAllowedDisplayCurrency } =
@@ -740,18 +737,16 @@ export const useAppShellComposition = ({
     paySelectedContact,
     payWithCashuEnabled,
     pendingCashuContactSend,
-    pendingCashuDeleteId,
     pendingCashuPaymentRequestConfirmation,
     pendingCashuTokenContactPickId,
     pendingLightningInvoiceConfirmation,
     pendingLnurlWithdrawConfirmation,
-    pendingMintDeleteUrl,
     pendingPaymentMintMeltConfirmation,
     postPaySaveContact,
     probeLightningFee,
     receiveMethod,
     refreshMintInfo,
-    requestDeleteCashuToken,
+    deleteCashuToken,
     requestSelectedContact,
     restoreMissingTokens,
     reclaimHandedOutTokens,
@@ -768,11 +763,9 @@ export const useAppShellComposition = ({
     setLnAddressPayAmount,
     setMintInfoAll,
     setPayWithCashuEnabled,
-    setPendingCashuDeleteId,
     setReceiveMethod,
     setPendingLightningInvoiceConfirmation,
     setPendingLnurlWithdrawConfirmation,
-    setPendingMintDeleteUrl,
     setPostPaySaveContact,
     setTopupAmount,
     settleBankPaymentOffer,
@@ -846,15 +839,6 @@ export const useAppShellComposition = ({
     setStatus,
     t,
     transactions,
-  });
-
-  useArmedDeleteTimeouts({
-    pendingCashuDeleteId,
-    pendingEvoluServerDeleteUrl,
-    pendingMintDeleteUrl,
-    setPendingCashuDeleteId,
-    setPendingEvoluServerDeleteUrl,
-    setPendingMintDeleteUrl,
   });
 
   useAppPreferences({
@@ -1298,11 +1282,11 @@ export const useAppShellComposition = ({
       onSubmitManualPayText,
       meltLargestForeignMintToMainMint,
       payLightningAddressWithCashu,
-      pendingCashuDeleteId,
       restoreMissingTokens,
       reclaimHandedOutTokens,
       restoreAndReclaimAllTokens,
-      requestDeleteCashuToken,
+      deleteCashuToken,
+      setStatus,
       reclaimCashuTransfer,
       returnCashuTokenToWallet,
       startSendCashuTokenToContact,
@@ -1595,13 +1579,11 @@ export const useAppShellComposition = ({
       isEvoluServerOffline,
       isEvoluServerRecommended,
       newEvoluServerUrl,
-      pendingEvoluServerDeleteUrl,
       requestRotateShard: shardRotation.rotate,
       rotatingShardScope: shardRotation.busyScope,
       saveEvoluServerUrls,
       setEvoluServerOffline,
       setNewEvoluServerUrl,
-      setPendingEvoluServerDeleteUrl,
       setStatus,
       syncOwnerId: appOwnerId,
       wipeEvoluStorage,
@@ -1622,12 +1604,10 @@ export const useAppShellComposition = ({
       meltLargestForeignMintToMainMint,
       mintInfoByUrl,
       moveMintFunds,
-      pendingMintDeleteUrl,
       probeLightningFee,
       refreshMintInfo,
       setAllowTestMints,
       setMintInfoAll,
-      setPendingMintDeleteUrl,
       setStatus,
     },
     relaySettingsInput: {

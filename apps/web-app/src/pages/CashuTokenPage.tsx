@@ -8,6 +8,7 @@ import { useLatest } from "../hooks/useLatest";
 import type { StoredProof, TokenTransfer } from "@linky-fit/linkshu";
 import { Button, LoadingState, Notice, Stack, Text } from "@linky-fit/ui";
 import type { FC } from "react";
+import { useArmedAction } from "../hooks/useArmedAction";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { CashuTokenQr } from "../components/CashuTokenQr";
@@ -40,10 +41,10 @@ interface CashuTokenPageProps {
     id: CashuOperationId,
   ) => Promise<boolean>;
   copyText: (text: string) => Promise<void>;
-  pendingCashuDeleteId: CashuOperationId | null;
-  requestDeleteCashuToken: (id: CashuOperationId) => void;
+  deleteCashuToken: (id: CashuOperationId) => Promise<void>;
   returnCashuTokenToWallet: (id: CashuOperationId) => Promise<void>;
   routeId: CashuOperationId;
+  setStatus: (message: string) => void;
   shareTokenText: (id: CashuOperationId, text: string) => Promise<void>;
   showPaidOverlay: (title?: string) => void;
   startSendCashuTokenToContact: (id: CashuOperationId) => Promise<void>;
@@ -91,16 +92,17 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
   checkAndRefreshCashuToken,
   checkSingleIssuedCashuTokenIsClaimed,
   copyText,
-  pendingCashuDeleteId,
-  requestDeleteCashuToken,
+  deleteCashuToken,
   returnCashuTokenToWallet,
   routeId,
+  setStatus,
   shareTokenText,
   showPaidOverlay,
   startSendCashuTokenToContact,
   writeToNfc,
 }) => {
   const { formatDisplayedAmountText, lang, t } = useAppShellCore();
+  const deleteAction = useArmedAction(() => setStatus(t("deleteArmedHint")));
 
   const transfer = cashuTransfers.find(
     (candidate) => String(candidate.id) === routeId,
@@ -349,8 +351,10 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
 
       {!isClosed && allProofsSpent ? (
         <Button
-          variant={pendingCashuDeleteId === routeId ? "danger" : "secondary"}
-          onPress={() => requestDeleteCashuToken(routeId)}
+          variant={deleteAction.armed ? "danger" : "secondary"}
+          onPress={() =>
+            deleteAction.confirm(() => void deleteCashuToken(routeId))
+          }
         >
           {t("delete")}
         </Button>

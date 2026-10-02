@@ -10,6 +10,7 @@ import {
   Text,
   ListRow,
 } from "@linky-fit/ui";
+import { useArmedAction } from "../hooks/useArmedAction";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
@@ -60,13 +61,12 @@ export function MintDetailPage() {
     getMintRuntime,
     mintInfoByUrl,
     moveMintFunds,
-    pendingMintDeleteUrl,
     refreshMintInfo,
     setMintInfoAll,
-    setPendingMintDeleteUrl,
     setStatus,
   } = useMintSettingsContext();
   const { formatDisplayedAmountText, lang, route, t } = useAppShellCore();
+  const deleteAction = useArmedAction(() => setStatus(t("deleteArmedHint")));
   const mintUrl = route.kind === "mint" ? route.mintUrl : "";
 
   const cleaned = normalizeMintUrl(mintUrl);
@@ -93,11 +93,6 @@ export function MintDetailPage() {
   const kindBadge = mintKindBadge(cleaned);
 
   const deleteMint = () => {
-    if (pendingMintDeleteUrl !== cleaned) {
-      setStatus(t("deleteArmedHint"));
-      setPendingMintDeleteUrl(cleaned);
-      return;
-    }
     const ownerId = appOwnerIdRef.current;
     if (ownerId) {
       setMintInfoAll((prev) => {
@@ -113,7 +108,6 @@ export function MintDetailPage() {
         return next;
       });
     }
-    setPendingMintDeleteUrl(null);
     navigateTo({ route: "mints" });
   };
 
@@ -206,10 +200,8 @@ export function MintDetailPage() {
                 {t("mintRefresh")}
               </Button>
               <Button
-                variant={
-                  pendingMintDeleteUrl === cleaned ? "danger" : "secondary"
-                }
-                onPress={deleteMint}
+                variant={deleteAction.armed ? "danger" : "secondary"}
+                onPress={() => deleteAction.confirm(deleteMint)}
               >
                 {t("mintDelete")}
               </Button>

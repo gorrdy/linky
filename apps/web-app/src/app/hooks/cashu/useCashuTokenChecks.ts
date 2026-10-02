@@ -18,13 +18,9 @@ interface UseCashuTokenChecksParams {
   checkCashuTransfer: CheckCashuTransfer | null;
   /** Null until the linkshu runtime is composed (seed + owners resolved). */
   forgetCashuTransfer: CashuTransferLifecycle["forget"] | null;
-  pendingCashuDeleteId: CashuOperationId | null;
   pushToast: (message: string) => void;
   setCashuBulkCheckIsBusy: React.Dispatch<React.SetStateAction<boolean>>;
   setCashuIsBusy: React.Dispatch<React.SetStateAction<boolean>>;
-  setPendingCashuDeleteId: React.Dispatch<
-    React.SetStateAction<CashuOperationId | null>
-  >;
   setStatus: React.Dispatch<React.SetStateAction<string | null>>;
   t: Translate;
 }
@@ -42,15 +38,13 @@ export const useCashuTokenChecks = ({
   checkAllCashuTokens,
   checkCashuTransfer,
   forgetCashuTransfer,
-  pendingCashuDeleteId,
   pushToast,
   setCashuBulkCheckIsBusy,
   setCashuIsBusy,
-  setPendingCashuDeleteId,
   setStatus,
   t,
 }: UseCashuTokenChecksParams) => {
-  const handleDeleteCashuToken = React.useCallback(
+  const deleteCashuToken = React.useCallback(
     async (id: CashuOperationId) => {
       if (forgetCashuTransfer === null) {
         pushToast(t("errorPrefix"));
@@ -69,10 +63,9 @@ export const useCashuTokenChecks = ({
         return;
       }
       setStatus(t("cashuDeleted"));
-      setPendingCashuDeleteId(null);
       navigateTo({ route: "wallet" });
     },
-    [forgetCashuTransfer, pushToast, setPendingCashuDeleteId, setStatus, t],
+    [forgetCashuTransfer, pushToast, setStatus, t],
   );
 
   const checkAndRefreshCashuToken = React.useCallback(
@@ -145,27 +138,9 @@ export const useCashuTokenChecks = ({
     t,
   ]);
 
-  const requestDeleteCashuToken = React.useCallback(
-    (id: CashuOperationId) => {
-      if (pendingCashuDeleteId === id) {
-        void handleDeleteCashuToken(id);
-        return;
-      }
-      setPendingCashuDeleteId(id);
-      setStatus(t("deleteArmedHint"));
-    },
-    [
-      handleDeleteCashuToken,
-      pendingCashuDeleteId,
-      setPendingCashuDeleteId,
-      setStatus,
-      t,
-    ],
-  );
-
   return {
     checkAllCashuTokensAndDeleteInvalid,
     checkAndRefreshCashuToken,
-    requestDeleteCashuToken,
+    deleteCashuToken,
   };
 };

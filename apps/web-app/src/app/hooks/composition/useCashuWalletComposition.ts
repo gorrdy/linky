@@ -309,12 +309,6 @@ export const useCashuWalletComposition = ({
 
   const hasMintOverrideRef = React.useRef(false);
 
-  const [pendingCashuDeleteId, setPendingCashuDeleteId] =
-    useState<CashuOperationId | null>(null);
-  const [pendingMintDeleteUrl, setPendingMintDeleteUrl] = useState<
-    string | null
-  >(null);
-
   const [payWithCashuEnabled, setPayWithCashuEnabled] = useState<boolean>(() =>
     getInitialPayWithCashuEnabled(),
   );
@@ -1639,18 +1633,16 @@ export const useCashuWalletComposition = ({
   const {
     checkAllCashuTokensAndDeleteInvalid,
     checkAndRefreshCashuToken,
-    requestDeleteCashuToken,
+    deleteCashuToken,
   } = useCashuTokenChecks({
     cashuBulkCheckIsBusy,
     cashuIsBusy,
     checkAllCashuTokens,
     checkCashuTransfer,
     forgetCashuTransfer: cashuTransferLifecycle?.forget ?? null,
-    pendingCashuDeleteId,
     pushToast,
     setCashuBulkCheckIsBusy,
     setCashuIsBusy,
-    setPendingCashuDeleteId,
     setStatus,
     t,
   });
@@ -2639,17 +2631,15 @@ export const useCashuWalletComposition = ({
     paySelectedContact,
     payWithCashuEnabled,
     pendingCashuContactSend,
-    pendingCashuDeleteId,
     pendingCashuTokenContactPickId,
     receiveMethod,
     pendingLightningInvoiceConfirmation,
     pendingLnurlWithdrawConfirmation,
-    pendingMintDeleteUrl,
     pendingPaymentMintMeltConfirmation,
     postPaySaveContact,
     probeLightningFee,
     refreshMintInfo,
-    requestDeleteCashuToken,
+    deleteCashuToken,
     requestSelectedContact,
     restoreMissingTokens,
     reclaimHandedOutTokens,
@@ -2666,10 +2656,8 @@ export const useCashuWalletComposition = ({
     setAllowTestMints,
     setPayWithCashuEnabled,
     setReceiveMethod,
-    setPendingCashuDeleteId,
     setPendingLightningInvoiceConfirmation,
     setPendingLnurlWithdrawConfirmation,
-    setPendingMintDeleteUrl,
     setPostPaySaveContact,
     setTopupAmount,
     settleBankPaymentOffer,
