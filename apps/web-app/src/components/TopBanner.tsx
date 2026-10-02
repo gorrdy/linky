@@ -9,7 +9,7 @@ export function TopBanner(props: Omit<NoticeProps, "solid">) {
       top="$none"
       left="$none"
       right="$none"
-      zIndex="$zIndex.overlay"
+      zIndex="$overlay"
       pointerEvents="box-none"
       data-safe-area="top"
     >
