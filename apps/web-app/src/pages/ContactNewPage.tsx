@@ -7,7 +7,6 @@ import {
   LoadingState,
   Row,
   ScrollView,
-  space,
   Stack,
   Text,
   TextField,
@@ -422,7 +421,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
       />
 
       {searchResults ? (
-        <Stack gap="$xs" marginHorizontal={-space.md}>
+        <Stack gap="$xs">
           {searchResults.contacts.map((candidate) => {
             const displayName =
               (candidate.name || candidate.query || "").trim() || t("contact");
@@ -512,7 +511,7 @@ export const ContactNewPage: FC<ContactNewPageProps> = ({
           <Text variant="caption" bold color="$colorSubtle">
             {t("contactSuggestionsTitle")}
           </Text>
-          <Stack gap="$xs" marginHorizontal={-space.md}>
+          <Stack gap="$xs">
             {contactSuggestions.map((suggestion) => {
               const displayName =
                 (suggestion.name || suggestion.query || "").trim() ||

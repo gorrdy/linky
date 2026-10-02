@@ -36,13 +36,6 @@ interface ContactsPageProps {
   };
 }
 
-/** Rows bleed into the gutter so their highlight frames content aligned with the titles. */
-const ContactRows = ({ children }: { children: React.ReactNode }) => (
-  <Stack gap="$xs" marginHorizontal={-space.md}>
-    {children}
-  </Stack>
-);
-
 export const ContactsPage: FC<ContactsPageProps> = React.memo(
   ({
     activeGroup,
@@ -69,7 +62,7 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
     const renderSection = (title: string, contacts: ContactRowLike[]) =>
       contacts.length > 0 ? (
         <Section title={title}>
-          <ContactRows>{contacts.map(renderContactCard)}</ContactRows>
+          <Stack gap="$xs">{contacts.map(renderContactCard)}</Stack>
         </Section>
       ) : null;
 
@@ -152,9 +145,9 @@ export const ContactsPage: FC<ContactsPageProps> = React.memo(
           ) : (
             <Stack gap="$xs">
               {visibleContacts.pinned.length > 0 && (
-                <ContactRows>
+                <Stack gap="$xs">
                   {visibleContacts.pinned.map(renderContactCard)}
-                </ContactRows>
+                </Stack>
               )}
               {renderSection(t("proxyPayments"), visibleContacts.proxyPayments)}
               {renderSection(conversationsLabel, visibleContacts.conversations)}
