@@ -76,7 +76,7 @@ import type { Translate } from "../i18n";
 import { formatChatDayLabel, normalizeLocale } from "../utils/formatting";
 import type { MintIcon } from "../utils/mint";
 import { normalizeNpubIdentifier } from "../utils/nostrNpub";
-import { pickFiles } from "../utils/pickFiles";
+import { pickFiles } from "../utils/pickFile";
 import { nowSeconds } from "../utils/time";
 
 interface Contact {
