@@ -64,18 +64,16 @@ describe("MintsPage", () => {
       mintUrl: "https://kashu.me",
     });
 
+    const selectedButton = findButton(container, "cashu.cz");
+    expect(selectedButton.textContent).toContain("RECOMMENDEDMINTBADGE");
+    expect(selectedButton.getAttribute("aria-selected")).toBe("true");
+    const selectedItem = selectedButton.closest('[data-testid="mint-choice"]');
     expect(
-      container.querySelector(".mint-choice-badge.is-recommended"),
+      selectedItem?.querySelector('[data-testid="mint-fees"]'),
     ).not.toBeNull();
     expect(
-      findButton(container, "cashu.cz").classList.contains("is-selected"),
-    ).toBe(true);
-    const selectedItem = container.querySelector(
-      ".mint-choice-item.is-selected",
-    );
-    expect(selectedItem?.textContent).toContain("cashu.cz");
-    expect(selectedItem?.querySelector(".mint-fees")).not.toBeNull();
-    expect(container.querySelectorAll(".mint-fees")).toHaveLength(1);
+      container.querySelectorAll('[data-testid="mint-fees"]'),
+    ).toHaveLength(1);
 
     await unmount();
   });
@@ -109,15 +107,16 @@ describe("MintsPage", () => {
 
     const { container, unmount } = await renderIntoDocument(<MintsPage />);
     const holdings = Array.from(
-      container.querySelectorAll<HTMLElement>(".mint-choice-holding"),
+      container.querySelectorAll('[data-testid="mint-holding"]'),
     ).map((holding) => ({
       text: holding.textContent,
-      share: holding.querySelector<HTMLElement>(".mint-choice-share-fill")
-        ?.style.width,
+      share: holding
+        .querySelector('[role="progressbar"]')
+        ?.getAttribute("aria-valuenow"),
     }));
     expect(holdings).toEqual([
-      { text: "75 sat", share: "75%" },
-      { text: "25 sat", share: "25%" },
+      { text: "75 sat", share: "75" },
+      { text: "25 sat", share: "25" },
     ]);
     await unmount();
   });
@@ -146,18 +145,20 @@ describe("MintsPage", () => {
 
     const { container, unmount } = await renderIntoDocument(<MintsPage />);
     const holdingOf = (mint: string) =>
-      Array.from(container.querySelectorAll(".mint-choice-item"))
+      Array.from(container.querySelectorAll('[data-testid="mint-choice"]'))
         .find((item) => item.textContent?.includes(mint))
-        ?.querySelector(".mint-choice-holding");
+        ?.querySelector('[data-testid="mint-holding"]');
 
     const funded = holdingOf("cashu.cz");
-    expect(funded?.querySelector(".muted")?.textContent).toBe("40 sat");
-    expect(funded?.querySelector(".mint-choice-pending")?.textContent).toBe(
-      "mintPendingAmount",
-    );
+    expect(funded?.textContent).toContain("40 sat");
+    expect(
+      funded?.querySelector('[data-testid="mint-pending"]')?.textContent,
+    ).toBe("mintPendingAmount");
     const offline = holdingOf("offline.example");
-    expect(offline?.querySelector(".mint-choice-share")).toBeNull();
-    expect(offline?.querySelector(".mint-choice-pending")).not.toBeNull();
+    expect(offline?.querySelector('[role="progressbar"]')).toBeNull();
+    expect(
+      offline?.querySelector('[data-testid="mint-pending"]'),
+    ).not.toBeNull();
     await unmount();
   });
 
@@ -183,7 +184,9 @@ describe("MintsPage", () => {
 
     const { container, unmount } = await renderIntoDocument(<MintsPage />);
     expect(container.textContent).not.toContain("testnut.cashu.space");
-    expect(container.querySelector(".mint-choice-test-group")).toBeNull();
+    expect(
+      container.querySelector('[data-testid="mint-test-group"]'),
+    ).toBeNull();
     await unmount();
   });
 

@@ -1,3 +1,4 @@
+import { Button, Stack, TextField } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -46,28 +47,25 @@ export function MintNewPage(): React.ReactElement {
   };
 
   return (
-    <section className="panel">
-      <label htmlFor="mintUrl">{t("mintAddUrl")}</label>
-      <input
+    <Stack gap="$lg">
+      <TextField
         id="mintUrl"
+        label={t("mintAddUrl")}
         value={mintUrl}
-        onChange={(e) => setMintUrl(e.target.value)}
+        onChangeText={setMintUrl}
         placeholder="https://…"
         disabled={isSaving}
         autoCapitalize="none"
-        autoCorrect="off"
+        autoCorrect={false}
         spellCheck={false}
       />
-
-      <div className="panel-header panel-header-layout">
-        <button
-          type="button"
-          onClick={() => void addMint()}
-          disabled={!mintUrl.trim() || cashuIsBusy || isSaving}
-        >
-          {t("mintAddButton")}
-        </button>
-      </div>
-    </section>
+      <Button
+        alignSelf="flex-start"
+        onPress={() => void addMint()}
+        disabled={!mintUrl.trim() || cashuIsBusy || isSaving}
+      >
+        {t("mintAddButton")}
+      </Button>
+    </Stack>
   );
 }

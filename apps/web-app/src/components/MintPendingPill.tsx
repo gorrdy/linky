@@ -1,0 +1,32 @@
+import { Icon, Pill } from "@linky-fit/ui";
+import { useAppShellCore } from "../app/context/AppShellContexts";
+
+interface MintPendingPillProps {
+  /** Sats waiting for their mint; they are not part of any balance. */
+  amount: number;
+  testID: string;
+  size?: "sm" | "md";
+  onPress?: (() => void) | undefined;
+}
+
+export function MintPendingPill({
+  amount,
+  testID,
+  size = "md",
+  onPress,
+}: MintPendingPillProps) {
+  const { formatDisplayedAmountText, t } = useAppShellCore();
+  return (
+    <Pill
+      testID={testID}
+      tone="warning"
+      size={size}
+      leading={<Icon name="Clock" size="sm" color="$warningText" />}
+      label={t("mintPendingAmount").replace(
+        "{amount}",
+        formatDisplayedAmountText(amount),
+      )}
+      onPress={onPress}
+    />
+  );
+}

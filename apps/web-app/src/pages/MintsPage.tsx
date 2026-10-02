@@ -1,9 +1,11 @@
-import { CirclePlus, Clock } from "lucide-react";
+import { Divider, Progress, Row, Stack, Text } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
+import { FloatingActionButton } from "../components/FloatingActionButton";
 import { MintButton } from "../components/MintButton";
 import { MintFees } from "../components/MintFees";
+import { MintPendingPill } from "../components/MintPendingPill";
 import { navigateTo } from "../hooks/useRouting";
 import {
   formatMintLabel,
@@ -48,88 +50,82 @@ export function MintsPage() {
   const renderHolding = (mint: string) => {
     const { balance, pending } = holdingOf(holdings, mint);
     if (balance <= 0 && pending <= 0) return null;
+    const amountText = formatDisplayedAmountText(balance);
     return (
-      <div className="mint-choice-holding">
-        <div className="mint-choice-amounts">
+      <Stack testID="mint-holding" gap="$sm">
+        <Row flexWrap="wrap" gap="$md">
           {balance > 0 ? (
-            <span className="muted">{formatDisplayedAmountText(balance)}</span>
+            <Text variant="caption" color="$colorMuted">
+              {amountText}
+            </Text>
           ) : null}
           {pending > 0 ? (
-            <span className="mint-choice-pending">
-              <Clock aria-hidden="true" />
-              {t("mintPendingAmount").replace(
-                "{amount}",
-                formatDisplayedAmountText(pending),
-              )}
-            </span>
+            <MintPendingPill amount={pending} size="sm" testID="mint-pending" />
           ) : null}
-        </div>
+        </Row>
         {balance > 0 ? (
-          <div className="mint-choice-share" aria-hidden="true">
-            <span
-              className="mint-choice-share-fill"
-              style={{ width: `${(balance / listedBalance) * 100}%` }}
-            />
-          </div>
+          <Progress
+            value={balance}
+            max={listedBalance}
+            accessibilityLabel={amountText}
+          />
         ) : null}
-      </div>
+      </Stack>
     );
   };
 
   const renderMintButton = (mint: string) => {
     const normalized = normalizeMintUrl(mint);
     const isSelected = normalized === selectedMint;
-    const isTestMint = isTestMintUrl(mint);
+    const holding = renderHolding(normalized);
 
     return (
-      <div
+      <Stack
         key={mint}
-        className={`mint-choice-item${isSelected ? " is-selected" : ""}`}
+        testID="mint-choice"
+        gap="$none"
+        borderRadius="$control"
+        backgroundColor={isSelected ? "$accentSoft" : "$surfaceRaised"}
       >
         <MintButton
           mint={mint}
           getMintIconUrl={getMintIconUrl}
           isSelected={isSelected}
-          isTestMint={isTestMint}
           label={formatMintLabel(mint)}
           badge={mintKindBadge(mint)}
-          onClick={() => navigateTo({ route: "mint", mintUrl: normalized })}
+          onPress={() => navigateTo({ route: "mint", mintUrl: normalized })}
         />
-        {renderHolding(normalized)}
-        {isSelected ? <MintFees mint={normalized} /> : null}
-      </div>
+        {holding !== null || isSelected ? (
+          <Stack
+            gap="$xl"
+            paddingHorizontal="$md"
+            paddingTop="$xs"
+            paddingBottom="$md"
+          >
+            {holding}
+            {isSelected ? <MintFees mint={normalized} /> : null}
+          </Stack>
+        ) : null}
+      </Stack>
     );
   };
 
   return (
     <>
-      <section className="panel">
-        <div className="settings-row mints-content">
-          <div className="mint-choice-list">
-            <div className="mint-choice-group">
-              {standardMints.map((mint) => renderMintButton(mint))}
-            </div>
-            {testMints.length > 0 ? (
-              <div
-                className={`mint-choice-test-group${standardMints.length > 0 ? " has-separator" : ""}`}
-              >
-                <div className="mint-choice-group">
-                  {testMints.map((mint) => renderMintButton(mint))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
-      <button
-        type="button"
-        className="contacts-fab"
-        onClick={() => navigateTo({ route: "mintNew" })}
-        aria-label={t("mintAdd")}
-        title={t("mintAdd")}
-      >
-        <CirclePlus className="contacts-fab-svgIcon" />
-      </button>
+      <Stack gap="$sm">
+        {standardMints.map((mint) => renderMintButton(mint))}
+        {testMints.length > 0 ? (
+          <Stack testID="mint-test-group" gap="$sm">
+            {standardMints.length > 0 ? <Divider /> : null}
+            {testMints.map((mint) => renderMintButton(mint))}
+          </Stack>
+        ) : null}
+      </Stack>
+      <FloatingActionButton
+        icon="CirclePlus"
+        label={t("mintAdd")}
+        onPress={() => navigateTo({ route: "mintNew" })}
+      />
     </>
   );
 }

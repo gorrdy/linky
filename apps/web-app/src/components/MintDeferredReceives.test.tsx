@@ -84,9 +84,9 @@ describe("MintDeferredReceives", () => {
   it("lists only this mint's deferrals and copies the token text", async () => {
     const { container, unmount } = await renderSection();
 
-    expect(container.querySelectorAll(".mint-deferred-receive")).toHaveLength(
-      1,
-    );
+    expect(
+      container.querySelectorAll('[data-testid="mint-deferred-receive"]'),
+    ).toHaveLength(1);
     await press(buttonsIn(container, "cashuDeferredCopyToken")[0]);
     expect(copyText).toHaveBeenCalledWith("cashuBwaiting");
     await unmount();
@@ -128,7 +128,11 @@ describe("MintDeferredReceives", () => {
     await press(buttonsIn(warning, "cashuDeferredDiscard")[0]);
     expect(dialog()).not.toBeNull();
     const sheetButtons = Array.from(warning.querySelectorAll("button"));
-    expect(sheetButtons.every((button) => button.disabled)).toBe(true);
+    expect(
+      sheetButtons.every(
+        (button) => button.getAttribute("aria-disabled") === "true",
+      ),
+    ).toBe(true);
     await press(buttonsIn(warning, "cashuDeferredDiscard")[0]);
     expect(mintSettings.discardCashuDeferredReceive).toHaveBeenCalledOnce();
 

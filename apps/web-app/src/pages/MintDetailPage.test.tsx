@@ -24,7 +24,8 @@ vi.mock("../app/context/SystemSettingsContexts", () => ({
 
 const badgeTexts = (container: HTMLElement): string[] =>
   Array.from(
-    container.querySelectorAll(".mint-detail-identity .mint-choice-badge"),
+    container.querySelector('[data-testid="mint-detail-badges"]')?.children ??
+      [],
   ).map((badge) => badge.textContent ?? "");
 
 describe("MintDetailPage", () => {
@@ -37,15 +38,15 @@ describe("MintDetailPage", () => {
     mintSettings = createMintSettings();
 
     const { container, unmount } = await renderIntoDocument(<MintDetailPage />);
-    expect(container.querySelector(".mint-detail-name")?.textContent).toBe(
-      "cashu.cz",
-    );
+    expect(
+      container.querySelector('[data-testid="mint-detail-name"]')?.textContent,
+    ).toBe("cashu.cz");
     expect(badgeTexts(container)).toEqual([
-      "defaultMintBadge",
-      "recommendedMintBadge",
+      "DEFAULTMINTBADGE",
+      "RECOMMENDEDMINTBADGE",
     ]);
     expect(container.textContent).not.toContain("mintSetAsDefault");
-    expect(container.querySelector(".mint-fees")).not.toBeNull();
+    expect(container.querySelector('[data-testid="mint-fees"]')).not.toBeNull();
     await unmount();
   });
 
@@ -55,9 +56,9 @@ describe("MintDetailPage", () => {
     mintSettings = createMintSettings({ applyDefaultMintSelection });
 
     const { container, unmount } = await renderIntoDocument(<MintDetailPage />);
-    expect(container.querySelector(".mint-detail-name")?.textContent).toBe(
-      "mint.minibits.cash/Bitcoin",
-    );
+    expect(
+      container.querySelector('[data-testid="mint-detail-name"]')?.textContent,
+    ).toBe("mint.minibits.cash/Bitcoin");
     expect(badgeTexts(container)).toEqual([]);
 
     const setDefault = Array.from(container.querySelectorAll("button")).find(

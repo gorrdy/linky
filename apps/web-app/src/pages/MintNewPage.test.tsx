@@ -58,7 +58,7 @@ describe("MintNewPage", () => {
     mintSettings = createMintSettings({ applyDefaultMintSelection });
     const { button, input, unmount } = await renderPage();
 
-    expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     await typeInto(input, "kashu.me");
     await click(button);
 
@@ -120,7 +120,7 @@ describe("MintNewPage", () => {
     const { button, input, unmount } = await renderPage();
 
     await typeInto(input, "kashu.me");
-    expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     await click(button);
 
     expect(applyDefaultMintSelection).not.toHaveBeenCalled();

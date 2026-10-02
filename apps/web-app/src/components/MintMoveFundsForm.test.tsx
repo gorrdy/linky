@@ -107,7 +107,7 @@ const renderForm = async (feeReserve: number) => {
 };
 
 const amountShown = (container: HTMLElement) =>
-  container.querySelector(".amount-number")?.textContent;
+  container.querySelector('[data-testid="amount-display"]')?.textContent;
 
 describe("MintMoveFundsForm", () => {
   afterEach(() => {
@@ -117,13 +117,19 @@ describe("MintMoveFundsForm", () => {
   it("sweeps the whole balance it opens with, fees coming out of it", async () => {
     const { container, estimateMintMove, moveMintFunds, unmount } =
       await renderForm(4);
-    expect(amountShown(container)).toBe(String(AVAILABLE));
+    expect(amountShown(container)).toBe(`${AVAILABLE}sat`);
 
     await press(container, ["mintMoveEstimate"]);
     const sweep = { sourceMint: SOURCE_MINT, targetMint: TARGET_MINT };
     expect(estimateMintMove.mock.calls[0]?.[0]).toStrictEqual(sweep);
-    const values = Array.from(container.querySelectorAll("dd")).map(
-      (value) => value.textContent,
+    const values = [
+      "mintMoveArrives",
+      "mintMoveFeeLightning",
+      "mintMoveFeeInput",
+      "mintMoveTotal",
+    ].map(
+      (label) =>
+        container.querySelector(`[aria-label="${label}"]`)?.textContent,
     );
     expect(values).toEqual(["95 sat", "4 sat", "1 sat", "100 sat"]);
     expect(container.textContent).toContain("mintMoveSweepNote");
@@ -155,7 +161,9 @@ describe("MintMoveFundsForm", () => {
     const { container, unmount } = await renderForm(60);
     await press(container, ["C", "5", "0", "mintMoveEstimate"]);
     expect(container.textContent).toContain("mintMoveExceedsBalance");
-    expect(buttonNamed(container, "mintMoveConfirm").disabled).toBe(true);
+    expect(
+      buttonNamed(container, "mintMoveConfirm").getAttribute("aria-disabled"),
+    ).toBe("true");
     await unmount();
   });
 
@@ -167,20 +175,18 @@ describe("MintMoveFundsForm", () => {
     const targetButtons = Array.from(group?.querySelectorAll("button") ?? []);
     expect(
       targetButtons.map((button) => [
-        button.querySelector(".mint-choice-label")?.textContent,
-        button.querySelector(".mint-choice-badge")?.textContent,
-        button.getAttribute("aria-pressed"),
+        button.textContent,
+        button.getAttribute("aria-selected"),
       ]),
     ).toEqual([
-      ["kashu.me", undefined, "true"],
-      ["localhost:3339", "testMintBadge", "false"],
+      ["Kkashu.me", "true"],
+      ["Llocalhost:3339TESTMINTBADGE", "false"],
     ]);
-    expect(group?.querySelectorAll(".mint-icon-fallback")).toHaveLength(2);
 
     await act(async () => {
       targetButtons[1]?.click();
     });
-    expect(targetButtons[1]?.getAttribute("aria-pressed")).toBe("true");
+    expect(targetButtons[1]?.getAttribute("aria-selected")).toBe("true");
     await press(container, ["mintMoveEstimate"]);
     expect(estimateMintMove.mock.calls[0]?.[0].targetMint).toBe(
       OTHER_TARGET_MINT,
@@ -191,8 +197,10 @@ describe("MintMoveFundsForm", () => {
   it("cannot estimate more than the balance", async () => {
     const { container, unmount } = await renderForm(4);
     await press(container, ["5"]);
-    expect(amountShown(container)).toBe(`${AVAILABLE}5`);
-    expect(buttonNamed(container, "mintMoveEstimate").disabled).toBe(true);
+    expect(amountShown(container)).toBe(`${AVAILABLE}5sat`);
+    expect(
+      buttonNamed(container, "mintMoveEstimate").getAttribute("aria-disabled"),
+    ).toBe("true");
     await unmount();
   });
 });

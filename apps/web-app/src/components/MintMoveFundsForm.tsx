@@ -1,4 +1,5 @@
 import type { AutoswapEstimate } from "@linky-fit/linkshu";
+import { Button, Stack, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { MintMove } from "../app/hooks/mint/useMoveMintFunds";
@@ -6,8 +7,8 @@ import type { MintIcon as MintIconSource } from "../utils/mint";
 import { formatMintLabel, mintKindBadge } from "../utils/mint";
 import { AmountDisplay } from "./AmountDisplay";
 import { Keypad } from "./Keypad";
-import { MintBadge } from "./MintBadge";
-import { MintIcon } from "./MintIcon";
+import { MintButton } from "./MintButton";
+import { MintValueRow } from "./MintFees";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
 
 interface MintMoveFundsFormProps {
@@ -95,7 +96,7 @@ export function MintMoveFundsForm({
     rows !== null && (rows.leaves > available || rows.arrives <= 0);
 
   if (targets.length === 0) {
-    return <p className="muted">{t("mintMoveNoTarget")}</p>;
+    return <Text color="$colorMuted">{t("mintMoveNoTarget")}</Text>;
   }
 
   const runEstimate = async () => {
@@ -118,57 +119,45 @@ export function MintMoveFundsForm({
   };
 
   return (
-    <div className="mint-move-form">
-      <span className="mint-move-target-title" aria-hidden="true">
+    <Stack testID="mint-move-form" gap="$sm">
+      <Text variant="label" color="$colorSubtle" aria-hidden>
         {t("mintMoveTarget")}
-      </span>
-      <div
-        className="mint-choice-group"
-        role="group"
-        aria-label={t("mintMoveTarget")}
-      >
+      </Text>
+      <Stack role="group" aria-label={t("mintMoveTarget")} gap="$sm">
         {targets.map((mint) => {
           const isSelected = mint === target;
-          const badge = mintKindBadge(mint);
           return (
-            <div
+            <Stack
               key={mint}
-              className={`mint-choice-item${isSelected ? " is-selected" : ""}`}
+              borderRadius="$control"
+              backgroundColor={isSelected ? "$transparent" : "$surfaceRaised"}
             >
-              <button
-                type="button"
-                className={`ghost mint-choice${isSelected ? " is-selected" : ""}`}
-                aria-pressed={isSelected}
+              <MintButton
+                badge={mintKindBadge(mint)}
+                chevron={false}
                 disabled={busy}
-                onClick={() => setTargetMint(mint)}
-              >
-                <MintIcon getMintIconUrl={getMintIconUrl} mint={mint} />
-                <span className="mint-choice-label">
-                  {formatMintLabel(mint)}
-                </span>
-                {badge !== null ? <MintBadge kind={badge} /> : null}
-                {isSelected ? (
-                  <span className="mint-choice-check" aria-hidden="true">
-                    ✓
-                  </span>
-                ) : null}
-              </button>
-            </div>
+                getMintIconUrl={getMintIconUrl}
+                isSelected={isSelected}
+                label={formatMintLabel(mint)}
+                mint={mint}
+                onPress={() => setTargetMint(mint)}
+              />
+            </Stack>
           );
         })}
-      </div>
+      </Stack>
 
       <AmountDisplay
         amount={amount}
         cycleOnClick
         inputDisplayValue={amountInput.inputDisplayValue}
       />
-      <p className="muted mint-move-maximum">
+      <Text variant="caption" color="$colorMuted" textAlign="center">
         {t("mintMoveMaximum").replace(
           "{amount}",
           formatDisplayedAmountText(available),
         )}
-      </p>
+      </Text>
       <Keypad
         ariaLabel={`${t("payAmount")} (${displayUnit})`}
         decimalKeyEnabled={amountInput.decimalKeyEnabled}
@@ -183,42 +172,47 @@ export function MintMoveFundsForm({
 
       {rows !== null ? (
         <>
-          <dl className="mint-move-estimate" aria-label={t("mintMoveEstimate")}>
-            <dt className="muted">{t("mintMoveArrives")}</dt>
-            <dd>{formatDisplayedAmountText(rows.arrives)}</dd>
-            <dt className="muted">{t("mintMoveFeeLightning")}</dt>
-            <dd>{formatDisplayedAmountText(rows.lightningFeeReserve)}</dd>
-            <dt className="muted">{t("mintMoveFeeInput")}</dt>
-            <dd>{formatDisplayedAmountText(rows.inputFee)}</dd>
-            <dt className="muted">{t("mintMoveTotal")}</dt>
-            <dd>{formatDisplayedAmountText(rows.leaves)}</dd>
-          </dl>
-          <p className="muted">
+          <Stack aria-label={t("mintMoveEstimate")} gap="$xs" marginTop="$xs">
+            <MintValueRow
+              label={t("mintMoveArrives")}
+              value={formatDisplayedAmountText(rows.arrives)}
+            />
+            <MintValueRow
+              label={t("mintMoveFeeLightning")}
+              value={formatDisplayedAmountText(rows.lightningFeeReserve)}
+            />
+            <MintValueRow
+              label={t("mintMoveFeeInput")}
+              value={formatDisplayedAmountText(rows.inputFee)}
+            />
+            <MintValueRow
+              label={t("mintMoveTotal")}
+              value={formatDisplayedAmountText(rows.leaves)}
+            />
+          </Stack>
+          <Text color="$colorMuted">
             {exceedsBalance
               ? t("mintMoveExceedsBalance")
               : isSweep
                 ? t("mintMoveSweepNote")
                 : t("mintMoveEstimateNote")}
-          </p>
-          <button
-            type="button"
-            className="btn-wide"
+          </Text>
+          <Button
             disabled={busy || exceedsBalance}
-            onClick={() => void runMove()}
+            onPress={() => void runMove()}
           >
             {t("mintMoveConfirm")}
-          </button>
+          </Button>
         </>
       ) : (
-        <button
-          type="button"
-          className="btn-wide secondary"
+        <Button
+          variant="secondary"
           disabled={busy || estimating || move === null}
-          onClick={() => void runEstimate()}
+          onPress={() => void runEstimate()}
         >
           {estimating ? t("mintMoveEstimating") : t("mintMoveEstimate")}
-        </button>
+        </Button>
       )}
-    </div>
+    </Stack>
   );
 }

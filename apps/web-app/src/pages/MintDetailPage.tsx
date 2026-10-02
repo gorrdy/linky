@@ -1,7 +1,16 @@
 import { parseMintUrl } from "@linky-fit/linkshu";
 import { sqliteTrue } from "@linky-fit/linksync";
-import { Gauge, Wallet } from "lucide-react";
-import type React from "react";
+import {
+  Button,
+  Divider,
+  Icon,
+  ListRow,
+  Row,
+  Section,
+  Stack,
+  Text,
+} from "@linky-fit/ui";
+import type { IconName } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { holdingOf, mintHoldings } from "../app/lib/mintHoldings";
@@ -40,26 +49,28 @@ const moveTargets = (
     );
 
 interface InfoRowProps {
-  icon: React.ReactNode;
+  icon: IconName;
   label: string;
-  value: React.ReactNode;
+  value: string;
+  muted?: boolean;
 }
 
-function InfoRow({ icon, label, value }: InfoRowProps) {
+function InfoRow({ icon, label, value, muted = false }: InfoRowProps) {
   return (
-    <div className="settings-row">
-      <div className="settings-left">
-        <span className="settings-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <span className="settings-label">{label}</span>
-      </div>
-      <div className="settings-right">
-        <span className="settings-value" aria-label={label}>
+    <ListRow
+      leading={<Icon name={icon} />}
+      title={label}
+      trailing={
+        <Text
+          variant="label"
+          bold
+          color={muted ? "$colorMuted" : "$colorSubtle"}
+          aria-label={label}
+        >
           {value}
-        </span>
-      </div>
-    </div>
+        </Text>
+      }
+    />
   );
 }
 
@@ -97,9 +108,9 @@ export function MintDetailPage() {
     isHiddenTestMint(cleaned, allowTestMints)
   ) {
     return (
-      <section className="panel">
-        <p className="muted">{t("mintNotFound")}</p>
-      </section>
+      <Stack>
+        <Text color="$colorMuted">{t("mintNotFound")}</Text>
+      </Stack>
     );
   }
 
@@ -138,111 +149,112 @@ export function MintDetailPage() {
   };
 
   return (
-    <section className="panel settings-page">
-      <div className="settings-section mint-detail-header">
-        <div className="mint-detail-identity">
-          <MintIcon getMintIconUrl={getMintIconUrl} mint={cleaned} />
-          <h2 className="mint-detail-name">{formatMintLabel(cleaned)}</h2>
-          {isDefault ? <MintBadge kind="default" /> : null}
-          {kindBadge !== null ? <MintBadge kind={kindBadge} /> : null}
-        </div>
+    <Stack gap="$lg">
+      <Stack gap="$md">
+        <Row gap="$sm" paddingBottom="$sm">
+          <MintIcon getMintIconUrl={getMintIconUrl} mint={cleaned} size="sm" />
+          <Text
+            variant="title"
+            testID="mint-detail-name"
+            numberOfLines={1}
+            flexShrink={1}
+          >
+            {formatMintLabel(cleaned)}
+          </Text>
+          <Row testID="mint-detail-badges" gap="$sm">
+            {isDefault ? <MintBadge kind="default" /> : null}
+            {kindBadge !== null ? <MintBadge kind={kindBadge} /> : null}
+          </Row>
+        </Row>
         {isDefault ? null : (
-          <div className="settings-row">
-            <button
-              type="button"
-              className="btn-wide secondary"
-              disabled={cashuIsBusy}
-              onClick={() => void applyDefaultMintSelection(cleaned)}
-            >
-              {t("mintSetAsDefault")}
-            </button>
-          </div>
+          <Button
+            variant="secondary"
+            disabled={cashuIsBusy}
+            onPress={() => void applyDefaultMintSelection(cleaned)}
+          >
+            {t("mintSetAsDefault")}
+          </Button>
         )}
-      </div>
+      </Stack>
 
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("mintFundsTitle")}</h2>
+      <Divider />
+
+      <Section title={t("mintFundsTitle")}>
         <InfoRow
-          icon={<Wallet size={18} />}
+          icon="Wallet"
           label={t("mintBalance")}
           value={formatDisplayedAmountText(holding.balance)}
         />
-      </div>
+      </Section>
 
       <MintDeferredReceives mint={cleaned} />
 
       {holding.balance > 0 ? (
-        <div className="settings-section">
-          <h2 className="settings-section-title">{t("mintMoveTitle")}</h2>
-          <MintMoveFundsForm
-            key={cleaned}
-            available={holding.balance}
-            busy={cashuIsBusy}
-            estimateMintMove={estimateMintMove}
-            getMintIconUrl={getMintIconUrl}
-            moveMintFunds={moveMintFunds}
-            sourceMint={cleaned}
-            targets={moveTargets(
-              cleaned,
-              defaultMint,
-              fundedMints,
-              allowTestMints,
-            )}
-          />
-        </div>
+        <>
+          <Divider />
+          <Section title={t("mintMoveTitle")}>
+            <MintMoveFundsForm
+              key={cleaned}
+              available={holding.balance}
+              busy={cashuIsBusy}
+              estimateMintMove={estimateMintMove}
+              getMintIconUrl={getMintIconUrl}
+              moveMintFunds={moveMintFunds}
+              sourceMint={cleaned}
+              targets={moveTargets(
+                cleaned,
+                defaultMint,
+                fundedMints,
+                allowTestMints,
+              )}
+            />
+          </Section>
+        </>
       ) : null}
 
-      <div className="settings-section">
-        <h2 className="settings-section-title">{t("mintFees")}</h2>
+      <Divider />
+
+      <Section title={t("mintFees")}>
         <MintFees mint={cleaned} />
-      </div>
+      </Section>
 
       {row !== null ? (
-        <div className="settings-section">
-          <h2 className="settings-section-title">{t("mintInfoTitle")}</h2>
-          <InfoRow
-            icon={<Gauge size={18} />}
-            label={t("mintLatency")}
-            value={
-              latencyMs !== null ? (
-                `${latencyMs} ms`
-              ) : (
-                <span className="muted">{t("unknown")}</span>
-              )
-            }
-          />
-          <div className="settings-row">
-            <button
-              type="button"
-              className="btn-wide secondary"
-              onClick={() => void refreshMintInfo(cleaned)}
-            >
-              {t("mintRefresh")}
-            </button>
-          </div>
-          <div className="settings-row">
-            <button
-              type="button"
-              className={
-                pendingMintDeleteUrl === cleaned
-                  ? "btn-wide danger"
-                  : "btn-wide"
-              }
-              onClick={deleteMint}
-            >
-              {t("mintDelete")}
-            </button>
-          </div>
-          {lastCheckedAtSec ? (
-            <p className="muted settings-error-note">
-              {t("mintLastChecked")}:{" "}
-              {new Date(lastCheckedAtSec * 1000).toLocaleString(
-                normalizeLocale(lang),
-              )}
-            </p>
-          ) : null}
-        </div>
+        <>
+          <Divider />
+          <Section title={t("mintInfoTitle")}>
+            <Stack gap="$lg">
+              <InfoRow
+                icon="Gauge"
+                label={t("mintLatency")}
+                value={latencyMs !== null ? `${latencyMs} ms` : t("unknown")}
+                muted={latencyMs === null}
+              />
+              <Button
+                variant="secondary"
+                onPress={() => void refreshMintInfo(cleaned)}
+              >
+                {t("mintRefresh")}
+              </Button>
+              <Button
+                variant={
+                  pendingMintDeleteUrl === cleaned ? "danger" : "primary"
+                }
+                onPress={deleteMint}
+              >
+                {t("mintDelete")}
+              </Button>
+              {lastCheckedAtSec ? (
+                <Text variant="caption" color="$colorMuted">
+                  {t("mintLastChecked")}:{" "}
+                  {new Date(lastCheckedAtSec * 1000).toLocaleString(
+                    normalizeLocale(lang),
+                  )}
+                </Text>
+              ) : null}
+            </Stack>
+          </Section>
+        </>
       ) : null}
-    </section>
+    </Stack>
   );
 }

@@ -78,7 +78,7 @@ test("test mints can be hidden and funds move between mints", async ({
   await test.step("fund the local test mint", async () => {
     await topUp(page, FUNDING_SAT);
     await expect.poll(() => readBalanceSat(page)).toBe(FUNDING_SAT);
-    await expect(page.locator(".paid-overlay")).toHaveCount(0);
+    await expect(page.locator('[aria-live="assertive"]')).toHaveCount(0);
   });
 
   await test.step("turning test mints off hides their funds and the mint", async () => {
@@ -98,7 +98,7 @@ test("test mints can be hidden and funds move between mints", async ({
     await page.goto("/#advanced/mints");
     await expect(
       page.getByRole("button", { name: new RegExp(`^${SOURCE_HOST}\\b`) }),
-    ).toHaveAttribute("aria-current", "true");
+    ).toHaveAttribute("aria-selected", "true");
   });
 
   let targetBefore = 0;
@@ -117,16 +117,16 @@ test("test mints can be hidden and funds move between mints", async ({
 
   await test.step("estimate and move an explicit amount to the target mint", async () => {
     await page.goto(`/#advanced/mint/${encodeURIComponent(SOURCE_MINT_URL)}`);
-    const moveForm = page.locator(".mint-move-form");
-    await expect(moveForm.locator(".amount-number")).toHaveText(
-      String(FUNDING_SAT),
+    const moveForm = page.getByTestId("mint-move-form");
+    await expect(moveForm.getByTestId("amount-display")).toHaveText(
+      new RegExp(`^${FUNDING_SAT}\\s*sat$`, "i"),
     );
     await expect(moveForm).toContainText(`Maximum ${FUNDING_SAT} sat`);
     const targetMint = page
       .getByLabel("To mint")
       .getByRole("button", { name: TARGET_HOST });
     await targetMint.click();
-    await expect(targetMint).toHaveAttribute("aria-pressed", "true");
+    await expect(targetMint).toHaveAttribute("aria-selected", "true");
     await page.getByRole("button", { name: "Clear form", exact: true }).click();
     for (const digit of String(MOVE_SAT)) {
       await page.getByRole("button", { exact: true, name: digit }).click();
@@ -138,7 +138,9 @@ test("test mints can be hidden and funds move between mints", async ({
     const estimate = page.getByLabel("Estimate fees", { exact: true });
     await expect(estimate).toContainText("Leaves this mint (at most)");
     await expect(estimate).toContainText(`${MOVE_SAT} sat`);
-    const totalText = await estimate.locator("dd").last().innerText();
+    const totalText = await estimate
+      .getByLabel("Leaves this mint (at most)", { exact: true })
+      .innerText();
     const estimatedTotal = Number(totalText.replace(/[^0-9]/g, ""));
     expect(estimatedTotal).toBeGreaterThanOrEqual(MOVE_SAT);
 
@@ -160,11 +162,15 @@ test("test mints can be hidden and funds move between mints", async ({
     await page.getByRole("button", { name: "Add", exact: true }).click();
 
     await page.waitForURL(/#advanced\/mint\//);
-    await expect(page.locator(".mint-choice-badge.is-default")).toBeVisible();
+    await expect(
+      page.getByTestId("mint-detail-badges").getByText("DEFAULT", {
+        exact: true,
+      }),
+    ).toBeVisible();
     await page.goto("/#advanced/mints");
     await expect(
       page.getByRole("button", { name: new RegExp(`^${TARGET_HOST}\\b`) }),
-    ).toHaveAttribute("aria-current", "true");
+    ).toHaveAttribute("aria-selected", "true");
   });
 
   errors.assertClean();

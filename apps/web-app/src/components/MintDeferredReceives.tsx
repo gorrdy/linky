@@ -1,5 +1,5 @@
 import type { StoredOperation, TokenText } from "@linky-fit/linkshu";
-import { Clock } from "lucide-react";
+import { Button, Dialog, Divider, Row, Section, Stack } from "@linky-fit/ui";
 import React from "react";
 import {
   useAppShellActions,
@@ -7,7 +7,7 @@ import {
 } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
 import { normalizeMintUrl } from "../utils/mint";
-import { ModalSheet } from "./ModalSheet";
+import { MintPendingPill } from "./MintPendingPill";
 
 interface MintDeferredReceivesProps {
   mint: string;
@@ -31,22 +31,16 @@ export function MintDeferredReceives({
   );
   if (deferrals.length === 0) return null;
 
-  const pendingAmount = (deferral: StoredOperation) =>
-    t("mintPendingAmount").replace(
-      "{amount}",
-      formatDisplayedAmountText(deferral.amount),
-    );
-
-  const copyTokenButton = (tokenText: TokenText | null) =>
+  const copyTokenButton = (tokenText: TokenText | null, inRow: boolean) =>
     tokenText === null ? null : (
-      <button
-        type="button"
-        className="btn-wide secondary"
+      <Button
+        variant="secondary"
+        flex={inRow ? 1 : undefined}
         disabled={isDiscardBusy}
-        onClick={() => void copyText(tokenText)}
+        onPress={() => void copyText(tokenText)}
       >
         {t("cashuDeferredCopyToken")}
-      </button>
+      </Button>
     );
 
   const closeWarning = () => {
@@ -64,59 +58,57 @@ export function MintDeferredReceives({
   };
 
   return (
-    <div className="settings-section">
-      <h2 className="settings-section-title">{t("mintPendingTitle")}</h2>
-      {deferrals.map((deferral) => (
-        <div key={deferral.id} className="mint-deferred-receive">
-          <span className="mint-choice-pending">
-            <Clock aria-hidden="true" />
-            {pendingAmount(deferral)}
-          </span>
-          <div className="mint-deferred-receive-actions">
-            {copyTokenButton(deferral.tokenText)}
-            <button
-              type="button"
-              className="btn-wide secondary"
-              onClick={() => setDiscarding(deferral)}
-            >
-              {t("cashuDeferredDiscard")}
-            </button>
-          </div>
-        </div>
-      ))}
+    <>
+      <Divider />
+      <Section title={t("mintPendingTitle")}>
+        {deferrals.map((deferral) => (
+          <Stack key={deferral.id} testID="mint-deferred-receive" gap="$sm">
+            <MintPendingPill amount={deferral.amount} testID="mint-pending" />
+            <Row gap="$sm">
+              {copyTokenButton(deferral.tokenText, true)}
+              <Button
+                variant="secondary"
+                flex={1}
+                onPress={() => setDiscarding(deferral)}
+              >
+                {t("cashuDeferredDiscard")}
+              </Button>
+            </Row>
+          </Stack>
+        ))}
+      </Section>
       {discarding !== null ? (
-        <ModalSheet
-          aria-label={t("cashuDeferredDiscardTitle")}
-          onClick={closeWarning}
-        >
-          <div className="modal-title">{t("cashuDeferredDiscardTitle")}</div>
-          <div className="modal-body">
-            {t("cashuDeferredDiscardBody").replace(
-              "{amount}",
-              formatDisplayedAmountText(discarding.amount),
-            )}
-          </div>
-          <div className="modal-actions">
-            {copyTokenButton(discarding.tokenText)}
-            <button
-              type="button"
-              className="btn-wide danger"
-              disabled={isDiscardBusy}
-              onClick={() => void confirmDiscard(discarding)}
-            >
-              {t("cashuDeferredDiscard")}
-            </button>
-            <button
-              type="button"
-              className="btn-wide secondary"
-              disabled={isDiscardBusy}
-              onClick={closeWarning}
-            >
-              {t("cancel")}
-            </button>
-          </div>
-        </ModalSheet>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) closeWarning();
+          }}
+          title={t("cashuDeferredDiscardTitle")}
+          description={t("cashuDeferredDiscardBody").replace(
+            "{amount}",
+            formatDisplayedAmountText(discarding.amount),
+          )}
+          actions={
+            <>
+              {copyTokenButton(discarding.tokenText, false)}
+              <Button
+                variant="danger"
+                disabled={isDiscardBusy}
+                onPress={() => void confirmDiscard(discarding)}
+              >
+                {t("cashuDeferredDiscard")}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={isDiscardBusy}
+                onPress={closeWarning}
+              >
+                {t("cancel")}
+              </Button>
+            </>
+          }
+        />
       ) : null}
-    </div>
+    </>
   );
 }

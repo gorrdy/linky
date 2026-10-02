@@ -1,43 +1,45 @@
-import { ChevronRight } from "lucide-react";
+import { Icon, ListRow, Row } from "@linky-fit/ui";
 import type { MintBadgeKind, MintIcon as MintIconSource } from "../utils/mint";
 import { MintBadge } from "./MintBadge";
 import { MintIcon } from "./MintIcon";
 
 interface MintButtonProps {
   badge: MintBadgeKind | null;
+  chevron?: boolean;
+  disabled?: boolean;
   getMintIconUrl: (mint: string | null | undefined) => MintIconSource;
   isSelected: boolean;
-  isTestMint?: boolean;
   label: string;
   mint: string;
-  onClick: () => void;
+  onPress: () => void;
 }
 
 export function MintButton({
   badge,
+  chevron = true,
+  disabled = false,
   getMintIconUrl,
   isSelected,
-  isTestMint = false,
   label,
   mint,
-  onClick,
+  onPress,
 }: MintButtonProps) {
   return (
-    <button
-      type="button"
-      className={`ghost mint-choice${isTestMint ? " is-test-mint" : ""}${isSelected ? " is-selected" : ""}`}
-      aria-current={isSelected ? "true" : undefined}
-      onClick={onClick}
-    >
-      <MintIcon getMintIconUrl={getMintIconUrl} mint={mint} />
-      <span className="mint-choice-label">{label}</span>
-      {badge !== null ? <MintBadge kind={badge} /> : null}
-      {isSelected ? (
-        <span className="mint-choice-check" aria-hidden="true">
-          ✓
-        </span>
-      ) : null}
-      <ChevronRight size={18} className="mint-choice-chevron" aria-hidden />
-    </button>
+    <ListRow
+      leading={<MintIcon getMintIconUrl={getMintIconUrl} mint={mint} />}
+      title={label}
+      trailing={
+        <Row gap="$sm">
+          {badge !== null ? <MintBadge kind={badge} /> : null}
+          {isSelected ? (
+            <Icon name="Check" size="sm" color="$accentText" />
+          ) : null}
+        </Row>
+      }
+      chevron={chevron}
+      disabled={disabled}
+      selected={isSelected}
+      onPress={onPress}
+    />
   );
 }

@@ -1,4 +1,5 @@
 import type { LightningFeeProbeResult } from "@linky-fit/linkshu";
+import { Row, Stack, Text } from "@linky-fit/ui";
 import { Either } from "effect";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -98,6 +99,29 @@ const useLightningFeeProbe = (
   return byMint[mintUrl] ?? "pending";
 };
 
+interface MintValueRowProps {
+  label: string;
+  value: string;
+}
+
+export function MintValueRow({ label, value }: MintValueRowProps) {
+  return (
+    <Row justifyContent="space-between">
+      <Text variant="caption" color="$colorMuted" flexShrink={1}>
+        {label}
+      </Text>
+      <Text
+        variant="caption"
+        aria-label={label}
+        textAlign="right"
+        fontVariant={["tabular-nums"]}
+      >
+        {value}
+      </Text>
+    </Row>
+  );
+}
+
 interface MintFeesProps {
   mint: string;
 }
@@ -110,21 +134,22 @@ export function MintFees({ mint }: MintFeesProps) {
   const lightningFee = useLightningFeeProbe(probeLightningFee, mintUrl);
 
   return (
-    <div className="mint-fees">
-      <span className="muted">{t("mintFeeCashuPayments")}</span>
-      <span className="mint-fees-value">
-        {ppk !== null ? formatCashuFee(ppk) : t("unknown")}
-      </span>
-      <span className="muted">{t("mintFeeLightningTopup")}</span>
-      <span className="mint-fees-value">0 sat</span>
-      <span className="muted">{t("mintFeeLightningPayments")}</span>
-      <span className="mint-fees-value">
-        {lightningFee === "pending"
-          ? "…"
-          : lightningFee === "failed"
-            ? t("unknown")
-            : formatPercent(lightningFee.percent)}
-      </span>
-    </div>
+    <Stack testID="mint-fees" gap="$sm">
+      <MintValueRow
+        label={t("mintFeeCashuPayments")}
+        value={ppk !== null ? formatCashuFee(ppk) : t("unknown")}
+      />
+      <MintValueRow label={t("mintFeeLightningTopup")} value="0 sat" />
+      <MintValueRow
+        label={t("mintFeeLightningPayments")}
+        value={
+          lightningFee === "pending"
+            ? "…"
+            : lightningFee === "failed"
+              ? t("unknown")
+              : formatPercent(lightningFee.percent)
+        }
+      />
+    </Stack>
   );
 }
