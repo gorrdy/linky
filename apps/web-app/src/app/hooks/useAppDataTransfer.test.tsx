@@ -238,4 +238,31 @@ describe("useAppDataTransfer", () => {
       expect.objectContaining({ npub: "npub1mallory" }),
     );
   });
+
+  it("merges a later record onto the fields an earlier record of the same import wrote", async () => {
+    const alice = {
+      id: createId<"Contact">(),
+      lnAddress: NonEmptyString1000.orThrow("alice@linky.fit"),
+    };
+    const { transfer, update } = await mount(walletUnavailable, [alice]);
+    const file = Object.assign(new File([], "backup.txt"), {
+      text: async () =>
+        JSON.stringify({
+          contacts: [
+            { name: "Alice", npub: "npub1alice", lnAddress: "alice@linky.fit" },
+            { groupName: "Family", lnAddress: "alice@linky.fit" },
+          ],
+        }),
+    });
+    await act(() => transfer.handleImportAppDataFilePicked(file));
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update).toHaveBeenLastCalledWith(
+      alice.id,
+      expect.objectContaining({
+        groupName: "Family",
+        name: "Alice",
+        npub: "npub1alice",
+      }),
+    );
+  });
 });

@@ -219,7 +219,10 @@ export const useAppDataTransfer = <TContact extends ImportableContact>({
         if (ln)
           existingByLn.set(ln, [...(existingByLn.get(ln) ?? []), contact]);
       }
-      const mergedNpubByContactId = new Map<ContactId, string>();
+      const mergedFieldsByContactId = new Map<
+        ContactId,
+        ReturnType<typeof toContactTextFields>
+      >();
       const insertedNpubs = new Set<string>();
       const insertedLnAddresses = new Set<string>();
 
@@ -249,7 +252,7 @@ export const useAppDataTransfer = <TContact extends ImportableContact>({
                 .get(normalizedLnAddress)
                 ?.find((contact) =>
                   canMergeContactNpubs(
-                    mergedNpubByContactId.get(contact.id) ?? contact.npub,
+                    (mergedFieldsByContactId.get(contact.id) ?? contact).npub,
                     npub,
                   ),
                 )
@@ -273,7 +276,9 @@ export const useAppDataTransfer = <TContact extends ImportableContact>({
         });
 
         if (existing) {
-          const previous = toContactTextFields(existing);
+          const previous =
+            mergedFieldsByContactId.get(existing.id) ??
+            toContactTextFields(existing);
           const merged = {
             name: payload.name ?? previous.name,
             npub: payload.npub ?? previous.npub,
@@ -287,10 +292,8 @@ export const useAppDataTransfer = <TContact extends ImportableContact>({
           );
           if (result.ok) {
             updatedContacts += 1;
-            if (merged.npub) {
-              mergedNpubByContactId.set(existing.id, merged.npub);
-              existingByNpub.set(merged.npub, existing);
-            }
+            mergedFieldsByContactId.set(existing.id, merged);
+            if (merged.npub) existingByNpub.set(merged.npub, existing);
           }
         } else {
           const result = await runWrite(
