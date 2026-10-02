@@ -250,6 +250,7 @@ const TransactionCardView = ({
           </Text>
         }
         chevron={false}
+        expanded={hasDetails ? isExpanded : undefined}
         onPress={hasDetails ? () => onToggle(item.id) : undefined}
       />
       {detailEntries.map((field, index) => (
