@@ -174,7 +174,7 @@ export function InspectorSettingsPage(): React.ReactElement {
       <Section>
         <ListRow
           icon="FlaskConical"
-          title="Push / SW Debug (log)"
+          title={t("pushDebug")}
           onPress={() => navigateTo({ route: "advancedPushDebug" })}
         />
       </Section>

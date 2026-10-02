@@ -353,14 +353,12 @@ export const buildTopbarRight = ({
     : null;
 };
 
-const TOPBAR_TITLE_KEY: Record<
-  Exclude<Route["kind"], "advancedPushDebug">,
-  I18nKey
-> = {
+const TOPBAR_TITLE_KEY: Record<Route["kind"], I18nKey> = {
   advanced: "settings",
   advancedAutoPayLimit: "lightningInvoiceAutoPayLimit",
   advancedInspector: "nostrInspector",
   advancedInspectorTimeline: "nostrInspector",
+  advancedPushDebug: "pushDebug",
   bankPayment: "spdPaymentTitle",
   bankPaymentNew: "spdPaymentTitle",
   bankPaymentOffer: "bankPaymentOfferIncomingTitle",
@@ -377,19 +375,19 @@ const TOPBAR_TITLE_KEY: Record<
   contacts: "contactsTitle",
   chatStorage: "chatStorage",
   evoluCurrentData: "evoluData",
-  evoluData: "evoluData",
+  evoluData: "evoluStorage",
   evoluHistoryData: "evoluHistory",
   evoluServer: "evoluServer",
   evoluServerNew: "evoluAddServerLabel",
-  evoluServers: "evoluServer",
+  evoluServers: "evoluServers",
   lnAddressPay: "pay",
   manualPay: "manualPayTitle",
   mint: "mints",
   mintNew: "mintAdd",
   mints: "mints",
   nostrRelay: "nostrRelay",
-  nostrRelayNew: "nostrRelay",
-  nostrRelays: "nostrRelay",
+  nostrRelayNew: "addRelay",
+  nostrRelays: "nostrRelays",
   profile: "profile",
   profileEdit: "profile",
   settings: "settings",
@@ -405,7 +403,5 @@ const TOPBAR_TITLE_KEY: Record<
   wallet: "wallet",
 };
 
-export const buildTopbarTitle = (route: Route, t: Translate): string => {
-  if (route.kind === "advancedPushDebug") return "Push Debug";
-  return t(TOPBAR_TITLE_KEY[route.kind]);
-};
+export const buildTopbarTitle = (route: Route, t: Translate): string =>
+  t(TOPBAR_TITLE_KEY[route.kind]);

@@ -21,6 +21,7 @@ export const cs = {
   nostrInspectorLogsCleared: "Logy inspectoru byly smazány.",
   nostrInspectorLogsError: "K logům inspectoru se nepodařilo přistoupit.",
   openNostrInspector: "Otevřít inspector",
+  pushDebug: "Ladění push notifikací",
   back: "Zpět",
   menu: "Menu",
   transactionsTitle: "Transakce",
@@ -208,7 +209,9 @@ export const cs = {
     "Profil se nepodařilo publikovat pod novým klíčem. Klíče nebyly změněny — zkuste to znovu.",
 
   nostrRelay: "Nostr relay",
+  nostrRelays: "Nostr relaye",
   evoluServer: "Evolu server",
+  evoluServers: "Evolu servery",
   addRelay: "Přidat relay",
   nostrRelaysEmpty: "Žádné relaye nejsou nastavené.",
   invalidRelayUrl: "Zadejte zabezpečenou WebSocket adresu relay (wss://).",
@@ -274,6 +277,7 @@ export const cs = {
   migratingDataBody: "Chvíli to potrvá. Nezavírej aplikaci.",
   evoluNoDataYet: "Tady zatím nejsou uložená žádná data.",
   evoluData: "Data",
+  evoluStorage: "Úložiště",
   evoluHistory: "Historie",
   filterByTable: "Filtrovat podle tabulky",
   evoluSizeEstimateHint:

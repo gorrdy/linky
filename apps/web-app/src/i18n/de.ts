@@ -22,6 +22,7 @@ export const de = {
   nostrInspectorLogsError:
     "Auf die Inspektorprotokolle konnte nicht zugegriffen werden.",
   openNostrInspector: "Inspektor öffnen",
+  pushDebug: "Push-Debug",
   back: "Zurück",
   menu: "Menü",
   transactionsTitle: "Transaktionen",
@@ -212,7 +213,9 @@ export const de = {
     "Profil konnte nicht unter dem neuen Schlüssel veröffentlicht werden. Schlüssel wurden nicht gewechselt — bitte erneut versuchen.",
 
   nostrRelay: "Nostr-Relay",
+  nostrRelays: "Nostr-Relays",
   evoluServer: "Evolu-Server",
+  evoluServers: "Evolu-Server",
   addRelay: "Relay hinzufügen",
   nostrRelaysEmpty: "Keine Relays konfiguriert.",
   invalidRelayUrl: "Gib eine sichere WebSocket-Relay-URL ein (wss://).",
@@ -278,6 +281,7 @@ export const de = {
   migratingDataBody: "Das dauert einen Moment. Lass die App geöffnet.",
   evoluNoDataYet: "Hier sind noch keine Daten gespeichert.",
   evoluData: "Daten",
+  evoluStorage: "Speicher",
   evoluHistory: "Verlauf",
   filterByTable: "Nach Tabelle filtern",
   evoluSizeEstimateHint:

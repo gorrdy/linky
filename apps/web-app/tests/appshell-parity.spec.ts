@@ -396,7 +396,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
   await test.step("open the local Nostr relay and return through its parent routes", async () => {
     await page.getByRole("button", { name: /^Nostr \d+\/\d+/ }).click();
     await expect(page).toHaveURL(/#nostr-relays$/);
-    await expect(title).toHaveAccessibleName("Nostr-Relay");
+    await expect(title).toHaveAccessibleName("Nostr-Relays");
     await page.getByRole("button", { name: NOSTR_RELAY_URL }).click();
     await expect(page).toHaveURL(
       new RegExp(`#nostr-relay/${encodeURIComponent(NOSTR_RELAY_URL)}$`),
@@ -477,7 +477,7 @@ test("German settings, diagnostics, and profile routes keep their labels and bac
     await close.click();
     await expect(page).toHaveURL(/#evolu-servers$/);
     await page.goto("/#evolu-data");
-    await expect(title).toHaveAccessibleName("Daten");
+    await expect(title).toHaveAccessibleName("Speicher");
     await expect(page.getByText(/^\d+\.\d % des 1-MiB-Limits$/)).toBeVisible();
   });
 

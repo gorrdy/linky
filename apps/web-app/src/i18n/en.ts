@@ -22,6 +22,7 @@ export const en = {
   nostrInspectorLogsCleared: "Inspector logs cleared.",
   nostrInspectorLogsError: "Inspector logs could not be accessed.",
   openNostrInspector: "Open inspector",
+  pushDebug: "Push debug",
   back: "Back",
   menu: "Menu",
   transactionsTitle: "Transactions",
@@ -204,7 +205,9 @@ export const en = {
     "Could not publish your profile under the new key. Keys were not switched — try again.",
 
   nostrRelay: "Nostr relay",
+  nostrRelays: "Nostr relays",
   evoluServer: "Evolu server",
+  evoluServers: "Evolu servers",
   addRelay: "Add relay",
   nostrRelaysEmpty: "No relays configured.",
   invalidRelayUrl: "Enter a secure WebSocket relay URL (wss://).",
@@ -269,6 +272,7 @@ export const en = {
   migratingDataBody: "This takes a moment. Keep the app open.",
   evoluNoDataYet: "No data stored here yet.",
   evoluData: "Data",
+  evoluStorage: "Storage",
   evoluHistory: "History",
   filterByTable: "Filter by table",
   evoluSizeEstimateHint:
