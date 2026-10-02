@@ -35,11 +35,7 @@ export function NostrRelayPage(): React.ReactElement {
 
       <ListRow
         title={t("relayStatusLabel")}
-        trailing={
-          <Text variant="label" color="$colorMuted">
-            {stateLabel}
-          </Text>
-        }
+        value={stateLabel}
         testID="relayStatusLabel"
       />
 
@@ -50,15 +46,11 @@ export function NostrRelayPage(): React.ReactElement {
       {lastPublish ? (
         <ListRow
           title={t("relayLastPublish")}
-          trailing={
-            <Text variant="label" color="$colorMuted">
-              {lastPublish.accepted
-                ? t("relayPublishAccepted")
-                : t("relayPublishRejected")}
-              {" · "}
-              {formatRelativeTime(lastPublish.at, lang)}
-            </Text>
-          }
+          value={`${
+            lastPublish.accepted
+              ? t("relayPublishAccepted")
+              : t("relayPublishRejected")
+          } · ${formatRelativeTime(lastPublish.at, lang)}`}
           testID="relayLastPublish"
         />
       ) : null}

@@ -1,11 +1,17 @@
 import type { ProofStateSnapshot, StoredProof } from "@linky-fit/linkshu";
-import { Button, Card, LoadingState, Section, Text } from "@linky-fit/ui";
+import {
+  Button,
+  Card,
+  LoadingState,
+  Section,
+  Text,
+  ListRow,
+} from "@linky-fit/ui";
 import { useMemo } from "react";
 import type { InspectCashuProofStates } from "../app/hooks/composition/useLinkshuComposition";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useTokenProofStates } from "../hooks/useTokenProofStates";
 import { normalizeLocale } from "../utils/formatting";
-import { ValueRow } from "./ValueRow";
 
 interface CashuTokenProofStatusProps {
   /** The proofs a transfer handed out, as the inventory holds them. */
@@ -46,7 +52,7 @@ export const CashuTokenProofStatus = ({
   const sums = sumProofsByMintState(proofs, reports);
 
   const amountRow = (label: string, amount: number) => (
-    <ValueRow label={label} value={formatDisplayedAmountText(amount)} />
+    <ListRow title={label} value={formatDisplayedAmountText(amount)} />
   );
 
   return (

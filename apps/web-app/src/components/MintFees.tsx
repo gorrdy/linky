@@ -1,5 +1,5 @@
 import type { LightningFeeProbeResult } from "@linky-fit/linkshu";
-import { Stack } from "@linky-fit/ui";
+import { Stack, ListRow } from "@linky-fit/ui";
 import { Either } from "effect";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -13,7 +13,6 @@ import {
 } from "../utils/mint";
 import { formatDisplayAmountText } from "../utils/displayAmounts";
 import { nowSeconds } from "../utils/time";
-import { ValueRow } from "./ValueRow";
 
 // Rough proof count of a typical Cashu payment, used to express ppk in sats.
 const TYPICAL_PAYMENT_PROOF_COUNT = 6;
@@ -122,13 +121,13 @@ export function MintFees({ mint }: MintFeesProps) {
 
   return (
     <Stack testID="mint-fees" gap="$xs">
-      <ValueRow
-        label={t("mintFeeCashuPayments")}
+      <ListRow
+        title={t("mintFeeCashuPayments")}
         value={ppk !== null ? formatCashuFee(ppk, lang) : t("unknown")}
       />
-      <ValueRow label={t("mintFeeLightningTopup")} value={formatSat(0, lang)} />
-      <ValueRow
-        label={t("mintFeeLightningPayments")}
+      <ListRow title={t("mintFeeLightningTopup")} value={formatSat(0, lang)} />
+      <ListRow
+        title={t("mintFeeLightningPayments")}
         value={
           lightningFee === "pending"
             ? "…"

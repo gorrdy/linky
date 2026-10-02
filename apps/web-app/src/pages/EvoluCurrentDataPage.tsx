@@ -23,12 +23,6 @@ import { loadEvoluCurrentData } from "../evolu";
 
 const PREVIEW_ROW_COUNT = 2;
 
-const rowValue = (value: React.ReactNode) => (
-  <Text variant="label" color="$colorMuted">
-    {value}
-  </Text>
-);
-
 export function EvoluCurrentDataPage(): React.ReactElement {
   const { evoluShards, requestRotateShard, rotatingShardScope } =
     useEvoluSettingsContext();
@@ -77,16 +71,15 @@ export function EvoluCurrentDataPage(): React.ReactElement {
                   {t("evoluShardRotate").replace("{scope}", shard.scope)}
                 </Button>
               ) : (
-                rowValue(t("evoluShardFixed"))
+                <Text variant="label" color="$colorMuted">
+                  {t("evoluShardFixed")}
+                </Text>
               )}
             </Row>
-            <ListRow
-              title={t("evoluShardIndex")}
-              trailing={rowValue(shard.index)}
-            />
+            <ListRow title={t("evoluShardIndex")} value={shard.index} />
             <ListRow
               title={t("evoluShardVisibleCount")}
-              trailing={rowValue(shard.visibleOwnerIds.length)}
+              value={shard.visibleOwnerIds.length}
             />
             <ListRow
               title={t("evoluShardOwner")}
@@ -106,14 +99,11 @@ export function EvoluCurrentDataPage(): React.ReactElement {
         return (
           <Section key={tableName} title={tableName}>
             <Card outlined gap="$xs">
-              <ListRow
-                title={t("evoluTotalRows")}
-                trailing={rowValue(rows.length)}
-              />
+              <ListRow title={t("evoluTotalRows")} value={rows.length} />
               {shard ? (
                 <ListRow
                   title={t("evoluShardIndex")}
-                  trailing={rowValue(`${shard.scope} / ${shard.index}`)}
+                  value={`${shard.scope} / ${shard.index}`}
                 />
               ) : null}
               {rows.length > 0 ? (
@@ -123,14 +113,14 @@ export function EvoluCurrentDataPage(): React.ReactElement {
               )}
               {rows.length > PREVIEW_ROW_COUNT ? (
                 <Row flexWrap="wrap" justifyContent="space-between">
-                  {rowValue(
-                    isExpanded
+                  <Text variant="label" color="$colorMuted">
+                    {isExpanded
                       ? t("evoluShowingAllRows")
                       : t("evoluShowingPreviewRows").replace(
                           "{count}",
                           String(visibleRows.length),
-                        ),
-                  )}
+                        )}
+                  </Text>
                   <Button
                     size="sm"
                     variant="secondary"

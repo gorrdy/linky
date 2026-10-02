@@ -74,11 +74,7 @@ export function EvoluServerPage(): React.ReactElement {
 
       <ListRow
         title={t("evoluSyncLabel")}
-        trailing={
-          <Text variant="label" color="$colorMuted">
-            {t(status.labelKey)}
-          </Text>
-        }
+        value={t(status.labelKey)}
         testID="evoluSyncLabel"
       />
 

@@ -8,6 +8,7 @@ import {
   Section,
   Stack,
   Text,
+  ListRow,
 } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useMintSettingsContext } from "../app/context/SystemSettingsContexts";
@@ -17,7 +18,6 @@ import { MintDeferredReceives } from "../components/MintDeferredReceives";
 import { MintFees } from "../components/MintFees";
 import { MintIcon } from "../components/MintIcon";
 import { MintMoveFundsForm } from "../components/MintMoveFundsForm";
-import { ValueRow } from "../components/ValueRow";
 import { navigateTo } from "../hooks/useRouting";
 import { LOCAL_MINT_INFO_STORAGE_KEY_PREFIX } from "../utils/constants";
 import { normalizeLocale } from "../utils/formatting";
@@ -149,9 +149,9 @@ export function MintDetailPage() {
       <Divider />
 
       <Section title={t("mintFundsTitle")}>
-        <ValueRow
+        <ListRow
           icon="Wallet"
-          label={t("mintBalance")}
+          title={t("mintBalance")}
           value={formatDisplayedAmountText(holding.balance)}
         />
       </Section>
@@ -192,9 +192,9 @@ export function MintDetailPage() {
           <Divider />
           <Section title={t("mintInfoTitle")}>
             <Stack gap="$lg">
-              <ValueRow
+              <ListRow
                 icon="Gauge"
-                label={t("mintLatency")}
+                title={t("mintLatency")}
                 value={latencyMs !== null ? `${latencyMs} ms` : t("unknown")}
               />
               <Button

@@ -3,11 +3,9 @@ import {
   EmptyState,
   ListRow,
   Notice,
-  Row,
   Section,
   Stack,
   StatusDot,
-  Text,
   Pill,
 } from "@linky-fit/ui";
 import { evoluSyncStatus } from "../utils/connectionStatus";
@@ -74,16 +72,12 @@ export function EvoluServersPage(): React.ReactElement {
                     <Pill size="sm" label={t("relayRecommended")} />
                   ) : undefined
                 }
+                value={t(status.labelKey)}
                 trailing={
-                  <Row gap="$sm">
-                    <StatusDot
-                      tone={status.tone}
-                      accessibilityLabel={t(status.labelKey)}
-                    />
-                    <Text variant="label" color="$colorMuted">
-                      {t(status.labelKey)}
-                    </Text>
-                  </Row>
+                  <StatusDot
+                    tone={status.tone}
+                    accessibilityLabel={t(status.labelKey)}
+                  />
                 }
                 onPress={() => navigateTo({ route: "evoluServer", id: url })}
               />
@@ -106,22 +100,13 @@ export function EvoluServersPage(): React.ReactElement {
           <ListRow
             key={shard.scope}
             title={shard.scope}
-            trailing={
-              <Text variant="label" color="$colorMuted">
-                {shard.index} ({shard.visibleOwnerIds.length}{" "}
-                {t("evoluShardVisibleCount").toLowerCase()})
-              </Text>
-            }
+            value={`${shard.index} (${shard.visibleOwnerIds.length} ${t("evoluShardVisibleCount").toLowerCase()})`}
           />
         ))}
 
         <ListRow
           title={t("evoluSyncedOwners")}
-          trailing={
-            <Text variant="label" color="$colorMuted">
-              {evoluSyncOwnerIds.length}
-            </Text>
-          }
+          value={evoluSyncOwnerIds.length}
           testID="evoluSyncedOwners"
         />
       </Section>
@@ -129,22 +114,14 @@ export function EvoluServersPage(): React.ReactElement {
       <Section title={t("evoluRowCounts")}>
         <ListRow
           title={t("evoluData")}
-          trailing={
-            <Text variant="label" color="$colorMuted">
-              {formatEvoluRowCount(t, totalCurrentRows)}
-            </Text>
-          }
+          value={formatEvoluRowCount(t, totalCurrentRows)}
           testID="evoluData"
           onPress={() => navigateTo({ route: "evoluCurrentData" })}
         />
 
         <ListRow
           title={t("evoluHistory")}
-          trailing={
-            <Text variant="label" color="$colorMuted">
-              {formatEvoluRowCount(t, evoluHistoryCount)}
-            </Text>
-          }
+          value={formatEvoluRowCount(t, evoluHistoryCount)}
           testID="evoluHistory"
           onPress={() => navigateTo({ route: "evoluHistoryData" })}
         />

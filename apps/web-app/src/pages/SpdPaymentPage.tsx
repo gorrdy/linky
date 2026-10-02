@@ -10,6 +10,7 @@ import {
   Text,
   TextField,
   border,
+  ListRow,
 } from "@linky-fit/ui";
 import type { ContactRowLike } from "../app/types/appTypes";
 import React from "react";
@@ -29,7 +30,6 @@ import {
   updateBankPaymentFields,
 } from "@linky-fit/proxy-payment";
 import { DisplayAmount } from "../components/DisplayAmount";
-import { ValueRow } from "../components/ValueRow";
 import { BankPaymentScreen, InvalidOfferView } from "./BankPaymentOfferViews";
 import { navigateTo } from "../hooks/useRouting";
 import type { I18nKey, Translate } from "../i18n";
@@ -516,10 +516,10 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
 
       <Stack gap="$xs">
         {rows.map((row) => (
-          <ValueRow
+          <ListRow
             key={row.key}
             testID="bank-payment-row"
-            label={row.label}
+            title={row.label}
             value={row.value}
           />
         ))}

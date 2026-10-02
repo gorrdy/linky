@@ -122,16 +122,11 @@ describe("MintMoveFundsForm", () => {
     await press(container, ["mintMoveEstimate"]);
     const sweep = { sourceMint: SOURCE_MINT, targetMint: TARGET_MINT };
     expect(estimateMintMove.mock.calls[0]?.[0]).toStrictEqual(sweep);
-    const values = [
-      "mintMoveArrives",
-      "mintMoveFeeLightning",
-      "mintMoveFeeInput",
-      "mintMoveTotal",
-    ].map(
-      (label) =>
-        container.querySelector(`[aria-label="${label}"]`)?.textContent,
+    expect(
+      container.querySelector('[aria-label="mintMoveEstimate"]')?.textContent,
+    ).toBe(
+      "mintMoveArrives95 satmintMoveFeeLightning4 satmintMoveFeeInput1 satmintMoveTotal100 sat",
     );
-    expect(values).toEqual(["95 sat", "4 sat", "1 sat", "100 sat"]);
     expect(container.textContent).toContain("mintMoveSweepNote");
 
     await press(container, ["mintMoveConfirm"]);

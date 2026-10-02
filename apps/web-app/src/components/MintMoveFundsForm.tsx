@@ -6,6 +6,7 @@ import {
   Section,
   Stack,
   Text,
+  ListRow,
 } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -15,7 +16,6 @@ import { formatMintLabel, mintKindBadge } from "../utils/mint";
 import { AmountKeypad } from "./AmountKeypad";
 import { MintButton } from "./MintButton";
 import { useAmountInputKeypad } from "./useAmountInputKeypad";
-import { ValueRow } from "./ValueRow";
 
 interface MintMoveFundsFormProps {
   /** Sat available at the source mint. */
@@ -155,20 +155,20 @@ export function MintMoveFundsForm({
       {rows !== null ? (
         <>
           <Stack aria-label={t("mintMoveEstimate")} gap="$xs">
-            <ValueRow
-              label={t("mintMoveArrives")}
+            <ListRow
+              title={t("mintMoveArrives")}
               value={formatDisplayedAmountText(rows.arrives)}
             />
-            <ValueRow
-              label={t("mintMoveFeeLightning")}
+            <ListRow
+              title={t("mintMoveFeeLightning")}
               value={formatDisplayedAmountText(rows.lightningFeeReserve)}
             />
-            <ValueRow
-              label={t("mintMoveFeeInput")}
+            <ListRow
+              title={t("mintMoveFeeInput")}
               value={formatDisplayedAmountText(rows.inputFee)}
             />
-            <ValueRow
-              label={t("mintMoveTotal")}
+            <ListRow
+              title={t("mintMoveTotal")}
               value={formatDisplayedAmountText(rows.leaves)}
             />
           </Stack>
