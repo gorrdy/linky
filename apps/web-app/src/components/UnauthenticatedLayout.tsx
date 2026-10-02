@@ -6,6 +6,7 @@ import {
   Form,
   Icon,
   IconButton,
+  LoadingState,
   Notice,
   Pressable,
   Row,
@@ -205,19 +206,10 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
 
   const renderPreparingStep = (
     step: Extract<OnboardingStep, { kind: "preparing" }>,
-  ) => {
-    return (
+  ) =>
+    step.error ? (
       <>
-        <Text color="$colorMuted" textAlign="center" role="status">
-          {step.step === 1
-            ? formatTemplate(t("onboardingStep1"), {
-                name: step.derivedName ?? "",
-              })
-            : t("onboardingStep2")}
-        </Text>
-
-        {step.error ? <Notice tone="danger" title={step.error} /> : null}
-
+        <Notice tone="danger" title={step.error} />
         <Button
           variant="secondary"
           onPress={() => setOnboardingStep(null)}
@@ -226,8 +218,17 @@ export const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({
           {t("onboardingRetry")}
         </Button>
       </>
+    ) : (
+      <LoadingState
+        label={
+          step.step === 1
+            ? formatTemplate(t("onboardingStep1"), {
+                name: step.derivedName ?? "",
+              })
+            : t("onboardingStep2")
+        }
+      />
     );
-  };
 
   const renderReturnStep = (step: ReturningOnboardingStep) => {
     const analysis = analyzeSlip39Input(step.input);
