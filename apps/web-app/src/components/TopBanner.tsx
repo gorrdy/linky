@@ -2,7 +2,7 @@ import { Notice, Stack } from "@linky-fit/ui";
 import type { NoticeProps } from "@linky-fit/ui";
 
 /** An app-wide solid notice pinned to the top edge, above the top bar. */
-export function TopBanner(props: Omit<NoticeProps, "solid">) {
+export function TopBanner(props: Omit<NoticeProps, "solid" | "tone">) {
   return (
     <Stack
       position="fixed"
