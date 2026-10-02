@@ -175,7 +175,7 @@ export function AdvancedPage(): React.ReactElement {
     />
   );
   const valueText = (text: string) => (
-    <Text variant="label" bold color="$colorSubtle" numberOfLines={1}>
+    <Text variant="label" color="$colorMuted" numberOfLines={1}>
       {text}
     </Text>
   );

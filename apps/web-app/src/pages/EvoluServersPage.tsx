@@ -92,22 +92,14 @@ export function EvoluServersPage(): React.ReactElement {
         </Stack>
       )}
 
-      <Row
-        justifyContent="space-between"
-        minHeight="$control"
-        paddingVertical="$sm"
+      <Button
+        onPress={requestClearDatabase}
+        disabled={evoluErrorType === "ProtocolQuotaError"}
+        loading={evoluWipeStorageIsBusy}
+        variant={clearDatabaseArmed ? "danger" : "secondary"}
       >
-        <Button
-          width="100%"
-          type="button"
-          onPress={requestClearDatabase}
-          disabled={evoluErrorType === "ProtocolQuotaError"}
-          loading={evoluWipeStorageIsBusy}
-          variant={clearDatabaseArmed ? "danger" : "secondary"}
-        >
-          {t("evoluClearDatabase")}
-        </Button>
-      </Row>
+        {t("evoluClearDatabase")}
+      </Button>
 
       <Section title={t("evoluShards")}>
         {evoluShards.map((shard) => (
@@ -115,12 +107,10 @@ export function EvoluServersPage(): React.ReactElement {
             key={shard.scope}
             title={shard.scope}
             trailing={
-              <>
-                <Text variant="label" color="$colorMuted">
-                  {shard.index} ({shard.visibleOwnerIds.length}{" "}
-                  {t("evoluShardVisibleCount").toLowerCase()})
-                </Text>
-              </>
+              <Text variant="label" color="$colorMuted">
+                {shard.index} ({shard.visibleOwnerIds.length}{" "}
+                {t("evoluShardVisibleCount").toLowerCase()})
+              </Text>
             }
           />
         ))}
@@ -128,11 +118,9 @@ export function EvoluServersPage(): React.ReactElement {
         <ListRow
           title={t("evoluSyncedOwners")}
           trailing={
-            <>
-              <Text variant="label" color="$colorMuted">
-                {evoluSyncOwnerIds.length}
-              </Text>
-            </>
+            <Text variant="label" color="$colorMuted">
+              {evoluSyncOwnerIds.length}
+            </Text>
           }
           testID="evoluSyncedOwners"
         />
@@ -142,11 +130,9 @@ export function EvoluServersPage(): React.ReactElement {
         <ListRow
           title={t("evoluData")}
           trailing={
-            <>
-              <Text variant="label" color="$colorMuted">
-                {formatEvoluRowCount(t, totalCurrentRows)}
-              </Text>
-            </>
+            <Text variant="label" color="$colorMuted">
+              {formatEvoluRowCount(t, totalCurrentRows)}
+            </Text>
           }
           testID="evoluData"
           onPress={() => navigateTo({ route: "evoluCurrentData" })}
@@ -155,11 +141,9 @@ export function EvoluServersPage(): React.ReactElement {
         <ListRow
           title={t("evoluHistory")}
           trailing={
-            <>
-              <Text variant="label" color="$colorMuted">
-                {formatEvoluRowCount(t, evoluHistoryCount)}
-              </Text>
-            </>
+            <Text variant="label" color="$colorMuted">
+              {formatEvoluRowCount(t, evoluHistoryCount)}
+            </Text>
           }
           testID="evoluHistory"
           onPress={() => navigateTo({ route: "evoluHistoryData" })}

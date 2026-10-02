@@ -7,6 +7,12 @@ import { useShardSummaries } from "../app/hooks/useLinksync";
 import { forgetChatShards } from "../evolu";
 import { useArmedAction } from "../hooks/useArmedAction";
 
+const rowValue = (value: React.ReactNode) => (
+  <Text variant="label" color="$colorMuted">
+    {value}
+  </Text>
+);
+
 export function ChatStoragePage(): React.ReactElement {
   const { t } = useAppShellCore();
   const { pushToast } = useAdvancedSettingsContext();
@@ -42,12 +48,12 @@ export function ChatStoragePage(): React.ReactElement {
       <ListRow
         testID="chat-storage-total"
         title={t("chatStorageTotal")}
-        trailing={<Text>{messages ? messages.index + 1 : t("unknown")}</Text>}
+        trailing={rowValue(messages ? messages.index + 1 : t("unknown"))}
       />
       <ListRow
         testID="chat-storage-subscribed"
         title={t("chatStorageSubscribed")}
-        trailing={<Text>{messages ? subscribed : t("unknown")}</Text>}
+        trailing={rowValue(messages ? subscribed : t("unknown"))}
       />
       <Text color="$colorMuted">{t("chatStorageForgetHint")}</Text>
       <Button

@@ -1,4 +1,4 @@
-import { Badge, ListRow, Row, Stack, StatusDot, Text } from "@linky-fit/ui";
+import { ListRow, Row, Stack, StatusDot, Text, Pill } from "@linky-fit/ui";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { RelayDotState } from "../app/hooks/useRelayHealth";
 import { navigateTo } from "../hooks/useRouting";
@@ -24,14 +24,16 @@ export function NostrRelayRow({
     <ListRow
       title={url}
       description={
-        <Stack gap="$xxs">
-          {label ? <Pill size="sm" label={label} /> : null}
-          {detail ? (
-            <Text variant="caption" color="$colorMuted">
-              {detail}
-            </Text>
-          ) : null}
-        </Stack>
+        label || detail ? (
+          <Stack gap="$xxs">
+            {label ? <Pill size="sm" label={label} /> : null}
+            {detail ? (
+              <Text variant="caption" color="$colorMuted">
+                {detail}
+              </Text>
+            ) : null}
+          </Stack>
+        ) : undefined
       }
       trailing={
         <Row gap="$sm">

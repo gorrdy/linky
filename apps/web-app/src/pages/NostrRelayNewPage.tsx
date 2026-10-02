@@ -1,4 +1,4 @@
-import { Stack, Row, Button, TextField } from "@linky-fit/ui";
+import { Form, SubmitButton, TextField } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import { useRelaySettingsContext } from "../app/context/SystemSettingsContexts";
@@ -8,7 +8,7 @@ export function NostrRelayNewPage(): React.ReactElement {
     useRelaySettingsContext();
   const { t } = useAppShellCore();
   return (
-    <Stack>
+    <Form onSubmit={saveNewRelay}>
       <TextField
         label={t("relayUrl")}
         id="relayUrl"
@@ -19,12 +19,9 @@ export function NostrRelayNewPage(): React.ReactElement {
         autoCorrect={false}
         spellCheck={false}
       />
-
-      <Row justifyContent="flex-end">
-        {canSaveNewRelay ? (
-          <Button onPress={saveNewRelay}>{t("saveChanges")}</Button>
-        ) : null}
-      </Row>
-    </Stack>
+      <SubmitButton disabled={!canSaveNewRelay}>
+        {t("saveChanges")}
+      </SubmitButton>
+    </Form>
   );
 }

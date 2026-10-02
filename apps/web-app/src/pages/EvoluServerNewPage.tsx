@@ -1,4 +1,4 @@
-import { Stack, Row, Button, TextField } from "@linky-fit/ui";
+import { Form, SubmitButton, TextField } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import {
@@ -19,8 +19,28 @@ export function EvoluServerNewPage(): React.ReactElement {
   const { t } = useAppShellCore();
   const { pushToast } = useAdvancedSettingsContext();
 
+  const addServer = () => {
+    const normalized = normalizeEvoluServerUrl(newEvoluServerUrl);
+    if (!normalized) {
+      pushToast(t("evoluAddServerInvalid"));
+      return;
+    }
+    if (
+      evoluServerUrls.some((u) => u.toLowerCase() === normalized.toLowerCase())
+    ) {
+      pushToast(t("evoluAddServerAlready"));
+      navigateTo({ route: "evoluServers" });
+      return;
+    }
+
+    saveEvoluServerUrls([...evoluServerUrls, normalized]);
+    setNewEvoluServerUrl("");
+    setStatus(t("evoluAddServerSaved"));
+    navigateTo({ route: "evoluServers" });
+  };
+
   return (
-    <Stack>
+    <Form onSubmit={addServer}>
       <TextField
         label={t("evoluAddServerLabel")}
         id="evoluServerUrl"
@@ -31,36 +51,9 @@ export function EvoluServerNewPage(): React.ReactElement {
         autoCorrect={false}
         spellCheck={false}
       />
-
-      <Row justifyContent="flex-end">
-        <Button
-          type="button"
-          onPress={() => {
-            const normalized = normalizeEvoluServerUrl(newEvoluServerUrl);
-            if (!normalized) {
-              pushToast(t("evoluAddServerInvalid"));
-              return;
-            }
-            if (
-              evoluServerUrls.some(
-                (u) => u.toLowerCase() === normalized.toLowerCase(),
-              )
-            ) {
-              pushToast(t("evoluAddServerAlready"));
-              navigateTo({ route: "evoluServers" });
-              return;
-            }
-
-            saveEvoluServerUrls([...evoluServerUrls, normalized]);
-            setNewEvoluServerUrl("");
-            setStatus(t("evoluAddServerSaved"));
-            navigateTo({ route: "evoluServers" });
-          }}
-          disabled={!normalizeEvoluServerUrl(newEvoluServerUrl)}
-        >
-          {t("evoluAddServerButton")}
-        </Button>
-      </Row>
-    </Stack>
+      <SubmitButton disabled={!normalizeEvoluServerUrl(newEvoluServerUrl)}>
+        {t("evoluAddServerButton")}
+      </SubmitButton>
+    </Form>
   );
 }
