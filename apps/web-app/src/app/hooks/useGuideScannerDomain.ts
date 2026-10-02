@@ -85,16 +85,14 @@ type UseGuideScannerDomainResult = ReturnType<typeof useContactsGuide> & {
 const MAX_QR_DECODE_SIDE = 640;
 
 const readNativeScanViewport = (): NativeScanViewport | null => {
-  const header = document.querySelector("[data-scan-region=header]");
-  const footer = document.querySelector("[data-scan-region=footer]");
-  if (!(header instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
-    return null;
-  }
+  const preview = document.querySelector("[data-scan-region=preview]");
+  if (!(preview instanceof HTMLElement)) return null;
 
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const top = Math.max(0, header.getBoundingClientRect().bottom);
-  const bottom = Math.min(viewportHeight, footer.getBoundingClientRect().top);
+  const rect = preview.getBoundingClientRect();
+  const top = Math.max(0, rect.top);
+  const bottom = Math.min(viewportHeight, rect.bottom);
   const height = bottom - top;
 
   if (viewportWidth <= 0 || viewportHeight <= 0 || height <= 0) {

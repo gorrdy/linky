@@ -121,33 +121,23 @@ export function ScanModal(): React.ReactElement {
 
   const content = (
     <>
-      <Row justifyContent="space-between" data-scan-region="header">
-        <Text variant="label" bold>
-          {title}
-        </Text>
-        <IconButton
-          icon="X"
-          size="sm"
-          accessibilityLabel={t("close")}
-          onPress={handleClose}
-        />
-      </Row>
-
-      <MediaFrame accessibilityLabel={t("scanCameraPreview")} fill>
-        <CameraPreview videoRef={scanVideoRef} />
-        {scanCanSwitchCamera ? (
-          <Stack position="absolute" right="$md" bottom="$md">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon="SwitchCamera"
-              onPress={cycleScanCamera}
-            >
-              {t("scanSwitchCamera")}
-            </Button>
-          </Stack>
-        ) : null}
-      </MediaFrame>
+      <Stack flex={1} minHeight={0} data-scan-region="preview">
+        <MediaFrame accessibilityLabel={t("scanCameraPreview")} fill>
+          <CameraPreview videoRef={scanVideoRef} />
+          {scanCanSwitchCamera ? (
+            <Stack position="absolute" right="$md" bottom="$md">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="SwitchCamera"
+                onPress={cycleScanCamera}
+              >
+                {t("scanSwitchCamera")}
+              </Button>
+            </Stack>
+          ) : null}
+        </MediaFrame>
+      </Stack>
 
       <Stack
         gap="$sm"
@@ -225,6 +215,15 @@ export function ScanModal(): React.ReactElement {
         padding="$xl"
         backgroundColor="$background"
       >
+        <Row justifyContent="space-between">
+          <Text variant="title">{title}</Text>
+          <IconButton
+            icon="X"
+            size="sm"
+            accessibilityLabel={t("close")}
+            onPress={handleClose}
+          />
+        </Row>
         {content}
       </Stack>
     );
@@ -237,7 +236,7 @@ export function ScanModal(): React.ReactElement {
         if (!open) handleClose();
       }}
       title={title}
-      hideTitle
+      closeLabel={t("close")}
       fullScreen
     >
       {content}
