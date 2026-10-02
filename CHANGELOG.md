@@ -12,17 +12,25 @@ používá také v Google Play a musí se vejít do 500 znaků na jazyk.
 
 ## [Unreleased]
 
+## [26.10.1] - 2026-10-02
+
 ### en-US
 
-- Every Evolu server can be removed or disabled, including the defaults; removing one default no longer restores the other. The server list warns when no server is enabled, so data stays on this device only.
-- Settings > Payments > Receive method chooses which QR a top-up shows: Cashu, Universal (Cashu and Lightning in one) or Lightning. The switch on the top-up page is gone.
-- Lightning login (LNURL-auth) shows a success screen with an unlock animation instead of "HTTP 400" on sites that block browser requests; the site's own error reason is shown when it rejects a login.
+- Payments animate from the moment you press Send and show the contact and amount.
+- Cashu receives cut short by a reload resume; tokens whose mint is down are kept as pending and retried.
+- History lists each payment once, without failed attempts.
+- Receive method (Cashu, Universal, Lightning) is in Settings > Payments; any Evolu server can be removed.
+- LNURL-auth login shows a success screen.
+- Logout erases data in every tab; fixed startup on iOS 16.
 
 ### cs-CZ
 
-- Každý Evolu server jde odebrat nebo vypnout, včetně výchozích; odebrání jednoho výchozího už neobnoví druhý. Seznam serverů upozorní, když není zapnutý žádný server a data tak zůstávají jen na tomto zařízení.
-- Nastavení > Platby > Způsob přijímání určuje, jaký QR se u dobití zobrazí: Cashu, Univerzální (Cashu a Lightning v jednom) nebo Lightning. Přepínač na stránce dobití zmizel.
-- Přihlášení Lightningem (LNURL-auth) ukáže obrazovku úspěchu s animací odemknutí místo „HTTP 400“ na webech, které blokují požadavky z prohlížeče; když web přihlášení odmítne, zobrazí se jeho vlastní důvod.
+- Animace platby začne hned po stisku Odeslat a ukáže kontakt a částku.
+- Cashu příjem přerušený obnovením stránky se dokončí; tokeny s nedostupným mintem se uchovají jako čekající a zkouší se znovu.
+- Historie ukazuje každou platbu jednou, bez neúspěšných pokusů.
+- Způsob přijímání (Cashu, Univerzální, Lightning) je v Nastavení > Platby; každý Evolu server jde odebrat.
+- Přihlášení přes LNURL-auth ukáže obrazovku úspěchu.
+- Odhlášení smaže data ve všech kartách; opraveno spuštění na iOS 16.
 
 ## [26.9.21] - 2026-09-28
 
