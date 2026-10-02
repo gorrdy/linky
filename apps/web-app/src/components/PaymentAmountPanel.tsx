@@ -1,4 +1,4 @@
-import { Button, Stack } from "@linky-fit/ui";
+import { Button, Notice, Stack } from "@linky-fit/ui";
 import type { IconName } from "@linky-fit/ui";
 import type { FC, ReactNode } from "react";
 import type { Translate } from "../i18n";
@@ -16,9 +16,10 @@ interface PaymentAmountPanelProps {
   stepGuideId?: string | undefined;
   submitBusy?: boolean | undefined;
   submitDisabled: boolean;
+  /** Why the amount cannot be sent, e.g. not enough funds. */
+  submitBlockedReason?: string | undefined;
   submitIcon?: IconName | undefined;
   submitLabel?: string | undefined;
-  submitTitle?: string | undefined;
   t: Translate;
 }
 
@@ -33,9 +34,9 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
   stepGuideId,
   submitBusy,
   submitDisabled,
+  submitBlockedReason,
   submitIcon,
   submitLabel,
-  submitTitle,
   t,
 }) => {
   const isSubmitBusy = submitBusy ?? cashuIsBusy;
@@ -53,13 +54,21 @@ export const PaymentAmountPanel: FC<PaymentAmountPanelProps> = ({
           disabled={cashuIsBusy}
         />
 
+        {submitBlockedReason ? (
+          <Notice
+            tone="accent"
+            icon="CircleAlert"
+            title={submitBlockedReason}
+          />
+        ) : null}
+
         <Button
           icon={submitIcon ?? "HandCoins"}
           loading={isSubmitBusy}
           onPress={onSubmit}
           disabled={cashuIsBusy || submitDisabled}
           data-guide={sendGuideId}
-          tooltip={submitTitle}
+          tooltip={submitBlockedReason}
         >
           {isSubmitBusy ? t("payPaying") : (submitLabel ?? t("paySend"))}
         </Button>

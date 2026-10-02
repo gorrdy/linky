@@ -499,9 +499,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
             );
           })}
           {editError && editError.field === null ? (
-            <Text variant="caption" color="$dangerText" role="alert">
-              {t(editError.key)}
-            </Text>
+            <Notice tone="danger" title={t(editError.key)} />
           ) : null}
         </Stack>
 
@@ -602,7 +600,7 @@ export const SpdPaymentPage: React.FC<SpdPaymentPageProps> = ({
         </Row>
       ) : null}
 
-      {offerStatus ? <Text color="$colorMuted">{offerStatus}</Text> : null}
+      {offerStatus ? <Notice tone="danger" title={offerStatus} /> : null}
     </BankPaymentScreen>
   );
 };

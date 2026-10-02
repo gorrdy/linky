@@ -1,4 +1,4 @@
-import { Text } from "@linky-fit/ui";
+import { Notice, Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import type { LnurlPayPreview } from "../lnurlPay";
 import type { Translate } from "../i18n";
@@ -22,9 +22,11 @@ export const LnurlPayPreviewNotices: FC<LnurlPayPreviewNoticesProps> = ({
   }
   if (error) {
     return (
-      <Text color="$colorMuted">
-        {t("lnurlPayLoadFailed")}: {error}
-      </Text>
+      <Notice
+        tone="danger"
+        title={t("lnurlPayLoadFailed")}
+        description={error}
+      />
     );
   }
   if (!preview) return null;

@@ -1,5 +1,5 @@
 import type { AutoswapEstimate } from "@linky-fit/linkshu";
-import { Button, Stack, Text } from "@linky-fit/ui";
+import { Button, Notice, Stack, Text } from "@linky-fit/ui";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
 import type { MintMove } from "../app/hooks/mint/useMoveMintFunds";
@@ -166,13 +166,13 @@ export function MintMoveFundsForm({
               value={formatDisplayedAmountText(rows.leaves)}
             />
           </Stack>
-          <Text color="$colorMuted">
-            {exceedsBalance
-              ? t("mintMoveExceedsBalance")
-              : isSweep
-                ? t("mintMoveSweepNote")
-                : t("mintMoveEstimateNote")}
-          </Text>
+          {exceedsBalance ? (
+            <Notice tone="danger" title={t("mintMoveExceedsBalance")} />
+          ) : (
+            <Text color="$colorMuted">
+              {isSweep ? t("mintMoveSweepNote") : t("mintMoveEstimateNote")}
+            </Text>
+          )}
           <Button
             disabled={busy || exceedsBalance}
             onPress={() => void runMove()}

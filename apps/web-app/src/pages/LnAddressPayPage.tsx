@@ -88,12 +88,10 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
     previewError !== null ||
     rangeError !== null;
 
-  let submitTitle: string | undefined;
-  if (amountSat > cashuBalanceAfterMelt) {
-    submitTitle = t("payInsufficient");
-  } else if (rangeError !== null) {
-    submitTitle = rangeError;
-  }
+  const submitBlockedReason =
+    amountSat > cashuBalanceAfterMelt
+      ? t("payInsufficient")
+      : (rangeError ?? undefined);
 
   return (
     <PaymentAmountPanel
@@ -141,7 +139,7 @@ export const LnAddressPayPage: FC<LnAddressPayPageProps> = ({
       }}
       submitBusy={cashuIsBusy}
       submitDisabled={invalid}
-      submitTitle={submitTitle}
+      submitBlockedReason={submitBlockedReason}
       t={t}
     />
   );

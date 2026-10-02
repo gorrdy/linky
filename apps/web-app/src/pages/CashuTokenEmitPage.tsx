@@ -31,22 +31,23 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
   const { formatDisplayedAmountText, t } = useAppShellCore();
   const [mintWarningDismissed, setMintWarningDismissed] = useState(false);
   const amountSat = Number.parseInt(cashuEmitAmount.trim(), 10);
+  const insufficient = amountSat > cashuBalance;
   const invalid =
     !Number.isFinite(amountSat) ||
     amountSat <= 0 ||
-    amountSat > cashuBalance ||
+    insufficient ||
     cashuIsBusy;
   const canUseFullAvailableAmount = cashuBalance > 0 && !cashuIsBusy;
   const availableAmountText = `${t("availablePrefix")} ${formatDisplayedAmountText(
     cashuBalance,
   )}`;
-  const showMintWarning =
+  const meltLabel =
     cashuHasMultipleAcceptedMints &&
-    Boolean(cashuMeltToMainMintButtonLabel) &&
-    Number.isFinite(amountSat) &&
-    amountSat > cashuBalance &&
+    insufficient &&
     amountSat <= cashuBalanceAfterMelt &&
-    !mintWarningDismissed;
+    !mintWarningDismissed
+      ? cashuMeltToMainMintButtonLabel
+      : null;
   const amountInput = useAmountInputKeypad({
     amount: cashuEmitAmount,
     onAmountChange: (nextAmount) => setCashuEmitAmount(nextAmount),
@@ -54,28 +55,20 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
 
   return (
     <Stack gap="$lg">
-      {showMintWarning ? (
+      {meltLabel ? (
         <Notice
-          tone="warning"
+          tone="accent"
+          icon="CircleAlert"
           title={t("cashuMultipleMintsWarningTitle")}
+          description={t("cashuMultipleMintsWarningBody")}
+          action={{
+            label: meltLabel,
+            onPress: () => void meltLargestForeignMintToMainMint(),
+          }}
           dismiss={{
             label: t("close"),
             onPress: () => setMintWarningDismissed(true),
           }}
-          description={
-            <Stack gap="$sm">
-              <Text variant="caption" color="$colorSubtle">
-                {t("cashuMultipleMintsWarningBody")}
-              </Text>
-              <Button
-                variant="secondary"
-                onPress={() => void meltLargestForeignMintToMainMint()}
-                disabled={cashuIsBusy}
-              >
-                {cashuMeltToMainMintButtonLabel}
-              </Button>
-            </Stack>
-          }
         />
       ) : null}
 
@@ -99,12 +92,16 @@ export const CashuTokenEmitPage: FC<CashuTokenEmitPageProps> = ({
         disabled={cashuIsBusy}
       />
 
+      {insufficient && !meltLabel ? (
+        <Notice tone="accent" icon="CircleAlert" title={t("payInsufficient")} />
+      ) : null}
+
       <Button
         onPress={() => {
           void emitCashuToken();
         }}
         disabled={invalid}
-        tooltip={amountSat > cashuBalance ? t("payInsufficient") : undefined}
+        tooltip={insufficient ? t("payInsufficient") : undefined}
       >
         {t("cashuEmit")}
       </Button>

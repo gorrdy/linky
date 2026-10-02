@@ -4,6 +4,7 @@ import {
   FileAttachment,
   ImageAttachment,
   ListRow,
+  Notice,
   Progress,
   QRCode,
   Row,
@@ -91,12 +92,6 @@ const StateTitle = ({ children }: { children: string }) => (
 
 const MutedCopy = ({ children }: { children: string }) => (
   <Text color="$colorMuted" textAlign="center">
-    {children}
-  </Text>
-);
-
-const ErrorText = ({ children }: { children: string }) => (
-  <Text variant="caption" color="$dangerText">
     {children}
   </Text>
 );
@@ -520,7 +515,7 @@ export function IncomingOfferView({
         {timerWithExtension(entry, remainingSec)}
       </StateCopy>
 
-      {errorText ? <ErrorText>{errorText}</ErrorText> : null}
+      {errorText ? <Notice tone="danger" title={errorText} /> : null}
 
       <Stack gap="$sm" marginBottom="$huge">
         <Button
@@ -625,7 +620,7 @@ export function WaitingForSatsOfferView({
         </MutedCopy>
         {remainingSec !== null ? timerWithExtension(entry, remainingSec) : null}
       </StateCopy>
-      {errorText ? <ErrorText>{errorText}</ErrorText> : null}
+      {errorText ? <Notice tone="danger" title={errorText} /> : null}
     </BankPaymentScreen>
   );
 }
@@ -797,7 +792,7 @@ export function BankDetailsOfferView({
         </Button>
       </Row>
 
-      {errorText ? <ErrorText>{errorText}</ErrorText> : null}
+      {errorText ? <Notice tone="danger" title={errorText} /> : null}
     </BankPaymentScreen>
   );
 }

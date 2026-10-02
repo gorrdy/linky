@@ -1,4 +1,4 @@
-import { Button, LoadingState, QRCode, Stack, Text } from "@linky-fit/ui";
+import { Button, LoadingState, Notice, QRCode, Stack } from "@linky-fit/ui";
 import { type FC } from "react";
 import { DisplayAmount } from "../components/DisplayAmount";
 import type { Translate } from "../i18n";
@@ -89,7 +89,7 @@ export const TopupInvoicePage: FC<TopupInvoicePageProps> = ({
           </Button>
         </Stack>
       ) : topupInvoiceError ? (
-        <Text color="$colorMuted">{topupInvoiceError}</Text>
+        <Notice tone="danger" title={topupInvoiceError} />
       ) : (
         <LoadingState label={t("topupFetchingInvoice")} />
       )}

@@ -1,4 +1,4 @@
-import { Button, Dialog, Stack, Text } from "@linky-fit/ui";
+import { Button, Dialog, Notice, Stack, Text } from "@linky-fit/ui";
 import type { ReactNode } from "react";
 import { DisplayAmount } from "./DisplayAmount";
 
@@ -73,6 +73,9 @@ export function PaymentConfirmDialog({
         )}
         {description ? caption(description) : null}
         {meta ? caption(meta, true) : null}
+        {disabled && disabledReason ? (
+          <Notice tone="accent" icon="CircleAlert" title={disabledReason} />
+        ) : null}
       </Stack>
     </Dialog>
   );

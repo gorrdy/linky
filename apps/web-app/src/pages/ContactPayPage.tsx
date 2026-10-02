@@ -2,6 +2,7 @@ import {
   Avatar,
   EmptyState,
   IconButton,
+  Notice,
   Pressable,
   Row,
   Stack,
@@ -171,15 +172,15 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
       notices={
         <>
           {!isRequestFlow && method === "cashu" && !payWithCashuEnabled && (
-            <Text color="$colorMuted">{t("payWithCashuDisabled")}</Text>
+            <Notice tone="danger" title={t("payWithCashuDisabled")} />
           )}
 
           {method === "cashu" && !npub && (
-            <Text color="$colorMuted">{t("chatMissingContactNpub")}</Text>
+            <Notice tone="danger" title={t("chatMissingContactNpub")} />
           )}
 
           {method === "lightning" && !ln && (
-            <Text color="$colorMuted">{t("payMissingLn")}</Text>
+            <Notice tone="danger" title={t("payMissingLn")} />
           )}
 
           {lightningActive && (
@@ -206,10 +207,8 @@ export const ContactPayPage: FC<ContactPayPageProps> = ({
       submitDisabled={invalid}
       submitIcon={isRequestFlow ? "Request" : undefined}
       submitLabel={isRequestFlow ? t("requestPaymentSend") : undefined}
-      submitTitle={
-        !isRequestFlow &&
-        method === "lightning" &&
-        validAmount > cashuBalanceAfterMelt
+      submitBlockedReason={
+        !isRequestFlow && validAmount > cashuBalanceAfterMelt
           ? t("payInsufficient")
           : (lnurlRangeError ?? undefined)
       }

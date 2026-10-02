@@ -1,5 +1,5 @@
 import { encodeNpub, Pubkey } from "@linky-fit/linkstr";
-import { Stack, Text } from "@linky-fit/ui";
+import { Notice, Stack, Text } from "@linky-fit/ui";
 import { Schema } from "effect";
 import type { CashuPaymentRequestMessageInfo } from "../app/lib/paymentRequestMessage";
 import type { Translate } from "../i18n";
@@ -73,9 +73,10 @@ export function CashuPaymentRequestConfirmModal({
         </Text>
       ) : null}
       {insecureTransport ? (
-        <Text variant="caption" bold color="$dangerText" textAlign="center">
-          {t("paymentRequestInsecureTransportWarning")}
-        </Text>
+        <Notice
+          tone="danger"
+          title={t("paymentRequestInsecureTransportWarning")}
+        />
       ) : null}
     </Stack>
   );

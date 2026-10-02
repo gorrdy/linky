@@ -6,7 +6,7 @@ import { tokenChatMessages } from "../app/lib/pendingTokenTransfers";
 import type { LocalNostrMessage } from "../app/types/appTypes";
 import { useLatest } from "../hooks/useLatest";
 import type { StoredProof, TokenTransfer } from "@linky-fit/linkshu";
-import { Button, Stack, Text } from "@linky-fit/ui";
+import { Button, Notice, Stack, Text } from "@linky-fit/ui";
 import type { FC } from "react";
 import React from "react";
 import { useAppShellCore } from "../app/context/AppShellContexts";
@@ -229,25 +229,18 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
   if (transfer === undefined) {
     if (!showMissingRecovery) return null;
 
-    return (
-      <Stack gap="$lg">
-        <Text variant="caption" color="$dangerText" textAlign="center">
-          {t("cashuInvalid")}
-        </Text>
-      </Stack>
-    );
+    return <Notice tone="danger" title={t("cashuInvalid")} />;
   }
 
   const isClosed = transfer.status === "done" || transfer.status === "returned";
-  const statusLine = (text: string | null, error = false) => (
-    <Text
-      variant="caption"
-      color={error ? "$dangerText" : "$colorMuted"}
-      textAlign="center"
-    >
+  const statusLine = (text: string) => (
+    <Text variant="caption" color="$colorMuted" textAlign="center">
       {text}
     </Text>
   );
+  const errorText = isFailedReceive
+    ? (formatStoredCashuError(transfer.error) ?? t("cashuReceiveFailed"))
+    : formatStoredCashuError(transfer.error);
 
   return (
     <Stack gap="$lg">
@@ -272,17 +265,10 @@ export const CashuTokenPage: FC<CashuTokenPageProps> = ({
           {`${t("cashuCreated")} ${new Date(transfer.createdAt * 1000).toLocaleString(lang)}`}
         </Text>
 
-        {isFailedReceive
-          ? statusLine(
-              formatStoredCashuError(transfer.error) ?? t("cashuReceiveFailed"),
-              true,
-            )
-          : statusKey !== null
-            ? statusLine(t(statusKey))
-            : null}
-        {!isFailedReceive && transfer.error !== null
-          ? statusLine(formatStoredCashuError(transfer.error), true)
+        {!isFailedReceive && statusKey !== null
+          ? statusLine(t(statusKey))
           : null}
+        {errorText ? <Notice tone="danger" title={errorText} /> : null}
       </Stack>
 
       {isSend && transferProofs.length > 0 ? (
