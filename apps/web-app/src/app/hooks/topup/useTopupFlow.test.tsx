@@ -27,9 +27,11 @@ vi.mock("../../../hooks/useRouting", () => ({
 }));
 
 import { useTopupFlow } from "./useTopupFlow";
+import { parseCashuPaymentRequestMessage } from "../../lib/paymentRequestMessage";
 
 const MINT_URL = "https://mint.example";
 const INVOICE = "lnbc2100n1pfakeinvoice";
+const RECIPIENT_NPROFILE = "nprofile1qtestrecipient";
 
 const topupQuote = (quoteId = "quote-1"): TopupQuote =>
   new TopupQuote({
@@ -78,12 +80,14 @@ interface SetupOptions {
   resumePendingCashuTopups?: ResumePendingCashuTopups;
   routeKind?: Route["kind"];
   startCashuTopup?: StartCashuTopup;
+  topupRecipientNprofile?: string | null;
 }
 
 const setup = async ({
   resumePendingCashuTopups,
   routeKind = "topupInvoice",
   startCashuTopup,
+  topupRecipientNprofile = null,
 }: SetupOptions) => {
   const flowRef: { current: Flow | null } = { current: null };
   const setRouteKindRef: {
@@ -110,7 +114,7 @@ const setup = async ({
       startCashuTopup: startCashuTopup ?? null,
       t: (key) => key,
       topupPaidNavTimerRef,
-      topupRecipientNprofile: null,
+      topupRecipientNprofile,
     });
     React.useEffect(() => {
       flowRef.current = flow;
@@ -298,6 +302,100 @@ describe("useTopupFlow", () => {
       expect.objectContaining({ amount: 21, direction: "in", status: "ok" }),
     );
     expect(harness.flow().topupInvoice).toBeNull();
+    await harness.unmount();
+  });
+});
+
+describe("useTopupFlow cashu payment request id", () => {
+  const creqRequestId = (encoded: string | null): string | null => {
+    if (encoded === null) throw new Error("no cashu payment request built");
+    const parsed = parseCashuPaymentRequestMessage(encoded);
+    if (parsed === null) throw new Error("cashu payment request did not parse");
+    return parsed.requestId;
+  };
+
+  it("does not embed the unlocked quote id as the cashu payment request id", async () => {
+    const quote = topupQuote();
+    const deferred = deferredHandle(quote);
+    const start = vi.fn<StartCashuTopup>(async () =>
+      Either.right(deferred.handle),
+    );
+    const harness = await setup({
+      startCashuTopup: start,
+      topupRecipientNprofile: RECIPIENT_NPROFILE,
+    });
+
+    await act(async () => {
+      harness.flow().setTopupAmount("21");
+    });
+
+    await waitFor(() => {
+      expect(creqRequestId(harness.flow().topupInvoiceCashuRequest)).toEqual(
+        expect.any(String),
+      );
+    });
+    const requestId = creqRequestId(harness.flow().topupInvoiceCashuRequest);
+    expect(requestId).not.toBe(quote.quoteId);
+    await harness.unmount();
+  });
+
+  it("keeps the creq id stable across re-renders for the same quote", async () => {
+    const quote = topupQuote();
+    const deferred = deferredHandle(quote);
+    const start = vi.fn<StartCashuTopup>(async () =>
+      Either.right(deferred.handle),
+    );
+    const harness = await setup({
+      startCashuTopup: start,
+      topupRecipientNprofile: RECIPIENT_NPROFILE,
+    });
+
+    await act(async () => {
+      harness.flow().setTopupAmount("21");
+    });
+    await waitFor(() => {
+      expect(harness.flow().topupInvoiceCashuRequest).not.toBeNull();
+    });
+    const first = creqRequestId(harness.flow().topupInvoiceCashuRequest);
+
+    await harness.setRouteKind("topup");
+    await harness.setRouteKind("topupInvoice");
+
+    await waitFor(() => {
+      expect(harness.flow().topupInvoiceCashuRequest).not.toBeNull();
+    });
+    expect(creqRequestId(harness.flow().topupInvoiceCashuRequest)).toBe(first);
+    expect(start).toHaveBeenCalledTimes(1);
+    await harness.unmount();
+  });
+
+  it("uses a different creq id for a different quote", async () => {
+    let next = 0;
+    const start = vi.fn<StartCashuTopup>(async () => {
+      next += 1;
+      return Either.right(deferredHandle(topupQuote(`quote-${next}`)).handle);
+    });
+    const harness = await setup({
+      startCashuTopup: start,
+      topupRecipientNprofile: RECIPIENT_NPROFILE,
+    });
+
+    await act(async () => {
+      harness.flow().setTopupAmount("21");
+    });
+    await waitFor(() => {
+      expect(harness.flow().topupInvoiceCashuRequest).not.toBeNull();
+    });
+    const first = creqRequestId(harness.flow().topupInvoiceCashuRequest);
+
+    await act(async () => {
+      harness.flow().setTopupAmount("42");
+    });
+    await waitFor(() => {
+      const current = creqRequestId(harness.flow().topupInvoiceCashuRequest);
+      expect(current).not.toBe(first);
+    });
+    expect(start).toHaveBeenCalledTimes(2);
     await harness.unmount();
   });
 });

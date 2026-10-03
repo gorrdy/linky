@@ -13,6 +13,7 @@ import { MAIN_MINT_URL, normalizeMintUrl } from "../../../utils/mint";
 import { describeTaggedCashuError } from "../../lib/cashuStoredError";
 import { buildCashuPaymentRequestMessage } from "../../lib/paymentRequestMessage";
 import type { LoggedPaymentEventParams } from "../../types/appTypes";
+import { makeLocalId } from "../../../utils/validation";
 import { useResumeOnLaunchAndOnline } from "../useResumeOnLaunchAndOnline";
 import type {
   CashuTopupHandle,
@@ -95,6 +96,8 @@ export const useTopupFlow = ({
   const startedKeyRef = React.useRef<string | null>(null);
   /** The note typed for each quote; a resumed quote has only its invoice. */
   const noteByQuoteIdRef = React.useRef<Map<string, string>>(new Map());
+  // Never the quote id: it is unlocked, so a creq id leak would let anyone mint.
+  const creqIdByQuoteIdRef = React.useRef<Map<string, string>>(new Map());
   const startBalanceRef = React.useRef<number | null>(null);
 
   const completeTopup = React.useCallback(
@@ -316,13 +319,19 @@ export const useTopupFlow = ({
     }
 
     const invoice: string = activeTopup.quote.invoice;
+    const quoteId = activeTopup.quote.quoteId;
+    let creqId = creqIdByQuoteIdRef.current.get(quoteId);
+    if (creqId === undefined) {
+      creqId = makeLocalId();
+      creqIdByQuoteIdRef.current.set(quoteId, creqId);
+    }
     const cashuRequest = topupRecipientNprofile
       ? buildCashuPaymentRequestMessage({
           amount: activeTopup.amountSat,
           description: activeTopup.note,
           mintUrls: [activeTopup.mint],
           recipientNprofile: topupRecipientNprofile,
-          requestId: activeTopup.quote.quoteId,
+          requestId: creqId,
         })
       : null;
     const payload = cashuRequest
