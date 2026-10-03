@@ -609,7 +609,7 @@ export const useAppShellComposition = ({
   ]);
 
   const {
-    cycleProfileAvatarControl,
+    shuffleProfileAvatar,
     derivedProfile,
     effectiveMyLightningAddress,
     effectiveProfileName,
@@ -1446,7 +1446,7 @@ export const useAppShellComposition = ({
       onPayPaymentRequest: onPayChatPaymentRequest,
       onRespondBankPaymentOffer: respondToBankPaymentOfferWithGroupState,
       onSettleBankPaymentOffer: settleBankPaymentOffer,
-      cycleProfileAvatarControl,
+      shuffleProfileAvatar,
       onPickProfilePhoto,
       onProfilePhotoError,
       onProfilePhotoSelected,
@@ -1801,7 +1801,7 @@ export const useAppShellComposition = ({
       copyText,
       cycleScanCamera,
       cycleDisplayCurrency,
-      cycleProfileAvatarControl,
+      shuffleProfileAvatar,
       onPickProfilePhoto,
       onPickScanImage,
       onProfilePhotoError,
@@ -1856,7 +1856,7 @@ export const useAppShellComposition = ({
       copyText,
       cycleScanCamera,
       cycleDisplayCurrency,
-      cycleProfileAvatarControl,
+      shuffleProfileAvatar,
       onPickProfilePhoto,
       onPickScanImage,
       onProfilePhotoError,
