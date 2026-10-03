@@ -5,11 +5,12 @@ import {
   MintUrl,
   QuoteId,
   OperationId,
+  StoredOperation,
   TokenText,
   TopupQuote,
   TopupReceipt,
 } from "@linky-fit/linkshu";
-import { Either } from "effect";
+import { Either, Schema } from "effect";
 import React, { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderIntoDocument } from "../../../testUtils/renderIntoDocument";
@@ -38,6 +39,28 @@ const topupQuote = (quoteId = "quote-1"): TopupQuote =>
     amount: Amount.make(21),
     invoice: Bolt11Invoice.make(INVOICE),
     expiresAt: null,
+  });
+
+const pendingTopupOperation = (quoteId: string): StoredOperation =>
+  Schema.decodeUnknownSync(StoredOperation)({
+    id: `op-${quoteId}`,
+    kind: "topup",
+    status: "pending",
+    mint: MINT_URL,
+    unit: "sat",
+    keysetId: null,
+    amount: 21,
+    feeReserve: null,
+    inputsTotal: null,
+    quoteId,
+    invoice: INVOICE,
+    sourceMint: null,
+    counter: null,
+    locked: null,
+    expiresAt: null,
+    createdAt: 1_700_000_000,
+    tokenText: null,
+    error: null,
   });
 
 const topupReceipt = (quote: TopupQuote): TopupReceipt =>
@@ -75,12 +98,14 @@ const deferredHandle = (quote: TopupQuote): Deferred => {
 type Flow = ReturnType<typeof useTopupFlow>;
 
 interface SetupOptions {
+  cashuOperations?: ReadonlyArray<StoredOperation>;
   resumePendingCashuTopups?: ResumePendingCashuTopups;
   routeKind?: Route["kind"];
   startCashuTopup?: StartCashuTopup;
 }
 
 const setup = async ({
+  cashuOperations = [],
   resumePendingCashuTopups,
   routeKind = "topupInvoice",
   startCashuTopup,
@@ -89,13 +114,19 @@ const setup = async ({
   const setRouteKindRef: {
     current: (kind: Route["kind"]) => void;
   } = { current: () => {} };
+  const setOperationsRef: {
+    current: (operations: ReadonlyArray<StoredOperation>) => void;
+  } = { current: () => {} };
   const logPaymentEvent = vi.fn();
   const showPaidOverlay = vi.fn();
 
   const Harness = () => {
     const [currentRouteKind, setCurrentRouteKind] = React.useState(routeKind);
+    const [currentOperations, setCurrentOperations] =
+      React.useState(cashuOperations);
     const topupPaidNavTimerRef = React.useRef<number | null>(null);
     const flow = useTopupFlow({
+      cashuOperations: currentOperations,
       cashuTotalBalance: 0,
       defaultMintUrl: MINT_URL,
       formatDisplayedAmountParts: (amountSat) => ({
@@ -115,6 +146,7 @@ const setup = async ({
     React.useEffect(() => {
       flowRef.current = flow;
       setRouteKindRef.current = setCurrentRouteKind;
+      setOperationsRef.current = setCurrentOperations;
     }, [flow]);
     return null;
   };
@@ -127,6 +159,11 @@ const setup = async ({
   return {
     flow,
     logPaymentEvent,
+    setOperations: async (operations: ReadonlyArray<StoredOperation>) => {
+      await act(async () => {
+        setOperationsRef.current(operations);
+      });
+    },
     setRouteKind: async (kind: Route["kind"]) => {
       await act(async () => {
         setRouteKindRef.current(kind);
@@ -298,6 +335,49 @@ describe("useTopupFlow", () => {
       expect.objectContaining({ amount: 21, direction: "in", status: "ok" }),
     );
     expect(harness.flow().topupInvoice).toBeNull();
+    await harness.unmount();
+  });
+
+  it("resumes when a pending topup quote syncs in after mount", async () => {
+    const quote = topupQuote("quote-synced");
+    const deferred = deferredHandle(quote);
+    const resume = vi.fn<ResumePendingCashuTopups>(async () => [
+      deferred.handle,
+    ]);
+    const harness = await setup({
+      resumePendingCashuTopups: resume,
+      routeKind: "wallet",
+    });
+
+    expect(resume).toHaveBeenCalledTimes(1);
+
+    await harness.setOperations([pendingTopupOperation("quote-synced")]);
+
+    expect(resume).toHaveBeenCalledTimes(2);
+
+    await deferred.settle(Either.right(topupReceipt(quote)));
+
+    expect(harness.showPaidOverlay).toHaveBeenCalledWith(
+      "topupOverlay",
+      expect.objectContaining({ direction: "in" }),
+    );
+    await harness.unmount();
+  });
+
+  it("does not resume again for an unchanged pending set", async () => {
+    const resume = vi.fn<ResumePendingCashuTopups>(async () => []);
+    const harness = await setup({
+      cashuOperations: [pendingTopupOperation("quote-synced")],
+      resumePendingCashuTopups: resume,
+      routeKind: "wallet",
+    });
+
+    expect(resume).toHaveBeenCalledTimes(1);
+
+    await harness.setOperations([pendingTopupOperation("quote-synced")]);
+    await harness.setOperations([pendingTopupOperation("quote-synced")]);
+
+    expect(resume).toHaveBeenCalledTimes(1);
     await harness.unmount();
   });
 });

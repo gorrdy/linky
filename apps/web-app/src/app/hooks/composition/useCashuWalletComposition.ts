@@ -723,6 +723,7 @@ export const useCashuWalletComposition = ({
     topupInvoiceQrPayload,
     topupMintUrl,
   } = useTopupFlow({
+    cashuOperations: walletOperations,
     cashuTotalBalance,
     defaultMintUrl,
     formatDisplayedAmountParts,

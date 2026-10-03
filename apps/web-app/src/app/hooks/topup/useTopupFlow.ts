@@ -1,5 +1,9 @@
 import { transactionIdForQuote } from "@linky-fit/linksync";
-import type { TopupError, TopupQuote } from "@linky-fit/linkshu";
+import type {
+  StoredOperation,
+  TopupError,
+  TopupQuote,
+} from "@linky-fit/linkshu";
 import type { PaidOverlayDetails } from "../../lib/paidOverlay";
 import { Either } from "effect";
 import React from "react";
@@ -32,6 +36,7 @@ interface ActiveTopup {
 }
 
 interface UseTopupFlowParams {
+  cashuOperations: ReadonlyArray<StoredOperation>;
   cashuTotalBalance: number;
   defaultMintUrl: string | null;
   formatDisplayedAmountParts: (amountSat: number) => DisplayAmountParts;
@@ -56,6 +61,7 @@ interface UseTopupFlowParams {
  * back online. Pending quotes are retired only by the mint's own answer.
  */
 export const useTopupFlow = ({
+  cashuOperations,
   cashuTotalBalance,
   defaultMintUrl,
   formatDisplayedAmountParts,
@@ -217,6 +223,21 @@ export const useTopupFlow = ({
     [completeTopupRef, failTopupRef],
   );
 
+  const pendingTopupQuoteKey = React.useMemo(
+    () =>
+      cashuOperations
+        .filter(
+          (op) =>
+            op.kind === "topup" &&
+            op.status === "pending" &&
+            op.quoteId !== null,
+        )
+        .map((op) => op.quoteId)
+        .sort()
+        .join(","),
+    [cashuOperations],
+  );
+
   useResumeOnLaunchAndOnline(
     React.useMemo(() => {
       if (resumePendingCashuTopups === null) return null;
@@ -230,6 +251,7 @@ export const useTopupFlow = ({
           });
       };
     }, [resumePendingCashuTopups, watchTopup]),
+    pendingTopupQuoteKey,
   );
 
   React.useEffect(() => {
